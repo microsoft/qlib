@@ -262,8 +262,27 @@ class TrainTask(Task):
         if confirm is False:
             return []
 
-        command = f"qrun {workflow_path}"
-        self._output = subprocess.check_output(command, shell=True, cwd=workspace)
+        command = ["qrun", str(workflow_path)]
+        try:
+            # Run the command and capture the output
+            workspace = self._context_manager.get_context("workspace")
+            result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, text=True, cwd=str(workspace))
+        
+        except subprocess.CalledProcessError as e:
+            print(f"An error occurred while running the subprocess: {e.stderr} {e.stdout}")
+            real_error = e.stderr+e.stdout
+            if "model" in  e.stdout.lower():
+                return [HyperparameterActionTask("Model", regenerate=True, error=real_error), ConfigActionTask("Model"), YamlEditTask("Model"), TrainTask()]
+            elif "dataset" in  e.stdout.lower() or "handler" in  e.stdout.lower():
+                return [HyperparameterActionTask("Dataset", regenerate=True, error=real_error), HyperparameterActionTask("DataHandler", regenerate=True, error=real_error), ConfigActionTask("Dataset"), ConfigActionTask("DataHandler"), YamlEditTask("Dataset"), YamlEditTask("DataHandler"), TrainTask()]
+            else:
+                ret_list = []
+                for component in COMPONENT_LIST:
+                    ret_list.append(HyperparameterActionTask(component, regenerate=True, error=real_error))
+                    ret_list.append(ConfigActionTask(component))
+                    ret_list.append(YamlEditTask(component))
+                ret_list.append(TrainTask())
+                return ret_list
 
         return [AnalysisTask()]
 
@@ -403,11 +422,12 @@ class DifferentiatedComponentActionTask(ActionTask):
 
 
 class HyperparameterActionTask(ActionTask):
-    def __init__(self, component, regenerate=False, error=None) -> None:
+    def __init__(self, component, regenerate=False, error=None, error_type=None) -> None:
         super().__init__()
         self.target_component = component
         self.regenerate = regenerate
         self.error = error
+        self.error_type = error_type
 
     def execute(self):
         user_prompt = self._context_manager.get_context("user_prompt")
@@ -444,7 +464,10 @@ class HyperparameterActionTask(ActionTask):
         )
         former_messages = []
         if self.regenerate:
-            user_prompt = f"your hyperparameter cannot be initialized, may be caused by wrong format of the value or wrong name or some value is not supported in Qlib.\nPlease rewrite the hyperparameters and answer with exact required format in system prompt and reply with no more explainations.\nThe error message: {self.error}. Please correct the former answer accordingly.\nHyperparameters, Reason and Improve suggestion should always be included."
+            if self.error_type == "yaml":
+                user_prompt = f"your yaml config generated from your hyperparameter is not in the right format.\n The Yaml string generated from the hyperparameters is not in the right format.\nPlease rewrite the hyperparameters and answer with exact required format in system prompt and reply with no more explainations.\nThe error message: {self.error}. Please correct the former answer accordingly.\nHyperparameters, Reason and Improve suggestion should always be included."
+            else:
+                user_prompt = f"your hyperparameter cannot be initialized, may be caused by wrong format of the value or wrong name or some value is not supported in Qlib.\nPlease rewrite the hyperparameters and answer with exact required format in system prompt and reply with no more explainations.\nThe error message: {self.error}. Please correct the former answer accordingly.\nHyperparameters, Reason and Improve suggestion should always be included."
             former_messages = self._context_manager.get_context("chat_history")[self.__class__.__name__][self.target_component][1:]
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt, system_prompt, former_messages=former_messages
@@ -472,11 +495,9 @@ class HyperparameterActionTask(ActionTask):
 
 
 class ConfigActionTask(ActionTask):
-    def __init__(self, component, reconfig=False, error=None) -> None:
+    def __init__(self, component) -> None:
         super().__init__()
         self.target_component = component
-        self.reconfig = reconfig
-        self.error = error
     
     def execute(self):
         user_prompt = self._context_manager.get_context("user_prompt")
@@ -494,9 +515,9 @@ class ConfigActionTask(ActionTask):
             target_component_hyperparameters=target_component_hyperparameters
         )
         former_messages = []
-        if self.reconfig and user_prompt == self._context_manager.get_context("chat_history")[self.__class__.__name__][self.target_component][-2]["content"]:
-            user_prompt = f"your config cannot be converted to YAML, may be caused by wrong format. Please rewrite the yaml and answer with exact required format in system prompt and reply with no more explainations.\nerror message: {self.error}\n"
-            former_messages = self._context_manager.get_context("chat_history")[self.__class__.__name__][self.target_component][1:]
+        # if self.reconfig and user_prompt == self._context_manager.get_context("chat_history")[self.__class__.__name__][self.target_component][-2]["content"]:
+        #     user_prompt = f"your config cannot be converted to YAML, may be caused by wrong format. Please rewrite the yaml and answer with exact required format in system prompt and reply with no more explainations.\nerror message: {self.error}\n"
+        #     former_messages = self._context_manager.get_context("chat_history")[self.__class__.__name__][self.target_component][1:]
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt, system_prompt, former_messages=former_messages
         )
@@ -509,10 +530,13 @@ class ConfigActionTask(ActionTask):
             yaml_config = yaml.safe_load(io.StringIO(config))
         except yaml.YAMLError as e:
             self.logger.info(f"Yaml file is not in the correct format: {e}")
-            return_tasks = [HyperparameterActionTask(self.target_component, regenerate=True, error=str(e)),  ConfigActionTask(self.target_component, reconfig=True, error=str(e))]
+            return_tasks = [HyperparameterActionTask(self.target_component, regenerate=True, error=str(e), error_type="yaml"),  ConfigActionTask(self.target_component)]
             return return_tasks
         
-        if self.target_component == "DataHandler":
+        if self.target_component == "Dataset":
+            if 'handler' in yaml_config["dataset"]:
+                del yaml_config['dataset']['handler']
+        elif self.target_component == "DataHandler":
             for processor in yaml_config['handler']['kwargs']['infer_processors']:
                 if "kwargs" in processor and "fields_group" in processor["kwargs"]:
                     del processor["kwargs"]['fields_group']
@@ -520,8 +544,12 @@ class ConfigActionTask(ActionTask):
                 if "kwargs" in processor and "fields_group" in processor["kwargs"]:
                     del processor["kwargs"]['fields_group']
             
-            if 'freq' in yaml_config['handler']['kwargs'] and yaml_config['handler']['kwargs']['freq'] == '1d':
-                yaml_config['handler']['kwargs']['freq'] = "day"
+            if 'freq' in yaml_config['handler']['kwargs']:
+                yaml_config['handler']['kwargs']['freq'] = "day" # TODO hot fix freq because no data
+        elif self.target_component == "Record":
+            for record in yaml_config['record']:
+                if record['class'] == 'SigAnaRecord' and 'label_col' in record['kwargs']:
+                    del record['kwargs']["label_col"]
         
         def remove_default(config):
             if isinstance(config, dict):
@@ -688,12 +716,17 @@ class YamlEditTask(ActionTask):
         else:
             real_target_config_key = self.target_config_key
 
-
-
         # 3) replace the module
         assert isinstance(update_config, dict) and real_target_config_key in update_config, "The config file is not in the correct format"
         assert self.replace_key_value_recursive(target_config, real_target_config_key, update_config[real_target_config_key]), "Replace of the yaml file failed."
-        
+
+        # TODO hotfix for the bug that the record signalrecord config is not updated
+        for record in target_config['task']['record']:
+            if record['class'] == 'SignalRecord':
+                if 'model' in record['kwargs']:
+                    del record['kwargs']["model"]
+                if 'dataset' in record['kwargs']:
+                    del record['kwargs']["dataset"]
         
         # 4) save the config file
         with self.original_config_location.open("w") as f:

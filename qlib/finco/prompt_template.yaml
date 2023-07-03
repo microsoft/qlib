@@ -126,7 +126,9 @@ HyperparameterActionTask_system : |-
   The user has provided the requirements, chose the predefined classes and made plan and reason to each component. You should strictly follow user's choice and you should provide the reason of your hyperparameter choices if exist and some suggestion if the user wants to finetune the hyperparameters after the hyperparameter. 
 
   You only need to response the hyperparameters in the exact format in exsample below with no explanation or conversation. "Hyperparameters:", "Reason:", "Improve suggestion:" are key tags so always include them in response.
-  {% if target_module == "DataHandler" %}
+  {% if target_module == "Dataset" %}
+  Caution, if the user chose {qlib.data.dataset}-{DatasetH}, always remember to set hyperparameter: {segments}!
+  {% elif target_module == "DataHandler" %}
   Qlib has these processors {processor_name}-{hyperparameter kwargs}: 
   {DropnaProcessor}-{['fields_group']},{DropnaLabel}-{['fields_group']},{CSRankNorm}-{['fields_group']},{ProcessInf}-{[]},{Processor}-{[]},{MinMaxNorm}-{['fit_start_time', 'fit_end_time', 'fields_group']},{CSZFillna}-{['fields_group']},{TanhProcess}-{[]},{CSZScoreNorm}-{['fields_group', 'method']},{RobustZScoreNorm}-{['fit_start_time', 'fit_end_time', 'fields_group', 'clip_outlier']},{FilterCol}-{['fields_group', 'col_list']},{HashStockFormat}-{[]},{ZScoreNorm}-{['fit_start_time', 'fit_end_time', 'fields_group']},{DropCol}-{['col_list']},{Fillna}-{['fields_group', 'fill_value']}. 
   You can choose some of them to use in {infer_processors} or {learn_processors} if necessary and pick the kwargs of them.
@@ -342,6 +344,9 @@ ConfigActionTask_system: |-
   {%for module_path, class_name in classes%}{% raw %}{{% endraw %}{{module_path}}{% raw %}}{% endraw %}-{% raw %}{{% endraw %}{{class_name}}{% raw %}}{% endraw %}.{% endfor %} and you have decided all the hyperparameters.
   {% endif %}
 
+  The predefined classes and user's hint are hard requirments, you should copy them to your answer with no modification to avoid errors!
+  "```yaml(.*)" and "```" are key tags in response, always include them in your response!
+
   Default in user's hyperparameter means using default value in Qlib code. So always remember to avoid puting them in the config and delete this key in yaml string!!!
   You only output the target component part of the config, Don't output all the config file!!!
 
@@ -352,6 +357,7 @@ ConfigActionTask_system: |-
   4. each predefined class's hyperparameter to initialize the class
 
   You will response the YAML config with no explanation and interaction.
+  Most importantly, always make sure the yaml string you response can be converted to yaml object without any format issue!
 
   Example input:
   user requirement: Help me build a low turnover quant investment strategy that focus more on long turn return in China a stock market. I want to use a big LSTM model and add several MLP layer before the head.
@@ -441,7 +447,7 @@ ConfigActionTask_system: |-
   target component: Backtest
   {% endif %}
   Example output:
-  """yaml{% if target_module == "Dataset" %}
+  ```yaml{% if target_module == "Dataset" %}
   dataset:
     class: DatasetH
     module_path: qlib.data.dataset
@@ -511,7 +517,7 @@ ConfigActionTask_system: |-
         open_cost: 0.0005
         close_cost: 0.0015
         min_cost: 5
-  {% endif %}"""
+  {% endif %}```
 
 ConfigActionTask_user: |-
   user requirement: {{user_requirement}}
