@@ -4,11 +4,11 @@ import openai
 import json
 from typing import Optional
 from qlib.finco.conf import Config
-from qlib.finco.utils import Singleton
+from qlib.finco.utils import SingletonBaseClass
 from qlib.finco.log import FinCoLog
 
 
-class APIBackend(Singleton):
+class APIBackend(SingletonBaseClass):
     def __init__(self):
         self.cfg = Config()
         openai.api_key = self.cfg.openai_api_key

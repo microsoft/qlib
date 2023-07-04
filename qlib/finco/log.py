@@ -4,7 +4,7 @@ This module will base on Qlib's logger module and provides some interactive func
 import logging
 
 from typing import Dict, List
-from qlib.finco.utils import Singleton
+from qlib.finco.utils import SingletonBaseClass
 from contextlib import contextmanager
 
 
@@ -66,7 +66,7 @@ def formatting_log(logger, title="Info"):
     logger.info("")
 
 
-class FinCoLog(Singleton):
+class FinCoLog(SingletonBaseClass):
     # TODO:
     # - config to file logger and save it into workspace
     def __init__(self) -> None:

@@ -1,11 +1,11 @@
 # TODO: use pydantic for other modules in Qlib
 from pydantic import BaseSettings
-from qlib.finco.utils import Singleton
+from qlib.finco.utils import SingletonBaseClass
 
 import os
 
 
-class Config(Singleton):
+class Config(SingletonBaseClass):
     """
     This config is for fast demo purpose.
     Please use BaseSettings insetead in the future
