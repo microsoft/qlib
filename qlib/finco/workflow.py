@@ -9,6 +9,7 @@ from qlib.finco.log import FinCoLog, LogColors
 from qlib.finco.utils import similarity
 from qlib.finco.llm import APIBackend
 from qlib.finco.conf import Config
+from qlib.finco.knowledge import KnowledgeBase
 
 
 class WorkflowContextManager:
@@ -170,12 +171,14 @@ class LearnManager:
     def __init__(self):
         self.epoch = 0
         self.wm = WorkflowManager()
+        self.knowledge_base = KnowledgeBase(init_path=Path.cwd().joinpath('knowledge'))
 
     def run(self, prompt):
 
         # todo: add early stop condition
         for i in range(10):
             self.wm.run(prompt)
+            self.knowledge_base.update(self.wm._workspace)
             self.learn()
             self.epoch += 1
 
@@ -187,13 +190,14 @@ class LearnManager:
         summary = self.wm.context.get_context("summary")
 
         for task in task_finished:
-            prompt_workflow_selection = task.user.render(
-                summary=summary, task_finished=[str(task) for task in task_finished],
+            prompt_workflow_selection = self.wm.prompt_template.get(f"{self.__class__.__name__}_user").render(
+                summary=summary, brief=self.knowledge_base.query(), task_finished=[str(task) for task in task_finished],
                 task=task.__class__, system=task.system, user_prompt=user_prompt
             )
 
             response = APIBackend().build_messages_and_create_chat_completion(
-                user_prompt=prompt_workflow_selection, system_prompt=task.system.render()
+                user_prompt=prompt_workflow_selection,
+                system_prompt=self.wm.prompt_template.get(f"{self.__class__.__name__}_user").render()
             )
 
             # todo: response assertion
