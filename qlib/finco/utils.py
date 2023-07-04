@@ -3,14 +3,16 @@ import json
 from fuzzywuzzy import fuzz
 
 
-class Singleton:
+class Singleton(type):
     _instance = None
 
-    def __new__(cls, *args, **kwargs):
+    def __call__(cls, *args, **kwargs):
         if cls._instance is None:
-            cls._instance = super().__new__(cls, *args, **kwargs)
+            cls._instance = super(Singleton, cls).__call__(*args, **kwargs)  
         return cls._instance
 
+class SingletonBaseClass(metaclass=Singleton):  
+    pass
 
 def parse_json(response):
     try:
