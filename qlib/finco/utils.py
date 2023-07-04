@@ -3,16 +3,23 @@ import json
 from fuzzywuzzy import fuzz
 
 
-class Singleton(type):
+class SingletonMeta(type):
     _instance = None
 
     def __call__(cls, *args, **kwargs):
         if cls._instance is None:
-            cls._instance = super(Singleton, cls).__call__(*args, **kwargs)  
+            cls._instance = super(SingletonMeta, cls).__call__(*args, **kwargs)
         return cls._instance
 
-class SingletonBaseClass(metaclass=Singleton):  
-    pass
+
+class SingletonBaseClass(metaclass=SingletonMeta):
+    """
+    Because we try to support defining Singleton with `class A(SingletonBaseClass)` instead of `A(metaclass=SingletonMeta)`
+    This class becomes necessary
+
+    """
+    # TODO: Add move this class to Qlib's general utils.
+
 
 def parse_json(response):
     try:
