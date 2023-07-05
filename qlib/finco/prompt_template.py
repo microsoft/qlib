@@ -3,11 +3,11 @@ from pathlib import Path
 from jinja2 import Template
 import yaml
 
-from qlib.finco.utils import Singleton
+from qlib.finco.utils import SingletonBaseClass
 from qlib.finco import get_finco_path
 
 
-class PromptTemplate(Singleton):
+class PromptTemplate(SingletonBaseClass):
     def __init__(self) -> None:
         super().__init__()
         _template = yaml.load(open(Path.joinpath(get_finco_path(), "prompt_template.yaml"), "r"),

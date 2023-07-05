@@ -727,9 +727,9 @@ class YamlEditTask(ActionTask):
         # TODO hotfix for the bug that the record signalrecord config is not updated
         for record in target_config['task']['record']:
             if record['class'] == 'SignalRecord':
-                if 'model' in record['kwargs']:
+                if 'kwargs' in record and 'model' in record['kwargs']:
                     del record['kwargs']["model"]
-                if 'dataset' in record['kwargs']:
+                if 'kwargs' in record and 'dataset' in record['kwargs']:
                     del record['kwargs']["dataset"]
         
         # 4) save the config file
