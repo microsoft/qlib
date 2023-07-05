@@ -12,8 +12,6 @@ import pandas as pd
 import qlib
 import torch
 import yaml
-from qlib.backtest import Order
-from qlib.backtest.decision import OrderDir
 from qlib.backtest.decision import Task
 from qlib.constant import ONE_MIN
 from qlib.rl.data.pickle_styled import load_simple_intraday_backtest_data
