@@ -623,3 +623,9 @@ LearnManager_system : |-
 LearnManager_user : |-
   Here is the final summary:\n{{summary}}\n. Brief of this workflow is:{{brief}}\n 
   Tasks I have run are: {{task_finished}}, \n{{task}}'s system prompt is: {{system}}. \nUser's intention is: {{user_prompt}}. you will adjust it to:
+
+Topic_IC : |-
+  Summarize the influence of parameters on IC: {{docs}}
+
+Topic_MaxDropDown : |-
+  Summarize the influence of parameters on max dropdown: {{docs}}

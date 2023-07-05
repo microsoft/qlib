@@ -271,10 +271,14 @@ class TrainTask(Task):
         except subprocess.CalledProcessError as e:
             print(f"An error occurred while running the subprocess: {e.stderr} {e.stdout}")
             real_error = e.stderr+e.stdout
-            if "model" in  e.stdout.lower():
-                return [HyperparameterActionTask("Model", regenerate=True, error=real_error), ConfigActionTask("Model"), YamlEditTask("Model"), TrainTask()]
-            elif "dataset" in  e.stdout.lower() or "handler" in  e.stdout.lower():
-                return [HyperparameterActionTask("Dataset", regenerate=True, error=real_error), HyperparameterActionTask("DataHandler", regenerate=True, error=real_error), ConfigActionTask("Dataset"), ConfigActionTask("DataHandler"), YamlEditTask("Dataset"), YamlEditTask("DataHandler"), TrainTask()]
+            if "data" in e.stdout.lower() or "handler" in e.stdout.lower():
+                return [HyperparameterActionTask("Dataset", regenerate=True, error=real_error),
+                        HyperparameterActionTask("DataHandler", regenerate=True, error=real_error),
+                        ConfigActionTask("Dataset"), ConfigActionTask("DataHandler"), YamlEditTask("Dataset"),
+                        YamlEditTask("DataHandler"), TrainTask()]
+            elif "model" in e.stdout.lower():
+                return [HyperparameterActionTask("Model", regenerate=True, error=real_error),
+                        ConfigActionTask("Model"), YamlEditTask("Model"), TrainTask()]
             else:
                 ret_list = []
                 for component in COMPONENT_LIST:
@@ -754,7 +758,7 @@ class CodeDumpTask(ActionTask):
 
 
 class SummarizeTask(Task):
-    __DEFAULT_SUMMARIZE_CONTEXT = ["workflow_yaml"]
+    __DEFAULT_SUMMARIZE_CONTEXT = ["workflow_yaml", "metrics"]
 
     # TODO: 2048 is close to exceed GPT token limit
     __MAX_LENGTH_OF_FILE = 2048
@@ -775,22 +779,29 @@ class SummarizeTask(Task):
     def execute(self) -> Any:
         workspace = self._context_manager.get_context("workspace")
         user_prompt = self._context_manager.get_context("user_prompt")
+        workflow_yaml = self._context_manager.get_context("workflow_yaml")
 
         file_info = self.get_info_from_file(workspace)
-        context_info = []  # too long context make response unstable.
+        context_info = self.get_info_from_context()  # too long context make response unstable.
+        record_info = self.get_info_from_recorder(workspace, workflow_yaml["experiment_name"])
         figure_path = self.get_figure_path(workspace)
 
-        information = context_info + file_info
+        information = context_info + file_info + record_info
+
+        def _get_value_from_info(info: list, k: str):
+            for i in information:
+                if k in i.keys():
+                    return i.get(k)
+            return ""
 
         # todo: remove 'be' after test
         be = APIBackend()
         be.debug_mode = False
 
-        workflow_yaml = self._context_manager.get_context("workflow_yaml")
         context_summary = {}
         for key in self.__DEFAULT_SUMMARIZE_CONTEXT:
             prompt_workflow_selection = self.summarize_context_user.render(
-                key=key, value=self._context_manager.get_context(key=key)
+                key=key, value=_get_value_from_info(info=information, k=key)
             )
             response = be.build_messages_and_create_chat_completion(
                 user_prompt=prompt_workflow_selection, system_prompt=self.summarize_context_system.render()
@@ -801,7 +812,7 @@ class SummarizeTask(Task):
         recorder.save_objects(context_summary=context_summary)
 
         prompt_workflow_selection = self.user.render(
-            information=information, figure_path=figure_path, user_prompt=user_prompt
+            information=file_info + record_info, figure_path=figure_path, user_prompt=user_prompt
         )
         response = be.build_messages_and_create_chat_completion(
             user_prompt=prompt_workflow_selection, system_prompt=self.system.render()
@@ -860,6 +871,24 @@ class SummarizeTask(Task):
                 c = str(c)
                 context.append({key: c[: self.__MAX_LENGTH_OF_FILE]})
         return context
+
+    def get_info_from_recorder(self, path, exp_name) -> list:
+        path = path if path.name == "mlruns" else path.joinpath("mlruns")
+
+        R.set_uri(Path(path).as_uri())
+        exp = R.get_exp(experiment_name=exp_name)
+
+        records = []
+        recorders = exp.list_recorders(rtype=exp.RT_L)
+        if len(recorders) == 0:
+            return records
+
+        # get info from the latest recorder, sort by end time is considerable
+        recorders = sorted(recorders, key=lambda x: x.experiment_id)
+        recorder = recorders[-1]
+
+        records.append({"metrics": recorder.list_metrics()})
+        return records
 
     def get_figure_path(self, path):
         file_list = []

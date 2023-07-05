@@ -1,9 +1,11 @@
 from pathlib import Path
 from qlib.workflow import R
 from qlib.finco.log import FinCoLog
+from qlib.finco.llm import APIBackend
+from jinja2 import Template
 
 
-class KnowledgeTemplate:
+class Knowledge:
     """
     Use to handle knowledge in finCo such as experiment and outside domain information
     """
@@ -36,7 +38,7 @@ class KnowledgeTemplate:
         raise NotImplementedError(f"Please implement the `load` method.")
 
 
-class KnowledgeExperiment(KnowledgeTemplate):
+class KnowledgeExperiment(Knowledge):
     """
     Handle knowledge from experiments
     """
@@ -68,12 +70,32 @@ class KnowledgeExperiment(KnowledgeTemplate):
         return docs
 
 
+class Topic:
+
+    def __init__(self, name: str, describe: Template):
+        self.name = name
+        self.describe = describe
+        self.docs = []
+        self.knowledge = None
+        self.logger = FinCoLog()
+
+    def summarize(self, docs: list):
+        self.logger.info(f"Summarize topic: \nname: {self.name}\ndescribe: {self.describe.module}")
+        prompt_workflow_selection = self.describe.render(docs=docs)
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=prompt_workflow_selection
+        )
+
+        self.knowledge = response
+        self.docs = docs
+
+
 class KnowledgeBase:
     """
     Load knowledge, offer brief information of knowledge and common handle interfaces
     """
 
-    def __init__(self, init_path=None):
+    def __init__(self, init_path=None, topics: list[Topic] = None):
         self.logger = FinCoLog()
         init_path = init_path if init_path else Path.cwd()
 
@@ -87,12 +109,14 @@ class KnowledgeBase:
         # literal search/semantic search
         self.docs = self.brief(knowledge=self.knowledge)
 
+        self.topics = topics if topics else []
+
     def load(self, path) -> list:
         if isinstance(path, str):
             path = Path(path)
 
         knowledge = []
-        path = path if path.name is "mlruns" else path.joinpath("mlruns")
+        path = path if path.name == "mlruns" else path.joinpath("mlruns")
         R.set_uri(path.as_uri())
         for exp_name in R.list_experiments():
             knowledge.append(KnowledgeExperiment(exp_name=exp_name))
@@ -107,7 +131,7 @@ class KnowledgeBase:
         self.docs = self.brief(self.knowledge)
         self.logger.plain_info(f"Update knowledge finished.")
 
-    def brief(self, knowledge: list[KnowledgeTemplate]) -> list:
+    def brief(self, knowledge: list[Knowledge]) -> list:
         docs = []
         for k in knowledge:
             docs.extend(k.brief())
@@ -115,6 +139,16 @@ class KnowledgeBase:
         self.logger.plain_info(f"Generate brief knowledge summary finished.")
         return docs
 
-    def query(self, content: str):
+    def query(self, content: str = None):
         # todo: query by DSL
         return self.docs
+
+    def query_topics(self):
+        knowledge_of_topics = []
+        for topic in self.topics:
+            knowledge_of_topics.append({topic.name: topic.knowledge})
+        return knowledge_of_topics
+
+    def summarize_by_topic(self):
+        for topic in self.topics:
+            topic.summarize(self.docs)
