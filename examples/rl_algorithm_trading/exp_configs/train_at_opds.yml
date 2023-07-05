@@ -47,7 +47,7 @@ policy:
   class: PPO
   kwargs:
     lr: 0.0001
-  module_path: qlib.rl.order_execution.policy
+  module_path: qlib.rl.algorithm_trading.policy
 runtime:
   seed: 42
   use_cuda: false
