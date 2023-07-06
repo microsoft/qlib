@@ -610,9 +610,22 @@ SummarizeTask_user : |-
   Here is my information: '{{information}}'
   My intention is: {{user_prompt}}. Please provide me with a summary and   recommendation based on my intention and the information I have provided. There are some figures which absolute path are: {{figure_path}}, You must display these images in markdown using the appropriate image format.
 
-BackForwardTask_system : |-
+SummarizeTask_context_system : |-
+  Your purpose is to find the important information offered by user and summarize it.
+
+SummarizeTask_context_user : |-
+  Here is my information: '{{key}}:{{value}}'
+  Please summarize it.
+
+LearnManager_system : |-
   Your task is adjusting system prompt in each task to fulfill user's intention
 
-BackForwardTask_user : |-
-  Here is the final summary: '{{summary}}'
-  Tasks I have run are: {{task_finished}}, {{task}}'s system prompt is: {{system}}. User's intention is: {{user_prompt}}. you will adjust it to:
+LearnManager_user : |-
+  Here is the final summary:\n{{summary}}\n. Brief of this workflow is:{{brief}}\n 
+  Tasks I have run are: {{task_finished}}, \n{{task}}'s system prompt is: {{system}}. \nUser's intention is: {{user_prompt}}. you will adjust it to:
+
+Topic_IC : |-
+  Summarize the influence of parameters on IC: {{docs}}
+
+Topic_MaxDropDown : |-
+  Summarize the influence of parameters on max dropdown: {{docs}}

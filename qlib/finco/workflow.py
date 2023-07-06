@@ -9,6 +9,7 @@ from qlib.finco.log import FinCoLog, LogColors
 from qlib.finco.utils import similarity
 from qlib.finco.llm import APIBackend
 from qlib.finco.conf import Config
+from qlib.finco.knowledge import KnowledgeBase, Topic
 
 
 class WorkflowContextManager:
@@ -78,7 +79,7 @@ class WorkflowManager:
         self.prompt_template = PromptTemplate()
         self.context = WorkflowContextManager()
         self.context.set_context("workspace", self._workspace)
-        self.default_user_prompt = "Please help me build a low turnover strategy that focus more on longterm return in China A csi800. Please help to use lightgbm model."
+        self.default_user_prompt = "Please help me build a low turnover strategy that focus more on longterm return in China A csi300. Please help to use lightgbm model."
 
     def _confirm_and_rm(self):
         # if workspace exists, please confirm and remove it. Otherwise exit.
@@ -166,34 +167,43 @@ class WorkflowManager:
 
 
 class LearnManager:
+    __DEFAULT_TOPICS = ["IC", "MaxDropDown"]
 
     def __init__(self):
         self.epoch = 0
         self.wm = WorkflowManager()
 
-    def run(self, prompt):
+        topics = [Topic(name=topic, describe=self.wm.prompt_template.get(f"Topic_{topic}")) for topic in
+                  self.__DEFAULT_TOPICS]
+        self.knowledge_base = KnowledgeBase(init_path=Path.cwd().joinpath('knowledge'), topics=topics)
 
+    def run(self, prompt):
         # todo: add early stop condition
         for i in range(10):
             self.wm.run(prompt)
+            self.knowledge_base.update(self.wm._workspace)
+            self.knowledge_base.summarize_by_topic()
             self.learn()
             self.epoch += 1
 
     def learn(self):
         workspace = self.wm.context.get_context("workspace")
-        task_finished = self.wm.context.get_context("task_finished")
+        # one task maybe run several times in workflow
+        task_finished = list(set(self.wm.context.get_context("task_finished")))
 
         user_prompt = self.wm.context.get_context("user_prompt")
         summary = self.wm.context.get_context("summary")
 
         for task in task_finished:
-            prompt_workflow_selection = task.user.render(
-                summary=summary, task_finished=[str(task) for task in task_finished],
+            prompt_workflow_selection = self.wm.prompt_template.get(f"{self.__class__.__name__}_user").render(
+                summary=summary, brief=self.knowledge_base.query_topics(),
+                task_finished=[str(task) for task in task_finished],
                 task=task.__class__, system=task.system, user_prompt=user_prompt
             )
 
             response = APIBackend().build_messages_and_create_chat_completion(
-                user_prompt=prompt_workflow_selection, system_prompt=task.system.render()
+                user_prompt=prompt_workflow_selection,
+                system_prompt=self.wm.prompt_template.get(f"{self.__class__.__name__}_user").render()
             )
 
             # todo: response assertion

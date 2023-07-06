@@ -13,7 +13,6 @@ import inspect
 from qlib.finco.llm import APIBackend
 from qlib.finco.tpl import get_tpl_path
 from qlib.finco.prompt_template import PromptTemplate
-from qlib.workflow.record_temp import HFSignalRecord, SignalRecord
 from qlib.contrib.analyzer import HFAnalyzer, SignalAnalyzer
 from qlib.workflow import R
 from qlib.finco.log import FinCoLog, LogColors
@@ -254,6 +253,7 @@ class TrainTask(Task):
         workflow_path = workspace.joinpath(workflow_config)
         with workflow_path.open() as f:
             workflow = yaml.safe_load(f)
+        self._context_manager.set_context("workflow_yaml", workflow)
 
         confirm = self.interact(f"I select this workflow file: "
                                 f"{LogColors().render(workflow_path, color=LogColors.YELLOW, style=LogColors.BOLD)}\n"
@@ -271,10 +271,14 @@ class TrainTask(Task):
         except subprocess.CalledProcessError as e:
             print(f"An error occurred while running the subprocess: {e.stderr} {e.stdout}")
             real_error = e.stderr+e.stdout
-            if "model" in  e.stdout.lower():
-                return [HyperparameterActionTask("Model", regenerate=True, error=real_error), ConfigActionTask("Model"), YamlEditTask("Model"), TrainTask()]
-            elif "dataset" in  e.stdout.lower() or "handler" in  e.stdout.lower():
-                return [HyperparameterActionTask("Dataset", regenerate=True, error=real_error), HyperparameterActionTask("DataHandler", regenerate=True, error=real_error), ConfigActionTask("Dataset"), ConfigActionTask("DataHandler"), YamlEditTask("Dataset"), YamlEditTask("DataHandler"), TrainTask()]
+            if "data" in e.stdout.lower() or "handler" in e.stdout.lower():
+                return [HyperparameterActionTask("Dataset", regenerate=True, error=real_error),
+                        HyperparameterActionTask("DataHandler", regenerate=True, error=real_error),
+                        ConfigActionTask("Dataset"), ConfigActionTask("DataHandler"), YamlEditTask("Dataset"),
+                        YamlEditTask("DataHandler"), TrainTask()]
+            elif "model" in e.stdout.lower():
+                return [HyperparameterActionTask("Model", regenerate=True, error=real_error),
+                        ConfigActionTask("Model"), YamlEditTask("Model"), TrainTask()]
             else:
                 ret_list = []
                 for component in COMPONENT_LIST:
@@ -752,12 +756,9 @@ class CodeDumpTask(ActionTask):
             return [ImplementActionTask(self.target_component, reimplement=True), CodeDumpTask(self.target_component)]
         return []
 
-class SummarizeTask(Task):
-    __DEFAULT_WORKSPACE = "./"
 
-    __DEFAULT_USER_PROMPT = (
-        "Summarize the information I offered and give me some advice."
-    )
+class SummarizeTask(Task):
+    __DEFAULT_SUMMARIZE_CONTEXT = ["workflow_yaml", "metrics"]
 
     # TODO: 2048 is close to exceed GPT token limit
     __MAX_LENGTH_OF_FILE = 2048
@@ -765,39 +766,60 @@ class SummarizeTask(Task):
 
     def __init__(self):
         super().__init__()
-        self.workspace = self.__DEFAULT_WORKSPACE
+        self.workspace = "./"
+
+    @property
+    def summarize_context_system(self):
+        return self.prompt_template.get(self.__class__.__name__ + "_context_system")
+
+    @property
+    def summarize_context_user(self):
+        return self.prompt_template.get(self.__class__.__name__ + "_context_user")
 
     def execute(self) -> Any:
         workspace = self._context_manager.get_context("workspace")
-        if workspace is not None:
-            self.workspace = workspace
-
         user_prompt = self._context_manager.get_context("user_prompt")
-        user_prompt = (
-            user_prompt if user_prompt is not None else self.__DEFAULT_USER_PROMPT
-        )
+        workflow_yaml = self._context_manager.get_context("workflow_yaml")
 
         file_info = self.get_info_from_file(workspace)
-        context_info = []  # too long context make response unstable.
-        figure_path = self.get_figure_path()
+        context_info = self.get_info_from_context()  # too long context make response unstable.
+        record_info = self.get_info_from_recorder(workspace, workflow_yaml["experiment_name"])
+        figure_path = self.get_figure_path(workspace)
 
-        information = context_info + file_info
-        prompt_workflow_selection = self.user.render(
-            information=information, figure_path=figure_path, user_prompt=user_prompt
-        )
+        information = context_info + file_info + record_info
+
+        def _get_value_from_info(info: list, k: str):
+            for i in information:
+                if k in i.keys():
+                    return i.get(k)
+            return ""
 
         # todo: remove 'be' after test
         be = APIBackend()
-        bak_debug_mode = be.debug_mode
         be.debug_mode = False
+
+        context_summary = {}
+        for key in self.__DEFAULT_SUMMARIZE_CONTEXT:
+            prompt_workflow_selection = self.summarize_context_user.render(
+                key=key, value=_get_value_from_info(info=information, k=key)
+            )
+            response = be.build_messages_and_create_chat_completion(
+                user_prompt=prompt_workflow_selection, system_prompt=self.summarize_context_system.render()
+            )
+            context_summary.update({key: response})
+
+        recorder = R.get_recorder(experiment_name=workflow_yaml["experiment_name"])
+        recorder.save_objects(context_summary=context_summary)
+
+        prompt_workflow_selection = self.user.render(
+            information=file_info + record_info, figure_path=figure_path, user_prompt=user_prompt
+        )
         response = be.build_messages_and_create_chat_completion(
             user_prompt=prompt_workflow_selection, system_prompt=self.system.render()
         )
 
         self._context_manager.set_context("summary", response)
-        be.debug_mode = bak_debug_mode
-
-        self.save_markdown(content=response)
+        self.save_markdown(content=response, path=workspace)
         self.logger.info(f"Report has saved to {self.__DEFAULT_REPORT_NAME}", title="End")
 
         return []
@@ -850,18 +872,36 @@ class SummarizeTask(Task):
                 context.append({key: c[: self.__MAX_LENGTH_OF_FILE]})
         return context
 
-    def get_figure_path(self):
+    def get_info_from_recorder(self, path, exp_name) -> list:
+        path = path if path.name == "mlruns" else path.joinpath("mlruns")
+
+        R.set_uri(Path(path).as_uri())
+        exp = R.get_exp(experiment_name=exp_name)
+
+        records = []
+        recorders = exp.list_recorders(rtype=exp.RT_L)
+        if len(recorders) == 0:
+            return records
+
+        # get info from the latest recorder, sort by end time is considerable
+        recorders = sorted(recorders, key=lambda x: x.experiment_id)
+        recorder = recorders[-1]
+
+        records.append({"metrics": recorder.list_metrics()})
+        return records
+
+    def get_figure_path(self, path):
         file_list = []
 
-        for root, dirs, files in os.walk(Path(self.workspace)):
+        for root, dirs, files in os.walk(Path(path)):
             for filename in files:
                 postfix = filename.split(".")[-1]
                 if postfix in ["jpeg"]:
                     description = self._context_manager.retrieve(filename)
                     file_list.append({"file_name": filename, "description": description,
-                                      "path": str(Path(self.workspace).joinpath(filename))})
+                                      "path": str(Path(path).joinpath(filename))})
         return file_list
 
-    def save_markdown(self, content: str):
-        with open(Path(self.workspace).joinpath(self.__DEFAULT_REPORT_NAME), "w") as f:
+    def save_markdown(self, content: str, path):
+        with open(Path(path).joinpath(self.__DEFAULT_REPORT_NAME), "w") as f:
             f.write(content)
