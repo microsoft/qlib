@@ -13,16 +13,11 @@ import copy
 class SoftTopkStrategy(WeightStrategyBase):
     def __init__(
         self,
-        model,
-        dataset,
         topk,
         order_generator_cls_or_obj=OrderGenWInteract,
         max_sold_weight=1.0,
         risk_degree=0.95,
         buy_method="first_fill",
-        trade_exchange=None,
-        level_infra=None,
-        common_infra=None,
         **kwargs,
     ):
         """
@@ -37,7 +32,8 @@ class SoftTopkStrategy(WeightStrategyBase):
                 average_fill: assign the weight to the stocks rank high averagely.
         """
         super(SoftTopkStrategy, self).__init__(
-            model, dataset, order_generator_cls_or_obj, trade_exchange, level_infra, common_infra, **kwargs
+            order_generator_cls_or_obj=order_generator_cls_or_obj,
+            **kwargs,
         )
         self.topk = topk
         self.max_sold_weight = max_sold_weight
@@ -89,13 +85,15 @@ class SoftTopkStrategy(WeightStrategyBase):
                         max(1 / self.topk - final_stock_weight.get(stock_id, 0), 0.0),
                         sold_stock_weight,
                     )
-                    final_stock_weight[stock_id] = final_stock_weight.get(stock_id, 0.0) + add_weight
+                    final_stock_weight[stock_id] = (
+                        final_stock_weight.get(stock_id, 0.0) + add_weight
+                    )
                     sold_stock_weight -= add_weight
             elif self.buy_method == "average_fill":
                 for stock_id in buy_signal_stocks:
-                    final_stock_weight[stock_id] = final_stock_weight.get(stock_id, 0.0) + sold_stock_weight / len(
-                        buy_signal_stocks
-                    )
+                    final_stock_weight[stock_id] = final_stock_weight.get(
+                        stock_id, 0.0
+                    ) + sold_stock_weight / len(buy_signal_stocks)
             else:
                 raise ValueError("Buy method not found")
         return final_stock_weight

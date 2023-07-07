@@ -333,7 +333,7 @@ class WeightStrategyBase(BaseSignalStrategy):
 
         Parameters
         -----------
-        score : pd.Series
+        score : pd.DataFrame
             pred score for this trade date, index is stock_id, contain 'score' column.
         current : Position()
             current position.
