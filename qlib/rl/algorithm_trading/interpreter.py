@@ -3,14 +3,12 @@
 
 from __future__ import annotations
 
-import math
 from typing import Any, List, Optional, cast
 
 import numpy as np
 import pandas as pd
 from gym import spaces
 
-from qlib.constant import EPS
 from qlib.rl.data.base import ProcessedDataProvider
 from qlib.rl.interpreter import ActionInterpreter, StateInterpreter
 from qlib.rl.algorithm_trading.state import SAATState

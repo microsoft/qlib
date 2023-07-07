@@ -9,9 +9,12 @@ from typing import cast, List, Optional
 
 import numpy as np
 import pandas as pd
-import qlib
-import torch
 import yaml
+import torch
+from tianshou.policy import BasePolicy
+from torch.utils.data import Dataset
+
+import qlib
 from qlib.backtest.decision import Task
 from qlib.constant import ONE_MIN
 from qlib.rl.data.pickle_styled import load_simple_intraday_backtest_data
@@ -22,9 +25,6 @@ from qlib.rl.trainer import Checkpoint, backtest, train
 from qlib.rl.trainer.callbacks import Callback, EarlyStopping, MetricsWriter
 from qlib.rl.utils.log import CsvWriter
 from qlib.utils import init_instance_by_config
-from tianshou.policy import BasePolicy
-from torch.utils.data import Dataset
-
 
 def seed_everything(seed: int) -> None:
     torch.manual_seed(seed)
