@@ -25,7 +25,7 @@ Quantitative Researcher
 =======================
 If you have a certain level of financial domain knowledge and coding skills, and you want to explore the application of RL algorithms in the investment field, we recommend the following steps to explore QlibRL:
  - Learn the fundamentals of RL in `part1 <https://qlib.readthedocs.io/en/latest/component/rl/overall.html#reinforcement-learning>`_.
- - Understand the trading scenarios where RL methods can be applied in `part2 <http://10.190.175.91:8888/component/rl/overall.html#potential-application-scenarios-in-quantitative-trading>`_.
+ - Understand the trading scenarios where RL methods can be applied in `part2 <https://qlib.readthedocs.io/en/latest/component/rl/overall.html#potential-application-scenarios-in-quantitative-trading>`_.
  - Run the examples in `part3 <https://qlib.readthedocs.io/en/latest/component/rl/quickstart.html>`_ to solve trading problems using RL.
  - Understand the framework of QlibRL in `part4 <https://qlib.readthedocs.io/en/latest/component/rl/framework.html>`_.
  - Choose a suitable RL algorithm based on the characteristics of the problem you want to solve (currently, QlibRL supports PPO and DQN algorithms based on tianshou).
