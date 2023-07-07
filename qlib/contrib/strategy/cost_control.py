@@ -5,6 +5,7 @@ This strategy is not well maintained
 """
 
 
+import pandas as pd
 from .order_generator import OrderGenWInteract
 from .signal_strategy import WeightStrategyBase
 import copy
@@ -66,6 +67,8 @@ class SoftTopkStrategy(WeightStrategyBase):
         # TODO:
         # If the current stock list is more than topk(eg. The weights are modified
         # by risk control), the weight will not be handled correctly.
+        if isinstance(score, pd.DataFrame):
+            score = score.iloc[:, 0]
         buy_signal_stocks = set(score.sort_values(ascending=False).iloc[: self.topk].index)
         cur_stock_weight = current.get_stock_weight_dict(only_stock=True)
 
