@@ -10,7 +10,7 @@ Beginners to Reinforcement Learning Algorithms
 ==============================================
 Whether you are a quantitative researcher who wants to understand what RL can do in trading or a learner who wants to get started with RL algorithms in trading scenarios, if you have limited knowledge of RL and want to shield various detailed settings to quickly get started with RL algorithms, we recommend the following sequence to learn qlibrl:
  - Learn the fundamentals of RL in `part1 <https://qlib.readthedocs.io/en/latest/component/rl/overall.html#reinforcement-learning>`_.
- - Understand the trading scenarios where RL methods can be applied in `part2 <http://10.190.175.91:8888/component/rl/overall.html#potential-application-scenarios-in-quantitative-trading>`_.
+ - Understand the trading scenarios where RL methods can be applied in `part2 <https://qlib.readthedocs.io/en/latest/component/rl/overall.html#potential-application-scenarios-in-quantitative-trading>`_.
  - Run the examples in `part3 <https://qlib.readthedocs.io/en/latest/component/rl/quickstart.html>`_ to solve trading problems using RL.
  - If you want to further explore QlibRL and make some customizations, you need to first understand the framework of QlibRL in `part4 <https://qlib.readthedocs.io/en/latest/component/rl/framework.html>`_ and rewrite specific components according to your needs.
 
