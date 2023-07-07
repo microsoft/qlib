@@ -17,7 +17,7 @@ Whether you are a quantitative researcher who wants to understand what RL can do
 Reinforcement Learning Algorithm Researcher
 ==============================================
 If you are already familiar with existing RL algorithms and dedicated to researching RL algorithms but lack domain knowledge in the financial field, and you want to validate the effectiveness of your algorithms in financial trading scenarios, we recommend the following steps to get started with QlibRL:
- - Understand the trading scenarios where RL methods can be applied in `part2 <http://10.190.175.91:8888/component/rl/overall.html#potential-application-scenarios-in-quantitative-trading>`_.
+ - Understand the trading scenarios where RL methods can be applied in `part2 <https://qlib.readthedocs.io/en/latest/component/rl/overall.html#potential-application-scenarios-in-quantitative-trading>`_.
  - Choose an RL application scenario (currently, QlibRL has implemented two scenario examples: order execution and algorithmic trading). Run the example in `part3 <https://qlib.readthedocs.io/en/latest/component/rl/quickstart.html>`_ to get it working.
  - Modify the `policy <https://github.com/microsoft/qlib/blob/main/qlib/rl/order_execution/policy.py>`_ part to incorporate your own RL algorithm.
 
