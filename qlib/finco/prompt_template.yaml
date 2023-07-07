@@ -605,20 +605,27 @@ SummarizeTask_system : |-
   You can add subheadings and paragraphs in Markdown for readability.
   You can bold or use other formatting options to highlight keywords in the main text.
   You should display images I offered in markdown using the appropriate image format.
+  Don't list data user doesn't provide.
 
 SummarizeTask_user : |-
   Here is my information: '{{information}}'
   My intention is: {{user_prompt}}. Please provide me with a summary and   recommendation based on my intention and the information I have provided. There are some figures which absolute path are: {{figure_path}}, You must display these images in markdown using the appropriate image format.
 
 SummarizeTask_context_system : |-
-  Your purpose is to find the important information offered by user and summarize it.
+  Your purpose is to find out the important information offered by user. You can just show the data provided by user in markdown format.
 
 SummarizeTask_context_user : |-
   Here is my information: '{{key}}:{{value}}'
+
+SummarizeTask_metrics_system : |-
+  Your purpose is to summarize the information by metrics in markdown format.
+
+SummarizeTask_metrics_user : |-
+  Here is my information: '{{information}}'
   Please summarize it.
 
 LearnManager_system : |-
-  Your task is adjusting system prompt in each task to fulfill user's intention
+  Your task is adjusting system prompt in each task to fulfill user's intention. If you have no idea how to optimize the system prompt, you can just return the original system prompt.
 
 LearnManager_user : |-
   Here is the final summary:\n{{summary}}\n. Brief of this workflow is:{{brief}}\n 
