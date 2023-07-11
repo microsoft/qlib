@@ -2,6 +2,7 @@ import sys
 import copy
 import shutil
 from pathlib import Path
+from typing import List
 
 from qlib.finco.task import WorkflowTask, SummarizeTask, TrainTask
 from qlib.finco.prompt_template import PromptTemplate, Template
@@ -188,8 +189,17 @@ class LearnManager:
 
     def learn(self):
         workspace = self.wm.context.get_context("workspace")
+
+        def _drop_duplicate_task(_task: List):
+            unique_task = {}
+            for obj in _task:
+                task_name = obj.__class__.__name__
+                if task_name not in unique_task:
+                    unique_task[task_name] = obj
+            return list(unique_task.values())
+
         # one task maybe run several times in workflow
-        task_finished = list(set(self.wm.context.get_context("task_finished")))
+        task_finished = _drop_duplicate_task(self.wm.context.get_context("task_finished"))
 
         user_prompt = self.wm.context.get_context("user_prompt")
         summary = self.wm.context.get_context("summary")
@@ -197,13 +207,13 @@ class LearnManager:
         for task in task_finished:
             prompt_workflow_selection = self.wm.prompt_template.get(f"{self.__class__.__name__}_user").render(
                 summary=summary, brief=self.knowledge_base.query_topics(),
-                task_finished=[str(task) for task in task_finished],
-                task=task.__class__, system=task.system, user_prompt=user_prompt
+                task_finished=[str(t) for t in task_finished],
+                task=task.__class__.__name__, system=task.system.render(), user_prompt=user_prompt
             )
 
             response = APIBackend().build_messages_and_create_chat_completion(
                 user_prompt=prompt_workflow_selection,
-                system_prompt=self.wm.prompt_template.get(f"{self.__class__.__name__}_user").render()
+                system_prompt=self.wm.prompt_template.get(f"{self.__class__.__name__}_system").render()
             )
 
             # todo: response assertion

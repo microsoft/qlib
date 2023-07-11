@@ -776,6 +776,14 @@ class SummarizeTask(Task):
     def summarize_context_user(self):
         return self.prompt_template.get(self.__class__.__name__ + "_context_user")
 
+    @property
+    def summarize_metrics_system(self):
+        return self.prompt_template.get(self.__class__.__name__ + "_metrics_system")
+
+    @property
+    def summarize_metrics_user(self):
+        return self.prompt_template.get(self.__class__.__name__ + "_metrics_user")
+
     def execute(self) -> Any:
         workspace = self._context_manager.get_context("workspace")
         user_prompt = self._context_manager.get_context("user_prompt")
@@ -811,8 +819,15 @@ class SummarizeTask(Task):
         recorder = R.get_recorder(experiment_name=workflow_yaml["experiment_name"])
         recorder.save_objects(context_summary=context_summary)
 
+        prompt_workflow_selection = self.summarize_metrics_user.render(
+            information=_get_value_from_info(info=record_info, k="metrics"), user_prompt=user_prompt
+        )
+        metrics_response = be.build_messages_and_create_chat_completion(
+            user_prompt=prompt_workflow_selection, system_prompt=self.summarize_metrics_system.render()
+        )
+
         prompt_workflow_selection = self.user.render(
-            information=file_info + record_info, figure_path=figure_path, user_prompt=user_prompt
+            information=file_info + [{"metrics": metrics_response}], figure_path=figure_path, user_prompt=user_prompt
         )
         response = be.build_messages_and_create_chat_completion(
             user_prompt=prompt_workflow_selection, system_prompt=self.system.render()
@@ -856,23 +871,15 @@ class SummarizeTask(Task):
 
     def get_info_from_context(self):
         context = []
-        # TODO: get all keys from context?
-        for key in [
-            "user_prompt",
-            "chat_history",
-            "Dataset_plan",
-            "Model_plan",
-            "Record_plan",
-            "Strategy_plan",
-            "Backtest_plan",
-        ]:
-            c = self._context_manager.get_context(key=key)
-            if c is not None:
-                c = str(c)
-                context.append({key: c[: self.__MAX_LENGTH_OF_FILE]})
+        for key, v in self._context_manager.context.items():
+            if v is not None:
+                v = str(v)
+                context.append({key: v[: self.__MAX_LENGTH_OF_FILE]})
         return context
 
-    def get_info_from_recorder(self, path, exp_name) -> list:
+    @staticmethod
+    def get_info_from_recorder(path, exp_name) -> list:
+        path = Path(path)
         path = path if path.name == "mlruns" else path.joinpath("mlruns")
 
         R.set_uri(Path(path).as_uri())

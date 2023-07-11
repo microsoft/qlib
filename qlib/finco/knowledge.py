@@ -1,8 +1,10 @@
 from pathlib import Path
+from jinja2 import Template
+from typing import List
+
 from qlib.workflow import R
 from qlib.finco.log import FinCoLog
 from qlib.finco.llm import APIBackend
-from jinja2 import Template
 
 
 class Knowledge:
@@ -95,7 +97,7 @@ class KnowledgeBase:
     Load knowledge, offer brief information of knowledge and common handle interfaces
     """
 
-    def __init__(self, init_path=None, topics: list[Topic] = None):
+    def __init__(self, init_path=None, topics: List[Topic] = None):
         self.logger = FinCoLog()
         init_path = init_path if init_path else Path.cwd()
 
@@ -111,7 +113,7 @@ class KnowledgeBase:
 
         self.topics = topics if topics else []
 
-    def load(self, path) -> list:
+    def load(self, path) -> List:
         if isinstance(path, str):
             path = Path(path)
 
@@ -131,7 +133,7 @@ class KnowledgeBase:
         self.docs = self.brief(self.knowledge)
         self.logger.plain_info(f"Update knowledge finished.")
 
-    def brief(self, knowledge: list[Knowledge]) -> list:
+    def brief(self, knowledge: List[Knowledge]) -> List:
         docs = []
         for k in knowledge:
             docs.extend(k.brief())
