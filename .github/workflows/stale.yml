@@ -18,6 +18,7 @@ jobs:
         stale-issue-label: 'stale'
         stale-pr-label: 'stale'
         days-before-stale: 90
+        days-before-pr-stale: 365
         days-before-close: 5
         operations-per-run: 100
         exempt-issue-labels: 'bug,enhancement'
