@@ -8,7 +8,6 @@ import yaml
 import pandas as pd
 from qlib import auto_init
 from pathlib import Path
-from tqdm.auto import tqdm
 from qlib.model.trainer import TrainerR
 from qlib.log import get_module_logger
 from qlib.utils.data import update_config
@@ -20,9 +19,33 @@ from qlib.workflow.task.gen import task_generator, RollingGen
 from qlib.workflow.task.collect import RecorderCollector
 from qlib.workflow.record_temp import PortAnaRecord, SigAnaRecord
 
+from qlib.typehint import Literal
+from qlib.contrib.rolling import Rolling
+
+
+class RollingBenchmarkTODO(Rolling):
+    """RollingWCache Plus some extra config"""
+
+    def __init__(
+        self, model_type: Optional[Literal["gbdt", "linear"]] = None, config_path: Optional[str] = None, **kwargs
+    ) -> None:
+        # This code is for being compatible with the previous old code
+        # if model_type == "gbdt":
+        #     conf_path = DIRNAME / "workflow_config_lightgbm_Alpha158.yaml"
+        #     # dump the processed data on to disk for later loading to speed up the processing
+        #     h_path = DIRNAME / "lightgbm_alpha158_handler_horizon{}.pkl".format(self.horizon)
+        # elif model_type == "linear":
+        #     # We use ridge regression to stabilize the performance
+        #     conf_path = DIRNAME / "workflow_config_linear_Alpha158.yaml"
+        #     h_path = DIRNAME / "linear_alpha158_handler_horizon{}.pkl".format(self.horizon)
+        # else:
+        #     raise AssertionError("Model type is not supported!")
+        super().__init__(config_path=config_path, **kwargs)
+
 
 class RollingBenchmark:
     """
+
     **NOTE**
     before running the example, please clean your previous results with following command
     - `rm -r mlruns`
