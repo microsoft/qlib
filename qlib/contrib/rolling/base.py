@@ -1,6 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-from typing import Optional, List
+from typing import Optional, List, Union
 from qlib.model.ens.ensemble import RollingEnsemble
 from qlib.utils import init_instance_by_config, get_cls_kwargs
 import fire
@@ -49,7 +49,7 @@ class Rolling:
 
     def __init__(
         self,
-        conf_path: str,
+        conf_path: Union[str, Path],
         exp_name: Optional[str] = None,
         horizon: Optional[int] = 20,
         step: int = 20,
