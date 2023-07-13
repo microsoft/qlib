@@ -67,6 +67,12 @@ class APIBackend(SingletonBaseClass):
                 print(f"Retrying {i+1}th time...")
                 time.sleep(1)
                 continue
+            except openai.InvalidRequestError as e:
+                print("Invalid request, will try to reduce the messages length and retry...")
+                if len(kwargs["messages"]) > 2:
+                    kwargs["messages"] = kwargs["messages"][[0]] + kwargs["messages"][3:]
+                    continue
+                raise e
         raise Exception(f"Failed to create chat completion after {max_retry} retries.")
 
     def create_chat_completion(
