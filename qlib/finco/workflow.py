@@ -176,7 +176,9 @@ class LearnManager:
 
         self.topics = [Topic(name=topic, describe=self.wm.prompt_template.get(f"Topic_{topic}")) for topic in
                        self.__DEFAULT_TOPICS]
-        self.knowledge_base = KnowledgeBase(init_path=Path.cwd().joinpath('knowledge'))
+        self.knowledge_base = KnowledgeBase(workdir=Path.cwd().joinpath('knowledge'))
+        self.knowledge_base.execute_knowledge.add([])
+        self.knowledge_base.query(knowledge_type="infrastructure", content="resolve_path")
 
     def run(self, prompt):
         # todo: add early stop condition
@@ -202,7 +204,7 @@ class LearnManager:
         user_prompt = self.wm.context.get_context("user_prompt")
         summary = self.wm.context.get_context("summary")
 
-        [topic.summarize(self.knowledge_base.knowledge()) for topic in self.topics]
+        [topic.summarize(self.knowledge_base.get_knowledge()) for topic in self.topics]
         knowledge_of_topics = [{topic.name: topic.knowledge} for topic in self.topics]
 
         for task in task_finished:

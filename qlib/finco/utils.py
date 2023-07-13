@@ -1,4 +1,6 @@
 import json
+import string
+import random
 
 from fuzzywuzzy import fuzz
 
@@ -36,3 +38,8 @@ def similarity(text1, text2):
 
     # Maybe we can use other similarity algorithm such as tfidf
     return fuzz.ratio(text1, text2)
+
+
+def random_string(length=10):
+    letters = string.ascii_letters + string.digits
+    return ''.join(random.choice(letters) for i in range(length))
