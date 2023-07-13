@@ -151,14 +151,13 @@ class Rolling:
             task["dataset"]["kwargs"]["segments"]["test"] = seg[0], pd.Timestamp(self.test_end)
         return task
 
-    def basic_task(self):
+    def basic_task(self, task: Optional[dict] = None):
         """
         The basic task may not be the exactly same as the config from `conf_path` from __init__ due to
         - some parameters could be overriding by some parameters from __init__
         - user could implementing sublcass to change it for higher performance
-
         """
-        conf = self._raw_conf()
+        task: dict = task or self._raw_conf()["task"]
 
         # modify dataset horizon
         # NOTE:
@@ -170,11 +169,10 @@ class Rolling:
             raise NotImplementedError(f"This type of input is not supported")
         else:
             self.logger.info("The prediction horizon is overrided")
-            conf["task"]["dataset"]["kwargs"]["handler"]["kwargs"]["label"] = [
+            task["dataset"]["kwargs"]["handler"]["kwargs"]["label"] = [
                 "Ref($close, -{}) / Ref($close, -1) - 1".format(self.horizon + 1)
             ]
 
-        task = conf["task"]
         task = self._replace_hanler_with_cache(task)
         task = self._update_start_end_time(task)
 
