@@ -688,9 +688,9 @@ def get_item_from_obj(config: dict, name_path: str) -> object:
     cur_cfg = config
     for k in name_path.split("."):
         if isinstance(cur_cfg, dict):
-            cur_cfg = cur_cfg[k]
+            cur_cfg = cur_cfg[k]  # may raise KeyError
         elif k.isdigit():
-            cur_cfg = cur_cfg[int(k)]
+            cur_cfg = cur_cfg[int(k)]  # may raise IndexError
         else:
             raise ValueError(f"Error when getting {k} from cur_cfg")
     return cur_cfg
@@ -733,7 +733,7 @@ def fill_placeholder(config: dict, config_extend: dict):
             item_keys = range(len(now_item))
         elif isinstance(now_item, dict):
             item_keys = now_item.keys()
-        for key in item_keys:
+        for key in item_keys:  # noqa
             if isinstance(now_item[key], (list, dict)):
                 item_queue.append(now_item[key])
                 tail += 1
@@ -743,7 +743,12 @@ def fill_placeholder(config: dict, config_extend: dict):
                 else:
                     m = re.match(r"<(?P<name_path>[^<>]+)>", now_item[key])
                     if m is not None:
-                        now_item[key] = get_item_from_obj(config, m.groupdict()["name_path"])
+                        try:
+                            now_item[key] = get_item_from_obj(config, m.groupdict()["name_path"])
+                        except (KeyError, ValueError, IndexError):
+                            get_module_logger("fill_placeholder").info(
+                                f"{now_item[key]} lookes like a placeholder, but it can't match to any given values"
+                            )
     return config
 
 
