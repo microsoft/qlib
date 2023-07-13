@@ -71,15 +71,11 @@ def fetch_df_by_index(
     if fetch_orig:
         for slc in idx_slc:
             if slc != slice(None, None):
-                return df.loc[
-                    pd.IndexSlice[idx_slc],
-                ]
+                return df.loc[pd.IndexSlice[idx_slc],]
         else:  # pylint: disable=W0120
             return df
     else:
-        return df.loc[
-            pd.IndexSlice[idx_slc],
-        ]
+        return df.loc[pd.IndexSlice[idx_slc],]
 
 
 def fetch_df_by_col(df: pd.DataFrame, col_set: Union[str, List[str]]) -> pd.DataFrame:

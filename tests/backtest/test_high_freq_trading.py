@@ -27,7 +27,6 @@ class TestHFBacktest(TestAutoData):
         return pd.DataFrame(orders, columns=headers)
 
     def test_trading(self):
-
         # date = "2020-02-03"
         # inst = "SH600068"
         # pos = 2.0167

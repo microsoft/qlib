@@ -119,7 +119,6 @@ class TCTS(Model):
         )
 
     def loss_fn(self, pred, label, weight):
-
         if self.mode == "hard":
             loc = torch.argmax(weight, 1)
             loss = (pred - label[np.arange(weight.shape[0]), loc]) ** 2
@@ -157,7 +156,6 @@ class TCTS(Model):
 
         for i in range(self.steps):
             for i in range(len(indices))[:: self.batch_size]:
-
                 if len(indices) - i < self.batch_size:
                     break
 
@@ -191,7 +189,6 @@ class TCTS(Model):
 
         # fix forecasting model and valid weight model
         for i in range(len(indices))[:: self.batch_size]:
-
             if len(indices) - i < self.batch_size:
                 break
 
@@ -212,7 +209,6 @@ class TCTS(Model):
             self.weight_optimizer.step()
 
     def test_epoch(self, data_x, data_y):
-
         # prepare training data
         x_values = data_x.values
         y_values = np.squeeze(data_y.values)
@@ -224,7 +220,6 @@ class TCTS(Model):
         indices = np.arange(len(x_values))
 
         for i in range(len(indices))[:: self.batch_size]:
-
             if len(indices) - i < self.batch_size:
                 break
 
@@ -282,7 +277,6 @@ class TCTS(Model):
         verbose=True,
         save_path=None,
     ):
-
         self.fore_model = GRUModel(
             d_feat=self.d_feat,
             hidden_size=self.hidden_size,
@@ -366,7 +360,6 @@ class TCTS(Model):
         preds = []
 
         for begin in range(sample_num)[:: self.batch_size]:
-
             if sample_num - begin < self.batch_size:
                 end = sample_num
             else:

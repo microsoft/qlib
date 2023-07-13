@@ -561,7 +561,6 @@ def exists_qlib_data(qlib_dir):
             return False
     # check calendar bin
     for _calendar in calendars_dir.iterdir():
-
         if ("_future" not in _calendar.name) and (
             not list(features_dir.rglob(f"*.{_calendar.name.split('.')[0]}.bin"))
         ):

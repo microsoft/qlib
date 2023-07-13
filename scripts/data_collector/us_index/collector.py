@@ -143,7 +143,6 @@ class WIKIIndex(IndexBase):
 
 
 class NASDAQ100Index(WIKIIndex):
-
     HISTORY_COMPANIES_URL = (
         "https://indexes.nasdaqomx.com/Index/WeightingData?id=NDX&tradeDate={trade_date}T00%3A00%3A00.000&timeOfDay=SOD"
     )

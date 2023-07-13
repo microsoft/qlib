@@ -237,7 +237,6 @@ class DumpPitData:
                     pass
 
             with open(data_file, "rb+") as fd, open(index_file, "rb+") as fi:
-
                 # update index if needed
                 for i, row in df_sub.iterrows():
                     # get index

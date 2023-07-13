@@ -43,7 +43,7 @@ class Rolling:
     **NOTE**
     before running the example, please clean your previous results with following command
     - `rm -r mlruns`
-    - Because it is very hard to permanently delete a experiment (it will be moved into .trash and raise error when creating experiment with same name). 
+    - Because it is very hard to permanently delete a experiment (it will be moved into .trash and raise error when creating experiment with same name).
 
     """
 
@@ -59,7 +59,7 @@ class Rolling:
         task_ext_conf: Optional[dict] = None,
         enable_handler_cache: bool = True,
         rolling_exp: Optional[str] = None,
-        rid: Optional[str] = None
+        rid: Optional[str] = None,
     ) -> None:
         """
         Parameters
@@ -112,7 +112,8 @@ class Rolling:
         self.enable_handler_cache = enable_handler_cache
         if not enable_handler_cache and h_path is not None:
             raise ValueError(
-                "If you want to existing hanlder cache(e.g. `h_path`), you must enable `enable_handler_cache`")
+                "If you want to existing hanlder cache(e.g. `h_path`), you must enable `enable_handler_cache`"
+            )
         self.h_path = h_path
 
         # FIXME:
@@ -185,9 +186,9 @@ class Rolling:
     def get_task_list(self) -> List[dict]:
         """return a batch of tasks for rolling."""
         task = self.basic_task()
-        task_l = task_generator(task,
-                                RollingGen(step=self.step, trunc_days=self.horizon +
-                                           1))  # the last two days should be truncated to avoid information leakage
+        task_l = task_generator(
+            task, RollingGen(step=self.step, trunc_days=self.horizon + 1)
+        )  # the last two days should be truncated to avoid information leakage
         for t in task_l:
             # when we rolling tasks. No further analyis is needed.
             # analyis are postponed to the final ensemble.
@@ -212,10 +213,7 @@ class Rolling:
             artifacts_key=["pred", "label"],
             process_list=[RollingEnsemble()],
             # rec_key_func=lambda rec: (self.COMB_EXP, rec.info["id"]),
-            artifacts_path={
-                "pred": "pred.pkl",
-                "label": "label.pkl"
-            },
+            artifacts_path={"pred": "pred.pkl", "label": "label.pkl"},
         )
         res = rc()
         with R.start(experiment_name=self.exp_name):

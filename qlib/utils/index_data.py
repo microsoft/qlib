@@ -351,7 +351,6 @@ class IndexData(metaclass=index_data_ops_creator):
     loc_idx_cls = LocIndexer
 
     def __init__(self, data: np.ndarray, *indices: Union[List, pd.Index, Index]):
-
         self.data = data
         self.indices = indices
 
