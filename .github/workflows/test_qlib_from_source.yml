@@ -67,6 +67,7 @@ jobs:
       # Python 3.7 will use a black with low level. So we use python with higher version for black check
       if: (matrix.python-version != '3.7')
       run: |
+        pip install -U black  # follow the latest version of black, previous Qlib dependency will downgrade black
         black . -l 120 --check --diff
 
     - name: Make html with sphinx

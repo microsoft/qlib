@@ -59,7 +59,6 @@ class Rolling:
         task_ext_conf: Optional[dict] = None,
         enable_handler_cache: bool = True,
         rolling_exp: Optional[str] = None,
-        rid: Optional[str] = None,
     ) -> None:
         """
         Parameters
