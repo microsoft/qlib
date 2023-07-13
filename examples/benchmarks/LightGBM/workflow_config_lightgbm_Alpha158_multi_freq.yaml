@@ -33,9 +33,7 @@ port_analysis_config: &port_analysis_config
         kwargs:
             topk: 50
             n_drop: 5
-            signal:
-                - <MODEL> 
-                - <DATASET>
+            signal: <PRED>
     backtest:
         verbose: False
         limit_threshold: 0.095

@@ -43,6 +43,7 @@ class Rolling:
     **NOTE**
     before running the example, please clean your previous results with following command
     - `rm -r mlruns`
+    - Because it is very hard to permanently delete a experiment (it will be moved into .trash and raise error when creating experiment with same name). 
 
     """
 
@@ -57,7 +58,8 @@ class Rolling:
         test_end: Optional[str] = None,
         task_ext_conf: Optional[dict] = None,
         enable_handler_cache: bool = True,
-        rolling_exp: str = "rolling_models",
+        rolling_exp: Optional[str] = None,
+        rid: Optional[str] = None
     ) -> None:
         """
         Parameters
@@ -80,7 +82,7 @@ class Rolling:
             You can do the same thing with task_ext_conf in a more complicated way
         task_ext_conf : Optional[dict]
             some option to update the task config.
-        rolling_exp : str
+        rolling_exp : Optional[str]
             The name for the experiments for rolling.
             It will contains a lot of record in an experiment. Each record corresponds to a specific rolling.
             Please note that it is different from the final experiments
@@ -92,7 +94,16 @@ class Rolling:
         self.step = step
         assert horizon is not None, "Current version does not support extracting horizon from the underlying dataset"
         self.horizon = horizon
-        self.rolling_exp = rolling_exp
+        if rolling_exp is None:
+            datetime_suffix = pd.Timestamp.now().strftime("%Y%m%d%H%M%S")
+            self.rolling_exp = f"rolling_models_{datetime_suffix}"
+        else:
+            self.rolling_exp = rolling_exp
+            self.logger.warning(
+                "Using user specifiied name for rolling models. So the experiment names duplicateds. "
+                "Please manually remove your experiment for rolling model with command like `rm -r mlruns`."
+                " Otherwise it will prevents the creating of experimen with same name"
+            )
         self.train_start = train_start
         self.test_end = test_end
         self.logger = get_module_logger("Rolling")
@@ -101,8 +112,7 @@ class Rolling:
         self.enable_handler_cache = enable_handler_cache
         if not enable_handler_cache and h_path is not None:
             raise ValueError(
-                "If you want to existing hanlder cache(e.g. `h_path`), you must enable `enable_handler_cache`"
-            )
+                "If you want to existing hanlder cache(e.g. `h_path`), you must enable `enable_handler_cache`")
         self.h_path = h_path
 
         # FIXME:
@@ -175,9 +185,9 @@ class Rolling:
     def get_task_list(self) -> List[dict]:
         """return a batch of tasks for rolling."""
         task = self.basic_task()
-        task_l = task_generator(
-            task, RollingGen(step=self.step, trunc_days=self.horizon + 1)
-        )  # the last two days should be truncated to avoid information leakage
+        task_l = task_generator(task,
+                                RollingGen(step=self.step, trunc_days=self.horizon +
+                                           1))  # the last two days should be truncated to avoid information leakage
         for t in task_l:
             # when we rolling tasks. No further analyis is needed.
             # analyis are postponed to the final ensemble.
@@ -188,6 +198,8 @@ class Rolling:
         task_l = self.get_task_list()
         self.logger.info("Deleting previous Rolling results")
         try:
+            # TODO: mlflow does not support permanently delete experiment
+            # it will  be moved to .trash and prevents creating the experiments with the same name
             R.delete_exp(experiment_name=self.rolling_exp)  # We should remove the rolling experiments.
         except ValueError:
             self.logger.info("No previous rolling results")
@@ -200,7 +212,10 @@ class Rolling:
             artifacts_key=["pred", "label"],
             process_list=[RollingEnsemble()],
             # rec_key_func=lambda rec: (self.COMB_EXP, rec.info["id"]),
-            artifacts_path={"pred": "pred.pkl", "label": "label.pkl"},
+            artifacts_path={
+                "pred": "pred.pkl",
+                "label": "label.pkl"
+            },
         )
         res = rc()
         with R.start(experiment_name=self.exp_name):
@@ -218,7 +233,7 @@ class Rolling:
         if isinstance(records, dict):  # prevent only one dict
             records = [records]
         for record in records:
-            if isinstance(get_cls_kwargs(record)[0], SignalRecord):
+            if issubclass(get_cls_kwargs(record)[0], SignalRecord):
                 # skip the signal record.
                 continue
             r = init_instance_by_config(
