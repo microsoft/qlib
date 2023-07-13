@@ -1,21 +1,22 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-from typing import Optional, List, Union
-from qlib.model.ens.ensemble import RollingEnsemble
-from qlib.utils import init_instance_by_config, get_cls_kwargs
-import fire
-import yaml
-import pandas as pd
-from qlib import auto_init
 from pathlib import Path
-from qlib.model.trainer import TrainerR
+from typing import List, Optional, Union
+
+import fire
+import pandas as pd
+import yaml
+
+from qlib import auto_init
 from qlib.log import get_module_logger
+from qlib.model.ens.ensemble import RollingEnsemble
+from qlib.model.trainer import TrainerR
+from qlib.utils import get_cls_kwargs, init_instance_by_config
 from qlib.utils.data import update_config
 from qlib.workflow import R
 from qlib.workflow.record_temp import SignalRecord
-
-from qlib.workflow.task.gen import task_generator, RollingGen
 from qlib.workflow.task.collect import RecorderCollector
+from qlib.workflow.task.gen import RollingGen, task_generator
 
 
 class Rolling:
@@ -86,6 +87,7 @@ class Rolling:
             It will contains a lot of record in an experiment. Each record corresponds to a specific rolling.
             Please note that it is different from the final experiments
         """
+        self.logger = get_module_logger("Rolling")
         self.conf_path = Path(conf_path)
         self.exp_name = exp_name
         self._rid = None  # the final combined recorder id in `exp_name`
@@ -105,7 +107,6 @@ class Rolling:
             )
         self.train_start = train_start
         self.test_end = test_end
-        self.logger = get_module_logger("Rolling")
         self.task_ext_conf = task_ext_conf
 
         self.enable_handler_cache = enable_handler_cache

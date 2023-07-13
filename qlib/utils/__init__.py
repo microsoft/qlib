@@ -726,6 +726,21 @@ def fill_placeholder(config: dict, config_extend: dict):
     top = 0
     tail = 1
     item_queue = [config]
+
+    def try_replace_placeholder(value):
+        if value in config_extend.keys():
+            value = config_extend[value]
+        else:
+            m = re.match(r"<(?P<name_path>[^<>]+)>", value)
+            if m is not None:
+                try:
+                    value = get_item_from_obj(config, m.groupdict()["name_path"])
+                except (KeyError, ValueError, IndexError):
+                    get_module_logger("fill_placeholder").info(
+                        f"{value} lookes like a placeholder, but it can't match to any given values"
+                    )
+        return value
+
     while top < tail:
         now_item = item_queue[top]
         top += 1
@@ -738,17 +753,8 @@ def fill_placeholder(config: dict, config_extend: dict):
                 item_queue.append(now_item[key])
                 tail += 1
             elif isinstance(now_item[key], str):
-                if now_item[key] in config_extend.keys():
-                    now_item[key] = config_extend[now_item[key]]
-                else:
-                    m = re.match(r"<(?P<name_path>[^<>]+)>", now_item[key])
-                    if m is not None:
-                        try:
-                            now_item[key] = get_item_from_obj(config, m.groupdict()["name_path"])
-                        except (KeyError, ValueError, IndexError):
-                            get_module_logger("fill_placeholder").info(
-                                f"{now_item[key]} lookes like a placeholder, but it can't match to any given values"
-                            )
+                # If it is a string, try to replace it with placeholder
+                now_item[key] = try_replace_placeholder(now_item[key])
     return config
 
 
