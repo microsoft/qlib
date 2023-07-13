@@ -64,6 +64,8 @@ jobs:
         python -m pip install -e .[dev]
 
     - name: Lint with Black
+      # Python 3.7 will use a black with low level. So we use python with higher version for black check
+      if: (matrix.python-version != '3.7')
       run: |
         black . -l 120 --check --diff
 
