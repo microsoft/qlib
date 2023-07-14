@@ -1,5 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+from copy import deepcopy
 from pathlib import Path
 from typing import List, Optional, Union
 
@@ -17,6 +18,7 @@ from qlib.workflow import R
 from qlib.workflow.record_temp import SignalRecord
 from qlib.workflow.task.collect import RecorderCollector
 from qlib.workflow.task.gen import RollingGen, task_generator
+from qlib.workflow.task.utils import replace_task_handler_with_cache
 
 
 class Rolling:
@@ -58,7 +60,6 @@ class Rolling:
         train_start: Optional[str] = None,
         test_end: Optional[str] = None,
         task_ext_conf: Optional[dict] = None,
-        enable_handler_cache: bool = True,
         rolling_exp: Optional[str] = None,
     ) -> None:
         """
@@ -108,12 +109,6 @@ class Rolling:
         self.train_start = train_start
         self.test_end = test_end
         self.task_ext_conf = task_ext_conf
-
-        self.enable_handler_cache = enable_handler_cache
-        if not enable_handler_cache and h_path is not None:
-            raise ValueError(
-                "If you want to existing hanlder cache(e.g. `h_path`), you must enable `enable_handler_cache`"
-            )
         self.h_path = h_path
 
         # FIXME:
@@ -129,16 +124,11 @@ class Rolling:
         Due to the data processing part in original rolling is slow. So we have to
         This class tries to add more feature
         """
-        if self.enable_handler_cache:
-            if self.h_path is not None:
-                h_path = Path(self.h_path)
-            else:
-                h_path = self.conf_path.with_suffix(".handler.pkl")
-            if not h_path.exists():
-                h_conf = task["dataset"]["kwargs"]["handler"]
-                h = init_instance_by_config(h_conf)
-                h.to_pickle(h_path, dump_all=True)
+        if self.h_path is not None:
+            h_path = Path(self.h_path)
             task["dataset"]["kwargs"]["handler"] = f"file://{h_path}"
+        else:
+            task = replace_task_handler_with_cache(task, self.conf_path.parent)
         return task
 
     def _update_start_end_time(self, task: dict):
@@ -151,13 +141,14 @@ class Rolling:
             task["dataset"]["kwargs"]["segments"]["test"] = seg[0], pd.Timestamp(self.test_end)
         return task
 
-    def basic_task(self, task: Optional[dict] = None):
+    def basic_task(self, enable_handler_cache: Optional[bool] = True):
         """
         The basic task may not be the exactly same as the config from `conf_path` from __init__ due to
         - some parameters could be overriding by some parameters from __init__
         - user could implementing sublcass to change it for higher performance
         """
-        task: dict = task or self._raw_conf()["task"]
+        task: dict = self._raw_conf()["task"]
+        task = deepcopy(task)
 
         # modify dataset horizon
         # NOTE:
@@ -173,7 +164,8 @@ class Rolling:
                 "Ref($close, -{}) / Ref($close, -1) - 1".format(self.horizon + 1)
             ]
 
-        task = self._replace_hanler_with_cache(task)
+        if enable_handler_cache:
+            task = self._replace_hanler_with_cache(task)
         task = self._update_start_end_time(task)
 
         if self.task_ext_conf is not None:

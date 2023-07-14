@@ -12,8 +12,6 @@ from qlib.contrib.rolling.base import Rolling
 
 
 class RollingBenchmark(Rolling):
-    """RollingWCache Plus some extra config"""
-
     # The config in the README.md
     CONF_LIST = [DIRNAME / "workflow_config_linear_Alpha158.yaml", DIRNAME / "workflow_config_lightgbm_Alpha158.yaml"]
 
