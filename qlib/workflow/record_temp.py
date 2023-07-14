@@ -136,7 +136,6 @@ class RecordTemp:
             whether the records are stored properly.
         """
         if include_self:
-
             # Some mlflow backend will not list the directly recursively.
             # So we force to the directly
             artifacts = {}

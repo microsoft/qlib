@@ -96,7 +96,6 @@ class MTSDatasetH(DatasetH):
         drop_last=False,
         **kwargs,
     ):
-
         assert horizon > 0, "please specify `horizon` to avoid data leakage"
 
         self.seq_len = seq_len
@@ -111,7 +110,6 @@ class MTSDatasetH(DatasetH):
         super().__init__(handler, segments, **kwargs)
 
     def setup_data(self, handler_kwargs: dict = None, **kwargs):
-
         super().setup_data()
 
         # change index to <code, date>

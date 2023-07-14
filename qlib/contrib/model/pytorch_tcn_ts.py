@@ -155,7 +155,6 @@ class TCN(Model):
         raise ValueError("unknown loss `%s`" % self.loss)
 
     def metric_fn(self, pred, label):
-
         mask = torch.isfinite(label)
 
         if self.metric in ("", "loss"):
@@ -164,7 +163,6 @@ class TCN(Model):
         raise ValueError("unknown metric `%s`" % self.metric)
 
     def train_epoch(self, data_loader):
-
         self.TCN_model.train()
 
         for data in data_loader:
@@ -181,7 +179,6 @@ class TCN(Model):
             self.train_optimizer.step()
 
     def test_epoch(self, data_loader):
-
         self.TCN_model.eval()
 
         scores = []
@@ -277,7 +274,6 @@ class TCN(Model):
         preds = []
 
         for data in test_loader:
-
             feature = data[:, :, 0:-1].to(self.device)
 
             with torch.no_grad():

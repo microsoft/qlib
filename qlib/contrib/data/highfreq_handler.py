@@ -17,7 +17,6 @@ class HighFreqHandler(DataHandlerLP):
         fit_end_time=None,
         drop_raw=True,
     ):
-
         infer_processors = check_transform_proc(infer_processors, fit_start_time, fit_end_time)
         learn_processors = check_transform_proc(learn_processors, fit_start_time, fit_end_time)
 
@@ -318,7 +317,6 @@ class HighFreqOrderHandler(DataHandlerLP):
         inst_processors=None,
         drop_raw=True,
     ):
-
         infer_processors = check_transform_proc(infer_processors, fit_start_time, fit_end_time)
         learn_processors = check_transform_proc(learn_processors, fit_start_time, fit_end_time)
 

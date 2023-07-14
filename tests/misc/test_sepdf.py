@@ -11,7 +11,6 @@ class SepDF(unittest.TestCase):
         return "".join(str(obj).split())
 
     def test_index_data(self):
-
         np.random.seed(42)
 
         index = [

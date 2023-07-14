@@ -293,7 +293,6 @@ class QlibConfig(Config):
         """
 
         def __init__(self, provider_uri: Union[str, Path, dict], mount_path: Union[str, Path, dict]):
-
             """
             The relation of `provider_uri` and `mount_path`
             - `mount_path` is used only if provider_uri is an NFS path
