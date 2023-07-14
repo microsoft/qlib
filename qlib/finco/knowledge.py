@@ -223,9 +223,10 @@ class FinanceKnowledge(Knowledge):
     def __init__(self, storages: Union[List[YamlStorage], YamlStorage]):
         super().__init__(storages=storages, name="finance")
 
-        docs = self.read_files_in_directory(self.workdir.joinpath(self.name))
-        self.add(docs)
-        self.summarize()
+        storage = self.get_storage(YamlStorage.DEFAULT_NAME)
+        if len(storage.documents) == 0:
+            docs = self.read_files_in_directory(self.workdir.joinpath(self.name))
+            self.add(docs)
 
     def add(self, docs: List):
         storage = YamlStorage(path=self.workdir.joinpath(self.name).joinpath(YamlStorage.DEFAULT_NAME))
@@ -438,6 +439,9 @@ class KnowledgeBase:
         # literal search/semantic search
 
         knowledge = self.get_knowledge(knowledge_type=knowledge_type)
+        if len(knowledge) == 0:
+            return ""
+
         scores = []
         for k in knowledge:
             scores.append(similarity(str(k), content))

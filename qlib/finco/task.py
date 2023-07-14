@@ -9,6 +9,7 @@ import re
 import subprocess
 import platform
 import inspect
+from jinja2 import Template
 
 from qlib.finco.llm import APIBackend
 from qlib.finco.tpl import get_tpl_path
@@ -17,6 +18,7 @@ from qlib.contrib.analyzer import HFAnalyzer, SignalAnalyzer
 from qlib.workflow import R
 from qlib.finco.log import FinCoLog, LogColors
 from qlib.finco.conf import Config
+from qlib.finco.knowledge import KnowledgeBase, Topic
 
 COMPONENT_LIST = ["Dataset", "DataHandler", "Model", "Record", "Strategy", "Backtest"]
 
@@ -176,8 +178,14 @@ class HighLevelPlanTask(PlanTask):
         assert thinking_detail is not None, "The thinking detail is not provided"
         assert user_intention is not None, "The user intention is not provided"
 
+        practice_knowledge = KnowledgeBase().query(knowledge_type=KnowledgeBase.KT_PRACTICE, content=user_intention)
+        finance_knowledge = KnowledgeBase().query(knowledge_type=KnowledgeBase.KT_FINANCE, content=user_intention)
+
         system_prompt = self.system.render()
-        user_prompt = self.user.render(target=target, deliverable=deliverable, business_level=business_level, algorithm_level=algorithm_level, thinking_detail=thinking_detail, user_intention=user_intention)
+        user_prompt = self.user.render(target=target, deliverable=deliverable, business_level=business_level,
+                                       algorithm_level=algorithm_level, thinking_detail=thinking_detail,
+                                       practice_knowledge=practice_knowledge, finance_knowledge=finance_knowledge,
+                                       user_intention=user_intention)
 
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt, system_prompt
@@ -229,8 +237,14 @@ class SLPlanTask(PlanTask):
 
         experiment_count = max([i for i in range(10) if f"{i}." in experiments])
 
+        infrastructure_knowledge = KnowledgeBase().query(knowledge_type=KnowledgeBase.KT_INFRASTRUCTURE,
+                                                         content=experiments)
+
         system_prompt = self.system.render()
-        user_prompt = self.user.render(target=target, deliverable=deliverable, business_level=business_level, algorithm_level=algorithm_level, thinking_detail=thinking_detail, user_intention=user_intention, experiments=experiments)
+        user_prompt = self.user.render(target=target, deliverable=deliverable, business_level=business_level,
+                                       algorithm_level=algorithm_level, thinking_detail=thinking_detail,
+                                       infrastructure_knowledge=infrastructure_knowledge,
+                                       user_intention=user_intention, experiments=experiments)
 
         former_messages = []
         if self.replan:
@@ -341,11 +355,14 @@ class TrainTask(Task):
         try:
             # Run the command and capture the output
             workspace = self._context_manager.get_context("workspace")
-            result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, text=True, cwd=str(workspace))
+            result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True,
+                                    text=True, encoding="utf8", cwd=str(workspace))
         
         except subprocess.CalledProcessError as e:
             print(f"An error occurred while running the subprocess: {e.stderr} {e.stdout}")
             real_error = e.stderr+e.stdout
+            KnowledgeBase().execute_knowledge.add([real_error])
+
             if "data" in e.stdout.lower() or "handler" in e.stdout.lower():
                 return [HyperparameterActionTask("Dataset", regenerate=True, error=real_error),
                         HyperparameterActionTask("DataHandler", regenerate=True, error=real_error),
@@ -432,11 +449,9 @@ class AnalysisTask(Task):
                 else "workflow_config.yaml"
             )
             workspace = self._context_manager.get_context("workspace")
-            workflow_path = workspace.joinpath(workflow_config)
-            with workflow_path.open() as f:
-                workflow = yaml.safe_load(f)
 
-            experiment_name = workflow["experiment_name"] if "experiment_name" in workflow else "workflow"
+            # todo: analysis multi experiment(get recorder by id)
+            experiment_name = "workflow"
             R.set_uri(Path.joinpath(workspace, 'mlruns').as_uri())
 
             tasks = []
@@ -650,11 +665,19 @@ class HyperparameterActionTask(ActionTask):
                 hyperparameters.remove("dataset")
                 hyperparameters.remove("recorder")
             target_component_classes_and_hyperparameters.append((module_path, class_name, hyperparameters))
+
+        execute_knowledge = KnowledgeBase().query(knowledge_type=KnowledgeBase.KT_EXECUTE,
+                                                  content=target_component_plan)
+        infrastructure_knowledge = KnowledgeBase().query(knowledge_type=KnowledgeBase.KT_INFRASTRUCTURE,
+                                                         content=target_component_plan)
+
         user_prompt = self.user.render(
             user_requirement=user_prompt,
             target_component_plan=target_component_plan,
             target_component=self.target_component,
-            target_component_classes_and_hyperparameters=target_component_classes_and_hyperparameters
+            target_component_classes_and_hyperparameters=target_component_classes_and_hyperparameters,
+            execute_knowledge=execute_knowledge,
+            infrastructure_knowledge=infrastructure_knowledge
         )
         former_messages = []
         if self.regenerate:
@@ -987,7 +1010,9 @@ class SummarizeTask(Task):
 
         file_info = self.get_info_from_file(workspace)
         context_info = self.get_info_from_context()  # too long context make response unstable.
-        record_info = self.get_info_from_recorder(workspace, workflow_yaml["experiment_name"])
+
+        # todo: experiments perhaps have the same name, summarize experiment by loop
+        record_info = self.get_info_from_recorder(workspace, "workflow")
         figure_path = self.get_figure_path(workspace)
 
         information = context_info + file_info + record_info
@@ -1012,7 +1037,7 @@ class SummarizeTask(Task):
             )
             context_summary.update({key: response})
 
-        recorder = R.get_recorder(experiment_name=workflow_yaml["experiment_name"])
+        recorder = R.get_recorder(experiment_name="workflow")
         recorder.save_objects(context_summary=context_summary)
 
         prompt_workflow_selection = self.summarize_metrics_user.render(
@@ -1028,6 +1053,14 @@ class SummarizeTask(Task):
         response = be.build_messages_and_create_chat_completion(
             user_prompt=prompt_workflow_selection, system_prompt=self.system.render()
         )
+
+        KnowledgeBase().practice_knowledge.add([{"user_intention": user_prompt,
+                                                 "experiment_metrics": metrics_response}])
+
+        # notes: summarize after all experiment added to KnowledgeBase
+        topic = Topic(name="rollingModel", describe=Template("What conclusion can you draw"))
+        topic.summarize(KnowledgeBase().practice_knowledge.knowledge)
+        self.logger.info(f"Summary of topic: {topic.name}: {topic.knowledge}")
 
         self._context_manager.set_context("summary", response)
         self.save_markdown(content=response, path=workspace)
