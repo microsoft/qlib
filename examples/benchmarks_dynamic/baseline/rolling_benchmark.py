@@ -19,9 +19,14 @@ class RollingBenchmark(Rolling):
 
     def __init__(self, conf_path: Union[str, Path] = DEFAULT_CONF, horizon=20, **kwargs) -> None:
         # This code is for being compatible with the previous old code
-        if conf_path not in self.CONF_LIST:
-            self.logger.warning("Model type is not in the benchmark!")
+        conf_path = Path(conf_path)
         super().__init__(conf_path=conf_path, horizon=horizon, **kwargs)
+
+        for f in self.CONF_LIST:
+            if conf_path.samefile(f):
+                break
+        else:
+            self.logger.warning("Model type is not in the benchmark!")
 
 
 if __name__ == "__main__":
