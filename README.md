@@ -91,6 +91,7 @@ For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative 
               </ul>
             </li>
           <li type="circle"><a href="#adapting-to-market-dynamics">Adapting to Market Dynamics</a></li>
+          <li type="circle"><a href="#reinforcement-learning-modeling-continuous-decisions">Reinforcement Learning: modeling continuous decisions</a></li>
           </ul>
         </li>
       </td>
@@ -391,6 +392,17 @@ So adapting the forecasting models/strategies to market dynamics is very importa
 Here is a list of solutions built on `Qlib`.
 - [Rolling Retraining](examples/benchmarks_dynamic/baseline/)
 - [DDG-DA on pytorch (Wendi, et al. AAAI 2022)](examples/benchmarks_dynamic/DDG-DA/)
+
+##  Reinforcement Learning: modeling continuous decisions
+Qlib now supports reinforcement learning, a feature designed to model continuous investment decisions. This functionality assists investors in optimizing their trading strategies by learning from interactions with the environment to maximize some notion of cumulative reward.
+
+Here is a list of solutions built on `Qlib` categorized by scenarios.
+
+### [RL for order execution](examples/rl_order_execution)
+[Here](https://qlib.readthedocs.io/en/latest/component/rl/overall.html#order-execution) is the introduction of this scenario.  All the methods below are compared [here](examples/rl_order_execution).
+- [TWAP](examples/rl_order_execution/exp_configs/backtest_twap.yml)
+- [PPO: "An End-to-End Optimal Trade Execution Framework based on Proximal Policy Optimization", IJCAL 2020](examples/rl_order_execution/exp_configs/backtest_ppo.yml)
+- [OPDS: "Universal Trading for Order Execution with Oracle Policy Distillation", AAAI 2021](examples/rl_order_execution/exp_configs/backtest_opds.yml)
 
 # Quant Dataset Zoo
 Dataset plays a very important role in Quant. Here is a list of the datasets built on `Qlib`:

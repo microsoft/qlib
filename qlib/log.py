@@ -84,7 +84,6 @@ get_module_logger = _QLibLoggerManager()
 
 
 class TimeInspector:
-
     timer_logger = get_module_logger("timer")
 
     time_marks = []

@@ -77,7 +77,6 @@ class TestRolling(TestAutoData):
 
     @pytest.mark.slow
     def test_update_label(self):
-
         task = copy.deepcopy(CSI300_GBDT_TASK)
 
         task["record"] = {
