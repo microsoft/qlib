@@ -256,7 +256,6 @@ class TabnetModel(Model):
         indices = np.arange(len(x_values))
 
         for i in range(len(indices))[:: self.batch_size]:
-
             if len(indices) - i < self.batch_size:
                 break
             feature = x_values[indices[i : i + self.batch_size]].float().to(self.device)
@@ -283,7 +282,6 @@ class TabnetModel(Model):
         np.random.shuffle(indices)
 
         for i in range(len(indices))[:: self.batch_size]:
-
             if len(indices) - i < self.batch_size:
                 break
 
@@ -308,7 +306,6 @@ class TabnetModel(Model):
         self.tabnet_decoder.train()
 
         for i in range(len(indices))[:: self.batch_size]:
-
             if len(indices) - i < self.batch_size:
                 break
 
@@ -339,7 +336,6 @@ class TabnetModel(Model):
         losses = []
 
         for i in range(len(indices))[:: self.batch_size]:
-
             if len(indices) - i < self.batch_size:
                 break
 

@@ -49,6 +49,8 @@ class InternalData:
 
         # 1) prepare the prediction of proxy models
         perf_task_tpl = deepcopy(self.task_tpl)  # this task is supposed to contains no complicated objects
+        # The only thing we want to save is the prediction
+        perf_task_tpl["record"] = ["qlib.workflow.record_temp.SignalRecord"]
 
         trainer = auto_filter_kwargs(trainer)(experiment_name=self.exp_name, **trainer_kwargs)
         # NOTE:

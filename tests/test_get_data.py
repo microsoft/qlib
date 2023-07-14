@@ -33,7 +33,6 @@ class TestGetData(unittest.TestCase):
         shutil.rmtree(str(DATA_DIR.resolve()))
 
     def test_0_qlib_data(self):
-
         GetData().qlib_data(
             name="qlib_data_simple", target_dir=QLIB_DIR, region="cn", interval="1d", delete_old=False, exists_skip=True
         )

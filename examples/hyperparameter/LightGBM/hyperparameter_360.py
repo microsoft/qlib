@@ -38,7 +38,6 @@ def objective(trial):
 
 
 if __name__ == "__main__":
-
     provider_uri = "~/.qlib/qlib_data/cn_data"
     GetData().qlib_data(target_dir=provider_uri, region=REG_CN, exists_skip=True)
     qlib.init(provider_uri=provider_uri, region=REG_CN)

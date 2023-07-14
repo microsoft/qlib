@@ -21,7 +21,6 @@ quarter_dict = {"1Q": "01-03", "2Q": "05-01", "3Q": "09-01"}
 
 
 class IBOVIndex(IndexBase):
-
     ibov_index_composition = "https://raw.githubusercontent.com/igor17400/IBOV-HCI/main/historic_composition/{}.csv"
     years_4_month_periods = []
 
