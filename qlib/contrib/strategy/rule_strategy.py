@@ -522,7 +522,6 @@ class ACStrategy(BaseStrategy):
             _order_amount = min(_order_amount, self.trade_amount[order.stock_id])
 
             if _order_amount > 1e-5:
-
                 _order = Order(
                     stock_id=order.stock_id,
                     amount=_order_amount,

@@ -139,7 +139,6 @@ class GenericDataFormatter(abc.ABC):
         # Sanity checks first.
         # Ensure only one ID and time column exist
         def _check_single_column(input_type):
-
             length = len([tup for tup in column_definition if tup[2] == input_type])
 
             if length != 1:

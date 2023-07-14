@@ -182,7 +182,6 @@ def get_strategy_executor(
     exchange_kwargs: dict = {},
     pos_type: str = "Position",
 ) -> Tuple[BaseStrategy, BaseExecutor]:
-
     # NOTE:
     # - for avoiding recursive import
     # - typing annotations is not reliable

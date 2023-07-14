@@ -11,6 +11,7 @@
 Recent released features
 | Feature | Status |
 | --                      | ------    |
+| KRNN and Sandwich models | :chart_with_upwards_trend: [Released](https://github.com/microsoft/qlib/pull/1414/) on May 26, 2023 |
 | Release Qlib v0.9.0 | :octocat: [Released](https://github.com/microsoft/qlib/releases/tag/v0.9.0) on Dec 9, 2022 |
 | RL Learning Framework | :hammer: :chart_with_upwards_trend: Released on Nov 10, 2022. [#1332](https://github.com/microsoft/qlib/pull/1332), [#1322](https://github.com/microsoft/qlib/pull/1322), [#1316](https://github.com/microsoft/qlib/pull/1316),[#1299](https://github.com/microsoft/qlib/pull/1299),[#1263](https://github.com/microsoft/qlib/pull/1263), [#1244](https://github.com/microsoft/qlib/pull/1244), [#1169](https://github.com/microsoft/qlib/pull/1169), [#1125](https://github.com/microsoft/qlib/pull/1125), [#1076](https://github.com/microsoft/qlib/pull/1076)|
 | HIST and IGMTF models | :chart_with_upwards_trend: [Released](https://github.com/microsoft/qlib/pull/1040) on Apr 10, 2022 |
@@ -90,6 +91,7 @@ For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative 
               </ul>
             </li>
           <li type="circle"><a href="#adapting-to-market-dynamics">Adapting to Market Dynamics</a></li>
+          <li type="circle"><a href="#reinforcement-learning-modeling-continuous-decisions">Reinforcement Learning: modeling continuous decisions</a></li>
           </ul>
         </li>
       </td>
@@ -353,6 +355,8 @@ Here is a list of models built on `Qlib`.
 - [ADD based on pytorch (Hongshun Tang, et al.2020)](examples/benchmarks/ADD/)
 - [IGMTF based on pytorch (Wentao Xu, et al.2021)](examples/benchmarks/IGMTF/)
 - [HIST based on pytorch (Wentao Xu, et al.2021)](examples/benchmarks/HIST/)
+- [KRNN based on pytorch](examples/benchmarks/KRNN/)
+- [Sandwich based on pytorch](examples/benchmarks/Sandwich/)
 
 Your PR of new Quant models is highly welcomed.
 
@@ -388,6 +392,17 @@ So adapting the forecasting models/strategies to market dynamics is very importa
 Here is a list of solutions built on `Qlib`.
 - [Rolling Retraining](examples/benchmarks_dynamic/baseline/)
 - [DDG-DA on pytorch (Wendi, et al. AAAI 2022)](examples/benchmarks_dynamic/DDG-DA/)
+
+##  Reinforcement Learning: modeling continuous decisions
+Qlib now supports reinforcement learning, a feature designed to model continuous investment decisions. This functionality assists investors in optimizing their trading strategies by learning from interactions with the environment to maximize some notion of cumulative reward.
+
+Here is a list of solutions built on `Qlib` categorized by scenarios.
+
+### [RL for order execution](examples/rl_order_execution)
+[Here](https://qlib.readthedocs.io/en/latest/component/rl/overall.html#order-execution) is the introduction of this scenario.  All the methods below are compared [here](examples/rl_order_execution).
+- [TWAP](examples/rl_order_execution/exp_configs/backtest_twap.yml)
+- [PPO: "An End-to-End Optimal Trade Execution Framework based on Proximal Policy Optimization", IJCAL 2020](examples/rl_order_execution/exp_configs/backtest_ppo.yml)
+- [OPDS: "Universal Trading for Order Execution with Oracle Policy Distillation", AAAI 2021](examples/rl_order_execution/exp_configs/backtest_opds.yml)
 
 # Quant Dataset Zoo
 Dataset plays a very important role in Quant. Here is a list of the datasets built on `Qlib`:

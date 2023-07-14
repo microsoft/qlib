@@ -119,7 +119,7 @@ Here are some example:
 for daily data:
   .. code-block:: bash
 
-    python scripts/get_data.py csv_data_cn --target_dir ~/.qlib/csv_data/cn_data
+    python scripts/get_data.py download_data --file_name csv_data_cn.zip --target_dir ~/.qlib/csv_data/cn_data
 
 for 1min data:
   .. code-block:: bash

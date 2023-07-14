@@ -435,7 +435,6 @@ class EnhancedIndexingStrategy(WeightStrategyBase):
         self._riskdata_cache = {}
 
     def get_risk_data(self, date):
-
         if date in self._riskdata_cache:
             return self._riskdata_cache[date]
 
@@ -462,7 +461,6 @@ class EnhancedIndexingStrategy(WeightStrategyBase):
         return self._riskdata_cache[date]
 
     def generate_target_weight_position(self, score, current, trade_start_time, trade_end_time):
-
         trade_date = trade_start_time
         pre_date = get_pre_trading_date(trade_date, future=True)  # previous trade date
 

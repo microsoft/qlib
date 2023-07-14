@@ -78,7 +78,6 @@ class ExperimentConfig:
 
     @property
     def hyperparam_iterations(self):
-
         return 240 if self.experiment == "volatility" else 60
 
     def make_data_formatter(self):

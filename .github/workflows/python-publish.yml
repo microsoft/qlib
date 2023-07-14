@@ -38,7 +38,7 @@ jobs:
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
         twine upload dist/*
-        
+
   deploy_with_manylinux:
     runs-on: ubuntu-latest
     steps:
