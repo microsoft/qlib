@@ -1,14 +1,15 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-import fire
-from typing import Union
-from qlib import auto_init
 from pathlib import Path
+from typing import Union
+
+import fire
+
+from qlib import auto_init
+from qlib.contrib.rolling.base import Rolling
 from qlib.tests.data import GetData
 
 DIRNAME = Path(__file__).absolute().resolve().parent
-
-from qlib.contrib.rolling.base import Rolling
 
 
 class RollingBenchmark(Rolling):

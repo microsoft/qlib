@@ -1,16 +1,16 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-import fire
+from pathlib import Path
 from typing import Union
 
+import fire
+
 from qlib import auto_init
-from pathlib import Path
+from qlib.contrib.rolling.ddgda import DDGDA
 from qlib.tests.data import GetData
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 BENCH_DIR = DIRNAME.parent / "baseline"
-
-from qlib.contrib.rolling.ddgda import DDGDA
 
 
 class DDGDABench(DDGDA):

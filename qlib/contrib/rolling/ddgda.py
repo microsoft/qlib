@@ -1,20 +1,22 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-import yaml
 from pathlib import Path
-from qlib.model.meta.task import MetaTask
-from qlib.contrib.meta.data_selection.model import MetaModelDS
-from qlib.contrib.meta.data_selection.dataset import InternalData, MetaDatasetDS
-from qlib.data.dataset.handler import DataHandlerLP
-
-import pandas as pd
 import pickle
 from typing import Optional, Union
+
+import pandas as pd
+import yaml
+
+from qlib.contrib.meta.data_selection.dataset import InternalData, MetaDatasetDS
+from qlib.contrib.meta.data_selection.model import MetaModelDS
+from qlib.data.dataset.handler import DataHandlerLP
+from qlib.model.meta.task import MetaTask
 from qlib.model.trainer import TrainerR
 from qlib.typehint import Literal
 from qlib.utils import init_instance_by_config
 from qlib.workflow import R
 from qlib.workflow.task.utils import replace_task_handler_with_cache
+
 from .base import Rolling
 
 # LGBM is designed for feature importance & similarity
@@ -66,7 +68,7 @@ UTIL_MODEL_TYPE = Literal["linear", "gbdt"]
 
 class DDGDA(Rolling):
     """
-    please run `python workflow.py run_all` to run the full workflow of the experiment
+    It is a rolling based on DDG-DA
 
     **NOTE**
     before running the example, please clean your previous results with following command
