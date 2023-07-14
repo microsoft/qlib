@@ -638,7 +638,6 @@ class Exchange:
         random.seed(0)
         random.shuffle(sorted_ids)
         for stock_id in sorted_ids:
-
             # Do not generate order for the non-tradable stocks
             if not self.is_stock_tradable(stock_id=stock_id, start_time=start_time, end_time=end_time):
                 continue

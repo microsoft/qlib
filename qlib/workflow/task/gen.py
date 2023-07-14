@@ -339,7 +339,6 @@ class MultiHorizonGenBase(TaskGen):
     def generate(self, task: dict):
         res = []
         for hr in self.horizon:
-
             # Add horizon
             t = copy.deepcopy(task)
             self.set_horizon(t, hr)

@@ -28,7 +28,6 @@ class FeaAnalyser:
         return False
 
     def plot_all(self, *args, **kwargs):
-
         ax_gen = iter(sub_fig_generator(*args, **kwargs))
         for col in self._dataset:
             if not self.skip(col):

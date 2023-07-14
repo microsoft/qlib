@@ -1096,7 +1096,6 @@ class ClientDatasetProvider(DatasetProvider):
                 else:
                     return data
         else:
-
             """
             Call the server to generate the data-set cache, get the uri of the cache file.
             Then load the data from the file on NFS directly.
