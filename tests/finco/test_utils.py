@@ -2,7 +2,7 @@ import unittest
 from qlib.finco.utils import SingletonBaseClass
 
 
-class TimeUtils(unittest.TestCase):
+class SingletonTest(unittest.TestCase):
 
     def test_singleton(self):
         # self.assertEqual(self.to_str(data.tail()), self.to_str(res))
