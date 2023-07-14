@@ -138,7 +138,7 @@ class WorkflowTask(Task):
             return []
 
         if workflow == "supervised learning":
-            return [SLPlanTask()]
+            return [HighLevelPlanTask(), SLPlanTask()]
         elif workflow == "reinforcement learning":
             return [RLPlanTask()]
         else:
@@ -149,6 +149,66 @@ class PlanTask(Task):
     pass
 
 
+class HighLevelPlanTask(PlanTask):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    def execute(self):
+        
+        self._context_manager.set_context("target", "minimizing the maximum drawdown")
+        self._context_manager.set_context("deliverable", "a daily quantitative investment strategy in A-share stock market. A model will be included in the strategy.")
+        self._context_manager.set_context("user_intention", "build an A-share stock market daily portfolio in quantitative investment and minimize the maximum drawdown.")
+        self._context_manager.set_context("business_level", "Controller(e.g. Rolling retrain), Data")
+        self._context_manager.set_context("algorithm_level", "supervised learning")
+        self._context_manager.set_context("thinking_detail", "We want to leverage more recent data than outdated data. So we have to compare with or without rolling training process of the model like a meta controller. When with a rolling training process, data will be different at each time.")
+
+        target = self._context_manager.get_context("target")
+        deliverable = self._context_manager.get_context("deliverable")
+        business_level = self._context_manager.get_context("business_level")
+        algorithm_level = self._context_manager.get_context("algorithm_level")
+        thinking_detail = self._context_manager.get_context("thinking_detail")
+        user_intention = self._context_manager.get_context("user_intention")
+
+        assert target is not None, "The target is not provided"
+        assert deliverable is not None, "The deliverable is not provided"
+        assert business_level is not None, "The business level is not provided"
+        assert algorithm_level is not None, "The algorithm level is not provided"
+        assert thinking_detail is not None, "The thinking detail is not provided"
+        assert user_intention is not None, "The user intention is not provided"
+
+        system_prompt = self.system.render()
+        user_prompt = self.user.render(target=target, deliverable=deliverable, business_level=business_level, algorithm_level=algorithm_level, thinking_detail=thinking_detail, user_intention=user_intention)
+
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt, system_prompt
+        )
+
+        self.save_chat_history_to_context_manager(
+            user_prompt, response, system_prompt
+        )
+
+        assert response is not None, "The response is None"
+
+        res = re.search(
+            r"Workflow:(.*)Experiments:(.*)Metrics:(.*)", response, re.S
+        )
+
+        assert (
+            res is not None and len(res.groups()) == 3
+        ), "The response of config action task is not in the correct format"
+
+        self._context_manager.set_context("high_level_workflow", res.group(1).strip())
+        self._context_manager.set_context("high_level_experiments", res.group(2).strip())
+        self._context_manager.set_context("high_level_metrics", res.group(3).strip())
+
+        if "supervised learning" in self._context_manager.get_context("high_level_workflow").lower():
+            return [SLPlanTask()]
+        elif "reinforcement learning" in self._context_manager.get_context("high_level_workflow").lower():
+            return [RLPlanTask()]
+
+        return []
+
+
 class SLPlanTask(PlanTask):
     def __init__(self, replan=False, error=None) -> None:
         super().__init__()
@@ -156,64 +216,80 @@ class SLPlanTask(PlanTask):
         self.error = error
 
     def execute(self):
-        workflow = self._context_manager.get_context("workflow")
-        assert (workflow == "supervised learning"), "The workflow is not supervised learning"
+        workflow = self._context_manager.get_context("high_level_workflow")
+        assert (workflow.lower() == "supervised learning"), "The workflow is not supervised learning"
 
-        user_prompt = self._context_manager.get_context("user_prompt")
-        assert user_prompt is not None, "The user prompt is not provided"
-        prompt_plan_all = self.user.render(user_prompt=user_prompt)
+        target = self._context_manager.get_context("target")
+        deliverable = self._context_manager.get_context("deliverable")
+        business_level = self._context_manager.get_context("business_level")
+        algorithm_level = self._context_manager.get_context("algorithm_level")
+        thinking_detail = self._context_manager.get_context("thinking_detail")
+        user_intention = self._context_manager.get_context("user_intention")
+        experiments = self._context_manager.get_context("high_level_experiments")
+
+        experiment_count = max([i for i in range(10) if f"{i}." in experiments])
+
+        system_prompt = self.system.render()
+        user_prompt = self.user.render(target=target, deliverable=deliverable, business_level=business_level, algorithm_level=algorithm_level, thinking_detail=thinking_detail, user_intention=user_intention, experiments=experiments)
+
         former_messages = []
         if self.replan:
-            prompt_plan_all = f"your choice of predefined classes cannot be initialized.\nPlease rewrite the plan and answer with exact required format in system prompt and reply with no more explainations.\nThe error message: {self.error}. Please correct the former answer accordingly."
+            user_prompt = f"your choice of predefined classes cannot be initialized.\nPlease rewrite the plan and answer with exact required format in system prompt and reply with no more explainations.\nThe error message: {self.error}. Please correct the former answer accordingly."
             former_messages = self._context_manager.get_context("chat_history")[self.__class__.__name__]['None'][1:]
         response = APIBackend().build_messages_and_create_chat_completion(
-            prompt_plan_all, self.system.render(), former_messages=former_messages
+            user_prompt, system_prompt, former_messages=former_messages
         )
         self.save_chat_history_to_context_manager(
-            prompt_plan_all, response, self.system.render()
+            user_prompt, system_prompt, self.system.render()
         )
-        if "components" not in response.lower():
-            self.logger.warning(
-                "The response is not in the correct format, which probably means the answer is not correct"
-            )
+        for i in range(1, experiment_count + 1):
+            assert f"Experiment {i}" in response, f"The experiment {i} is not found in the response"
+        self._context_manager.set_context("experiment_count", experiment_count)
         
         decision_pattern = re.compile("\((.*?)\)")
         class_pattern = re.compile("{(.*?)}-{(.*?)}")
         new_task = []
+
+        re_pattern = ""
+        for experiment_id in range(1, experiment_count + 1):
+            re_pattern = re_pattern + f"Experiment {experiment_id}:(.*)"
+        re_pattern = re_pattern + "Difference:(.*)"
+        re_pattern = re.compile(re_pattern, re.S)
+        # 1) CURD on the workspace
+        match_res = re.search(re_pattern, response)
+        for experiment_id in range(1, experiment_count + 1):
+            for name in COMPONENT_LIST:
+                target_line = [line for line in match_res.group(experiment_id).split("\n") if f"{name}:" in line]
+                assert len(target_line) == 1, f"The {name} is not found in the response"
+                target_line = target_line[0].strip("- ")
+                decision = re.search(decision_pattern, target_line)
+                assert decision is not None, f"The decision of {name} is not found"
+                decision = decision.group(1)
+                classes = re.findall(class_pattern, target_line)
+                try:
+                    for module_path, class_name in classes:
+                        exec(f"from {module_path} import {class_name}")
+                except ImportError as e:
+                    self.logger.warning(f"The {class_name} is not found in {module_path}")
+                    return [SLPlanTask(replan=True, error=str(e))]
+                self._context_manager.set_context(f"{name}_experiment_{experiment_id}_decision", decision)
+                self._context_manager.set_context(f"{name}_experiment_{experiment_id}_classes", classes)
+                self._context_manager.set_context(f"{name}_experiment_{experiment_id}_plan", target_line)
+
+                assert decision in ["Default", "Personized"], f"The decision of {name} is not correct"
+            
         # 1) create a workspace
         # TODO: we have to make choice between `sl` and  `sl-cfg`
         new_task.append(
-            CMDTask(
-                cmd_intention=f"Copy folder from {get_tpl_path() / 'sl'} to {self._context_manager.get_context('workspace')}"
-            )
+            ConfigSearchTask()
         )
-
-        # 2) CURD on the workspace
-        for name in COMPONENT_LIST:
-            target_line = [line for line in response.split("\n") if name in line]
-            assert len(target_line) == 1, f"The {name} is not found in the response"
-            target_line = target_line[0].strip("- ")
-            decision = re.search(decision_pattern, target_line)
-            assert decision is not None, f"The decision of {name} is not found"
-            decision = decision.group(1)
-            classes = re.findall(class_pattern, target_line)
-            try:
-                for module_path, class_name in classes:
-                    exec(f"from {module_path} import {class_name}")
-            except ImportError as e:
-                self.logger.warning(f"The {class_name} is not found in {module_path}")
-                return [SLPlanTask(replan=True, error=str(e))]
-            self._context_manager.set_context(f"{name}_decision", decision)
-            self._context_manager.set_context(f"{name}_classes", classes)
-            self._context_manager.set_context(f"{name}_plan", target_line)
-
-            assert decision in ["Default", "Personized"], f"The decision of {name} is not correct"
-            if decision == "Default":
-                new_task.extend([HyperparameterActionTask(name), ConfigActionTask(name), YamlEditTask(name)])
-            elif decision == "Personized":
-                # TODO open ImplementActionTask to let GPT write code
-                new_task.extend([HyperparameterActionTask(name), ConfigActionTask(name), YamlEditTask(name)])
-                # new_task.extend([HyperparameterActionTask(name), ConfigActionTask(name), ImplementActionTask(name), CodeDumpTask(name), YamlEditTask(name)])
+        # for name in COMPONENT_LIST:
+            # if decision == "Default":
+        new_task.extend([HyperparameterFinetuneActionTask()])
+            # elif decision == "Personized":
+            #     # TODO open ImplementActionTask to let GPT write code
+            #     new_task.extend([HyperparameterActionTask(name), ConfigActionTask(name), YamlEditTask(name)])
+            #     # new_task.extend([HyperparameterActionTask(name), ConfigActionTask(name), ImplementActionTask(name), CodeDumpTask(name), YamlEditTask(name)])
         return new_task
 
 
@@ -238,22 +314,21 @@ class TrainTask(Task):
     This train task is responsible for training model configure by yaml file.
     """
 
-    def __init__(self):
+    def __init__(self, experiment_index, rolling = False, ddgda=False, **kwargs) -> None:
         super().__init__()
         self._output = None
+        self._experiment_index = experiment_index
+        self._rolling = rolling
+        self._ddgda = ddgda
 
     def execute(self):
-        workflow_config = (
-            self._context_manager.get_context("workflow_config")
-            if self._context_manager.get_context("workflow_config")
-            else "workflow_config.yaml"
-        )
+        workflow_config = f"experiment_{self._experiment_index}.yaml"
 
         workspace = self._context_manager.get_context("workspace")
         workflow_path = workspace.joinpath(workflow_config)
         with workflow_path.open() as f:
             workflow = yaml.safe_load(f)
-        self._context_manager.set_context("workflow_yaml", workflow)
+        self._context_manager.set_context(f"workflow_{self._experiment_index}_yaml", workflow)
 
         confirm = self.interact(f"I select this workflow file: "
                                 f"{LogColors().render(workflow_path, color=LogColors.YELLOW, style=LogColors.BOLD)}\n"
@@ -385,6 +460,70 @@ class ActionTask(Task):
     pass
 
 
+
+class ConfigSearchTask(ActionTask):
+    def __init__(self):
+        super().__init__()
+    
+    def crawl_the_folder(self, folder_path : Path):
+        yaml_files = []  
+        for root, _, files in os.walk(folder_path.as_posix()):
+            for file in files:
+                if file.endswith(".yaml") or file.endswith(".yml"):  
+                    yaml_file_path = Path(os.path.join(root, file)).relative_to(folder_path)
+                    yaml_files.append(yaml_file_path.as_posix())
+        return yaml_files
+
+    def execute(self):
+        # target = self._context_manager.get_context("target")
+        # deliverable = self._context_manager.get_context("deliverable")
+        # business_level = self._context_manager.get_context("business_level")
+        # algorithm_level = self._context_manager.get_context("algorithm_level")
+        # thinking_detail = self._context_manager.get_context("thinking_detail")
+        # user_intention = self._context_manager.get_context("user_intention")
+
+        experiments = []
+        for experiment_id in range(1, self._context_manager.get_context("experiment_count") + 1):
+            dataset_class = f"{{{self._context_manager.get_context(f'Dataset_experiment_{experiment_id}_classes')[0][0]}}}-{{{self._context_manager.get_context(f'Dataset_experiment_{experiment_id}_classes')[0][1]}}}"
+            datahandler_class = f"{{{self._context_manager.get_context(f'DataHandler_experiment_{experiment_id}_classes')[0][0]}}}-{{{self._context_manager.get_context(f'DataHandler_experiment_{experiment_id}_classes')[0][1]}}}"
+            model_class = f"{{{self._context_manager.get_context(f'Model_experiment_{experiment_id}_classes')[0][0]}}}-{{{self._context_manager.get_context(f'Model_experiment_{experiment_id}_classes')[0][1]}}}"
+
+            experiments.append((experiment_id, dataset_class, datahandler_class, model_class))
+        
+        import qlib
+        benchmarks_root_path = Path(os.path.abspath(inspect.getfile(qlib))).parent.parent / "examples" / "benchmarks"
+        yaml_config_list = self.crawl_the_folder(benchmarks_root_path)
+
+        system_prompt = self.system.render(yaml_config_list=yaml_config_list)
+        user_prompt = self.user.render(experiments=experiments)
+
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt, system_prompt
+        )
+        former_messages = []
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt, self.system.render(), former_messages=former_messages
+        )
+        self.save_chat_history_to_context_manager(
+            user_prompt, response, self.system.render()
+        )
+
+        experiment_count = self._context_manager.get_context("experiment_count")
+
+        config_search_pattern = ""
+        for experiment_id in range(1, experiment_count + 1):
+            config_search_pattern += f"Experiment {experiment_id}:(.*)"
+        config_search_pattern = re.compile(config_search_pattern, re.S)
+
+        config_search_result = config_search_pattern.search(response)
+        
+        return_task = [CMDTask(f"make a directory in the {self._context_manager.get_context('workspace')}"), ]
+        for experiment_id in range(1, experiment_count + 1):
+            self._context_manager.set_context(f"experiment_{experiment_id}_template_config", config_search_result.group(experiment_id).strip('\n'))
+            config_location = benchmarks_root_path / config_search_result.group(experiment_id)
+            return_task.append(CMDTask(f"copy file in {config_location} to {self._context_manager.get_context('workspace')} and rename to experiment_{experiment_id}.yaml"))
+        return return_task
+
 class CMDTask(ActionTask):
     """
     This CMD task is responsible for ensuring compatibility across different operating systems.
@@ -415,14 +554,65 @@ class CMDTask(ActionTask):
             )
 
 
-class DifferentiatedComponentActionTask(ActionTask):
-    @property
-    def system(self):
-        return self.prompt_template.__getattribute__(self.__class__.__name__ + "_system_" + self.target_component)
+class HyperparameterFinetuneActionTask(ActionTask):
+    def __init__(self, component=None) -> None:
+        super().__init__()
+        self.component = component
+    
+    def execute(self):
+        target = self._context_manager.get_context("target")
+        deliverable = self._context_manager.get_context("deliverable")
+        business_level = self._context_manager.get_context("business_level")
+        algorithm_level = self._context_manager.get_context("algorithm_level")
+        thinking_detail = self._context_manager.get_context("thinking_detail")
+        user_intention = self._context_manager.get_context("user_intention")
+        experiments = self._context_manager.get_context("high_level_experiments")
 
-    @property
-    def user(self):
-        return self.prompt_template.__getattribute__(self.__class__.__name__ + "_user_" + self.target_component)
+        experiment_count = self._context_manager.get_context("experiment_count")
+
+        template_configs = []
+        for experiment_index in range(1, experiment_count + 1):
+            config_location = self._context_manager.get_context(f"workspace") / f"experiment_{experiment_index}.yaml"
+            config_file_content = open(config_location, "r").read()
+            template_configs.append((experiment_index, config_file_content))
+        
+        system_prompt = self.system.render()
+        user_prompt = self.user.render(
+            target=target,
+            deliverable=deliverable,
+            business_level=business_level,
+            algorithm_level=algorithm_level,
+            thinking_detail=thinking_detail,
+            user_intention=user_intention,
+            experiments=experiments,
+            template_configs=template_configs
+        )
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt, system_prompt
+        )
+
+        config_search_pattern = ""
+        for experiment_id in range(1, experiment_count + 1):
+            config_search_pattern += f"Experiment {experiment_id}:(.*) Rolling: (.*), DDGDA: (.*)Reason: (.*)"
+        config_search_pattern = re.compile(config_search_pattern, re.S)
+
+        config_search_result = re.search(config_search_pattern, response)
+        return_tasks = []
+        for experiment_id in range(1, experiment_count + 1):
+            rolling_res = config_search_result.group((experiment_id-1) * 4 + 2).strip('\n')
+            ddgda_res = config_search_result.group((experiment_id-1) * 4 + 3).strip('\n')
+            reason_res = config_search_result.group((experiment_id-1) * 4 + 4).strip('\n')
+            if "true" in ddgda_res.lower():
+                return_tasks.append(TrainTask(experiment_id, rolling=True, ddgda=True))
+            if "true" in rolling_res.lower():
+                return_tasks.append(TrainTask(experiment_id, rolling=True))
+            else:
+                return_tasks.append(TrainTask(experiment_id))
+            self._context_manager.set_context(f"experiment_{experiment_id}_rolling", rolling_res)
+            self._context_manager.set_context(f"experiment_{experiment_id}_ddgda", ddgda_res)
+            self._context_manager.set_context(f"experiment_{experiment_id}_config_finetune_reason", reason_res)
+
+        return return_tasks
 
 
 class HyperparameterActionTask(ActionTask):
@@ -482,9 +672,17 @@ class HyperparameterActionTask(ActionTask):
         res = re.search(
             r"(?i)Hyperparameters:(.*)Reason:(.*)Improve suggestion:(.*)", response, re.S
         )
-        assert (
-            res is not None and len(res.groups()) == 3
-        ), "The response of config action task is not in the correct format"
+        try:
+            assert (
+                res is not None and len(res.groups()) == 3
+            ), "The response of config action task is not in the correct format"
+        except AssertionError:
+            if self.regenerate:
+                return []
+            else:
+                raise AssertionError(
+                    f"The response of config action task is not in the correct format, the response is {response}"
+                )
 
         hyperparameters = res.group(1)
         reason = res.group(2)
@@ -571,10 +769,8 @@ class ConfigActionTask(ActionTask):
         self._context_manager.set_context(f"{self.target_component}_config", yaml_config)
         return []
 
-    
 
-
-class ImplementActionTask(DifferentiatedComponentActionTask):
+class ImplementActionTask(ActionTask):
     def __init__(self, target_component, reimplement=False) -> None:
         super().__init__()
         self.target_component = target_component

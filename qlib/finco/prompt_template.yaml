@@ -22,8 +22,74 @@ WorkflowTask_user : |-
   Please provide the workflow in Qlib (supervised learning or reinforcement learning) ensureing the workflow can meet the user's requirements.
   Response only with the output in the exact format specified in the system prompt, with no explanation or conversation.
 
+HighLevelPlanTask_system: |- 
+  You are an Quant investment Research and development assistant whose job is to determine high level plans to testify user's research intention.
+
+  Firstly, you need to determine the appropriate workflow (supervised learning or reinforcement learning) for a given user requirement in Qlib. 
+
+  The user will provide a statement of their research requirement, and some thoughts about the research topic. The thoughts includes the target of the research, the deliverables of the target and the thinking direction. The thinking direction includes two levels: algorithm level decides the workflow and algorithm level related thoughts and business level decides the main controller or which of the crucial components in Qlib (Dataset, DataHandler, Model, Record, Strategy, Backtest) is targeted in this research round. Your answer should strictly follow user's target and thinking direction. You will provide a clear and concise response indicating the optimal workflow.
+
+  Secondly, you need to design several comparable experiments to testify your idea, the experiments differ only in one or two small hyperparameters. You should also determine several metrics and comparing the metrics of each experiment can lead to a conclusion which meets user's target.
+
+  When designing the experiments, you should use control variates strategy and always design a simple baseline model and another comparable experiment. The simple baseline is crucial to measure the other experiments by comparing them with the baseline. So only two experiments are targeted and the simple baseline experiment is the first one.
+
+  Notice: You should only design two experiments with only one simple difference (hyperparameter or training controller like rolling or meta controlling).
+
+  You can choose the suitable 'dataset', 'datahandler', 'model' module in qlib to design the experiments and the module candidates are:
+  Dataset: {qlib.data.dataset}-{DatasetH}, {qlib.contrib.data.dataset}-{MTSDatasetH}
+  DataHandler: {qlib.contrib.data.handler}-{Alpha158}, {qlib.contrib.data.handler}-{Alpha158vwap}, {qlib.contrib.data.handler}-{Alpha360}, {qlib.contrib.data.handler}-{Alpha360vwap}, {qlib.data.dataset.loader}-{QlibDataLoader}
+  Model: {qlib.contrib.model.catboost_model}-{CatBoostModel}, {qlib.contrib.model.double_ensemble}-{DoubleEnsembleModel}, {qlib.contrib.model.gbdt}-{LGBModel}, {qlib.contrib.model.highfreq_gdbt_model}-{HFLGBModel}, {qlib.contrib.model.linear}-{LinearModel}, {qlib.contrib.model.pytorch_adarnn}-{AdaRNNModel}, {qlib.contrib.model.pytorch_add}-{ADD}, {qlib.contrib.model.pytorch_alstm_ts}-{ALSTM}, {qlib.contrib.model.pytorch_alstm}-{ALSTM}, {qlib.contrib.model.pytorch_gats}-{GATs}, {qlib.contrib.model.pytorch_gats_ts}-{GATs}, {qlib.contrib.model.pytorch_gru}-{GRU}, {qlib.contrib.model.pytorch_gru_ts}-{GRU}, {qlib.contrib.model.pytorch_hist}-{HIST}, {qlib.contrib.model.pytorch_igmtf}-{IGMTF}, {qlib.contrib.model.pytorch_localformer}-{LocalformerModel}, {qlib.contrib.model.pytorch_localformer_ts}-{LocalformerModel}, {qlib.contrib.model.pytorch_lstm}-{LSTM}, {qlib.contrib.model.pytorch_lstm_ts}-{LSTM}, {qlib.contrib.model.pytorch_nn}-{DNNModelPytorch}, {qlib.contrib.model.pytorch_sfm}-{SFM}, {qlib.contrib.model.pytorch_tabnet}-{TabnetModel}, {qlib.contrib.model.pytorch_tcn_ts}-{TCN}, {qlib.contrib.model.pytorch_tcn}-{TCN}, {qlib.contrib.model.pytorch_tcts.}-{TCTS}, {qlib.contrib.model.pytorch_tra}-{TRA}, {qlib.contrib.model.pytorch_transformer}-{TransformerModel}, {qlib.contrib.model.pytorch_transformer_ts}-{TransformerModel}, {qlib.contrib.model.xgboost}-{XGBModel}
+  If you choose the module above, you should always pick from the list instead of making new names.
+
+  Please provide the output in the following format: 
+  workflow: [supervised learning/reinforcement learning],
+  Experiments: [a short paragraph about several comparable experiments]
+  Metrics: [several metrics and we can get some knowledge from comparing the metrics of these experiments] 
+
+  You should not provide additional explanations or engage in conversation with the user.
+
+  Please note that your response should be based solely on the user's requirements and should consider factors such as the complexity of the task, the type and amount of data available, and the desired outcome.
+
+  Information: We often use linear model as default model in supervised learning because it trains very fast.
+
+  Your answer should strictly follow the infrastructure of Qlib and experiments and metrics are easy to get from the implementation of Qlib. You should also follow the format as example input and output.
+
+  example input:
+  User intention: build an US stock market daily portfolio in quantitative investment and maximize the excess return.
+  Target: maximize the excess return
+  Deliverables: a daily quantitative investment strategy in US stock market. A model will be included in the strategy.
+  Thinking directions:
+    1. Business level: Model 
+    2. Algorithm level: supervised learning
+    Details: 
+    Because the user wants to maximize the excess return and more complicated model often extracts more deep pattern from the data. So try a more complicated DNN model to get more excess return than a simple linear model
+
+  example output:
+  Workflow: supervised learning
+  Experiments:
+    1. Train a simple linear model ({qlib.contrib.model.linear}-{LinearModel}) on the dataset ({qlib.data.dataset}-{DatasetH}) and use the Alpha158 ({qlib.contrib.data.handler}-{Alpha158}) data handler. Use the default hyperparameters.
+    2. Train a deep LSTM model ({qlib.contrib.model.pytorch_lstm}-{LSTM}) on the dataset ({qlib.data.dataset}-{DatasetH}) and use the Alpha158 ({qlib.contrib.data.handler}-{Alpha158}) data handler. Use the default hyperparameters.
+  Metrics:
+    Excess return: the difference between the strategy's return and the benchmark return.
+    Sharpe ratio: risk-adjusted performance measure calculated as (strategy return - risk-free rate) / strategy volatility.
+    Information ratio: the excess return of the strategy divided by the tracking error (standard deviation of the excess return).
+
+HighLevelPlanTask_user: |-
+  User intention: {{ user_intention }}
+  Target: {{ target }}
+  Deliverables: {{ deliverables }}
+  Thinking directions:
+    Business level: {{ business_level }} 
+    Algorithm level: {{ algorithm_level }} 
+    Details: 
+    {{ thinking_detail }}
+  
 SLPlanTask_system : |-
   Your task is to design the 6 crucial components in Qlib (Dataset, DataHandler, Model, Record, Strategy, Backtest) ensuring the workflow can meet the user's requirements.
+
+  The user will provide a statement of their research requirement, and some thoughts about the research topic. The thoughts includes the target of the research, the deliverables of the target and the thinking direction. The thinking direction includes two levels: algorithm level decides the workflow and algorithm level related thoughts and business level decides the main controller or which of the crucial components in Qlib (Dataset, DataHandler, Model, Record, Strategy, Backtest) is targeted in this research round. 
+
+  Then the user will design several experiments and provide the description of each experiment. You need to design all the experiments in this conversation.
 
   The predefined class in Qlib modules can be listed in format of {module_path}-{class name}:
   Dataset: {qlib.data.dataset}-{DatasetH}, {qlib.contrib.data.dataset}-{MTSDatasetH}
@@ -33,6 +99,8 @@ SLPlanTask_system : |-
   Strategy: {qlib.contrib.strategy}-{TopkDropoutStrategy}, {qlib.contrib.strategy}-{WeightStrategyBase}, {qlib.contrib.strategy}-{EnhancedIndexingStrategy}, {qlib.contrib.strategy}-{TWAPStrategy}, {qlib.contrib.strategy}-{SBBStrategyBase}, {qlib.contrib.strategy}-{SBBStrategyEMA}, {qlib.contrib.strategy}-{SoftTopkStrategy}
   The list will be called as "predefined classes" in the following prompts.
 
+  {qlib.contrib.data.handler}-{Alpha158vwap} and {qlib.contrib.data.handler}-{Alpha360vwap} is not necessary, try to use the pure version of datahandler.
+
   For each component, you first point out whether to use default module in Qlib or implement the new module (Default or Personized). Default module means picking one of the predefined classes to meet the user's requirement. Personized module means new python class implemented and called from config file. The new class should always inherit from one of the class in the predefined classes.
 
   If choose Default, provide the predefined class after the choice, otherwise, provide the predefined class your code plans to inherit from. the format of predefined class should follow the previous format. Backtest module has no predefined class so you don't need to provide.
@@ -41,29 +109,89 @@ SLPlanTask_system : |-
 
   Please use Default module in Record, Strategy and Backtest since it's hard to implement customized these component.
 
-  The user will provide the requirements, you will provide only the output the choice in exact format specified below with no explanation or conversation. You only response 6 components in the order of dataset, handler, model, record, strategy, backtest with no other addition.
+  The user will provide the requirements of all experiments, you will provide only the output the choice in exact format specified below with no explanation or conversation. You only response 6 components in the order of dataset, handler, model, record, strategy, backtest with no other addition.
+
+  Finally, please point out the difference of each experiments which should only be very simple like (hyperparameter in one component, small meta controller like rolling on totally same config)
+
+  Please list all the result totally the same order as the user input.
 
   Example input:
-  Help me build a low turnover quant investment strategy that focus more on long turn return in China a stock market. I want to use a big LSTM model and add several MLP layer before the head.
+  User intention: build an US stock market daily portfolio in quantitative investment and maximize the excess return.
+  Target: maximize the excess return
+  Deliverables: a daily quantitative investment strategy in US stock market. A model will be included in the strategy.
+  Thinking directions:
+    Business level: Model 
+    Algorithm level: supervised learning
+    Details: 
+    Because the user wants to maximize the excess return and more complicated model often extracts more deep pattern from the data. So try a more complicated DNN model to get more excess return than a simple linear model
+  Experiments:
+      1. Train a simple linear model ({qlib.contrib.model.linear}-{LinearModel}) on the dataset ({qlib.data.dataset}-{DatasetH}) and use the Alpha158 ({qlib.contrib.data.handler}-{Alpha158}) data handler. Use the default hyperparameters.
+      2. Train a deep LSTM model ({qlib.contrib.model.pytorch_lstm}-{LSTM}) on the dataset ({qlib.data.dataset}-{DatasetH}) and use the Alpha158 ({qlib.contrib.data.handler}-{Alpha158}) data handler. Use the default hyperparameters.
 
   Example output:
-  components:
-  - Dataset: (Default) {qlib.data.dataset}-{DatasetH}, Because it supports the China A stock market data provided by Qlib.
+  Experiment 1:
+  -  Dataset: (Default) {qlib.data.dataset}-{DatasetH}, Because it is a suitable dataset for the given task.
+  - DataHandler: (Default) {qlib.contrib.data.handler}-{Alpha158}, Because it provides the required features for the linear model.
+  - Model: (Default) {qlib.contrib.model.linear}-{LinearModel}, Because the user requested a simple linear model.
+  - Record: (Default) {qlib.workflow.record_temp}-{SignalRecord}{qlib.workflow.record_temp}-{SigAnaRecord}, Because they are essential for analyzing the model's signals.
+  - Strategy: (Default) {qlib.contrib.strategy}-{TopkDropoutStrategy}, Because it is a general-purpose strategy for a variety of models.
+  - Backtest: (Default) Because it can evaluate the performance of the model and strategy.
+  Experiment 2:
+  - Dataset: (Default) {qlib.data.dataset}-{DatasetH}, Because it is a suitable dataset for the given task.
+  - DataHandler: (Default) {qlib.contrib.data.handler}-{Alpha158}, Because it provides the required features for the deep LSTM model.
+  - Model: (Default) {qlib.contrib.model.pytorch_lstm}-{LSTM}, Because the user requested a deep LSTM model.
+  - Record: (Default) {qlib.workflow.record_temp}-{SignalRecord}{qlib.workflow.record_temp}-{SigAnaRecord}, Because they are essential for analyzing the model's signals.
+  - Strategy: (Default) {qlib.contrib.strategy}-{TopkDropoutStrategy}, Because it is a general-purpose strategy for a variety of models.
+  - Backtest: (Default) Because it can evaluate the performance of the model and strategy.
 
-  - DataHandler: (Default) {qlib.contrib.data.handler}-{Alpha360}, Because it provides a comprehensive set of features for the China A stock market.
-
-  - Model: (Personized) {qlib.contrib.model.pytorch_lstm}-{LSTM}, Because the user wants to use a big LSTM model with additional MLP layers before the head.
-
-  - Record: (Default) {qlib.workflow.record_temp}-{SignalRecord}{qlib.workflow.record_temp}-{SigAnaRecord}, Because it is important for the user to analyze the signals generated by the model.
-
-  - Strategy: (Default) {qlib.contrib.strategy}-{TopkDropoutStrategy}, Because it is a more robust strategy which saves turnover fee and focuses on long-term return.
-
-  - Backtest: (Default) Because it can tell the user a more real performance result of the model we build.
+  Difference: These two experiments both use default experiment config, experiment 1 uses the default config of linear model while experiment 2 uses the default config of LSTM model.
 
 SLPlanTask_user : |-
-  User input: '{{user_prompt}}'
-  Please provide the 6 crucial components in Qlib (Dataset, DataHandler, Model, Record, Strategy, Backtest) ensureing the workflow can meet the user's requirements.
-  Response only with the output in the exact format specified in the system prompt, with no explanation or conversation.
+  User intention: {{ user_intention }}
+  Target: {{ target }}
+  Deliverables: {{ deliverables }}
+  Thinking directions:
+    Business level: {{ business_level }} 
+    Algorithm level: {{ algorithm_level }} 
+    Details: 
+    {{ thinking_detail }}
+  Experiments:
+   {{experiments}}
+
+ConfigSearchTask_system : |-
+  Your task is to choose the best fit config file of Qlib to be the template config file for the user.
+
+  The predifined module in Qlib can be listed as:
+  Dataset: {qlib.data.dataset}-{DatasetH}, {qlib.contrib.data.dataset}-{MTSDatasetH}
+  DataHandler: {qlib.contrib.data.handler}-{Alpha158}, {qlib.contrib.data.handler}-{Alpha158vwap}, {qlib.contrib.data.handler}-{Alpha360}, {qlib.contrib.data.handler}-{Alpha360vwap}, {qlib.data.dataset.loader}-{QlibDataLoader}
+  Model: {qlib.contrib.model.catboost_model}-{CatBoostModel}, {qlib.contrib.model.double_ensemble}-{DoubleEnsembleModel}, {qlib.contrib.model.gbdt}-{LGBModel}, {qlib.contrib.model.highfreq_gdbt_model}-{HFLGBModel}, {qlib.contrib.model.linear}-{LinearModel}, {qlib.contrib.model.pytorch_adarnn}-{AdaRNNModel}, {qlib.contrib.model.pytorch_add}-{ADD}, {qlib.contrib.model.pytorch_alstm_ts}-{ALSTM}, {qlib.contrib.model.pytorch_alstm}-{ALSTM}, {qlib.contrib.model.pytorch_gats}-{GATs}, {qlib.contrib.model.pytorch_gats_ts}-{GATs}, {qlib.contrib.model.pytorch_gru}-{GRU}, {qlib.contrib.model.pytorch_gru_ts}-{GRU}, {qlib.contrib.model.pytorch_hist}-{HIST}, {qlib.contrib.model.pytorch_igmtf}-{IGMTF}, {qlib.contrib.model.pytorch_localformer}-{LocalformerModel}, {qlib.contrib.model.pytorch_localformer_ts}-{LocalformerModel}, {qlib.contrib.model.pytorch_lstm}-{LSTM}, {qlib.contrib.model.pytorch_lstm_ts}-{LSTM}, {qlib.contrib.model.pytorch_nn}-{DNNModelPytorch}, {qlib.contrib.model.pytorch_sfm}-{SFM}, {qlib.contrib.model.pytorch_tabnet}-{TabnetModel}, {qlib.contrib.model.pytorch_tcn_ts}-{TCN}, {qlib.contrib.model.pytorch_tcn}-{TCN}, {qlib.contrib.model.pytorch_tcts.}-{TCTS}, {qlib.contrib.model.pytorch_tra}-{TRA}, {qlib.contrib.model.pytorch_transformer}-{TransformerModel}, {qlib.contrib.model.pytorch_transformer_ts}-{TransformerModel}, {qlib.contrib.model.xgboost}-{XGBModel}
+
+  The user will design several experiments and provide the dataset, datahandler and model option. 
+
+  The config file location options are:
+  {% for path in yaml_config_list%}{{path}}{% endfor %}
+
+  The user has provided the model dataset and datahandler in the format as {}-{}, and the config name also contains the model and datahandler, you should match the most similar config file to the user's experiment requirement. The first priority is to fit the model and datahandler module names, other component like meta controller is not as important as fitting the modules.
+
+  The two experiments might be the same, you don't need to worry them because the user might do some differenct change to the template config file later. In this condition, you just output same config location.
+
+  The 'vwap' in config file name means using vwap to build the dataset, do not use it if user never mentioned using vwap.
+
+  Please response template config location for each experiments and without any explanation or interaction. Please answer with totally the same format as example output.
+
+  example input:
+  Experiments:
+      1. Dataset: {qlib.data.dataset}-{DatasetH}, DataHandler: {qlib.contrib.data.handler}-{Alpha158}, Model: {qlib.contrib.model.linear}-{LinearModel}
+      2. Dataset: {qlib.data.dataset}-{DatasetH}, DataHandler: {qlib.contrib.data.handler}-{Alpha158}, Model: {qlib.contrib.model.pytorch_lstm}-{LSTM}
+  
+  example output:
+  Experiment 1: Linear/workflow_config_linear_Alpha158.yaml
+  Experiment 2: LSTM/workflow_config_lstm_Alpha158.yaml
+
+ConfigSearchTask_user : |-
+  Experiments:
+  {% for index, dataset, datahandler, model in experiments %}
+  {{index}}. Dataset: {{dataset}}}, DataHandler: {{datahandler}}, Model: {{model}}{% endfor %}
 
 AnalysisTask_system : |-
   You are an expert system administrator.
@@ -93,6 +221,247 @@ CMDTask_user : |-
   - User intention: "{{cmd_intention}}"
   - User OS: "{{user_os}}"
   Example output:
+
+HyperparameterFinetuneActionTask_system : |-
+  You are an Quant investment Research and development assistant whose job is to help the user to modify the config file of Qlib.
+
+  The user will provide a statement of their research requirement, and some thoughts about the research topic. The thoughts includes the target of the research, the deliverables of the target and the thinking direction. The thinking direction includes two levels: algorithm level decides the workflow and algorithm level related thoughts and business level decides the main controller or which of the crucial components in Qlib (Dataset, DataHandler, Model, Record, Strategy, Backtest) is targeted in this research round. 
+
+  Then the user will design several experiments and provide the description of each experiment. About each experiment, user has prepared a default templated config.
+
+  Your jib is to check the default config whether we need to change some part of the config.
+
+  User will provide two experiments, and both config files are included in user's input. Config file is showed in yaml format. You only focus on the difference of the config and try not to modify if modification is not very necessary.
+
+  If the user wants to apply rolling or DDGDA to a config, we always apply a new module script like qlib.contrib.rolling to run the original config. So please answer whether we need to apply new training process to the original config.
+
+  Caution: Modifying the config to use some meta controller in training process like rolling or DDGDA is impossible. If the user wants to use these meta controller, please DON'T change the config but mention it in the reason!
+
+  If you want to modify the config, please reply the changed whole config instead of some part.
+
+  You should answer exactly the same format as example.
+
+  Example input:
+  User intention: build an US stock market daily portfolio in quantitative investment and maximize the excess return.
+  Target: maximize the excess return
+  Deliverables: a daily quantitative investment strategy in US stock market. A model will be included in the strategy.
+  Thinking directions:
+    Business level: Model 
+    Algorithm level: supervised learning
+    Details: 
+    Because the user wants to maximize the excess return and more complicated model often extracts more deep pattern from the data. So try a more complicated DNN model to get more excess return than a simple linear model
+  Experiments:
+      1. Train a simple linear model ({qlib.contrib.model.linear}-{LinearModel}) on the dataset ({qlib.data.dataset}-{DatasetH}) and use the Alpha158 ({qlib.contrib.data.handler}-{Alpha158}) data handler. Use the default hyperparameters.
+      2. Train a deep LSTM model ({qlib.contrib.model.pytorch_lstm}-{LSTM}) on the dataset ({qlib.data.dataset}-{DatasetH}) and use the Alpha158 ({qlib.contrib.data.handler}-{Alpha158}) data handler. Use the default hyperparameters.
+
+  Config 1:
+  ```yaml
+  qlib_init:
+      provider_uri: "~/.qlib/qlib_data/cn_data"
+      region: cn
+  market: &market csi300
+  benchmark: &benchmark SH000300
+  data_handler_config: &data_handler_config
+      start_time: 2008-01-01
+      end_time: 2020-08-01
+      fit_start_time: 2008-01-01
+      fit_end_time: 2014-12-31
+      instruments: *market
+      infer_processors:
+          - class: RobustZScoreNorm
+            kwargs:
+                fields_group: feature
+                clip_outlier: true
+          - class: Fillna
+            kwargs:
+                fields_group: feature
+      learn_processors:
+          - class: DropnaLabel
+          - class: CSRankNorm
+            kwargs:
+                fields_group: label
+  port_analysis_config: &port_analysis_config
+      strategy:
+          class: TopkDropoutStrategy
+          module_path: qlib.contrib.strategy
+          kwargs:
+              signal:
+                  - <MODEL> 
+                  - <DATASET>
+              topk: 50
+              n_drop: 5
+      backtest:
+          start_time: 2017-01-01
+          end_time: 2020-08-01
+          account: 100000000
+          benchmark: *benchmark
+          exchange_kwargs:
+              limit_threshold: 0.095
+              deal_price: close
+              open_cost: 0.0005
+              close_cost: 0.0015
+              min_cost: 5
+  task:
+      model:
+          class: LinearModel
+          module_path: qlib.contrib.model.linear
+          kwargs:
+              estimator: ols
+      dataset:
+          class: DatasetH
+          module_path: qlib.data.dataset
+          kwargs:
+              handler:
+                  class: Alpha158
+                  module_path: qlib.contrib.data.handler
+                  kwargs: *data_handler_config
+              segments:
+                  train: [2008-01-01, 2014-12-31]
+                  valid: [2015-01-01, 2016-12-31]
+                  test: [2017-01-01, 2020-08-01]
+      record: 
+          - class: SignalRecord
+            module_path: qlib.workflow.record_temp
+            kwargs: 
+              model: <MODEL>
+              dataset: <DATASET>
+          - class: SigAnaRecord
+            module_path: qlib.workflow.record_temp
+            kwargs: 
+              ana_long_short: True
+              ann_scaler: 252
+          - class: PortAnaRecord
+            module_path: qlib.workflow.record_temp
+            kwargs: 
+              config: *port_analysis_config
+
+  ```
+  Config 2:
+  ```yaml
+
+  qlib_init:
+      provider_uri: "~/.qlib/qlib_data/cn_data"
+      region: cn
+  market: &market csi300
+  benchmark: &benchmark SH000300
+  data_handler_config: &data_handler_config
+      start_time: 2008-01-01
+      end_time: 2020-08-01
+      fit_start_time: 2008-01-01
+      fit_end_time: 2014-12-31
+      instruments: *market
+      infer_processors:
+          - class: FilterCol
+            kwargs:
+                fields_group: feature
+                col_list: ["RESI5", "WVMA5", "RSQR5", "KLEN", "RSQR10", "CORR5", "CORD5", "CORR10", 
+                              "ROC60", "RESI10", "VSTD5", "RSQR60", "CORR60", "WVMA60", "STD5", 
+                              "RSQR20", "CORD60", "CORD10", "CORR20", "KLOW"
+                          ]
+          - class: RobustZScoreNorm
+            kwargs:
+                fields_group: feature
+                clip_outlier: true
+          - class: Fillna
+            kwargs:
+                fields_group: feature
+      learn_processors:
+          - class: DropnaLabel
+          - class: CSRankNorm
+            kwargs:
+                fields_group: label
+      label: ["Ref($close, -2) / Ref($close, -1) - 1"]
+  port_analysis_config: &port_analysis_config
+      strategy:
+          class: TopkDropoutStrategy
+          module_path: qlib.contrib.strategy
+          kwargs:
+              signal:
+                  - <MODEL> 
+                  - <DATASET>
+              topk: 50
+              n_drop: 5
+      backtest:
+          start_time: 2017-01-01
+          end_time: 2020-08-01
+          account: 100000000
+          benchmark: *benchmark
+          exchange_kwargs:
+              limit_threshold: 0.095
+              deal_price: close
+              open_cost: 0.0005
+              close_cost: 0.0015
+              min_cost: 5
+  task:
+      model:
+          class: LSTM
+          module_path: qlib.contrib.model.pytorch_lstm_ts
+          kwargs:
+              d_feat: 20
+              hidden_size: 64
+              num_layers: 2
+              dropout: 0.0
+              n_epochs: 200
+              lr: 1e-3
+              early_stop: 10
+              batch_size: 800
+              metric: loss
+              loss: mse
+              n_jobs: 20
+              GPU: 0
+      dataset:
+          class: TSDatasetH
+          module_path: qlib.data.dataset
+          kwargs:
+              handler:
+                  class: Alpha158
+                  module_path: qlib.contrib.data.handler
+                  kwargs: *data_handler_config
+              segments:
+                  train: [2008-01-01, 2014-12-31]
+                  valid: [2015-01-01, 2016-12-31]
+                  test: [2017-01-01, 2020-08-01]
+              step_len: 20
+      record: 
+          - class: SignalRecord
+            module_path: qlib.workflow.record_temp
+            kwargs: 
+              model: <MODEL>
+              dataset: <DATASET>
+          - class: SigAnaRecord
+            module_path: qlib.workflow.record_temp
+            kwargs: 
+              ana_long_short: False
+              ann_scaler: 252
+          - class: PortAnaRecord
+            module_path: qlib.workflow.record_temp
+            kwargs: 
+              config: *port_analysis_config
+  ```
+
+  Example output:
+  Experiment 1: Rolling: False, DDGDA: False. 
+  Reason: No need to change the config. Because user wants to use default hyperparameter of linear model. 
+  Experiment 2: Rolling: False, DDGDA: False. 
+  Reason: No need to change the config. Because user wants to use default hyperparameter of LSTM model.
+
+HyperparameterFinetuneActionTask_user : |-
+  Caution: Modifying the config to use some meta controller in training process like rolling or DDGDA is impossible. If the user wants to use these meta controller, please DON'T change the config but mention it in the reason!
+  User intention: {{ user_intention }}
+  Target: {{ target }}
+  Deliverables: {{ deliverables }}
+  Thinking directions:
+    Business level: {{ business_level }} 
+    Algorithm level: {{ algorithm_level }} 
+    Details: 
+    {{ thinking_detail }}
+  Experiments:
+   {{experiments}}
+  {% for index, config in template_configs %}
+    Config {{index}}:
+    ```yaml{{ config }}
+    ```
+  {% endfor %}
 
 HyperparameterActionTask_system : |-
   Your task is to determine the hyperparameters to initialize the target class of the target component in Qlib(Dataset, DataHandler, Model, Record, Strategy, Backtest). User will provide possible hyperparameter names, you can choose to use default value(Please provice exactly "Default" in response) or set personized value to better meet user's requirement.
@@ -125,7 +494,7 @@ HyperparameterActionTask_system : |-
 
   The user has provided the requirements, chose the predefined classes and made plan and reason to each component. You should strictly follow user's choice and you should provide the reason of your hyperparameter choices if exist and some suggestion if the user wants to finetune the hyperparameters after the hyperparameter. 
 
-  You only need to response the hyperparameters in the exact format in exsample below with no explanation or conversation. "Hyperparameters:", "Reason:", "Improve suggestion:" are key tags so always include them in response.
+  You only need to response the hyperparameters in the exact format in example below with no explanation or conversation. "Hyperparameters:", "Reason:", "Improve suggestion:" are key tags so always include them in response.
   {% if target_module == "Dataset" %}
   Caution, if the user chose {qlib.data.dataset}-{DatasetH}, always remember to set hyperparameter: {segments}!
   {% elif target_module == "DataHandler" %}

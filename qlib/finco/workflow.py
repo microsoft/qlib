@@ -4,7 +4,7 @@ import shutil
 from pathlib import Path
 from typing import List
 
-from qlib.finco.task import WorkflowTask, SummarizeTask, TrainTask
+from qlib.finco.task import HighLevelPlanTask, SummarizeTask, TrainTask
 from qlib.finco.prompt_template import PromptTemplate, Template
 from qlib.finco.log import FinCoLog, LogColors
 from qlib.finco.utils import similarity
@@ -141,7 +141,7 @@ class WorkflowManager:
         self.logger.info(f"user_prompt: {self.get_context().get_context('user_prompt')}", title="Start")
 
         # NOTE: list may not be enough for general task list
-        task_list = [WorkflowTask(), TrainTask(), SummarizeTask()]
+        task_list = [HighLevelPlanTask(), SummarizeTask()]
         task_finished = []
         while len(task_list):
             task_list_info = [str(task) for task in task_list]
