@@ -19,6 +19,7 @@ from ..log import get_module_logger
 from ..utils import fill_placeholder, flatten_dict, class_casting, get_date_by_shift
 from ..utils.time import Freq
 from ..utils.data import deepcopy_basic_type
+from ..utils.exceptions import QlibException
 from ..contrib.eva.alpha import calc_ic, calc_long_short_return, calc_long_short_prec
 
 
@@ -604,9 +605,9 @@ class MultiPassPortAnaRecord(PortAnaRecord):
         # Save original strategy so that pred df can be replaced in next generate
         self.original_strategy = deepcopy_basic_type(self.strategy_config)
         if not isinstance(self.original_strategy, dict):
-            raise Exception("MultiPassPortAnaRecord require the passed in strategy to be a dict")
+            raise QlibException("MultiPassPortAnaRecord require the passed in strategy to be a dict")
         if "signal" not in self.original_strategy.get("kwargs", {}):
-            raise Exception("MultiPassPortAnaRecord require the passed in strategy to have signal as a parameter")
+            raise QlibException("MultiPassPortAnaRecord require the passed in strategy to have signal as a parameter")
 
     def random_init(self):
         pred_df = self.load("pred.pkl")
