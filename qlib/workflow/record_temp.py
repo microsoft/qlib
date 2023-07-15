@@ -7,7 +7,7 @@ import pandas as pd
 import numpy as np
 from tqdm import trange
 from pprint import pprint
-from typing import Union, List, Optional
+from typing import Union, List, Optional, Dict
 
 from qlib.utils.exceptions import LoadObjectError
 from ..contrib.evaluate import risk_analysis, indicator_analysis
@@ -237,7 +237,7 @@ class ACRecordTemp(RecordTemp):
             self.save(**artifact_dict)
         return artifact_dict
 
-    def _generate(self, *args, **kwargs) -> dict[str, object]:
+    def _generate(self, *args, **kwargs) -> Dict[str, object]:
         """
         Run the concrete generating task, return the dictionary of the generated results.
         The caller method will save the results to the recorder.
