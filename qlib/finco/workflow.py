@@ -149,9 +149,10 @@ class LearnManager:
         self.epoch = 0
         self.wm = WorkflowManager()
 
-        self.topics = [Topic(name=topic, describe=self.wm.prompt_template.get(f"Topic_{topic}")) for topic in
-                       self.__DEFAULT_TOPICS]
-        self.knowledge_base = KnowledgeBase(workdir=Path.cwd().joinpath('knowledge'))
+        self.topics = [
+            Topic(name=topic, describe=self.wm.prompt_template.get(f"Topic_{topic}")) for topic in self.__DEFAULT_TOPICS
+        ]
+        self.knowledge_base = KnowledgeBase(workdir=Path.cwd().joinpath("knowledge"))
         self.knowledge_base.execute_knowledge.add([])
         self.knowledge_base.query(knowledge_type="infrastructure", content="resolve_path")
 
@@ -184,7 +185,8 @@ class LearnManager:
 
         for task in task_finished:
             prompt_workflow_selection = self.wm.prompt_template.get(f"{self.__class__.__name__}_user").render(
-                summary=summary, brief=knowledge_of_topics,
+                summary=summary,
+                brief=knowledge_of_topics,
                 task_finished=[str(t) for t in task_finished],
                 task=task.__class__.__name__,
                 system=task.system.render(),

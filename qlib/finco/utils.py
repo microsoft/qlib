@@ -43,4 +43,4 @@ def similarity(text1, text2):
 
 def random_string(length=10):
     letters = string.ascii_letters + string.digits
-    return ''.join(random.choice(letters) for i in range(length))
+    return "".join(random.choice(letters) for i in range(length))
