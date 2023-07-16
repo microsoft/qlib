@@ -1012,7 +1012,10 @@ LearnManager_user : |-
   you will adjust {{task}}'s system prompt to:
 
 Topic_IC : |-
-  Summarize the influence of parameters on IC: {{docs}}
+  Summarize the influence of parameters on IC: {{docs}}. (Example response: Max draw-down become larger over time)
 
 Topic_MaxDropDown : |-
-  Summarize the influence of parameters on max dropdown: {{docs}}
+  Summarize the influence of parameters on max dropdown: {{docs}}. (Example response: Max draw-down become larger over time)
+
+Topic_RollingModel : |-
+  What conclusion can you draw from: {{docs}}. (Example response: Max draw-down become larger over time)
