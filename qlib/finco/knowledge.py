@@ -65,15 +65,19 @@ class KnowledgeExperiment(Knowledge):
     def brief(self):
         docs = []
         for recorder in self.recs:
-            docs.append({"exp_name": self.exp.name, "record_info": recorder.info,
-                         "config": recorder.load_object("config"),
-                         "context_summary": recorder.load_object("context_summary")})
+            docs.append(
+                {
+                    "exp_name": self.exp.name,
+                    "record_info": recorder.info,
+                    "config": recorder.load_object("config"),
+                    "context_summary": recorder.load_object("context_summary"),
+                }
+            )
 
         return docs
 
 
 class Topic:
-
     def __init__(self, name: str, describe: Template):
         self.name = name
         self.describe = describe
@@ -84,9 +88,7 @@ class Topic:
     def summarize(self, docs: list):
         self.logger.info(f"Summarize topic: \nname: {self.name}\ndescribe: {self.describe.module}")
         prompt_workflow_selection = self.describe.render(docs=docs)
-        response = APIBackend().build_messages_and_create_chat_completion(
-            user_prompt=prompt_workflow_selection
-        )
+        response = APIBackend().build_messages_and_create_chat_completion(user_prompt=prompt_workflow_selection)
 
         self.knowledge = response
         self.docs = docs

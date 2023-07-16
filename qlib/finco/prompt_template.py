@@ -10,8 +10,9 @@ from qlib.finco import get_finco_path
 class PromptTemplate(SingletonBaseClass):
     def __init__(self) -> None:
         super().__init__()
-        _template = yaml.load(open(Path.joinpath(get_finco_path(), "prompt_template.yaml"), "r"),
-                              Loader=yaml.FullLoader)
+        _template = yaml.load(
+            open(Path.joinpath(get_finco_path(), "prompt_template.yaml"), "r"), Loader=yaml.FullLoader
+        )
         for k, v in _template.items():
             if k == "mods":
                 continue
@@ -28,5 +29,5 @@ class PromptTemplate(SingletonBaseClass):
             file_path = Path(file_path)
         Path.mkdir(file_path.parent, exist_ok=True)
 
-        with open(file_path, 'w') as f:
+        with open(file_path, "w") as f:
             yaml.dump(self.__dict__, f)

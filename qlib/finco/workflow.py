@@ -1,7 +1,8 @@
 import sys
 import shutil
+from typing import List
 from pathlib import Path
-from qlib.finco.task import HighLevelPlanTask, SummarizeTask, Task, TrainTask
+from qlib.finco.task import HighLevelPlanTask, SummarizeTask
 from qlib.finco.prompt_template import PromptTemplate, Template
 from qlib.finco.log import FinCoLog, LogColors
 from qlib.finco.llm import APIBackend
@@ -34,7 +35,7 @@ from qlib.finco.context import WorkflowContextManager
 #
 #     def done(self) -> bool:
 #         return len(self._stack) == 0
-    
+
 
 class WorkflowManager:
     """This manage the whole task automation workflow including tasks and actions"""
@@ -63,7 +64,8 @@ class WorkflowManager:
                     f"If you do not need to delete {self._workspace},"
                     f" please change the workspace dir or rename existing files\n"
                     f"Are you sure you want to delete, yes(Y/y), no (N/n):",
-                    color=LogColors.WHITE)
+                    color=LogColors.WHITE,
+                )
             )
             if str(flag) not in ["Y", "y"]:
                 sys.exit()
@@ -121,10 +123,12 @@ class WorkflowManager:
             # TODO: sort the task list based on the priority of the task
             # task_list = sorted(task_list, key=lambda x: x.task_type)
             t = task_list.pop(0)
-            self.logger.info(f"Task finished: {[str(task) for task in task_finished]}",
-                             f"Task in queue: {task_list_info}",
-                             f"Executing task: {str(t)}",
-                             title="Task")
+            self.logger.info(
+                f"Task finished: {[str(task) for task in task_finished]}",
+                f"Task in queue: {task_list_info}",
+                f"Executing task: {str(t)}",
+                title="Task",
+            )
 
             t.assign_context_manager(self.context)
             res = t.execute()
@@ -145,9 +149,10 @@ class LearnManager:
         self.epoch = 0
         self.wm = WorkflowManager()
 
-        topics = [Topic(name=topic, describe=self.wm.prompt_template.get(f"Topic_{topic}")) for topic in
-                  self.__DEFAULT_TOPICS]
-        self.knowledge_base = KnowledgeBase(init_path=Path.cwd().joinpath('knowledge'), topics=topics)
+        topics = [
+            Topic(name=topic, describe=self.wm.prompt_template.get(f"Topic_{topic}")) for topic in self.__DEFAULT_TOPICS
+        ]
+        self.knowledge_base = KnowledgeBase(init_path=Path.cwd().joinpath("knowledge"), topics=topics)
 
     def run(self, prompt):
         # todo: add early stop condition
@@ -177,14 +182,17 @@ class LearnManager:
 
         for task in task_finished:
             prompt_workflow_selection = self.wm.prompt_template.get(f"{self.__class__.__name__}_user").render(
-                summary=summary, brief=self.knowledge_base.query_topics(),
+                summary=summary,
+                brief=self.knowledge_base.query_topics(),
                 task_finished=[str(t) for t in task_finished],
-                task=task.__class__.__name__, system=task.system.render(), user_prompt=user_prompt
+                task=task.__class__.__name__,
+                system=task.system.render(),
+                user_prompt=user_prompt,
             )
 
             response = APIBackend().build_messages_and_create_chat_completion(
                 user_prompt=prompt_workflow_selection,
-                system_prompt=self.wm.prompt_template.get(f"{self.__class__.__name__}_system").render()
+                system_prompt=self.wm.prompt_template.get(f"{self.__class__.__name__}_system").render(),
             )
 
             # todo: response assertion

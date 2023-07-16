@@ -1,8 +1,7 @@
-from collections import defaultdict
 from dataclasses import dataclass, field
 import copy
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import Optional, List
 from qlib.finco.log import FinCoLog
 from qlib.typehint import Literal
 
@@ -19,6 +18,7 @@ class Design:
 @dataclass
 class Exp:
     """Experiment"""
+
     # compoments
     dataset: Optional[Design] = None
     datahandler: Optional[Design] = None
@@ -37,6 +37,7 @@ class Exp:
 @dataclass
 class StructContext:
     """Part of the context have clear meaning and structure, so they will be saved here and can be easily retrieved and understood"""
+
     # TODO: move more content in WorkflowContextManager.context to here
     workspace: Path
     exp_list: List[Exp] = field(default_factory=list)  # the planned experiments
@@ -44,6 +45,7 @@ class StructContext:
 
 class WorkflowContextManager:
     """Context Manager stores the context of the workflow"""
+
     """All context are key value pairs which saves the input, output and status of the whole workflow"""
 
     def __init__(self, workspace: Path) -> None:

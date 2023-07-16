@@ -18,6 +18,7 @@ class SingletonBaseClass(metaclass=SingletonMeta):
     This class becomes necessary
 
     """
+
     # TODO: Add move this class to Qlib's general utils.
 
 
