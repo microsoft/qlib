@@ -2,7 +2,7 @@ import os
 
 from pathlib import Path
 import io
-from typing import Any, List, Union
+from typing import Any, List, Optional, Union
 import ruamel.yaml as yaml
 import abc
 import re
@@ -17,6 +17,8 @@ from qlib.contrib.analyzer import HFAnalyzer, SignalAnalyzer
 from qlib.workflow import R
 from qlib.finco.log import FinCoLog, LogColors
 from qlib.finco.conf import Config
+    
+from qlib.finco.context import Design, Exp, WorkflowContextManager
 
 COMPONENT_LIST = ["Dataset", "DataHandler", "Model", "Record", "Strategy", "Backtest"]
 
@@ -37,10 +39,19 @@ class Task:
         - CMD Task: it is expected to run a cmd
         - Edit Task: it is supposed to edit the code base directly.
     """
+    _context_manager: WorkflowContextManager
 
-    def __init__(self) -> None:
-        self._context_manager = None
+    def __init__(self, tpl_ver: Optional[str] = None) -> None:
+        """
+
+        Parameters
+        ----------
+        tpl_ver : Optional[str]
+            The Version of the template.
+            If the previous results will greatly affect the next QA. We may use different version instead of combine everything in the same one.
+        """
         self.prompt_template = PromptTemplate()
+        self.tlp_ver = tpl_ver
         self.executed = False
         self.continuous = Config().continuous_mode
         self.logger = FinCoLog()
@@ -98,11 +109,17 @@ class Task:
 
     @property
     def system(self):
-        return self.prompt_template.get(self.__class__.__name__ + "_system")
+        key = self.__class__.__name__ + "_system"
+        if self.tlp_ver is not None:
+            key = key + "." + self.tlp_ver
+        return self.prompt_template.get(key)
 
     @property
     def user(self):
-        return self.prompt_template.get(self.__class__.__name__ + "_user")
+        key = self.__class__.__name__ + "_user"
+        if self.tlp_ver is not None:
+            key = key + "." + self.tlp_ver
+        return self.prompt_template.get(key)
 
     def __str__(self):
         return self.__class__.__name__
@@ -256,8 +273,10 @@ class SLPlanTask(PlanTask):
         re_pattern = re_pattern + "Difference:(.*)"
         re_pattern = re.compile(re_pattern, re.S)
         # 1) CURD on the workspace
+        self._context_manager
         match_res = re.search(re_pattern, response)
         for experiment_id in range(1, experiment_count + 1):
+            exp = Exp()
             for name in COMPONENT_LIST:
                 target_line = [line for line in match_res.group(experiment_id).split("\n") if f"{name}:" in line]
                 assert len(target_line) == 1, f"The {name} is not found in the response"
@@ -275,14 +294,25 @@ class SLPlanTask(PlanTask):
                 self._context_manager.set_context(f"{name}_experiment_{experiment_id}_decision", decision)
                 self._context_manager.set_context(f"{name}_experiment_{experiment_id}_classes", classes)
                 self._context_manager.set_context(f"{name}_experiment_{experiment_id}_plan", target_line)
-
+                setattr(exp, name.lower(), Design(plan=target_line, classes=classes, decision=decision))
                 assert decision in ["Default", "Personized"], f"The decision of {name} is not correct"
-            
+            # TODO: the strctured experiments should replace
+            self._context_manager.struct_context.exp_list.append(exp)
+
         # 1) create a workspace
         # TODO: we have to make choice between `sl` and  `sl-cfg`
-        new_task.append(
-            ConfigSearchTask()
-        )
+        # new_task.append(
+        #     # ConfigSearchTask(get_tpl_path()),  # select template from the tpl folder directly. The prompt does not align with the task
+        #     ConfigSearchTask(),  # select template from the baselines.
+        # )
+
+        # Because selecting template is not that stable. We try to start with
+        cfg_tpl = get_tpl_path() / "sl" / "workflow_config.yaml"
+        new_task.append(CMDTask(f"make a directory in the '{self._context_manager.struct_context.workspace}'"))
+        for i, exp in enumerate(self._context_manager.struct_context.exp_list, 1):
+            exp.template = cfg_tpl
+            new_task.append(CMDTask(f"copy the file '{cfg_tpl}' to '{self._context_manager.struct_context.workspace}' and rename to experiment_{i}.yaml"))
+
         # for name in COMPONENT_LIST:
             # if decision == "Default":
         new_task.extend([HyperparameterFinetuneActionTask()])
@@ -337,31 +367,42 @@ class TrainTask(Task):
         if confirm is False:
             return []
 
-        command = ["qrun", str(workflow_path)]
-        try:
+        if not self._rolling:
+            command = ["qrun", str(workflow_path)]
+            try:
+                # Run the command and capture the output
+                workspace = self._context_manager.get_context("workspace")
+                result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, text=True, cwd=str(workspace))
+            
+            except subprocess.CalledProcessError as e:
+                print(f"An error occurred while running the subprocess: {e.stderr} {e.stdout}")
+                real_error = e.stderr+e.stdout
+                if "data" in e.stdout.lower() or "handler" in e.stdout.lower():
+                    return [HyperparameterActionTask("Dataset", regenerate=True, error=real_error),
+                            HyperparameterActionTask("DataHandler", regenerate=True, error=real_error),
+                            ConfigActionTask("Dataset"), ConfigActionTask("DataHandler"), YamlEditTask("Dataset"),
+                            YamlEditTask("DataHandler"), TrainTask()]
+                elif "model" in e.stdout.lower():
+                    return [HyperparameterActionTask("Model", regenerate=True, error=real_error),
+                            ConfigActionTask("Model"), YamlEditTask("Model"), TrainTask()]
+                else:
+                    ret_list = []
+                    for component in COMPONENT_LIST:
+                        ret_list.append(HyperparameterActionTask(component, regenerate=True, error=real_error))
+                        ret_list.append(ConfigActionTask(component))
+                        ret_list.append(YamlEditTask(component))
+                    ret_list.append(TrainTask())
+                    return ret_list
+        elif not self._ddgda:
+            command = f"python -m qlib.contrib.rolling base --conf_path {workflow_path} run"
             # Run the command and capture the output
-            workspace = self._context_manager.get_context("workspace")
-            result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, text=True, cwd=str(workspace))
-        
-        except subprocess.CalledProcessError as e:
-            print(f"An error occurred while running the subprocess: {e.stderr} {e.stdout}")
-            real_error = e.stderr+e.stdout
-            if "data" in e.stdout.lower() or "handler" in e.stdout.lower():
-                return [HyperparameterActionTask("Dataset", regenerate=True, error=real_error),
-                        HyperparameterActionTask("DataHandler", regenerate=True, error=real_error),
-                        ConfigActionTask("Dataset"), ConfigActionTask("DataHandler"), YamlEditTask("Dataset"),
-                        YamlEditTask("DataHandler"), TrainTask()]
-            elif "model" in e.stdout.lower():
-                return [HyperparameterActionTask("Model", regenerate=True, error=real_error),
-                        ConfigActionTask("Model"), YamlEditTask("Model"), TrainTask()]
-            else:
-                ret_list = []
-                for component in COMPONENT_LIST:
-                    ret_list.append(HyperparameterActionTask(component, regenerate=True, error=real_error))
-                    ret_list.append(ConfigActionTask(component))
-                    ret_list.append(YamlEditTask(component))
-                ret_list.append(TrainTask())
-                return ret_list
+            workspace = self._context_manager.struct_context.workspace
+            subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, text=True, cwd=str(workspace))
+        else:
+            command = f"python -m qlib.contrib.rolling ddgda --conf_path {workflow_path} run"
+            # Run the command and capture the output
+            workspace = self._context_manager.struct_context.workspace
+            subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, text=True, cwd=str(workspace))
 
         return [AnalysisTask()]
 
@@ -462,8 +503,16 @@ class ActionTask(Task):
 
 
 class ConfigSearchTask(ActionTask):
-    def __init__(self):
+    """Find a template path that user can start with."""
+    def __init__(self, conf_path: Optional[Union[Path, str]] = None):
         super().__init__()
+        if conf_path is None:
+            # If no path provided, find path from the templates.
+            import qlib
+            conf_path = Path(os.path.abspath(inspect.getfile(qlib))).parent.parent / "examples" / "benchmarks"
+        if isinstance(conf_path, str):
+            conf_path = Path(conf_path)
+        self.conf_path = conf_path
     
     def crawl_the_folder(self, folder_path : Path):
         yaml_files = []  
@@ -489,10 +538,9 @@ class ConfigSearchTask(ActionTask):
             model_class = f"{{{self._context_manager.get_context(f'Model_experiment_{experiment_id}_classes')[0][0]}}}-{{{self._context_manager.get_context(f'Model_experiment_{experiment_id}_classes')[0][1]}}}"
 
             experiments.append((experiment_id, dataset_class, datahandler_class, model_class))
-        
-        import qlib
-        benchmarks_root_path = Path(os.path.abspath(inspect.getfile(qlib))).parent.parent / "examples" / "benchmarks"
-        yaml_config_list = self.crawl_the_folder(benchmarks_root_path)
+
+        # TODO: each config should contains some descriptions to provide information to make the choice.
+        yaml_config_list = self.crawl_the_folder(self.conf_path)
 
         system_prompt = self.system.render(yaml_config_list=yaml_config_list)
         user_prompt = self.user.render(experiments=experiments)
@@ -520,7 +568,7 @@ class ConfigSearchTask(ActionTask):
         return_task = [CMDTask(f"make a directory in the {self._context_manager.get_context('workspace')}"), ]
         for experiment_id in range(1, experiment_count + 1):
             self._context_manager.set_context(f"experiment_{experiment_id}_template_config", config_search_result.group(experiment_id).strip('\n'))
-            config_location = benchmarks_root_path / config_search_result.group(experiment_id)
+            config_location = self.conf_path / config_search_result.group(experiment_id)
             return_task.append(CMDTask(f"copy file in {config_location} to {self._context_manager.get_context('workspace')} and rename to experiment_{experiment_id}.yaml"))
         return return_task
 
@@ -604,8 +652,10 @@ class HyperparameterFinetuneActionTask(ActionTask):
             reason_res = config_search_result.group((experiment_id-1) * 4 + 4).strip('\n')
             if "true" in ddgda_res.lower():
                 return_tasks.append(TrainTask(experiment_id, rolling=True, ddgda=True))
+                self._context_manager.struct_context.exp_list[experiment_id - 1].rolling = "ddgda"
             if "true" in rolling_res.lower():
                 return_tasks.append(TrainTask(experiment_id, rolling=True))
+                self._context_manager.struct_context.exp_list[experiment_id - 1].rolling = "base"
             else:
                 return_tasks.append(TrainTask(experiment_id))
             self._context_manager.set_context(f"experiment_{experiment_id}_rolling", rolling_res)

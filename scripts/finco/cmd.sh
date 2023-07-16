@@ -12,4 +12,4 @@ if [ -e $DIR/cridential.sh ]; then
 fi
 
 # run the command
-python -m qlib.finco.cli "please help me build a low turnover strategy that focus more on longterm return"
+python -m qlib.finco.cli "build an A-share stock market daily portfolio in quantitative investment and minimize the maximum drawdown."

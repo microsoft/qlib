@@ -176,8 +176,9 @@ setup(
         ],
         "finco": [
             # finco is not necessary for all Qlib users; So a single require section is used for it.
-            "openapi",
+            "openai",
             "pydantic",  # Please add it to basic requirements after the design of pydantic is state.
+            "pydantic-settings",
             "python-dotenv",  # I don't think this is necessary if we use pydantic.
             "fuzzywuzzy",
             "python-Levenshtein"    # not necessary but accelerate fuzzywuzzy calculation

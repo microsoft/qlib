@@ -1,5 +1,5 @@
 # TODO: use pydantic for other modules in Qlib
-from pydantic import BaseSettings
+# from pydantic_settings import BaseSettings
 from qlib.finco.utils import SingletonBaseClass
 
 import os
@@ -24,9 +24,8 @@ class Config(SingletonBaseClass):
 
         self.max_retry = int(os.getenv("MAX_RETRY")) if os.getenv("MAX_RETRY") is not None else None
 
-        self.continuous_mode = (
-            os.getenv("CONTINOUS_MODE") == "True" if os.getenv("CONTINOUS_MODE") is not None else False
-        )
+        self.continuous_mode = (os.getenv("CONTINOUS_MODE") == "True"
+                                if os.getenv("CONTINOUS_MODE") is not None else False)
         self.debug_mode = os.getenv("DEBUG_MODE") == "True" if os.getenv("DEBUG_MODE") is not None else False
         self.workspace = os.getenv("WORKSPACE") if os.getenv("WORKSPACE") is not None else "./finco_workspace"
         self.max_past_message_include = int(os.getenv("MAX_PAST_MESSAGE_INCLUDE") or 6) // 2 * 2

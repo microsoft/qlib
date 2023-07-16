@@ -1,68 +1,40 @@
 import sys
-import copy
 import shutil
 from pathlib import Path
-from typing import List
-
-from qlib.finco.task import HighLevelPlanTask, SummarizeTask, TrainTask
+from qlib.finco.task import HighLevelPlanTask, SummarizeTask, Task, TrainTask
 from qlib.finco.prompt_template import PromptTemplate, Template
 from qlib.finco.log import FinCoLog, LogColors
-from qlib.finco.utils import similarity
 from qlib.finco.llm import APIBackend
 from qlib.finco.conf import Config
 from qlib.finco.knowledge import KnowledgeBase, Topic
+from qlib.finco.context import WorkflowContextManager
 
 
-class WorkflowContextManager:
-    """Context Manager stores the context of the workflow"""
-
-    """All context are key value pairs which saves the input, output and status of the whole workflow"""
-
-    def __init__(self) -> None:
-        self.context = {}
-        self.logger = FinCoLog()
-
-    def set_context(self, key, value):
-        if key in self.context:
-            self.logger.warning("The key already exists in the context, the value will be overwritten")
-        self.context[key] = value
-
-    def get_context(self, key):
-        # NOTE: if the key doesn't exist, return None. In the future, we may raise an error to detect abnormal behavior
-        if key not in self.context:
-            self.logger.warning("The key doesn't exist in the context")
-            return None
-        return self.context[key]
-
-    def update_context(self, key, new_value):
-        # NOTE: if the key doesn't exist, return None. In the future, we may raise an error to detect abnormal behavior
-        if key not in self.context:
-            self.logger.warning("The key doesn't exist in the context")
-        self.context.update({key: new_value})
-
-    def get_all_context(self):
-        """return a deep copy of the context"""
-        """TODO: do we need to return a deep copy?"""
-        return copy.deepcopy(self.context)
-
-    def retrieve(self, query: str) -> dict:
-        if query in self.context.keys():
-            return {query: self.context.get(query)}
-
-        # Note: retrieve information from context by string similarity maybe abandon in future
-        scores = {}
-        for k, v in self.context.items():
-            scores.update({k: max(similarity(query, k), similarity(query, v))})
-        max_score_key = max(scores, key=scores.get)
-        return {max_score_key: self.context.get(max_score_key)}
-
-    def clear(self, reserve: list = None):
-        if reserve is None:
-            reserve = []
-
-        _context = {k: self.get_context(k) for k in reserve}
-        self.context = _context
-
+# TODO: it is not necessary in current phase
+# class TaskDAG:
+#     """
+#     This is a Task manager. it maintains a graph and a stack stucture to manager the task
+#     The reason why the DGA relationship is maintained outside instead of inside the task is that
+#     - To make the creating of task simpler(user don't have to care about the relation-ship)
+#     - To manage the relation ship when poping and executing the tasks is relatively easier instead of scattering them everywhere
+#     """
+#     def __init__(self) -> None:
+#         self._finished = []
+#         self._stack = []
+#         self._dag = defaultdict(list)  # from id(object) -> list of id(object)
+#
+#     def pop(self):
+#         return  self._stack.pop(0)
+#
+#     def push(self, task: Union[Task, List[Task]], parent: Optional[Task] = None):
+#         if isinstance(task, Task):
+#             task = [task]
+#         if parent is not None:
+#             self._dag
+#
+#     def done(self) -> bool:
+#         return len(self._stack) == 0
+    
 
 class WorkflowManager:
     """This manage the whole task automation workflow including tasks and actions"""
@@ -78,8 +50,7 @@ class WorkflowManager:
         self._confirm_and_rm()
 
         self.prompt_template = PromptTemplate()
-        self.context = WorkflowContextManager()
-        self.context.set_context("workspace", self._workspace)
+        self.context = WorkflowContextManager(workspace=self._workspace)
         self.default_user_prompt = "Please help me build a low turnover strategy that focus more on longterm return in China A csi300. Please help to use lightgbm model."
 
     def _confirm_and_rm(self):
