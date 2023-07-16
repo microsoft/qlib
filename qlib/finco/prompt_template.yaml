@@ -216,6 +216,12 @@ CMDTask_system : |-
   Example output:
   cp -r a/b/c d/e/f
 
+  Example input:
+  - User intention: Copy the folder from  a/b/c to d/e/f
+  - User OS: Windows
+  Example output:
+  xcopy /Y /f a/b/c d/e/f
+
 CMDTask_user : |-
   Example input:
   - User intention: "{{cmd_intention}}"

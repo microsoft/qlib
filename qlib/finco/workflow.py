@@ -149,17 +149,16 @@ class LearnManager:
         self.epoch = 0
         self.wm = WorkflowManager()
 
-        topics = [
-            Topic(name=topic, describe=self.wm.prompt_template.get(f"Topic_{topic}")) for topic in self.__DEFAULT_TOPICS
-        ]
-        self.knowledge_base = KnowledgeBase(init_path=Path.cwd().joinpath("knowledge"), topics=topics)
+        self.topics = [Topic(name=topic, describe=self.wm.prompt_template.get(f"Topic_{topic}")) for topic in
+                       self.__DEFAULT_TOPICS]
+        self.knowledge_base = KnowledgeBase(workdir=Path.cwd().joinpath('knowledge'))
+        self.knowledge_base.execute_knowledge.add([])
+        self.knowledge_base.query(knowledge_type="infrastructure", content="resolve_path")
 
     def run(self, prompt):
         # todo: add early stop condition
         for i in range(10):
             self.wm.run(prompt)
-            self.knowledge_base.update(self.wm._workspace)
-            self.knowledge_base.summarize_by_topic()
             self.learn()
             self.epoch += 1
 
@@ -180,10 +179,12 @@ class LearnManager:
         user_prompt = self.wm.context.get_context("user_prompt")
         summary = self.wm.context.get_context("summary")
 
+        [topic.summarize(self.knowledge_base.get_knowledge()) for topic in self.topics]
+        knowledge_of_topics = [{topic.name: topic.knowledge} for topic in self.topics]
+
         for task in task_finished:
             prompt_workflow_selection = self.wm.prompt_template.get(f"{self.__class__.__name__}_user").render(
-                summary=summary,
-                brief=self.knowledge_base.query_topics(),
+                summary=summary, brief=knowledge_of_topics,
                 task_finished=[str(t) for t in task_finished],
                 task=task.__class__.__name__,
                 system=task.system.render(),
