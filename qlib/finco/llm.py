@@ -43,7 +43,7 @@ class APIBackend(SingletonBaseClass):
                 "content": system_prompt,
             }
         ]
-        messages.extend(former_messages[-1*cfg.max_past_message_include:])
+        messages.extend(former_messages[-1 * cfg.max_past_message_include :])
         messages.append(
             {
                 "role": "user",
@@ -82,7 +82,6 @@ class APIBackend(SingletonBaseClass):
         temperature: float = None,
         max_tokens: Optional[int] = None,
     ) -> str:
-
         if self.debug_mode:
             key = json.dumps(messages)
             if key in self.cache:

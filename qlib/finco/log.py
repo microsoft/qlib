@@ -12,6 +12,7 @@ class LogColors:
     """
     ANSI color codes for use in console output.
     """
+
     RED = "\033[91m"
     GREEN = "\033[92m"
     YELLOW = "\033[93m"
@@ -58,8 +59,11 @@ def formatting_log(logger, title="Info"):
     a context manager, print liens before and after a function
     """
     length = {"Start": 120, "Task": 120, "Info": 60, "Interact": 60, "End": 120}.get(title, 60)
-    color, bold = (LogColors.YELLOW, LogColors.BOLD) \
-        if title in ["Start", "Task", "Info", "Interact", "End"] else (LogColors.CYAN, "")
+    color, bold = (
+        (LogColors.YELLOW, LogColors.BOLD)
+        if title in ["Start", "Task", "Info", "Interact", "End"]
+        else (LogColors.CYAN, "")
+    )
     logger.info("")
     logger.info(f"{color}{bold}{'-'} {title} {'-' * (length - len(title))}{LogColors.END}")
     yield
@@ -99,12 +103,12 @@ class FinCoLog(SingletonBaseClass):
                     f"{LogColors.MAGENTA}{LogColors.BOLD}Role:{LogColors.END} "
                     f"{LogColors.CYAN}{m['role']}{LogColors.END}\n"
                     + f"{LogColors.MAGENTA}{LogColors.BOLD}Content:{LogColors.END} "
-                      f"{LogColors.CYAN}{m['content']}{LogColors.END}\n")
+                    f"{LogColors.CYAN}{m['content']}{LogColors.END}\n"
+                )
 
     def log_response(self, response: str):
         with formatting_log(self.logger, "GPT Response"):
-            self.logger.info(
-                f"{LogColors.CYAN}{response}{LogColors.END}\n")
+            self.logger.info(f"{LogColors.CYAN}{response}{LogColors.END}\n")
 
     # TODO:
     # It looks wierd if we only have logger
@@ -118,14 +122,13 @@ class FinCoLog(SingletonBaseClass):
     def plain_info(self, *args):
         for arg in args:
             self.logger.info(
-                f"{LogColors.YELLOW}{LogColors.BOLD}Info:{LogColors.END}{LogColors.WHITE}{arg}{LogColors.END}")
+                f"{LogColors.YELLOW}{LogColors.BOLD}Info:{LogColors.END}{LogColors.WHITE}{arg}{LogColors.END}"
+            )
 
     def warning(self, *args):
         for arg in args:
-            self.logger.warning(
-                f"{LogColors.BLUE}{LogColors.BOLD}Warning:{LogColors.END}{arg}")
+            self.logger.warning(f"{LogColors.BLUE}{LogColors.BOLD}Warning:{LogColors.END}{arg}")
 
     def error(self, *args):
         for arg in args:
-            self.logger.error(
-                f"{LogColors.RED}{LogColors.BOLD}Error:{LogColors.END}{arg}")
+            self.logger.error(f"{LogColors.RED}{LogColors.BOLD}Error:{LogColors.END}{arg}")

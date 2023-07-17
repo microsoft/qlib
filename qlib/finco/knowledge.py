@@ -65,6 +65,7 @@ class YamlStorage(Storage):
     This class is responsible for storage and loading of Knowledge related data in yaml format.
 
     """
+
     DEFAULT_NAME = "storage.yml"
 
     def __init__(self, path: Union[str, Path]):
@@ -82,7 +83,7 @@ class YamlStorage(Storage):
     def save(self, **kwargs):
         """use pickle as the default save method"""
         Path.mkdir(self.path.parent, exist_ok=True)
-        with open(self.path, 'w') as f:
+        with open(self.path, "w") as f:
             yaml.dump(self.documents, f)
 
 
@@ -192,9 +193,14 @@ class ExperimentKnowledge(Knowledge):
     def brief(self):
         docs = []
         for recorder in self.storage.recs:
-            docs.append({"exp_name": self.storage.exp.name, "record_info": recorder.info,
-                         "config": recorder.load_object("config"),
-                         "context_summary": recorder.load_object("context_summary")})
+            docs.append(
+                {
+                    "exp_name": self.storage.exp.name,
+                    "record_info": recorder.info,
+                    "config": recorder.load_object("config"),
+                    "context_summary": recorder.load_object("context_summary"),
+                }
+            )
         return docs
 
 
@@ -327,7 +333,7 @@ class InfrastructureKnowledge(Knowledge):
 
         """
         functions = []
-        for py_file_path in Path(directory).rglob('*.py'):
+        for py_file_path in Path(directory).rglob("*.py"):
             for _functions in self.get_functions_with_docstrings(py_file_path):
                 functions.append(_functions)
 
@@ -346,7 +352,7 @@ class InfrastructureKnowledge(Knowledge):
         docstring = None
         for line in lines:
             if line.strip().startswith("def ") or line.strip().startswith("class "):
-                func = line.strip().split(' ')[1].split('(')[0]
+                func = line.strip().split(" ")[1].split("(")[0]
                 if func.startswith("__"):
                     continue
                 if current_func is not None:
@@ -368,7 +374,6 @@ class InfrastructureKnowledge(Knowledge):
 
 
 class Topic:
-
     def __init__(self, name: str, describe: Template):
         self.name = name
         self.describe = describe
@@ -379,9 +384,7 @@ class Topic:
     def summarize(self, docs: list):
         self.logger.info(f"Summarize Topic \nname: {self.name}\ndescribe: {self.describe.module}")
         prompt_workflow_selection = self.describe.render(docs=docs)
-        response = APIBackend().build_messages_and_create_chat_completion(
-            user_prompt=prompt_workflow_selection
-        )
+        response = APIBackend().build_messages_and_create_chat_completion(user_prompt=prompt_workflow_selection)
 
         self.knowledge = response
         self.docs = docs
@@ -428,22 +431,26 @@ class KnowledgeBase(SingletonBaseClass):
 
     def load_practice_knowledge(self, path: Path) -> PracticeKnowledge:
         self.practice_knowledge = PracticeKnowledge(
-            YamlStorage(path.joinpath(f"{self.KT_PRACTICE}/{YamlStorage.DEFAULT_NAME}")))
+            YamlStorage(path.joinpath(f"{self.KT_PRACTICE}/{YamlStorage.DEFAULT_NAME}"))
+        )
         return self.practice_knowledge
 
     def load_execute_knowledge(self, path: Path) -> ExecuteKnowledge:
         self.execute_knowledge = ExecuteKnowledge(
-            YamlStorage(path.joinpath(f"{self.KT_EXECUTE}/{YamlStorage.DEFAULT_NAME}")))
+            YamlStorage(path.joinpath(f"{self.KT_EXECUTE}/{YamlStorage.DEFAULT_NAME}"))
+        )
         return self.execute_knowledge
 
     def load_finance_knowledge(self, path: Path) -> FinanceKnowledge:
         self.finance_knowledge = FinanceKnowledge(
-            YamlStorage(path.joinpath(f"{self.KT_FINANCE}/{YamlStorage.DEFAULT_NAME}")))
+            YamlStorage(path.joinpath(f"{self.KT_FINANCE}/{YamlStorage.DEFAULT_NAME}"))
+        )
         return self.finance_knowledge
 
     def load_infrastructure_knowledge(self, path: Path) -> InfrastructureKnowledge:
         self.infrastructure_knowledge = InfrastructureKnowledge(
-            YamlStorage(path.joinpath(f"{self.KT_INFRASTRUCTURE}/{YamlStorage.DEFAULT_NAME}")))
+            YamlStorage(path.joinpath(f"{self.KT_INFRASTRUCTURE}/{YamlStorage.DEFAULT_NAME}"))
+        )
         return self.infrastructure_knowledge
 
     def get_knowledge(self, knowledge_type: str = None):
@@ -456,8 +463,12 @@ class KnowledgeBase(SingletonBaseClass):
         elif knowledge_type == self.KT_INFRASTRUCTURE:
             knowledge = self.infrastructure_knowledge.knowledge
         else:
-            knowledge = self.execute_knowledge.knowledge + self.practice_knowledge.knowledge \
-                        + self.finance_knowledge.knowledge + self.infrastructure_knowledge.knowledge
+            knowledge = (
+                self.execute_knowledge.knowledge
+                + self.practice_knowledge.knowledge
+                + self.finance_knowledge.knowledge
+                + self.infrastructure_knowledge.knowledge
+            )
         return knowledge
 
     def query(self, knowledge_type: str = None, content: str = None, n: int = 5):
@@ -488,7 +499,8 @@ class KnowledgeBase(SingletonBaseClass):
             For example: 
             user: find the most relevant doc with this query: ab \n from docs = {abc, xyz, lmn}.
             response: abc
-            """)
+            """
+        )
         prompt_workflow_selection = prompt.render(content=content, docs=similar_n_docs)
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=prompt_workflow_selection, system_prompt="You are an excellent assistant."
