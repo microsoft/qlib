@@ -7,7 +7,7 @@ import yaml
 from qlib.workflow import R
 from qlib.finco.log import FinCoLog
 from qlib.finco.llm import APIBackend
-from qlib.finco.utils import similarity, random_string
+from qlib.finco.utils import similarity, random_string, SingletonBaseClass
 
 logger = FinCoLog()
 
@@ -140,8 +140,10 @@ class Knowledge:
         Return
         ------
         """
+        knowledge = []
         for storage in self.storages:
-            self.knowledge.extend(storage.documents)
+            knowledge.extend(storage.documents)
+        self.knowledge = knowledge
 
     @classmethod
     def load(cls, path: Union[str, Path]):
@@ -212,12 +214,16 @@ class PracticeKnowledge(Knowledge):
 
         self.summarize()
 
-    def add(self, docs: List):
-        storage = YamlStorage(path=self.workdir.joinpath(self.name).joinpath(YamlStorage.DEFAULT_NAME))
-        storage.add(documents=docs)
-        self.storages.append(storage)
-        self.summarize()
+    def add(self, docs: List, storage_name: str = YamlStorage.DEFAULT_NAME):
+        storage = self.get_storage(storage_name)
+        if storage is None:
+            storage = YamlStorage(path=self.workdir.joinpath(self.name).joinpath(storage_name))
+            storage.add(documents=docs)
+            self.storages.append(storage)
+        else:
+            storage.add(documents=docs)
 
+        self.summarize()
         self.save()
 
 
@@ -232,18 +238,27 @@ class FinanceKnowledge(Knowledge):
         storage = self.get_storage(YamlStorage.DEFAULT_NAME)
         if len(storage.documents) == 0:
             docs = self.read_files_in_directory(self.workdir.joinpath(self.name))
+            docs.extend([
+                {"content": "[Success]: XXXX, the results looks reasonable  # Keywords: supervised learning, data"},
+                {"content": "[Fail]: XXXX, it raise memory error due to  YYYYY  "
+                            "# Keywords: supervised learning, data"}])
             self.add(docs)
-
-    def add(self, docs: List):
-        storage = YamlStorage(path=self.workdir.joinpath(self.name).joinpath(YamlStorage.DEFAULT_NAME))
-        storage.add(documents=docs)
-        self.storages.append(storage)
         self.summarize()
 
+    def add(self, docs: List, storage_name: str = YamlStorage.DEFAULT_NAME):
+        storage = self.get_storage(storage_name)
+        if storage is None:
+            storage = YamlStorage(path=self.workdir.joinpath(self.name).joinpath(storage_name))
+            storage.add(documents=docs)
+            self.storages.append(storage)
+        else:
+            storage.add(documents=docs)
+
+        self.summarize()
         self.save()
 
     @staticmethod
-    def read_files_in_directory(directory):
+    def read_files_in_directory(directory) -> List:
         """
         read all .txt files under directory
         """
@@ -265,12 +280,24 @@ class ExecuteKnowledge(Knowledge):
         super().__init__(storages=storages, name="execute")
         self.summarize()
 
-    def add(self, docs: List):
-        storage = YamlStorage(path=self.workdir.joinpath(YamlStorage.DEFAULT_NAME))
-        storage.add(documents=docs)
-        self.storages.append(storage)
+        storage = self.get_storage(YamlStorage.DEFAULT_NAME)
+        if len(storage.documents) == 0:
+            docs = [{"content": "[Success]: XXXX, the results looks reasonable  # Keywords: supervised learning, data"},
+                    {"content": "[Fail]: XXXX, it raise memory error due to  YYYYY  "
+                                "# Keywords: supervised learning, data"}]
+            self.add(docs)
         self.summarize()
 
+    def add(self, docs: List, storage_name: str = YamlStorage.DEFAULT_NAME):
+        storage = self.get_storage(storage_name)
+        if storage is None:
+            storage = YamlStorage(path=self.workdir.joinpath(self.name).joinpath(storage_name))
+            storage.add(documents=docs)
+            self.storages.append(storage)
+        else:
+            storage.add(documents=docs)
+
+        self.summarize()
         self.save()
 
 
@@ -285,17 +312,26 @@ class InfrastructureKnowledge(Knowledge):
         storage = self.get_storage(YamlStorage.DEFAULT_NAME)
         if len(storage.documents) == 0:
             docs = self.get_functions_and_docstrings(Path(__file__).parent.parent.parent)
+            docs.extend([{"docstring": "All the models can be import from `qlib.contrib.models`  "
+                                       "# Keywords: supervised learning"},
+                         {"docstring": "The API to run rolling models can be found in …   #Keywords: control"},
+                         {"docstring": "Here are a list of Qlib’s available analyzers.    #KEYWORDS: analysis"}])
             self.add(docs)
-
-    def add(self, docs: List):
-        storage = YamlStorage(path=self.workdir.joinpath(self.name).joinpath(YamlStorage.DEFAULT_NAME))
-        storage.add(documents=docs)
-        self.storages.append(storage)
         self.summarize()
 
+    def add(self, docs: List, storage_name: str = YamlStorage.DEFAULT_NAME):
+        storage = self.get_storage(storage_name)
+        if storage is None:
+            storage = YamlStorage(path=self.workdir.joinpath(self.name).joinpath(storage_name))
+            storage.add(documents=docs)
+            self.storages.append(storage)
+        else:
+            storage.add(documents=docs)
+
+        self.summarize()
         self.save()
 
-    def get_functions_and_docstrings(self, directory):
+    def get_functions_and_docstrings(self, directory) -> List:
         """
         get all method and docstring in .py files under directory
 
@@ -350,15 +386,16 @@ class Topic:
         self.logger = FinCoLog()
 
     def summarize(self, docs: list):
-        self.logger.info(f"Summarize topic: \nname: {self.name}\ndescribe: {self.describe.module}")
+        self.logger.info(f"Summarize Topic \nname: {self.name}\ndescribe: {self.describe.module}")
         prompt_workflow_selection = self.describe.render(docs=docs)
         response = APIBackend().build_messages_and_create_chat_completion(user_prompt=prompt_workflow_selection)
 
         self.knowledge = response
         self.docs = docs
+        self.logger.info(f"Summary of {self.name}:\n{self.knowledge}")
 
 
-class KnowledgeBase:
+class KnowledgeBase(SingletonBaseClass):
     """
     Load knowledge, offer brief information of knowledge and common handle interfaces
     """
@@ -431,10 +468,10 @@ class KnowledgeBase:
             knowledge = self.infrastructure_knowledge.knowledge
         else:
             knowledge = (
-                self.execute_knowledge.knowledge
-                + self.practice_knowledge.knowledge
-                + self.finance_knowledge.knowledge
-                + self.infrastructure_knowledge.knowledge
+                    self.execute_knowledge.knowledge
+                    + self.practice_knowledge.knowledge
+                    + self.finance_knowledge.knowledge
+                    + self.infrastructure_knowledge.knowledge
             )
         return knowledge
 
@@ -461,8 +498,12 @@ class KnowledgeBase:
         similar_n_docs = [knowledge[i] for i in similar_n_indexes]
 
         prompt = Template(
-            """find the most relevant doc with this query: '{{content}}' from docs='{{docs}}'.
-            Just return the most relevant item I provided, no more explain. For example: {'function': 'config.resolve_path', 'docstring': None}"""
+            """find the most relevant doc with this query: '{{content}}' 
+            from docs='{{docs}}. Just return the most relevant item I provided, no more explain. 
+            For example: 
+            user: find the most relevant doc with this query: ab \n from docs = {abc, xyz, lmn}.
+            response: abc
+            """
         )
         prompt_workflow_selection = prompt.render(content=content, docs=similar_n_docs)
         response = APIBackend().build_messages_and_create_chat_completion(
@@ -470,3 +511,7 @@ class KnowledgeBase:
         )
 
         return response
+
+
+# perhaps init KnowledgeBase in other place
+KnowledgeBase(workdir=Path.cwd().joinpath('knowledge'))

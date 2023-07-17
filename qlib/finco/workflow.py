@@ -1,8 +1,9 @@
 import sys
 import shutil
 from typing import List
+
 from pathlib import Path
-from qlib.finco.task import HighLevelPlanTask, SummarizeTask
+from qlib.finco.task import HighLevelPlanTask, SummarizeTask, AnalysisTask
 from qlib.finco.prompt_template import PromptTemplate, Template
 from qlib.finco.log import FinCoLog, LogColors
 from qlib.finco.llm import APIBackend
@@ -52,7 +53,7 @@ class WorkflowManager:
 
         self.prompt_template = PromptTemplate()
         self.context = WorkflowContextManager(workspace=self._workspace)
-        self.default_user_prompt = "Please help me build a low turnover strategy that focus more on longterm return in China A csi300. Please help to use lightgbm model."
+        self.default_user_prompt = "build an A-share stock market daily portfolio in quantitative investment and minimize the maximum drawdown."
 
     def _confirm_and_rm(self):
         # if workspace exists, please confirm and remove it. Otherwise exit.
@@ -114,7 +115,7 @@ class WorkflowManager:
         self.logger.info(f"user_prompt: {self.get_context().get_context('user_prompt')}", title="Start")
 
         # NOTE: list may not be enough for general task list
-        task_list = [HighLevelPlanTask(), SummarizeTask()]
+        task_list = [HighLevelPlanTask(), AnalysisTask(), SummarizeTask()]
         task_finished = []
         while len(task_list):
             task_list_info = [str(task) for task in task_list]
@@ -143,7 +144,7 @@ class WorkflowManager:
 
 
 class LearnManager:
-    __DEFAULT_TOPICS = ["IC", "MaxDropDown"]
+    __DEFAULT_TOPICS = ["IC", "MaxDropDown", "RollingModel"]
 
     def __init__(self):
         self.epoch = 0
@@ -152,9 +153,7 @@ class LearnManager:
         self.topics = [
             Topic(name=topic, describe=self.wm.prompt_template.get(f"Topic_{topic}")) for topic in self.__DEFAULT_TOPICS
         ]
-        self.knowledge_base = KnowledgeBase(workdir=Path.cwd().joinpath("knowledge"))
-        self.knowledge_base.execute_knowledge.add([])
-        self.knowledge_base.query(knowledge_type="infrastructure", content="resolve_path")
+        self.knowledge_base = KnowledgeBase()
 
     def run(self, prompt):
         # todo: add early stop condition
@@ -180,7 +179,8 @@ class LearnManager:
         user_prompt = self.wm.context.get_context("user_prompt")
         summary = self.wm.context.get_context("summary")
 
-        [topic.summarize(self.knowledge_base.get_knowledge()) for topic in self.topics]
+        [topic.summarize(self.knowledge_base.practice_knowledge.knowledge[-2:]) for topic in self.topics]
+        [self.knowledge_base.practice_knowledge.add([{"practice_knowledge": topic.knowledge}]) for topic in self.topics]
         knowledge_of_topics = [{topic.name: topic.knowledge} for topic in self.topics]
 
         for task in task_finished:

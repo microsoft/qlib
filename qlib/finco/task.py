@@ -18,7 +18,7 @@ from qlib.contrib.analyzer import HFAnalyzer, SignalAnalyzer
 from qlib.workflow import R
 from qlib.finco.log import FinCoLog, LogColors
 from qlib.finco.conf import Config
-from qlib.finco.knowledge import KnowledgeBase, Topic
+from qlib.finco.knowledge import KnowledgeBase
 
 from qlib.finco.context import Design, Exp, WorkflowContextManager
 
@@ -401,6 +401,8 @@ class TrainTask(Task):
         if confirm is False:
             return []
 
+        # todo: change global R.uri & experiment name
+        R.set_uri(Path(workspace).joinpath("mlruns").as_uri())
         if not self._rolling:
             command = ["qrun", str(workflow_path)]
             try:
@@ -415,10 +417,11 @@ class TrainTask(Task):
                     encoding="utf8",
                     cwd=str(workspace),
                 )
+                exp = R.get_exp(experiment_name="finCo")
 
             except subprocess.CalledProcessError as e:
                 print(f"An error occurred while running the subprocess: {e.stderr} {e.stdout}")
-                real_error = e.stderr + e.stdout
+                real_error = e.stderr+e.stdout
                 KnowledgeBase().execute_knowledge.add([real_error])
 
                 if "data" in e.stdout.lower() or "handler" in e.stdout.lower():
@@ -451,17 +454,27 @@ class TrainTask(Task):
             # Run the command and capture the output
             workspace = self._context_manager.struct_context.workspace
             subprocess.run(
-                command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, text=True, cwd=str(workspace)
+                command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True,
+                text=True, encoding="utf8", cwd=str(workspace)
             )
+            # todo: dont manage record by id, experiment_id=2 doesnt contains metrics
+            exp = R.get_exp(experiment_id="3")
+
         else:
             command = f"python -m qlib.contrib.rolling ddgda --conf_path {workflow_path} run"
             # Run the command and capture the output
             workspace = self._context_manager.struct_context.workspace
             subprocess.run(
-                command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, text=True, cwd=str(workspace)
+                command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True,
+                encoding="utf8", text=True, cwd=str(workspace)
             )
+            exp = R.get_exp(experiment_id="3")
 
-        return [AnalysisTask()]
+        # first recorder is the latest
+        recorder = exp.list_recorders(rtype=exp.RT_L)[0]
+        self._context_manager.set_context(f"experiment_{self._experiment_index}_recorder", recorder)
+
+        return []
 
     def summarize(self):
         if self._output is not None:
@@ -520,30 +533,25 @@ class AnalysisTask(Task):
 
         if isinstance(analysers, list) and len(analysers):
             self.logger.info(f"selected analysers: {analysers}", plain=True)
+            experiment_count = self._context_manager.get_context("experiment_count")
 
-            workflow_config = (
-                self._context_manager.get_context("workflow_config")
-                if self._context_manager.get_context("workflow_config")
-                else "workflow_config.yaml"
-            )
             workspace = self._context_manager.get_context("workspace")
+            for exp_id in range(1, experiment_count + 1):
+                recorder = self._context_manager.get_context(f"experiment_{exp_id}_recorder")
 
-            # todo: analysis multi experiment(get recorder by id)
-            experiment_name = "workflow"
-            R.set_uri(Path.joinpath(workspace, "mlruns").as_uri())
-
-            tasks = []
-            for analyser in analysers:
-                if analyser in self.__ANALYZERS_PROJECT.keys():
-                    tasks.append(
-                        self.__ANALYZERS_PROJECT.get(analyser)(
-                            recorder=R.get_recorder(experiment_name=experiment_name), output_dir=workspace
+                tasks = []
+                for analyser in analysers:
+                    if analyser in self.__ANALYZERS_PROJECT.keys():
+                        tasks.append(
+                            self.__ANALYZERS_PROJECT.get(analyser)(
+                                recorder=recorder, output_dir=workspace
+                            )
                         )
-                    )
 
-            for task in tasks:
-                resp = task.analyse()
-                self._context_manager.set_context(resp, task.__class__.__doc__)
+                # todo: set by experiment
+                for task in tasks:
+                    resp = task.analyse()
+                    self._context_manager.set_context(resp, task.__class__.__doc__)
 
         return []
 
@@ -1100,7 +1108,7 @@ class CodeDumpTask(ActionTask):
 
 
 class SummarizeTask(Task):
-    __DEFAULT_SUMMARIZE_CONTEXT = ["workflow_yaml", "metrics"]
+    __DEFAULT_SUMMARIZE_CONTEXT = ["metrics"]
 
     # TODO: 2048 is close to exceed GPT token limit
     __MAX_LENGTH_OF_FILE = 2048
@@ -1129,63 +1137,61 @@ class SummarizeTask(Task):
     def execute(self) -> Any:
         workspace = self._context_manager.get_context("workspace")
         user_prompt = self._context_manager.get_context("user_prompt")
-        workflow_yaml = self._context_manager.get_context("workflow_yaml")
 
         file_info = self.get_info_from_file(workspace)
         context_info = self.get_info_from_context()  # too long context make response unstable.
 
-        # todo: experiments perhaps have the same name, summarize experiment by loop
-        record_info = self.get_info_from_recorder(workspace, "workflow")
         figure_path = self.get_figure_path(workspace)
-
-        information = context_info + file_info + record_info
-
-        def _get_value_from_info(info: list, k: str):
-            for i in information:
-                if k in i.keys():
-                    return i.get(k)
-            return ""
 
         # todo: remove 'be' after test
         be = APIBackend()
         be.debug_mode = False
 
-        context_summary = {}
-        for key in self.__DEFAULT_SUMMARIZE_CONTEXT:
-            prompt_workflow_selection = self.summarize_context_user.render(
-                key=key, value=_get_value_from_info(info=information, k=key)
-            )
-            response = be.build_messages_and_create_chat_completion(
-                user_prompt=prompt_workflow_selection, system_prompt=self.summarize_context_system.render()
-            )
-            context_summary.update({key: response})
+        def _get_value_from_info(info: list, k: str):
+            for i in info:
+                if k in i.keys():
+                    return i.get(k)
+            return ""
 
-        recorder = R.get_recorder(experiment_name="workflow")
-        recorder.save_objects(context_summary=context_summary)
+        experiment_count = self._context_manager.get_context("experiment_count")
+        for exp_id in range(1, experiment_count + 1):
+            recorder = self._context_manager.get_context(f"experiment_{exp_id}_recorder")
+            reason = self._context_manager.get_context(f"experiment_{exp_id}_config_finetune_reason")
+            workflow_yaml = self._context_manager.get_context(f"workflow_{exp_id}_yaml")
+            record_info = [{"metrics": recorder.list_metrics()}]
 
-        prompt_workflow_selection = self.summarize_metrics_user.render(
-            information=_get_value_from_info(info=record_info, k="metrics"), user_prompt=user_prompt
-        )
-        metrics_response = be.build_messages_and_create_chat_completion(
-            user_prompt=prompt_workflow_selection, system_prompt=self.summarize_metrics_system.render()
-        )
+            information = context_info + file_info + record_info
+
+            context_summary = {}
+            for key in self.__DEFAULT_SUMMARIZE_CONTEXT:
+                prompt_workflow_selection = self.summarize_context_user.render(
+                    key=key, value=_get_value_from_info(info=information, k=key)
+                )
+                response = be.build_messages_and_create_chat_completion(
+                    user_prompt=prompt_workflow_selection, system_prompt=self.summarize_context_system.render()
+                )
+                context_summary.update({key: response})
+
+            recorder.save_objects(context_summary=context_summary)
+
+            prompt_workflow_selection = self.summarize_metrics_user.render(
+                information=_get_value_from_info(info=record_info, k="metrics"), user_prompt=user_prompt
+            )
+            metrics_response = be.build_messages_and_create_chat_completion(
+                user_prompt=prompt_workflow_selection, system_prompt=self.summarize_metrics_system.render()
+            )
+
+            KnowledgeBase().practice_knowledge.add([{"user_intention": user_prompt, "experiment_id": exp_id,
+                                                     "workflow": workflow_yaml, "reason": reason,
+                                                     "experiment_metrics": metrics_response}])
 
         prompt_workflow_selection = self.user.render(
-            information=file_info + [{"metrics": metrics_response}], figure_path=figure_path, user_prompt=user_prompt
+            information=file_info + KnowledgeBase().practice_knowledge.knowledge[-2:],
+            figure_path=figure_path, user_prompt=user_prompt
         )
         response = be.build_messages_and_create_chat_completion(
             user_prompt=prompt_workflow_selection, system_prompt=self.system.render()
         )
-
-        KnowledgeBase().practice_knowledge.add(
-            [{"user_intention": user_prompt, "experiment_metrics": metrics_response}]
-        )
-
-        # notes: summarize after all experiment added to KnowledgeBase
-        topic = Topic(name="rollingModel", describe=Template("What conclusion can you draw"))
-        topic.summarize(KnowledgeBase().practice_knowledge.knowledge)
-        self.logger.info(f"Summary of topic: {topic.name}: {topic.knowledge}")
-
         self._context_manager.set_context("summary", response)
         self.save_markdown(content=response, path=workspace)
         self.logger.info(f"Report has saved to {self.__DEFAULT_REPORT_NAME}", title="End")
@@ -1209,7 +1215,8 @@ class SummarizeTask(Task):
         result = []
         for file in file_list:
             postfix = file.name.split(".")[-1]
-            if postfix in ["py", "log", "yaml"]:
+            # todo: filter file info more reasonable
+            if postfix in ["py", "log", "yaml"] and file.name.startswith("experiment"):
                 with open(file) as f:
                     content = f.read()
                     self.logger.info(f"file to summarize: {file}", plain=True)
