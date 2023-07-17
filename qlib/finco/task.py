@@ -2,7 +2,7 @@ import os
 
 from pathlib import Path
 import io
-from typing import Any, List, Union
+from typing import Any, List, Optional, Union
 import ruamel.yaml as yaml
 import abc
 import re
@@ -19,6 +19,8 @@ from qlib.workflow import R
 from qlib.finco.log import FinCoLog, LogColors
 from qlib.finco.conf import Config
 from qlib.finco.knowledge import KnowledgeBase, Topic
+
+from qlib.finco.context import Design, Exp, WorkflowContextManager
 
 COMPONENT_LIST = ["Dataset", "DataHandler", "Model", "Record", "Strategy", "Backtest"]
 
@@ -40,9 +42,19 @@ class Task:
         - Edit Task: it is supposed to edit the code base directly.
     """
 
-    def __init__(self) -> None:
-        self._context_manager = None
+    _context_manager: WorkflowContextManager
+
+    def __init__(self, tpl_ver: Optional[str] = None) -> None:
+        """
+
+        Parameters
+        ----------
+        tpl_ver : Optional[str]
+            The Version of the template.
+            If the previous results will greatly affect the next QA. We may use different version instead of combine everything in the same one.
+        """
         self.prompt_template = PromptTemplate()
+        self.tlp_ver = tpl_ver
         self.executed = False
         self.continuous = Config().continuous_mode
         self.logger = FinCoLog()
@@ -77,9 +89,9 @@ class Task:
 
     def interact(self, prompt: str, **kwargs) -> Any:
         """
-            The user can interact with the task. This method only handle business in current task. It will return True
-            while continuous is True. This method will return user input if input cannot be parsed as 'yes' or 'no'.
-            @return True, False, str
+        The user can interact with the task. This method only handle business in current task. It will return True
+        while continuous is True. This method will return user input if input cannot be parsed as 'yes' or 'no'.
+        @return True, False, str
         """
         self.logger.info(title="Interact")
         if self.continuous:
@@ -100,11 +112,17 @@ class Task:
 
     @property
     def system(self):
-        return self.prompt_template.get(self.__class__.__name__ + "_system")
+        key = self.__class__.__name__ + "_system"
+        if self.tlp_ver is not None:
+            key = key + "." + self.tlp_ver
+        return self.prompt_template.get(key)
 
     @property
     def user(self):
-        return self.prompt_template.get(self.__class__.__name__ + "_user")
+        key = self.__class__.__name__ + "_user"
+        if self.tlp_ver is not None:
+            key = key + "." + self.tlp_ver
+        return self.prompt_template.get(key)
 
     def __str__(self):
         return self.__class__.__name__
@@ -123,9 +141,7 @@ class WorkflowTask(Task):
         response = APIBackend().build_messages_and_create_chat_completion(
             prompt_workflow_selection, self.system.render()
         )
-        self.save_chat_history_to_context_manager(
-            prompt_workflow_selection, response, self.system.render()
-        )
+        self.save_chat_history_to_context_manager(prompt_workflow_selection, response, self.system.render())
         workflow = response.split(":")[1].strip().lower()
         self.executed = True
         self._context_manager.set_context("workflow", workflow)
@@ -154,15 +170,23 @@ class PlanTask(Task):
 class HighLevelPlanTask(PlanTask):
     def __init__(self) -> None:
         super().__init__()
-    
+
     def execute(self):
-        
         self._context_manager.set_context("target", "minimizing the maximum drawdown")
-        self._context_manager.set_context("deliverable", "a daily quantitative investment strategy in A-share stock market. A model will be included in the strategy.")
-        self._context_manager.set_context("user_intention", "build an A-share stock market daily portfolio in quantitative investment and minimize the maximum drawdown.")
+        self._context_manager.set_context(
+            "deliverable",
+            "a daily quantitative investment strategy in A-share stock market. A model will be included in the strategy.",
+        )
+        self._context_manager.set_context(
+            "user_intention",
+            "build an A-share stock market daily portfolio in quantitative investment and minimize the maximum drawdown.",
+        )
         self._context_manager.set_context("business_level", "Controller(e.g. Rolling retrain), Data")
         self._context_manager.set_context("algorithm_level", "supervised learning")
-        self._context_manager.set_context("thinking_detail", "We want to leverage more recent data than outdated data. So we have to compare with or without rolling training process of the model like a meta controller. When with a rolling training process, data will be different at each time.")
+        self._context_manager.set_context(
+            "thinking_detail",
+            "We want to leverage more recent data than outdated data. So we have to compare with or without rolling training process of the model like a meta controller. When with a rolling training process, data will be different at each time.",
+        )
 
         target = self._context_manager.get_context("target")
         deliverable = self._context_manager.get_context("deliverable")
@@ -182,24 +206,26 @@ class HighLevelPlanTask(PlanTask):
         finance_knowledge = KnowledgeBase().query(knowledge_type=KnowledgeBase.KT_FINANCE, content=user_intention)
 
         system_prompt = self.system.render()
-        user_prompt = self.user.render(target=target, deliverable=deliverable, business_level=business_level,
-                                       algorithm_level=algorithm_level, thinking_detail=thinking_detail,
-                                       practice_knowledge=practice_knowledge, finance_knowledge=finance_knowledge,
-                                       user_intention=user_intention)
-
-        response = APIBackend().build_messages_and_create_chat_completion(
-            user_prompt, system_prompt
+        user_prompt = self.user.render(
+            target=target,
+            deliverable=deliverable,
+            business_level=business_level,
+            algorithm_level=algorithm_level,
+            thinking_detail=thinking_detail,
+            practice_knowledge=practice_knowledge,
+            finance_knowledge=finance_knowledge,
+            user_intention=user_intention,
         )
 
-        self.save_chat_history_to_context_manager(
-            user_prompt, response, system_prompt
-        )
+        response = APIBackend().build_messages_and_create_chat_completion(user_prompt, system_prompt)
+
+        response = APIBackend().build_messages_and_create_chat_completion(user_prompt, system_prompt)
+
+        self.save_chat_history_to_context_manager(user_prompt, response, system_prompt)
 
         assert response is not None, "The response is None"
 
-        res = re.search(
-            r"Workflow:(.*)Experiments:(.*)Metrics:(.*)", response, re.S
-        )
+        res = re.search(r"Workflow:(.*)Experiments:(.*)Metrics:(.*)", response, re.S)
 
         assert (
             res is not None and len(res.groups()) == 3
@@ -225,7 +251,7 @@ class SLPlanTask(PlanTask):
 
     def execute(self):
         workflow = self._context_manager.get_context("high_level_workflow")
-        assert (workflow.lower() == "supervised learning"), "The workflow is not supervised learning"
+        assert workflow.lower() == "supervised learning", "The workflow is not supervised learning"
 
         target = self._context_manager.get_context("target")
         deliverable = self._context_manager.get_context("deliverable")
@@ -237,30 +263,35 @@ class SLPlanTask(PlanTask):
 
         experiment_count = max([i for i in range(10) if f"{i}." in experiments])
 
-        infrastructure_knowledge = KnowledgeBase().query(knowledge_type=KnowledgeBase.KT_INFRASTRUCTURE,
-                                                         content=experiments)
+        infrastructure_knowledge = KnowledgeBase().query(
+            knowledge_type=KnowledgeBase.KT_INFRASTRUCTURE, content=experiments
+        )
 
         system_prompt = self.system.render()
-        user_prompt = self.user.render(target=target, deliverable=deliverable, business_level=business_level,
-                                       algorithm_level=algorithm_level, thinking_detail=thinking_detail,
-                                       infrastructure_knowledge=infrastructure_knowledge,
-                                       user_intention=user_intention, experiments=experiments)
+        user_prompt = self.user.render(
+            target=target,
+            deliverable=deliverable,
+            business_level=business_level,
+            algorithm_level=algorithm_level,
+            thinking_detail=thinking_detail,
+            infrastructure_knowledge=infrastructure_knowledge,
+            user_intention=user_intention,
+            experiments=experiments,
+        )
 
         former_messages = []
         if self.replan:
             user_prompt = f"your choice of predefined classes cannot be initialized.\nPlease rewrite the plan and answer with exact required format in system prompt and reply with no more explainations.\nThe error message: {self.error}. Please correct the former answer accordingly."
-            former_messages = self._context_manager.get_context("chat_history")[self.__class__.__name__]['None'][1:]
+            former_messages = self._context_manager.get_context("chat_history")[self.__class__.__name__]["None"][1:]
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt, system_prompt, former_messages=former_messages
         )
-        self.save_chat_history_to_context_manager(
-            user_prompt, system_prompt, self.system.render()
-        )
+        self.save_chat_history_to_context_manager(user_prompt, system_prompt, self.system.render())
         for i in range(1, experiment_count + 1):
             assert f"Experiment {i}" in response, f"The experiment {i} is not found in the response"
         self._context_manager.set_context("experiment_count", experiment_count)
-        
-        decision_pattern = re.compile("\((.*?)\)")
+
+        decision_pattern = re.compile(r"\((.*?)\)")
         class_pattern = re.compile("{(.*?)}-{(.*?)}")
         new_task = []
 
@@ -270,8 +301,10 @@ class SLPlanTask(PlanTask):
         re_pattern = re_pattern + "Difference:(.*)"
         re_pattern = re.compile(re_pattern, re.S)
         # 1) CURD on the workspace
+        self._context_manager
         match_res = re.search(re_pattern, response)
         for experiment_id in range(1, experiment_count + 1):
+            exp = Exp()
             for name in COMPONENT_LIST:
                 target_line = [line for line in match_res.group(experiment_id).split("\n") if f"{name}:" in line]
                 assert len(target_line) == 1, f"The {name} is not found in the response"
@@ -289,27 +322,42 @@ class SLPlanTask(PlanTask):
                 self._context_manager.set_context(f"{name}_experiment_{experiment_id}_decision", decision)
                 self._context_manager.set_context(f"{name}_experiment_{experiment_id}_classes", classes)
                 self._context_manager.set_context(f"{name}_experiment_{experiment_id}_plan", target_line)
-
+                setattr(exp, name.lower(), Design(plan=target_line, classes=classes, decision=decision))
                 assert decision in ["Default", "Personized"], f"The decision of {name} is not correct"
-            
+            # TODO: the strctured experiments should replace
+            self._context_manager.struct_context.exp_list.append(exp)
+
         # 1) create a workspace
         # TODO: we have to make choice between `sl` and  `sl-cfg`
-        new_task.append(
-            ConfigSearchTask()
-        )
+        # new_task.append(
+        #     # ConfigSearchTask(get_tpl_path()),  # select template from the tpl folder directly. The prompt does not align with the task
+        #     ConfigSearchTask(),  # select template from the baselines.
+        # )
+
+        # Because selecting template is not that stable. We try to start with
+        cfg_tpl = get_tpl_path() / "sl" / "workflow_config.yaml"
+        new_task.append(CMDTask(f"make a directory in the '{self._context_manager.struct_context.workspace}'"))
+        for i, exp in enumerate(self._context_manager.struct_context.exp_list, 1):
+            exp.template = cfg_tpl
+            new_task.append(
+                CMDTask(
+                    f"copy the file '{cfg_tpl}' to '{self._context_manager.struct_context.workspace}' and rename to experiment_{i}.yaml"
+                )
+            )
+
         # for name in COMPONENT_LIST:
-            # if decision == "Default":
+        # if decision == "Default":
         new_task.extend([HyperparameterFinetuneActionTask()])
-            # elif decision == "Personized":
-            #     # TODO open ImplementActionTask to let GPT write code
-            #     new_task.extend([HyperparameterActionTask(name), ConfigActionTask(name), YamlEditTask(name)])
-            #     # new_task.extend([HyperparameterActionTask(name), ConfigActionTask(name), ImplementActionTask(name), CodeDumpTask(name), YamlEditTask(name)])
+        # elif decision == "Personized":
+        #     # TODO open ImplementActionTask to let GPT write code
+        #     new_task.extend([HyperparameterActionTask(name), ConfigActionTask(name), YamlEditTask(name)])
+        #     # new_task.extend([HyperparameterActionTask(name), ConfigActionTask(name), ImplementActionTask(name), CodeDumpTask(name), YamlEditTask(name)])
         return new_task
 
 
 class RLPlanTask(PlanTask):
     def __init__(
-            self,
+        self,
     ) -> None:
         super().__init__()
         self.logger.error("The RL task is not implemented yet")
@@ -328,7 +376,7 @@ class TrainTask(Task):
     This train task is responsible for training model configure by yaml file.
     """
 
-    def __init__(self, experiment_index, rolling = False, ddgda=False, **kwargs) -> None:
+    def __init__(self, experiment_index, rolling=False, ddgda=False, **kwargs) -> None:
         super().__init__()
         self._output = None
         self._experiment_index = experiment_index
@@ -344,41 +392,74 @@ class TrainTask(Task):
             workflow = yaml.safe_load(f)
         self._context_manager.set_context(f"workflow_{self._experiment_index}_yaml", workflow)
 
-        confirm = self.interact(f"I select this workflow file: "
-                                f"{LogColors().render(workflow_path, color=LogColors.YELLOW, style=LogColors.BOLD)}\n"
-                                f"{yaml.dump(workflow, default_flow_style=False)}"
-                                f"Are you sure you want to use? yes(Y/y), no(N/n):")
+        confirm = self.interact(
+            f"I select this workflow file: "
+            f"{LogColors().render(workflow_path, color=LogColors.YELLOW, style=LogColors.BOLD)}\n"
+            f"{yaml.dump(workflow, default_flow_style=False)}"
+            f"Are you sure you want to use? yes(Y/y), no(N/n):"
+        )
         if confirm is False:
             return []
 
-        command = ["qrun", str(workflow_path)]
-        try:
-            # Run the command and capture the output
-            workspace = self._context_manager.get_context("workspace")
-            result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True,
-                                    text=True, encoding="utf8", cwd=str(workspace))
-        
-        except subprocess.CalledProcessError as e:
-            print(f"An error occurred while running the subprocess: {e.stderr} {e.stdout}")
-            real_error = e.stderr+e.stdout
-            KnowledgeBase().execute_knowledge.add([real_error])
+        if not self._rolling:
+            command = ["qrun", str(workflow_path)]
+            try:
+                # Run the command and capture the output
+                workspace = self._context_manager.get_context("workspace")
+                _ = subprocess.run(
+                    command,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    check=True,
+                    text=True,
+                    encoding="utf8",
+                    cwd=str(workspace),
+                )
 
-            if "data" in e.stdout.lower() or "handler" in e.stdout.lower():
-                return [HyperparameterActionTask("Dataset", regenerate=True, error=real_error),
+            except subprocess.CalledProcessError as e:
+                print(f"An error occurred while running the subprocess: {e.stderr} {e.stdout}")
+                real_error = e.stderr + e.stdout
+                KnowledgeBase().execute_knowledge.add([real_error])
+
+                if "data" in e.stdout.lower() or "handler" in e.stdout.lower():
+                    return [
+                        HyperparameterActionTask("Dataset", regenerate=True, error=real_error),
                         HyperparameterActionTask("DataHandler", regenerate=True, error=real_error),
-                        ConfigActionTask("Dataset"), ConfigActionTask("DataHandler"), YamlEditTask("Dataset"),
-                        YamlEditTask("DataHandler"), TrainTask()]
-            elif "model" in e.stdout.lower():
-                return [HyperparameterActionTask("Model", regenerate=True, error=real_error),
-                        ConfigActionTask("Model"), YamlEditTask("Model"), TrainTask()]
-            else:
-                ret_list = []
-                for component in COMPONENT_LIST:
-                    ret_list.append(HyperparameterActionTask(component, regenerate=True, error=real_error))
-                    ret_list.append(ConfigActionTask(component))
-                    ret_list.append(YamlEditTask(component))
-                ret_list.append(TrainTask())
-                return ret_list
+                        ConfigActionTask("Dataset"),
+                        ConfigActionTask("DataHandler"),
+                        YamlEditTask("Dataset"),
+                        YamlEditTask("DataHandler"),
+                        TrainTask(),
+                    ]
+                elif "model" in e.stdout.lower():
+                    return [
+                        HyperparameterActionTask("Model", regenerate=True, error=real_error),
+                        ConfigActionTask("Model"),
+                        YamlEditTask("Model"),
+                        TrainTask(),
+                    ]
+                else:
+                    ret_list = []
+                    for component in COMPONENT_LIST:
+                        ret_list.append(HyperparameterActionTask(component, regenerate=True, error=real_error))
+                        ret_list.append(ConfigActionTask(component))
+                        ret_list.append(YamlEditTask(component))
+                    ret_list.append(TrainTask())
+                    return ret_list
+        elif not self._ddgda:
+            command = f"python -m qlib.contrib.rolling base --conf_path {workflow_path} run"
+            # Run the command and capture the output
+            workspace = self._context_manager.struct_context.workspace
+            subprocess.run(
+                command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, text=True, cwd=str(workspace)
+            )
+        else:
+            command = f"python -m qlib.contrib.rolling ddgda --conf_path {workflow_path} run"
+            # Run the command and capture the output
+            workspace = self._context_manager.struct_context.workspace
+            subprocess.run(
+                command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, text=True, cwd=str(workspace)
+            )
 
         return [AnalysisTask()]
 
@@ -386,9 +467,7 @@ class TrainTask(Task):
         if self._output is not None:
             # TODO: it will be overrides by later commands
             # utf8 can't decode normally on Windows
-            self._context_manager.set_context(
-                self.__class__.__name__, self._output.decode("ANSI")
-            )
+            self._context_manager.set_context(self.__class__.__name__, self._output.decode("ANSI"))
 
 
 class AnalysisTask(Task):
@@ -415,9 +494,7 @@ class AnalysisTask(Task):
             self._context_manager.set_context(k, v)
 
     def execute(self):
-        prompt = self.user.render(
-            user_prompt=self._context_manager.get_context("user_prompt")
-        )
+        prompt = self.user.render(user_prompt=self._context_manager.get_context("user_prompt"))
         be = APIBackend()
         be.debug_mode = False
 
@@ -430,8 +507,9 @@ class AnalysisTask(Task):
                 ),
             )
             analysers = response.replace(" ", "").split(",")
-            confirm = self.interact(f"I select these analysers: {analysers}\n"
-                                    f"Are you sure you want to use? yes(Y/y), no(N/n) or prompt:")
+            confirm = self.interact(
+                f"I select these analysers: {analysers}\n" f"Are you sure you want to use? yes(Y/y), no(N/n) or prompt:"
+            )
             if confirm is False:
                 analysers = []
                 break
@@ -452,15 +530,14 @@ class AnalysisTask(Task):
 
             # todo: analysis multi experiment(get recorder by id)
             experiment_name = "workflow"
-            R.set_uri(Path.joinpath(workspace, 'mlruns').as_uri())
+            R.set_uri(Path.joinpath(workspace, "mlruns").as_uri())
 
             tasks = []
             for analyser in analysers:
                 if analyser in self.__ANALYZERS_PROJECT.keys():
                     tasks.append(
                         self.__ANALYZERS_PROJECT.get(analyser)(
-                            recorder=R.get_recorder(experiment_name=experiment_name),
-                            output_dir=workspace
+                            recorder=R.get_recorder(experiment_name=experiment_name), output_dir=workspace
                         )
                     )
 
@@ -475,16 +552,25 @@ class ActionTask(Task):
     pass
 
 
-
 class ConfigSearchTask(ActionTask):
-    def __init__(self):
+    """Find a template path that user can start with."""
+
+    def __init__(self, conf_path: Optional[Union[Path, str]] = None):
         super().__init__()
-    
-    def crawl_the_folder(self, folder_path : Path):
-        yaml_files = []  
+        if conf_path is None:
+            # If no path provided, find path from the templates.
+            import qlib
+
+            conf_path = Path(os.path.abspath(inspect.getfile(qlib))).parent.parent / "examples" / "benchmarks"
+        if isinstance(conf_path, str):
+            conf_path = Path(conf_path)
+        self.conf_path = conf_path
+
+    def crawl_the_folder(self, folder_path: Path):
+        yaml_files = []
         for root, _, files in os.walk(folder_path.as_posix()):
             for file in files:
-                if file.endswith(".yaml") or file.endswith(".yml"):  
+                if file.endswith(".yaml") or file.endswith(".yml"):
                     yaml_file_path = Path(os.path.join(root, file)).relative_to(folder_path)
                     yaml_files.append(yaml_file_path.as_posix())
         return yaml_files
@@ -504,24 +590,19 @@ class ConfigSearchTask(ActionTask):
             model_class = f"{{{self._context_manager.get_context(f'Model_experiment_{experiment_id}_classes')[0][0]}}}-{{{self._context_manager.get_context(f'Model_experiment_{experiment_id}_classes')[0][1]}}}"
 
             experiments.append((experiment_id, dataset_class, datahandler_class, model_class))
-        
-        import qlib
-        benchmarks_root_path = Path(os.path.abspath(inspect.getfile(qlib))).parent.parent / "examples" / "benchmarks"
-        yaml_config_list = self.crawl_the_folder(benchmarks_root_path)
+
+        # TODO: each config should contains some descriptions to provide information to make the choice.
+        yaml_config_list = self.crawl_the_folder(self.conf_path)
 
         system_prompt = self.system.render(yaml_config_list=yaml_config_list)
         user_prompt = self.user.render(experiments=experiments)
 
-        response = APIBackend().build_messages_and_create_chat_completion(
-            user_prompt, system_prompt
-        )
+        response = APIBackend().build_messages_and_create_chat_completion(user_prompt, system_prompt)
         former_messages = []
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt, self.system.render(), former_messages=former_messages
         )
-        self.save_chat_history_to_context_manager(
-            user_prompt, response, self.system.render()
-        )
+        self.save_chat_history_to_context_manager(user_prompt, response, self.system.render())
 
         experiment_count = self._context_manager.get_context("experiment_count")
 
@@ -531,13 +612,22 @@ class ConfigSearchTask(ActionTask):
         config_search_pattern = re.compile(config_search_pattern, re.S)
 
         config_search_result = config_search_pattern.search(response)
-        
-        return_task = [CMDTask(f"make a directory in the {self._context_manager.get_context('workspace')}"), ]
+
+        return_task = [
+            CMDTask(f"make a directory in the {self._context_manager.get_context('workspace')}"),
+        ]
         for experiment_id in range(1, experiment_count + 1):
-            self._context_manager.set_context(f"experiment_{experiment_id}_template_config", config_search_result.group(experiment_id).strip('\n'))
-            config_location = benchmarks_root_path / config_search_result.group(experiment_id)
-            return_task.append(CMDTask(f"copy file in {config_location} to {self._context_manager.get_context('workspace')} and rename to experiment_{experiment_id}.yaml"))
+            self._context_manager.set_context(
+                f"experiment_{experiment_id}_template_config", config_search_result.group(experiment_id).strip("\n")
+            )
+            config_location = self.conf_path / config_search_result.group(experiment_id)
+            return_task.append(
+                CMDTask(
+                    f"copy file in {config_location} to {self._context_manager.get_context('workspace')} and rename to experiment_{experiment_id}.yaml"
+                )
+            )
         return return_task
+
 
 class CMDTask(ActionTask):
     """
@@ -551,12 +641,8 @@ class CMDTask(ActionTask):
         super().__init__()
 
     def execute(self):
-        prompt = self.user.render(
-            cmd_intention=self.cmd_intention, user_os=platform.system()
-        )
-        response = APIBackend().build_messages_and_create_chat_completion(
-            prompt, self.system.render()
-        )
+        prompt = self.user.render(cmd_intention=self.cmd_intention, user_os=platform.system())
+        response = APIBackend().build_messages_and_create_chat_completion(prompt, self.system.render())
         self._output = subprocess.check_output(response, shell=True, cwd=self.cwd)
         return []
 
@@ -564,16 +650,14 @@ class CMDTask(ActionTask):
         if self._output is not None:
             # TODO: it will be overrides by later commands
             # utf8 can't decode normally on Windows
-            self._context_manager.set_context(
-                self.__class__.__name__, self._output.decode("ANSI")
-            )
+            self._context_manager.set_context(self.__class__.__name__, self._output.decode("ANSI"))
 
 
 class HyperparameterFinetuneActionTask(ActionTask):
     def __init__(self, component=None) -> None:
         super().__init__()
         self.component = component
-    
+
     def execute(self):
         target = self._context_manager.get_context("target")
         deliverable = self._context_manager.get_context("deliverable")
@@ -590,7 +674,7 @@ class HyperparameterFinetuneActionTask(ActionTask):
             config_location = self._context_manager.get_context(f"workspace") / f"experiment_{experiment_index}.yaml"
             config_file_content = open(config_location, "r").read()
             template_configs.append((experiment_index, config_file_content))
-        
+
         system_prompt = self.system.render()
         user_prompt = self.user.render(
             target=target,
@@ -600,11 +684,9 @@ class HyperparameterFinetuneActionTask(ActionTask):
             thinking_detail=thinking_detail,
             user_intention=user_intention,
             experiments=experiments,
-            template_configs=template_configs
+            template_configs=template_configs,
         )
-        response = APIBackend().build_messages_and_create_chat_completion(
-            user_prompt, system_prompt
-        )
+        response = APIBackend().build_messages_and_create_chat_completion(user_prompt, system_prompt)
 
         config_search_pattern = ""
         for experiment_id in range(1, experiment_count + 1):
@@ -614,13 +696,15 @@ class HyperparameterFinetuneActionTask(ActionTask):
         config_search_result = re.search(config_search_pattern, response)
         return_tasks = []
         for experiment_id in range(1, experiment_count + 1):
-            rolling_res = config_search_result.group((experiment_id-1) * 4 + 2).strip('\n')
-            ddgda_res = config_search_result.group((experiment_id-1) * 4 + 3).strip('\n')
-            reason_res = config_search_result.group((experiment_id-1) * 4 + 4).strip('\n')
+            rolling_res = config_search_result.group((experiment_id - 1) * 4 + 2).strip("\n")
+            ddgda_res = config_search_result.group((experiment_id - 1) * 4 + 3).strip("\n")
+            reason_res = config_search_result.group((experiment_id - 1) * 4 + 4).strip("\n")
             if "true" in ddgda_res.lower():
                 return_tasks.append(TrainTask(experiment_id, rolling=True, ddgda=True))
+                self._context_manager.struct_context.exp_list[experiment_id - 1].rolling = "ddgda"
             if "true" in rolling_res.lower():
                 return_tasks.append(TrainTask(experiment_id, rolling=True))
+                self._context_manager.struct_context.exp_list[experiment_id - 1].rolling = "base"
             else:
                 return_tasks.append(TrainTask(experiment_id))
             self._context_manager.set_context(f"experiment_{experiment_id}_rolling", rolling_res)
@@ -652,24 +736,63 @@ class HyperparameterActionTask(ActionTask):
         assert target_component_plan is not None, "target component plan is not set by plan maker"
         assert target_component_classes is not None, "target component classes is not set by plan maker"
 
-        system_prompt = self.system.render(target_module=self.target_component, choice=target_component_decision, classes=target_component_classes)
-        
+        system_prompt = self.system.render(
+            target_module=self.target_component, choice=target_component_decision, classes=target_component_classes
+        )
+
         target_component_classes_and_hyperparameters = []
         for module_path, class_name in target_component_classes:
             exec(f"from {module_path} import {class_name}")
-            hyperparameters = [hyperparameter for hyperparameter in {name: param for name, param in inspect.signature(eval(class_name).__init__).parameters.items() if name != "self" and name != "kwargs"}.keys()]
+            hyperparameters = [
+                hyperparameter
+                for hyperparameter in {
+                    name: param
+                    for name, param in inspect.signature(eval(class_name).__init__).parameters.items()
+                    if name != "self" and name != "kwargs"
+                }.keys()
+            ]
             if class_name == "LGBModel":
-                hyperparameters.extend([ "boosting_type", "num_leaves", "max_depth", "learning_rate", "n_estimators", "objective", "class_weight", "min_split_gain", "min_child_weight", "min_child_samples", "subsample", "subsample_freq", "colsample_bytree", "reg_alpha", "reg_lambda", "random_state", "n_jobs", "silent", "importance_type", "early_stopping_round", "metric", "num_class", "is_unbalance", "bagging_seed", "verbosity", ])
+                hyperparameters.extend(
+                    [
+                        "boosting_type",
+                        "num_leaves",
+                        "max_depth",
+                        "learning_rate",
+                        "n_estimators",
+                        "objective",
+                        "class_weight",
+                        "min_split_gain",
+                        "min_child_weight",
+                        "min_child_samples",
+                        "subsample",
+                        "subsample_freq",
+                        "colsample_bytree",
+                        "reg_alpha",
+                        "reg_lambda",
+                        "random_state",
+                        "n_jobs",
+                        "silent",
+                        "importance_type",
+                        "early_stopping_round",
+                        "metric",
+                        "num_class",
+                        "is_unbalance",
+                        "bagging_seed",
+                        "verbosity",
+                    ]
+                )
             elif class_name == "SignalRecord":
                 hyperparameters.remove("model")
                 hyperparameters.remove("dataset")
                 hyperparameters.remove("recorder")
             target_component_classes_and_hyperparameters.append((module_path, class_name, hyperparameters))
 
-        execute_knowledge = KnowledgeBase().query(knowledge_type=KnowledgeBase.KT_EXECUTE,
-                                                  content=target_component_plan)
-        infrastructure_knowledge = KnowledgeBase().query(knowledge_type=KnowledgeBase.KT_INFRASTRUCTURE,
-                                                         content=target_component_plan)
+        execute_knowledge = KnowledgeBase().query(
+            knowledge_type=KnowledgeBase.KT_EXECUTE, content=target_component_plan
+        )
+        infrastructure_knowledge = KnowledgeBase().query(
+            knowledge_type=KnowledgeBase.KT_INFRASTRUCTURE, content=target_component_plan
+        )
 
         user_prompt = self.user.render(
             user_requirement=user_prompt,
@@ -677,7 +800,7 @@ class HyperparameterActionTask(ActionTask):
             target_component=self.target_component,
             target_component_classes_and_hyperparameters=target_component_classes_and_hyperparameters,
             execute_knowledge=execute_knowledge,
-            infrastructure_knowledge=infrastructure_knowledge
+            infrastructure_knowledge=infrastructure_knowledge,
         )
         former_messages = []
         if self.regenerate:
@@ -685,16 +808,14 @@ class HyperparameterActionTask(ActionTask):
                 user_prompt = f"your yaml config generated from your hyperparameter is not in the right format.\n The Yaml string generated from the hyperparameters is not in the right format.\nPlease rewrite the hyperparameters and answer with exact required format in system prompt and reply with no more explainations.\nThe error message: {self.error}. Please correct the former answer accordingly.\nHyperparameters, Reason and Improve suggestion should always be included."
             else:
                 user_prompt = f"your hyperparameter cannot be initialized, may be caused by wrong format of the value or wrong name or some value is not supported in Qlib.\nPlease rewrite the hyperparameters and answer with exact required format in system prompt and reply with no more explainations.\nThe error message: {self.error}. Please correct the former answer accordingly.\nHyperparameters, Reason and Improve suggestion should always be included."
-            former_messages = self._context_manager.get_context("chat_history")[self.__class__.__name__][self.target_component][1:]
+            former_messages = self._context_manager.get_context("chat_history")[self.__class__.__name__][
+                self.target_component
+            ][1:]
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt, system_prompt, former_messages=former_messages
         )
-        self.save_chat_history_to_context_manager(
-            user_prompt, response, system_prompt, self.target_component
-        )
-        res = re.search(
-            r"(?i)Hyperparameters:(.*)Reason:(.*)Improve suggestion:(.*)", response, re.S
-        )
+        self.save_chat_history_to_context_manager(user_prompt, response, system_prompt, self.target_component)
+        res = re.search(r"(?i)Hyperparameters:(.*)Reason:(.*)Improve suggestion:(.*)", response, re.S)
         try:
             assert (
                 res is not None and len(res.groups()) == 3
@@ -713,9 +834,7 @@ class HyperparameterActionTask(ActionTask):
 
         self._context_manager.set_context(f"{self.target_component}_hyperparameters", hyperparameters)
         self._context_manager.set_context(f"{self.target_component}_reason", reason)
-        self._context_manager.set_context(
-            f"{self.target_component}_improve_suggestion", improve_suggestion
-        )
+        self._context_manager.set_context(f"{self.target_component}_improve_suggestion", improve_suggestion)
         return []
 
 
@@ -723,7 +842,7 @@ class ConfigActionTask(ActionTask):
     def __init__(self, component) -> None:
         super().__init__()
         self.target_component = component
-    
+
     def execute(self):
         user_prompt = self._context_manager.get_context("user_prompt")
 
@@ -732,12 +851,14 @@ class ConfigActionTask(ActionTask):
         target_component_classes = self._context_manager.get_context(f"{self.target_component}_classes")
         target_component_hyperparameters = self._context_manager.get_context(f"{self.target_component}_hyperparameters")
 
-        system_prompt = self.system.render(target_module=self.target_component, choice=target_component_decision, classes=target_component_classes)
+        system_prompt = self.system.render(
+            target_module=self.target_component, choice=target_component_decision, classes=target_component_classes
+        )
         user_prompt = self.user.render(
             user_requirement=user_prompt,
             target_component_plan=target_component_plan,
             target_component=self.target_component,
-            target_component_hyperparameters=target_component_hyperparameters
+            target_component_hyperparameters=target_component_hyperparameters,
         )
         former_messages = []
         # if self.reconfig and user_prompt == self._context_manager.get_context("chat_history")[self.__class__.__name__][self.target_component][-2]["content"]:
@@ -746,36 +867,37 @@ class ConfigActionTask(ActionTask):
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt, system_prompt, former_messages=former_messages
         )
-        self.save_chat_history_to_context_manager(
-            user_prompt, response, system_prompt, self.target_component
-        )
+        self.save_chat_history_to_context_manager(user_prompt, response, system_prompt, self.target_component)
         config = re.search(r"```yaml(.*)```", response, re.S).group(1)
 
         try:
             yaml_config = yaml.safe_load(io.StringIO(config))
         except yaml.YAMLError as e:
             self.logger.info(f"Yaml file is not in the correct format: {e}")
-            return_tasks = [HyperparameterActionTask(self.target_component, regenerate=True, error=str(e), error_type="yaml"),  ConfigActionTask(self.target_component)]
+            return_tasks = [
+                HyperparameterActionTask(self.target_component, regenerate=True, error=str(e), error_type="yaml"),
+                ConfigActionTask(self.target_component),
+            ]
             return return_tasks
-        
+
         if self.target_component == "Dataset":
-            if 'handler' in yaml_config["dataset"]:
-                del yaml_config['dataset']['handler']
+            if "handler" in yaml_config["dataset"]:
+                del yaml_config["dataset"]["handler"]
         elif self.target_component == "DataHandler":
-            for processor in yaml_config['handler']['kwargs']['infer_processors']:
+            for processor in yaml_config["handler"]["kwargs"]["infer_processors"]:
                 if "kwargs" in processor and "fields_group" in processor["kwargs"]:
-                    del processor["kwargs"]['fields_group']
-            for processor in yaml_config['handler']['kwargs']['learn_processors']:
+                    del processor["kwargs"]["fields_group"]
+            for processor in yaml_config["handler"]["kwargs"]["learn_processors"]:
                 if "kwargs" in processor and "fields_group" in processor["kwargs"]:
-                    del processor["kwargs"]['fields_group']
-            
-            if 'freq' in yaml_config['handler']['kwargs']:
-                yaml_config['handler']['kwargs']['freq'] = "day" # TODO hot fix freq because no data
+                    del processor["kwargs"]["fields_group"]
+
+            if "freq" in yaml_config["handler"]["kwargs"]:
+                yaml_config["handler"]["kwargs"]["freq"] = "day"  # TODO hot fix freq because no data
         elif self.target_component == "Record":
-            for record in yaml_config['record']:
-                if record['class'] == 'SigAnaRecord' and 'label_col' in record['kwargs']:
-                    del record['kwargs']["label_col"]
-        
+            for record in yaml_config["record"]:
+                if record["class"] == "SigAnaRecord" and "label_col" in record["kwargs"]:
+                    del record["kwargs"]["label_col"]
+
         def remove_default(config):
             if isinstance(config, dict):
                 for key in list(config.keys()):
@@ -787,6 +909,7 @@ class ConfigActionTask(ActionTask):
             elif isinstance(config, list):
                 for item in config:
                     remove_default(item)
+
         remove_default(yaml_config)
 
         self._context_manager.set_context(f"{self.target_component}_config", yaml_config)
@@ -797,7 +920,9 @@ class ImplementActionTask(ActionTask):
     def __init__(self, target_component, reimplement=False) -> None:
         super().__init__()
         self.target_component = target_component
-        assert COMPONENT_LIST.index(self.target_component) <= 2, "The target component is not in dataset datahandler and model"
+        assert (
+            COMPONENT_LIST.index(self.target_component) <= 2
+        ), "The target component is not in dataset datahandler and model"
         self.reimplement = reimplement
 
     def execute(self):
@@ -809,16 +934,10 @@ class ImplementActionTask(ActionTask):
         user_prompt = self._context_manager.get_context("user_prompt")
         prompt_element_dict = dict()
         for component in COMPONENT_LIST:
-            prompt_element_dict[
-                f"{component}_decision"
-            ] = self._context_manager.get_context(f"{component}_decision")
-            prompt_element_dict[
-                f"{component}_plan"
-            ] = self._context_manager.get_context(f"{component}_plan")
+            prompt_element_dict[f"{component}_decision"] = self._context_manager.get_context(f"{component}_decision")
+            prompt_element_dict[f"{component}_plan"] = self._context_manager.get_context(f"{component}_plan")
 
-        assert (
-            None not in prompt_element_dict.values()
-        ), "Some decision or plan is not set by plan maker"
+        assert None not in prompt_element_dict.values(), "Some decision or plan is not set by plan maker"
         config = self._context_manager.get_context(f"{self.target_component}_config")
 
         implement_prompt = self.user.render(
@@ -830,7 +949,9 @@ class ImplementActionTask(ActionTask):
         former_messages = []
         if self.reimplement:
             implement_prompt = "your code seems wrong, please re-implement it and answer with exact required format and reply with no more explainations.\n"
-            former_messages = self._context_manager.get_context("chat_history")[self.__class__.__name__][self.target_component][1:]
+            former_messages = self._context_manager.get_context("chat_history")[self.__class__.__name__][
+                self.target_component
+            ][1:]
         response = APIBackend().build_messages_and_create_chat_completion(
             implement_prompt, self.system.render(), former_messages=former_messages
         )
@@ -838,17 +959,13 @@ class ImplementActionTask(ActionTask):
             implement_prompt, response, self.system.render(), self.target_component
         )
 
-        res = re.search(
-            r"Code:(.*)Explanation:(.*)Modified config:(.*)", response, re.S
-        )
+        res = re.search(r"Code:(.*)Explanation:(.*)Modified config:(.*)", response, re.S)
         assert (
             res is not None and len(res.groups()) == 3
         ), f"The response of implement action task of component {self.target_component} is not in the correct format"
 
         code = re.search(r"```python(.*)```", res.group(1), re.S)
-        assert (
-            code is not None
-        ), "The code part of implementation action task response is not in the correct format"
+        assert code is not None, "The code part of implementation action task response is not in the correct format"
         code = code.group(1)
         explanation = res.group(2)
         modified_config = re.search(r"```yaml(.*)```", res.group(3), re.S)
@@ -858,12 +975,8 @@ class ImplementActionTask(ActionTask):
         modified_config = modified_config.group(1)
 
         self._context_manager.set_context(f"{self.target_component}_code", code)
-        self._context_manager.set_context(
-            f"{self.target_component}_code_explanation", explanation
-        )
-        self._context_manager.set_context(
-            f"{self.target_component}_modified_config", modified_config
-        )
+        self._context_manager.set_context(f"{self.target_component}_code_explanation", explanation)
+        self._context_manager.set_context(f"{self.target_component}_modified_config", modified_config)
 
         return []
 
@@ -893,31 +1006,32 @@ class YamlEditTask(ActionTask):
             "Record": "record",
             "Backtest": "backtest",
         }[self.target_component]
-    
+
     def replace_key_value_recursive(self, target_dict, target_key, new_value):
         res = False
-        if isinstance(target_dict, dict):  
-            for key, value in target_dict.items():  
-                if key == target_key:  
+        if isinstance(target_dict, dict):
+            for key, value in target_dict.items():
+                if key == target_key:
                     target_dict[key] = new_value
                     res = True
-                else:  
-                    res = res | self.replace_key_value_recursive(value, target_key, new_value)  
-        elif isinstance(target_dict, list):  
-            for item in target_dict:  
-                res = res | self.replace_key_value_recursive(item, target_key, new_value) 
+                else:
+                    res = res | self.replace_key_value_recursive(value, target_key, new_value)
+        elif isinstance(target_dict, list):
+            for item in target_dict:
+                res = res | self.replace_key_value_recursive(item, target_key, new_value)
         return res
-
 
     def execute(self):
         # 1) read original and new content
-        self.original_config_location = Path(os.path.join(self._context_manager.get_context('workspace'), "workflow_config.yaml"))
+        self.original_config_location = Path(
+            os.path.join(self._context_manager.get_context("workspace"), "workflow_config.yaml")
+        )
         with self.original_config_location.open("r") as f:
             target_config = yaml.safe_load(f)
-        update_config = self._context_manager.get_context(f'{self.target_component}_modified_config')
+        update_config = self._context_manager.get_context(f"{self.target_component}_modified_config")
         if update_config is None:
-            update_config = self._context_manager.get_context(f'{self.target_component}_config')
-            
+            update_config = self._context_manager.get_context(f"{self.target_component}_config")
+
         # 2) modify the module_path if code is implemented by finco
         # TODO because we skip code writing part, so we mute this step to avoid error
         # if self._context_manager.get_context(f'{self.target_component}_decision') == "Personized":
@@ -930,47 +1044,56 @@ class YamlEditTask(ActionTask):
         if self.target_component == "Dataset":
             return []
         elif self.target_component == "DataHandler":
-            dataset_update_config = self._context_manager.get_context(f'Dataset_modified_config')
+            dataset_update_config = self._context_manager.get_context(f"Dataset_modified_config")
             if dataset_update_config is None:
-                dataset_update_config = self._context_manager.get_context(f'Dataset_config')
-            dataset_update_config['dataset']['kwargs']['handler'] = update_config['handler']
+                dataset_update_config = self._context_manager.get_context(f"Dataset_config")
+            dataset_update_config["dataset"]["kwargs"]["handler"] = update_config["handler"]
             update_config = dataset_update_config
             real_target_config_key = "dataset"
         else:
             real_target_config_key = self.target_config_key
 
         # 3) replace the module
-        assert isinstance(update_config, dict) and real_target_config_key in update_config, "The config file is not in the correct format"
-        assert self.replace_key_value_recursive(target_config, real_target_config_key, update_config[real_target_config_key]), "Replace of the yaml file failed."
+        assert (
+            isinstance(update_config, dict) and real_target_config_key in update_config
+        ), "The config file is not in the correct format"
+        assert self.replace_key_value_recursive(
+            target_config, real_target_config_key, update_config[real_target_config_key]
+        ), "Replace of the yaml file failed."
 
         # TODO hotfix for the bug that the record signalrecord config is not updated
-        for record in target_config['task']['record']:
-            if record['class'] == 'SignalRecord':
-                if 'kwargs' in record and 'model' in record['kwargs']:
-                    del record['kwargs']["model"]
-                if 'kwargs' in record and 'dataset' in record['kwargs']:
-                    del record['kwargs']["dataset"]
-        
+        for record in target_config["task"]["record"]:
+            if record["class"] == "SignalRecord":
+                if "kwargs" in record and "model" in record["kwargs"]:
+                    del record["kwargs"]["model"]
+                if "kwargs" in record and "dataset" in record["kwargs"]:
+                    del record["kwargs"]["dataset"]
+
         # 4) save the config file
         with self.original_config_location.open("w") as f:
             yaml.dump(target_config, f)
 
         return []
 
+
 class CodeDumpTask(ActionTask):
     def __init__(self, target_component) -> None:
         super().__init__()
         self.target_component = target_component
-    
+
     def execute(self):
-        code = self._context_manager.get_context(f'{self.target_component}_code')
+        code = self._context_manager.get_context(f"{self.target_component}_code")
         assert code is not None, "The code is not set"
-        
-        with open(os.path.join(self._context_manager.get_context('workspace'), f'{self.target_component}_code.py'), 'w') as f:
+
+        with open(
+            os.path.join(self._context_manager.get_context("workspace"), f"{self.target_component}_code.py"), "w"
+        ) as f:
             f.write(code)
-        
+
         try:
-            exec(f"from qlib.finco.{os.path.basename(self._context_manager.get_context('workspace'))}.{self.target_component}_code import *")
+            exec(
+                f"from qlib.finco.{os.path.basename(self._context_manager.get_context('workspace'))}.{self.target_component}_code import *"
+            )
         except (ImportError, AttributeError, SyntaxError):
             return [ImplementActionTask(self.target_component, reimplement=True), CodeDumpTask(self.target_component)]
         return []
@@ -1054,8 +1177,9 @@ class SummarizeTask(Task):
             user_prompt=prompt_workflow_selection, system_prompt=self.system.render()
         )
 
-        KnowledgeBase().practice_knowledge.add([{"user_intention": user_prompt,
-                                                 "experiment_metrics": metrics_response}])
+        KnowledgeBase().practice_knowledge.add(
+            [{"user_intention": user_prompt, "experiment_metrics": metrics_response}]
+        )
 
         # notes: summarize after all experiment added to KnowledgeBase
         topic = Topic(name="rollingModel", describe=Template("What conclusion can you draw"))
@@ -1092,8 +1216,11 @@ class SummarizeTask(Task):
                     # in case of too large file
                     # TODO: Perhaps summarization method instead of truncation would be a better approach
                     result.append(
-                        {"file": file.name, "content": content[: self.__MAX_LENGTH_OF_FILE],
-                         "additional": self._context_manager.retrieve(file.name)}
+                        {
+                            "file": file.name,
+                            "content": content[: self.__MAX_LENGTH_OF_FILE],
+                            "additional": self._context_manager.retrieve(file.name),
+                        }
                     )
 
         return result
@@ -1134,8 +1261,9 @@ class SummarizeTask(Task):
                 postfix = filename.split(".")[-1]
                 if postfix in ["jpeg"]:
                     description = self._context_manager.retrieve(filename)
-                    file_list.append({"file_name": filename, "description": description,
-                                      "path": str(Path(path).joinpath(filename))})
+                    file_list.append(
+                        {"file_name": filename, "description": description, "path": str(Path(path).joinpath(filename))}
+                    )
         return file_list
 
     def save_markdown(self, content: str, path):

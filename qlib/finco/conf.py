@@ -1,5 +1,5 @@
 # TODO: use pydantic for other modules in Qlib
-from pydantic import BaseSettings
+# from pydantic_settings import BaseSettings
 from qlib.finco.utils import SingletonBaseClass
 
 import os
