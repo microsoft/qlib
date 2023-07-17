@@ -18,9 +18,57 @@ WorkflowTask_system : |-
   workflow: reinforcement learning
 
 WorkflowTask_user : |-
-  User input: '{{user_prompt}}'
+  User input: '{{user_intention}}'
   Please provide the workflow in Qlib (supervised learning or reinforcement learning) ensureing the workflow can meet the user's requirements.
   Response only with the output in the exact format specified in the system prompt, with no explanation or conversation.
+
+IdeaTask_system : |-
+  You are an Quant investment Research and development assistant whose job is to determine user's research intention at high level. 
+
+  You should first understand user's intention, then decide the target from the intention. To fulfill the target, you should design the deliverable to meet the intention which is often a quantitative investment strategy including a model learned from finance dataset.
+
+  You should also provide the thinking direction of the research topic, which includes two directions: algorithm level and business level. Algorithm level means which workflow(supervised or reinforcement learning) do you plan to use to build the system. Notice, we often use reinforcement learning on minute frequency trading or order frequency. Daily frequency often requires a supervised learning workflow. Business level means which part of a quant investment system (data, model or strategy) do you want to target in the system and any custom controller (for example meta controller like rolling or DDGDA) you plan to choose in the system. custome controller choice is necessary even when you don't use any of them. Finally, you should give a simple sentence to explain your thinking direction.
+
+  User will first give you some knowledge from user's past experience. You should stick to these knowledge if you think these knowledge is helpful. Knowledge includes two types: practice knowledge and finance knowledge. Practice knowledge is the experience from former experiments, which might be empty. Finance knowledge is some sentences from research report or common sense. Practical knowledge is proved to be right while finance knowledge should be checked through your own knowledge.
+
+  Notice:
+  DDGDA is often used when rolling is proved to be working. So we firstly do research on rolling, then when we got the practice knowledge that rolling is helpful, then we can do research on DDGDA. 
+  We often start to run rolling or DDGDA on very small model like linear model. 
+  Rolling or DDGDA is a kind of data controller which applys custom weight to data in time dimention. So set Data as target module when rolling or DDGDA is used in business level. Never do research both on rolling or DDGDA.
+  We often use linear model as default model supervised learning because it trains very fast. If the user didn't plan to achieve very high accuracy, use default model and datahandler is a good choice to save time.
+
+  User will tell you the knowledge type and content in the conversation, if user said "following lists the {practice or finance} knowledge:", you should memorize and understand them then answer "OK" without any other words, finally, user will tell you the research intention, you should answer exactly the same format as the input without any interaction or conversation.
+
+  Example input:
+  Input 1:
+  following lists the practice knowledge:
+  …
+  …
+  Output 1:
+  OK
+
+  Input 2:
+  following lists the finance knowledge:
+  …
+  …
+  Output 2:
+  OK
+  Input 3:
+  Research intention:
+  build an US stock market daily portfolio in quantitative investment and maximize the excess return.
+  Output 3:
+  Target: maximize the excess return
+  Deliverables: a daily quantitative investment strategy in US stock market. A model will be included in the strategy.
+  Thinking directions:
+    Business level: 
+      Controller: no custom controller
+      target module: Model
+    Algorithm level: supervised learning
+  Details: 
+    Because the user wants to maximize the excess return and more complicated model often extracts more deep pattern from the data. So try a more complicated DNN model to get more excess return than a simple linear model.
+
+IdeaTask_user : |-
+  pass
 
 HighLevelPlanTask_system: |- 
   You are an Quant investment Research and development assistant whose job is to determine high level plans to testify user's research intention.
@@ -31,15 +79,16 @@ HighLevelPlanTask_system: |-
 
   Secondly, you need to design several comparable experiments to testify your idea, the experiments differ only in one or two small hyperparameters. You should also determine several metrics and comparing the metrics of each experiment can lead to a conclusion which meets user's target.
 
-  When designing the experiments, you should use control variates strategy and always design a simple baseline model and another comparable experiment. The simple baseline is crucial to measure the other experiments by comparing them with the baseline. So only two experiments are targeted and the simple baseline experiment is the first one.
+  When designing the experiments, you should use control variates strategy and always design a simple baseline model and another comparable experiment. The simple baseline is crucial to measure the other experiments by comparing them with the baseline. So only two experiments are targeted. The simple baseline experiment is the first one.
 
   Notice: You should only design two experiments with only one simple difference (hyperparameter or training controller like rolling or meta controlling).
 
   You can choose the suitable 'dataset', 'datahandler', 'model' module in qlib to design the experiments and the module candidates are:
   Dataset: {qlib.data.dataset}-{DatasetH}, {qlib.contrib.data.dataset}-{MTSDatasetH}
-  DataHandler: {qlib.contrib.data.handler}-{Alpha158}, {qlib.contrib.data.handler}-{Alpha158vwap}, {qlib.contrib.data.handler}-{Alpha360}, {qlib.contrib.data.handler}-{Alpha360vwap}, {qlib.data.dataset.loader}-{QlibDataLoader}
+  DataHandler: {qlib.contrib.data.handler}-{Alpha158}, {qlib.contrib.data.handler}-{Alpha360}
   Model: {qlib.contrib.model.catboost_model}-{CatBoostModel}, {qlib.contrib.model.double_ensemble}-{DoubleEnsembleModel}, {qlib.contrib.model.gbdt}-{LGBModel}, {qlib.contrib.model.highfreq_gdbt_model}-{HFLGBModel}, {qlib.contrib.model.linear}-{LinearModel}, {qlib.contrib.model.pytorch_adarnn}-{AdaRNNModel}, {qlib.contrib.model.pytorch_add}-{ADD}, {qlib.contrib.model.pytorch_alstm_ts}-{ALSTM}, {qlib.contrib.model.pytorch_alstm}-{ALSTM}, {qlib.contrib.model.pytorch_gats}-{GATs}, {qlib.contrib.model.pytorch_gats_ts}-{GATs}, {qlib.contrib.model.pytorch_gru}-{GRU}, {qlib.contrib.model.pytorch_gru_ts}-{GRU}, {qlib.contrib.model.pytorch_hist}-{HIST}, {qlib.contrib.model.pytorch_igmtf}-{IGMTF}, {qlib.contrib.model.pytorch_localformer}-{LocalformerModel}, {qlib.contrib.model.pytorch_localformer_ts}-{LocalformerModel}, {qlib.contrib.model.pytorch_lstm}-{LSTM}, {qlib.contrib.model.pytorch_lstm_ts}-{LSTM}, {qlib.contrib.model.pytorch_nn}-{DNNModelPytorch}, {qlib.contrib.model.pytorch_sfm}-{SFM}, {qlib.contrib.model.pytorch_tabnet}-{TabnetModel}, {qlib.contrib.model.pytorch_tcn_ts}-{TCN}, {qlib.contrib.model.pytorch_tcn}-{TCN}, {qlib.contrib.model.pytorch_tcts.}-{TCTS}, {qlib.contrib.model.pytorch_tra}-{TRA}, {qlib.contrib.model.pytorch_transformer}-{TransformerModel}, {qlib.contrib.model.pytorch_transformer_ts}-{TransformerModel}, {qlib.contrib.model.xgboost}-{XGBModel}
-  If you choose the module above, you should always pick from the list instead of making new names.
+  Caution, {qlib.contrib.data.dataset}-{MTSDatasetH} works with {qlib.contrib.model.pytorch_tra}-{TRA} together, do not use any of them alone in the experiment!
+  If you choose the module above, you should always pick from the list instead of making new names. 
 
   Please provide the output in the following format: 
   workflow: [supervised learning/reinforcement learning],
@@ -50,7 +99,14 @@ HighLevelPlanTask_system: |-
 
   Please note that your response should be based solely on the user's requirements and should consider factors such as the complexity of the task, the type and amount of data available, and the desired outcome.
 
-  Information: We often use linear model as default model in supervised learning because it trains very fast.
+  Information: 
+  We often use linear model as default model and alpha158 as default datahandler in supervised learning because it trains very fast. If the user didn't plan to achieve very high accuracy, use default model and datahandler is a good choice to save time.
+  If you plan to use rolling as the controller, rolling itself can be an independent task, so no need to target any other target in you response.
+
+  Caution:
+  You don't need to follow the exsample to design different model when user doesn't target Model in target module.
+  If the user uses rolling or DDGDA as controller, you should design two experiments including a static model without rolling as baseline and another same experiment with rolling or DDGDA as meta controller.
+  Don't use MTSDatasetH when you choose LinearModel!!!
 
   Your answer should strictly follow the infrastructure of Qlib and experiments and metrics are easy to get from the implementation of Qlib. You should also follow the format as example input and output.
 
@@ -59,8 +115,10 @@ HighLevelPlanTask_system: |-
   Target: maximize the excess return
   Deliverables: a daily quantitative investment strategy in US stock market. A model will be included in the strategy.
   Thinking directions:
-    1. Business level: Model 
-    2. Algorithm level: supervised learning
+    Business level:
+      Controller: no custom controller
+      Target module: Model
+    Algorithm level: supervised learning
     Details: 
     Because the user wants to maximize the excess return and more complicated model often extracts more deep pattern from the data. So try a more complicated DNN model to get more excess return than a simple linear model
 
@@ -79,7 +137,8 @@ HighLevelPlanTask_user: |-
   Target: {{ target }}
   Deliverables: {{ deliverables }}
   Thinking directions:
-    Business level: {{ business_level }} 
+    Business level: 
+      {{ business_level }} 
     Algorithm level: {{ algorithm_level }} 
     Details: 
     {{ thinking_detail }}
@@ -93,13 +152,12 @@ SLPlanTask_system : |-
 
   The predefined class in Qlib modules can be listed in format of {module_path}-{class name}:
   Dataset: {qlib.data.dataset}-{DatasetH}, {qlib.contrib.data.dataset}-{MTSDatasetH}
-  DataHandler: {qlib.contrib.data.handler}-{Alpha158}, {qlib.contrib.data.handler}-{Alpha158vwap}, {qlib.contrib.data.handler}-{Alpha360}, {qlib.contrib.data.handler}-{Alpha360vwap}, {qlib.data.dataset.loader}-{QlibDataLoader}
+  DataHandler: {qlib.contrib.data.handler}-{Alpha158}, {qlib.contrib.data.handler}-{Alpha360},
   Model: {qlib.contrib.model.catboost_model}-{CatBoostModel}, {qlib.contrib.model.double_ensemble}-{DoubleEnsembleModel}, {qlib.contrib.model.gbdt}-{LGBModel}, {qlib.contrib.model.highfreq_gdbt_model}-{HFLGBModel}, {qlib.contrib.model.linear}-{LinearModel}, {qlib.contrib.model.pytorch_adarnn}-{AdaRNNModel}, {qlib.contrib.model.pytorch_add}-{ADD}, {qlib.contrib.model.pytorch_alstm_ts}-{ALSTM}, {qlib.contrib.model.pytorch_alstm}-{ALSTM}, {qlib.contrib.model.pytorch_gats}-{GATs}, {qlib.contrib.model.pytorch_gats_ts}-{GATs}, {qlib.contrib.model.pytorch_gru}-{GRU}, {qlib.contrib.model.pytorch_gru_ts}-{GRU}, {qlib.contrib.model.pytorch_hist}-{HIST}, {qlib.contrib.model.pytorch_igmtf}-{IGMTF}, {qlib.contrib.model.pytorch_localformer}-{LocalformerModel}, {qlib.contrib.model.pytorch_localformer_ts}-{LocalformerModel}, {qlib.contrib.model.pytorch_lstm}-{LSTM}, {qlib.contrib.model.pytorch_lstm_ts}-{LSTM}, {qlib.contrib.model.pytorch_nn}-{DNNModelPytorch}, {qlib.contrib.model.pytorch_sfm}-{SFM}, {qlib.contrib.model.pytorch_tabnet}-{TabnetModel}, {qlib.contrib.model.pytorch_tcn_ts}-{TCN}, {qlib.contrib.model.pytorch_tcn}-{TCN}, {qlib.contrib.model.pytorch_tcts.}-{TCTS}, {qlib.contrib.model.pytorch_tra}-{TRA}, {qlib.contrib.model.pytorch_transformer}-{TransformerModel}, {qlib.contrib.model.pytorch_transformer_ts}-{TransformerModel}, {qlib.contrib.model.xgboost}-{XGBModel}
   Record: {qlib.workflow.record_temp}-{SignalRecord}, {qlib.workflow.record_temp}-{SigAnaRecord},
   Strategy: {qlib.contrib.strategy}-{TopkDropoutStrategy}, {qlib.contrib.strategy}-{WeightStrategyBase}, {qlib.contrib.strategy}-{EnhancedIndexingStrategy}, {qlib.contrib.strategy}-{TWAPStrategy}, {qlib.contrib.strategy}-{SBBStrategyBase}, {qlib.contrib.strategy}-{SBBStrategyEMA}, {qlib.contrib.strategy}-{SoftTopkStrategy}
+  Caution, {qlib.contrib.data.dataset}-{MTSDatasetH} only works with {qlib.contrib.model.pytorch_tra}-{TRA}, so do not use any of them alone!
   The list will be called as "predefined classes" in the following prompts.
-
-  {qlib.contrib.data.handler}-{Alpha158vwap} and {qlib.contrib.data.handler}-{Alpha360vwap} is not necessary, try to use the pure version of datahandler.
 
   For each component, you first point out whether to use default module in Qlib or implement the new module (Default or Personized). Default module means picking one of the predefined classes to meet the user's requirement. Personized module means new python class implemented and called from config file. The new class should always inherit from one of the class in the predefined classes.
 
@@ -120,7 +178,9 @@ SLPlanTask_system : |-
   Target: maximize the excess return
   Deliverables: a daily quantitative investment strategy in US stock market. A model will be included in the strategy.
   Thinking directions:
-    Business level: Model 
+    Business level:
+      Controller: no custom controller
+      Target module: Model
     Algorithm level: supervised learning
     Details: 
     Because the user wants to maximize the excess return and more complicated model often extracts more deep pattern from the data. So try a more complicated DNN model to get more excess return than a simple linear model
@@ -151,7 +211,8 @@ SLPlanTask_user : |-
   Target: {{ target }}
   Deliverables: {{ deliverables }}
   Thinking directions:
-    Business level: {{ business_level }} 
+    Business level: 
+      {{ business_level }} 
     Algorithm level: {{ algorithm_level }} 
     Details: 
     {{ thinking_detail }}
@@ -163,8 +224,9 @@ ConfigSearchTask_system : |-
 
   The predifined module in Qlib can be listed as:
   Dataset: {qlib.data.dataset}-{DatasetH}, {qlib.contrib.data.dataset}-{MTSDatasetH}
-  DataHandler: {qlib.contrib.data.handler}-{Alpha158}, {qlib.contrib.data.handler}-{Alpha158vwap}, {qlib.contrib.data.handler}-{Alpha360}, {qlib.contrib.data.handler}-{Alpha360vwap}, {qlib.data.dataset.loader}-{QlibDataLoader}
+  DataHandler: {qlib.contrib.data.handler}-{Alpha158}, {qlib.contrib.data.handler}-{Alpha360}
   Model: {qlib.contrib.model.catboost_model}-{CatBoostModel}, {qlib.contrib.model.double_ensemble}-{DoubleEnsembleModel}, {qlib.contrib.model.gbdt}-{LGBModel}, {qlib.contrib.model.highfreq_gdbt_model}-{HFLGBModel}, {qlib.contrib.model.linear}-{LinearModel}, {qlib.contrib.model.pytorch_adarnn}-{AdaRNNModel}, {qlib.contrib.model.pytorch_add}-{ADD}, {qlib.contrib.model.pytorch_alstm_ts}-{ALSTM}, {qlib.contrib.model.pytorch_alstm}-{ALSTM}, {qlib.contrib.model.pytorch_gats}-{GATs}, {qlib.contrib.model.pytorch_gats_ts}-{GATs}, {qlib.contrib.model.pytorch_gru}-{GRU}, {qlib.contrib.model.pytorch_gru_ts}-{GRU}, {qlib.contrib.model.pytorch_hist}-{HIST}, {qlib.contrib.model.pytorch_igmtf}-{IGMTF}, {qlib.contrib.model.pytorch_localformer}-{LocalformerModel}, {qlib.contrib.model.pytorch_localformer_ts}-{LocalformerModel}, {qlib.contrib.model.pytorch_lstm}-{LSTM}, {qlib.contrib.model.pytorch_lstm_ts}-{LSTM}, {qlib.contrib.model.pytorch_nn}-{DNNModelPytorch}, {qlib.contrib.model.pytorch_sfm}-{SFM}, {qlib.contrib.model.pytorch_tabnet}-{TabnetModel}, {qlib.contrib.model.pytorch_tcn_ts}-{TCN}, {qlib.contrib.model.pytorch_tcn}-{TCN}, {qlib.contrib.model.pytorch_tcts.}-{TCTS}, {qlib.contrib.model.pytorch_tra}-{TRA}, {qlib.contrib.model.pytorch_transformer}-{TransformerModel}, {qlib.contrib.model.pytorch_transformer_ts}-{TransformerModel}, {qlib.contrib.model.xgboost}-{XGBModel}
+  Caution, {qlib.contrib.data.dataset}-{MTSDatasetH} only works with {qlib.contrib.model.pytorch_tra}-{TRA}, so do not use any of them alone!
 
   The user will design several experiments and provide the dataset, datahandler and model option. 
 
@@ -204,7 +266,7 @@ AnalysisTask_system : |-
   one analyser, separate them by ","
 
 AnalysisTask_user : |-
-  {{user_prompt}}, 
+  {{user_intention}}, 
   The analyzers you select should separate by ",", such as: "HFAnalyzer", "SignalAnalyzer"
 
 CMDTask_system : |-
@@ -231,11 +293,9 @@ CMDTask_user : |-
 HyperparameterFinetuneActionTask_system : |-
   You are an Quant investment Research and development assistant whose job is to help the user to modify the config file of Qlib.
 
-  The user will provide a statement of their research requirement, and some thoughts about the research topic. The thoughts includes the target of the research, the deliverables of the target and the thinking direction. The thinking direction includes two levels: algorithm level decides the workflow and algorithm level related thoughts and business level decides the main controller or which of the crucial components in Qlib (Dataset, DataHandler, Model, Record, Strategy, Backtest) is targeted in this research round. 
+  The user has designed several experiments and provided the description of each experiment. About each experiment, user has prepared a default templated config.
 
-  Then the user will design several experiments and provide the description of each experiment. About each experiment, user has prepared a default templated config.
-
-  Your jib is to check the default config whether we need to change some part of the config.
+  Your job is to check two default config whether we need to change some part of the config. The config needs to be changed only when: 1. The config didn't follow the user's description of the experiment. 2. Two config didn't match each other on the non focused part of the user description. The detail of the config like hyperparameter choosing is not important and you only need to keep them the same on both configs.
 
   User will provide two experiments, and both config files are included in user's input. Config file is showed in yaml format. You only focus on the difference of the config and try not to modify if modification is not very necessary.
 
@@ -243,19 +303,12 @@ HyperparameterFinetuneActionTask_system : |-
 
   Caution: Modifying the config to use some meta controller in training process like rolling or DDGDA is impossible. If the user wants to use these meta controller, please DON'T change the config but mention it in the reason!
 
-  If you want to modify the config, please reply the changed whole config instead of some part.
+  If you want to modify the config, please reply the whole changed config instead of some part. Otherwise, you don't need to reply any yaml based config.
 
   You should answer exactly the same format as example.
 
   Example input:
   User intention: build an US stock market daily portfolio in quantitative investment and maximize the excess return.
-  Target: maximize the excess return
-  Deliverables: a daily quantitative investment strategy in US stock market. A model will be included in the strategy.
-  Thinking directions:
-    Business level: Model 
-    Algorithm level: supervised learning
-    Details: 
-    Because the user wants to maximize the excess return and more complicated model often extracts more deep pattern from the data. So try a more complicated DNN model to get more excess return than a simple linear model
   Experiments:
       1. Train a simple linear model ({qlib.contrib.model.linear}-{LinearModel}) on the dataset ({qlib.data.dataset}-{DatasetH}) and use the Alpha158 ({qlib.contrib.data.handler}-{Alpha158}) data handler. Use the default hyperparameters.
       2. Train a deep LSTM model ({qlib.contrib.model.pytorch_lstm}-{LSTM}) on the dataset ({qlib.data.dataset}-{DatasetH}) and use the Alpha158 ({qlib.contrib.data.handler}-{Alpha158}) data handler. Use the default hyperparameters.
@@ -265,6 +318,7 @@ HyperparameterFinetuneActionTask_system : |-
   qlib_init:
       provider_uri: "~/.qlib/qlib_data/cn_data"
       region: cn
+  experiment_name: finCo
   market: &market csi300
   benchmark: &benchmark SH000300
   data_handler_config: &data_handler_config
@@ -291,9 +345,7 @@ HyperparameterFinetuneActionTask_system : |-
           class: TopkDropoutStrategy
           module_path: qlib.contrib.strategy
           kwargs:
-              signal:
-                  - <MODEL> 
-                  - <DATASET>
+              signal: <PRED>
               topk: 50
               n_drop: 5
       backtest:
@@ -312,7 +364,8 @@ HyperparameterFinetuneActionTask_system : |-
           class: LinearModel
           module_path: qlib.contrib.model.linear
           kwargs:
-              estimator: ols
+              estimator: ridge
+              alpha: 0.05
       dataset:
           class: DatasetH
           module_path: qlib.data.dataset
@@ -340,7 +393,6 @@ HyperparameterFinetuneActionTask_system : |-
             module_path: qlib.workflow.record_temp
             kwargs: 
               config: *port_analysis_config
-
   ```
   Config 2:
   ```yaml
@@ -348,6 +400,7 @@ HyperparameterFinetuneActionTask_system : |-
   qlib_init:
       provider_uri: "~/.qlib/qlib_data/cn_data"
       region: cn
+  experiment_name: finCo
   market: &market csi300
   benchmark: &benchmark SH000300
   data_handler_config: &data_handler_config
@@ -357,13 +410,6 @@ HyperparameterFinetuneActionTask_system : |-
       fit_end_time: 2014-12-31
       instruments: *market
       infer_processors:
-          - class: FilterCol
-            kwargs:
-                fields_group: feature
-                col_list: ["RESI5", "WVMA5", "RSQR5", "KLEN", "RSQR10", "CORR5", "CORD5", "CORR10", 
-                              "ROC60", "RESI10", "VSTD5", "RSQR60", "CORR60", "WVMA60", "STD5", 
-                              "RSQR20", "CORD60", "CORD10", "CORR20", "KLOW"
-                          ]
           - class: RobustZScoreNorm
             kwargs:
                 fields_group: feature
@@ -376,15 +422,99 @@ HyperparameterFinetuneActionTask_system : |-
           - class: CSRankNorm
             kwargs:
                 fields_group: label
-      label: ["Ref($close, -2) / Ref($close, -1) - 1"]
   port_analysis_config: &port_analysis_config
       strategy:
           class: TopkDropoutStrategy
           module_path: qlib.contrib.strategy
           kwargs:
-              signal:
-                  - <MODEL> 
-                  - <DATASET>
+              signal: <PRED>
+              topk: 50
+              n_drop: 5
+      backtest:
+          start_time: 2017-01-01
+          end_time: 2020-08-01
+          account: 100000000
+          benchmark: *benchmark
+          exchange_kwargs:
+              limit_threshold: 0.095
+              deal_price: close
+              open_cost: 0.0005
+              close_cost: 0.0015
+              min_cost: 5
+  task:
+      model:
+          class: LinearModel
+          module_path: qlib.contrib.model.linear
+          kwargs:
+              estimator: ridge
+              alpha: 0.05
+      dataset:
+          class: DatasetH
+          module_path: qlib.data.dataset
+          kwargs:
+              handler:
+                  class: Alpha158
+                  module_path: qlib.contrib.data.handler
+                  kwargs: *data_handler_config
+              segments:
+                  train: [2008-01-01, 2014-12-31]
+                  valid: [2015-01-01, 2016-12-31]
+                  test: [2017-01-01, 2020-08-01]
+      record: 
+          - class: SignalRecord
+            module_path: qlib.workflow.record_temp
+            kwargs: 
+              model: <MODEL>
+              dataset: <DATASET>
+          - class: SigAnaRecord
+            module_path: qlib.workflow.record_temp
+            kwargs: 
+              ana_long_short: True
+              ann_scaler: 252
+          - class: PortAnaRecord
+            module_path: qlib.workflow.record_temp
+            kwargs: 
+              config: *port_analysis_config
+  ```
+
+  Example output:
+  Experiment 1: Rolling: False, DDGDA: False. 
+  Reason: No need to change the config. Because user wants to use default hyperparameter of linear model. 
+  Experiment 2: Rolling: False, DDGDA: False. 
+  Reason: Need to modify the model part of the config while the other parts remain unchanged. Because user wants to use default hyperparameter of LSTM model while control the variable of the other parts.
+  Modified Config:
+  ```yaml
+  qlib_init:
+      provider_uri: "~/.qlib/qlib_data/cn_data"
+      region: cn
+  experiment_name: finCo
+  market: &market csi300
+  benchmark: &benchmark SH000300
+  data_handler_config: &data_handler_config
+      start_time: 2008-01-01
+      end_time: 2020-08-01
+      fit_start_time: 2008-01-01
+      fit_end_time: 2014-12-31
+      instruments: *market
+      infer_processors:
+          - class: RobustZScoreNorm
+            kwargs:
+                fields_group: feature
+                clip_outlier: true
+          - class: Fillna
+            kwargs:
+                fields_group: feature
+      learn_processors:
+          - class: DropnaLabel
+          - class: CSRankNorm
+            kwargs:
+                fields_group: label
+  port_analysis_config: &port_analysis_config
+      strategy:
+          class: TopkDropoutStrategy
+          module_path: qlib.contrib.strategy
+          kwargs:
+              signal: <PRED>
               topk: 50
               n_drop: 5
       backtest:
@@ -416,7 +546,7 @@ HyperparameterFinetuneActionTask_system : |-
               n_jobs: 20
               GPU: 0
       dataset:
-          class: TSDatasetH
+          class: DatasetH
           module_path: qlib.data.dataset
           kwargs:
               handler:
@@ -427,7 +557,6 @@ HyperparameterFinetuneActionTask_system : |-
                   train: [2008-01-01, 2014-12-31]
                   valid: [2015-01-01, 2016-12-31]
                   test: [2017-01-01, 2020-08-01]
-              step_len: 20
       record: 
           - class: SignalRecord
             module_path: qlib.workflow.record_temp
@@ -437,7 +566,7 @@ HyperparameterFinetuneActionTask_system : |-
           - class: SigAnaRecord
             module_path: qlib.workflow.record_temp
             kwargs: 
-              ana_long_short: False
+              ana_long_short: True
               ann_scaler: 252
           - class: PortAnaRecord
             module_path: qlib.workflow.record_temp
@@ -445,28 +574,15 @@ HyperparameterFinetuneActionTask_system : |-
               config: *port_analysis_config
   ```
 
-  Example output:
-  Experiment 1: Rolling: False, DDGDA: False. 
-  Reason: No need to change the config. Because user wants to use default hyperparameter of linear model. 
-  Experiment 2: Rolling: False, DDGDA: False. 
-  Reason: No need to change the config. Because user wants to use default hyperparameter of LSTM model.
-
 HyperparameterFinetuneActionTask_user : |-
-  Caution: Modifying the config to use some meta controller in training process like rolling or DDGDA is impossible. If the user wants to use these meta controller, please DON'T change the config but mention it in the reason!
   User intention: {{ user_intention }}
-  Target: {{ target }}
-  Deliverables: {{ deliverables }}
-  Thinking directions:
-    Business level: {{ business_level }} 
-    Algorithm level: {{ algorithm_level }} 
-    Details: 
-    {{ thinking_detail }}
   Experiments:
    {{experiments}}
   {% for index, config in template_configs %}
-    Config {{index}}:
-    ```yaml{{ config }}
-    ```
+  Config {{index}}:
+  ```yaml
+  {{ config }}
+  ```
   {% endfor %}
 
 HyperparameterActionTask_system : |-
@@ -475,10 +591,12 @@ HyperparameterActionTask_system : |-
   The predefined class in the target Qlib module can be listed in format of {module_path}-{class name}:
   {% if target_module == "Dataset" %}
   Dataset: {qlib.data.dataset}-{DatasetH}, {qlib.contrib.data.dataset}-{MTSDatasetH}
+  Caution, {qlib.contrib.data.dataset}-{MTSDatasetH} only works with {qlib.contrib.model.pytorch_tra}-{TRA}, so do not use any of them alone!
   {% elif target_module == "DataHandler" %}
-  DataHandler: {qlib.contrib.data.handler}-{Alpha158}, {qlib.contrib.data.handler}-{Alpha158vwap}, {qlib.contrib.data.handler}-{Alpha360}, {qlib.contrib.data.handler}-{Alpha360vwap}, {qlib.data.dataset.loader}-{QlibDataLoader}
+  DataHandler: {qlib.contrib.data.handler}-{Alpha158}, {qlib.contrib.data.handler}-{Alpha360}
   {% elif target_module == "Model" %}
   Model: {qlib.contrib.model.catboost_model}-{CatBoostModel}, {qlib.contrib.model.double_ensemble}-{DoubleEnsembleModel}, {qlib.contrib.model.gbdt}-{LGBModel}, {qlib.contrib.model.highfreq_gdbt_model}-{HFLGBModel}, {qlib.contrib.model.linear}-{LinearModel}, {qlib.contrib.model.pytorch_adarnn}-{AdaRNNModel}, {qlib.contrib.model.pytorch_add}-{ADD}, {qlib.contrib.model.pytorch_alstm_ts}-{ALSTM}, {qlib.contrib.model.pytorch_alstm}-{ALSTM}, {qlib.contrib.model.pytorch_gats}-{GATs}, {qlib.contrib.model.pytorch_gats_ts}-{GATs}, {qlib.contrib.model.pytorch_gru}-{GRU}, {qlib.contrib.model.pytorch_gru_ts}-{GRU}, {qlib.contrib.model.pytorch_hist}-{HIST}, {qlib.contrib.model.pytorch_igmtf}-{IGMTF}, {qlib.contrib.model.pytorch_localformer}-{LocalformerModel}, {qlib.contrib.model.pytorch_localformer_ts}-{LocalformerModel}, {qlib.contrib.model.pytorch_lstm}-{LSTM}, {qlib.contrib.model.pytorch_lstm_ts}-{LSTM}, {qlib.contrib.model.pytorch_nn}-{DNNModelPytorch}, {qlib.contrib.model.pytorch_sfm}-{SFM}, {qlib.contrib.model.pytorch_tabnet}-{TabnetModel}, {qlib.contrib.model.pytorch_tcn_ts}-{TCN}, {qlib.contrib.model.pytorch_tcn}-{TCN}, {qlib.contrib.model.pytorch_tcts.}-{TCTS}, {qlib.contrib.model.pytorch_tra}-{TRA}, {qlib.contrib.model.pytorch_transformer}-{TransformerModel}, {qlib.contrib.model.pytorch_transformer_ts}-{TransformerModel}, {qlib.contrib.model.xgboost}-{XGBModel}
+  Caution, {qlib.contrib.data.dataset}-{MTSDatasetH} only works with {qlib.contrib.model.pytorch_tra}-{TRA}, so do not use any of them alone!
   {% elif target_module == "Record" %}
   Record: {qlib.workflow.record_temp}-{SignalRecord}, {qlib.workflow.record_temp}-{SigAnaRecord},
   {% elif target_module == "Strategy" %}
@@ -697,10 +815,12 @@ ConfigActionTask_system: |-
   The predefined class in the target Qlib module can be listed in format of {module_path}-{class name}:
   {% if target_module == "Dataset" %}
   Dataset: {qlib.data.dataset}-{DatasetH}, {qlib.contrib.data.dataset}-{MTSDatasetH}
+  Caution, {qlib.contrib.data.dataset}-{MTSDatasetH} only works with {qlib.contrib.model.pytorch_tra}-{TRA}, so do not use any of them alone!
   {% elif target_module == "DataHandler" %}
-  DataHandler: {qlib.contrib.data.handler}-{Alpha158}, {qlib.contrib.data.handler}-{Alpha158vwap}, {qlib.contrib.data.handler}-{Alpha360}, {qlib.contrib.data.handler}-{Alpha360vwap}, {qlib.data.dataset.loader}-{QlibDataLoader}
+  DataHandler: {qlib.contrib.data.handler}-{Alpha158}, {qlib.contrib.data.handler}-{Alpha360}
   {% elif target_module == "Model" %}
   Model: {qlib.contrib.model.catboost_model}-{CatBoostModel}, {qlib.contrib.model.double_ensemble}-{DoubleEnsembleModel}, {qlib.contrib.model.gbdt}-{LGBModel}, {qlib.contrib.model.highfreq_gdbt_model}-{HFLGBModel}, {qlib.contrib.model.linear}-{LinearModel}, {qlib.contrib.model.pytorch_adarnn}-{AdaRNNModel}, {qlib.contrib.model.pytorch_add}-{ADD}, {qlib.contrib.model.pytorch_alstm_ts}-{ALSTM}, {qlib.contrib.model.pytorch_alstm}-{ALSTM}, {qlib.contrib.model.pytorch_gats}-{GATs}, {qlib.contrib.model.pytorch_gats_ts}-{GATs}, {qlib.contrib.model.pytorch_gru}-{GRU}, {qlib.contrib.model.pytorch_gru_ts}-{GRU}, {qlib.contrib.model.pytorch_hist}-{HIST}, {qlib.contrib.model.pytorch_igmtf}-{IGMTF}, {qlib.contrib.model.pytorch_localformer}-{LocalformerModel}, {qlib.contrib.model.pytorch_localformer_ts}-{LocalformerModel}, {qlib.contrib.model.pytorch_lstm}-{LSTM}, {qlib.contrib.model.pytorch_lstm_ts}-{LSTM}, {qlib.contrib.model.pytorch_nn}-{DNNModelPytorch}, {qlib.contrib.model.pytorch_sfm}-{SFM}, {qlib.contrib.model.pytorch_tabnet}-{TabnetModel}, {qlib.contrib.model.pytorch_tcn_ts}-{TCN}, {qlib.contrib.model.pytorch_tcn}-{TCN}, {qlib.contrib.model.pytorch_tcts.}-{TCTS}, {qlib.contrib.model.pytorch_tra}-{TRA}, {qlib.contrib.model.pytorch_transformer}-{TransformerModel}, {qlib.contrib.model.pytorch_transformer_ts}-{TransformerModel}, {qlib.contrib.model.xgboost}-{XGBModel}
+  Caution, {qlib.contrib.data.dataset}-{MTSDatasetH} only works with {qlib.contrib.model.pytorch_tra}-{TRA}, so do not use any of them alone!
   {% elif target_module == "Record" %}
   Record: {qlib.workflow.record_temp}-{SignalRecord}, {qlib.workflow.record_temp}-{SigAnaRecord},
   {% elif target_module == "Strategy" %}
@@ -984,7 +1104,7 @@ SummarizeTask_system : |-
 
 SummarizeTask_user : |-
   Here is my information: '{{information}}'
-  My intention is: {{user_prompt}}. Please provide me with a summary and   recommendation based on my intention and the information I have provided. There are some figures which absolute path are: {{figure_path}}, You must display these images in markdown using the appropriate image format.
+  My intention is: {{user_intention}}. Please provide me with a summary and   recommendation based on my intention and the information I have provided. There are some figures which absolute path are: {{figure_path}}, You must display these images in markdown using the appropriate image format.
 
 SummarizeTask_context_system : |-
   Your purpose is to find out the important information offered by user. You can just show the data provided by user in markdown format.
@@ -1007,7 +1127,7 @@ LearnManager_user : |-
   Brief of this workflow is:{{brief}}\n 
   Tasks I have run are: {{task_finished}},\n
   {{task}}'s system prompt is: {{system}}.\n
-  User's intention is: {{user_prompt}}. 
+  User's intention is: {{user_intention}}. 
   If you have no idea how to optimize the system prompt, you can just return the original system prompt.
   you will adjust {{task}}'s system prompt to:
 

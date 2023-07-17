@@ -76,14 +76,14 @@ class YamlStorage(Storage):
     def load(self):
         """load data from yaml format file"""
         try:
-            self.documents = yaml.load(open(self.path, "r"), Loader=yaml.FullLoader)
+            self.documents = yaml.safe_load(self.path.open())
         except FileNotFoundError:
             logger.warning(f"YamlStorage: file {self.path} doesn't exist.")
 
     def save(self, **kwargs):
         """use pickle as the default save method"""
-        Path.mkdir(self.path.parent, exist_ok=True)
-        with open(self.path, "w") as f:
+        Path.mkdir(self.path.parent, exist_ok=True, parents=True)
+        with open(self.path, 'w') as f:
             yaml.dump(self.documents, f)
 
 
@@ -435,26 +435,22 @@ class KnowledgeBase(SingletonBaseClass):
 
     def load_practice_knowledge(self, path: Path) -> PracticeKnowledge:
         self.practice_knowledge = PracticeKnowledge(
-            YamlStorage(path.joinpath(f"{self.KT_PRACTICE}/{YamlStorage.DEFAULT_NAME}"))
-        )
+            YamlStorage(path.joinpath(Path.cwd().joinpath("knowledge")/f"{self.KT_PRACTICE}/{YamlStorage.DEFAULT_NAME}")))
         return self.practice_knowledge
 
     def load_execute_knowledge(self, path: Path) -> ExecuteKnowledge:
         self.execute_knowledge = ExecuteKnowledge(
-            YamlStorage(path.joinpath(f"{self.KT_EXECUTE}/{YamlStorage.DEFAULT_NAME}"))
-        )
+            YamlStorage(path.joinpath(Path.cwd().joinpath("knowledge")/f"{self.KT_EXECUTE}/{YamlStorage.DEFAULT_NAME}")))
         return self.execute_knowledge
 
     def load_finance_knowledge(self, path: Path) -> FinanceKnowledge:
         self.finance_knowledge = FinanceKnowledge(
-            YamlStorage(path.joinpath(f"{self.KT_FINANCE}/{YamlStorage.DEFAULT_NAME}"))
-        )
+            YamlStorage(path.joinpath(Path.cwd().joinpath("knowledge")/f"{self.KT_FINANCE}/{YamlStorage.DEFAULT_NAME}")))
         return self.finance_knowledge
 
     def load_infrastructure_knowledge(self, path: Path) -> InfrastructureKnowledge:
         self.infrastructure_knowledge = InfrastructureKnowledge(
-            YamlStorage(path.joinpath(f"{self.KT_INFRASTRUCTURE}/{YamlStorage.DEFAULT_NAME}"))
-        )
+            YamlStorage(path.joinpath(Path.cwd().joinpath("knowledge")/f"{self.KT_INFRASTRUCTURE}/{YamlStorage.DEFAULT_NAME}")))
         return self.infrastructure_knowledge
 
     def get_knowledge(self, knowledge_type: str = None):
@@ -498,12 +494,12 @@ class KnowledgeBase(SingletonBaseClass):
         similar_n_docs = [knowledge[i] for i in similar_n_indexes]
 
         prompt = Template(
-            """find the most relevant doc with this query: '{{content}}' 
-            from docs='{{docs}}. Just return the most relevant item I provided, no more explain. 
-            For example: 
-            user: find the most relevant doc with this query: ab \n from docs = {abc, xyz, lmn}.
-            response: abc
-            """
+"""
+find the most relevant doc with this query: '{{content}}' from docs='{{docs}}'. 
+Just return the most relevant item I provided, no more explain.
+please treat the docs as sentences and always response no less than 5 relevant sentences.
+List all the relevant sentences in number index without any interaction and conversation.
+"""
         )
         prompt_workflow_selection = prompt.render(content=content, docs=similar_n_docs)
         response = APIBackend().build_messages_and_create_chat_completion(
