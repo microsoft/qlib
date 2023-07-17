@@ -10,6 +10,7 @@ data_handler_config: &data_handler_config
     fit_start_time: 2008-01-01
     fit_end_time: 2014-12-31
     instruments: *market
+    label: "Ref($close, -21) / Ref($close, -1) - 1"
     infer_processors:
         - class: RobustZScoreNorm
           kwargs:
