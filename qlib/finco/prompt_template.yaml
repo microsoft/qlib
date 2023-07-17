@@ -993,7 +993,7 @@ SummarizeTask_context_user : |-
   Here is my information: '{{key}}:{{value}}'
 
 SummarizeTask_metrics_system : |-
-  Your purpose is to summarize the information by metrics in markdown format.
+  Your purpose is to summarize the information by metrics in markdown format. If possible, try to display data in percentages.
 
 SummarizeTask_metrics_user : |-
   Here is my information: '{{information}}'
@@ -1018,4 +1018,4 @@ Topic_MaxDropDown : |-
   Summarize the influence of parameters on max dropdown: {{docs}}. (Example response: Max draw-down become larger over time)
 
 Topic_RollingModel : |-
-  What conclusion can you draw from: {{docs}}. (Example response: Max draw-down become larger over time)
+  What conclusion can you draw from: {{docs}}. Answer questions as concisely as possible. (Example response: rolling model is good at making the Max draw-down smaller.)

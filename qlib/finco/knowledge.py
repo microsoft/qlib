@@ -238,6 +238,10 @@ class FinanceKnowledge(Knowledge):
         storage = self.get_storage(YamlStorage.DEFAULT_NAME)
         if len(storage.documents) == 0:
             docs = self.read_files_in_directory(self.workdir.joinpath(self.name))
+            docs.extend([
+                {"content": "[Success]: XXXX, the results looks reasonable  # Keywords: supervised learning, data"},
+                {"content": "[Fail]: XXXX, it raise memory error due to  YYYYY  "
+                            "# Keywords: supervised learning, data"}])
             self.add(docs)
         self.summarize()
 
@@ -254,7 +258,7 @@ class FinanceKnowledge(Knowledge):
         self.save()
 
     @staticmethod
-    def read_files_in_directory(directory):
+    def read_files_in_directory(directory) -> List:
         """
         read all .txt files under directory
         """
@@ -464,10 +468,10 @@ class KnowledgeBase(SingletonBaseClass):
             knowledge = self.infrastructure_knowledge.knowledge
         else:
             knowledge = (
-                self.execute_knowledge.knowledge
-                + self.practice_knowledge.knowledge
-                + self.finance_knowledge.knowledge
-                + self.infrastructure_knowledge.knowledge
+                    self.execute_knowledge.knowledge
+                    + self.practice_knowledge.knowledge
+                    + self.finance_knowledge.knowledge
+                    + self.infrastructure_knowledge.knowledge
             )
         return knowledge
 

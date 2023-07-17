@@ -401,6 +401,8 @@ class TrainTask(Task):
         if confirm is False:
             return []
 
+        # todo: change global R.uri & experiment name
+        R.set_uri(Path(workspace).joinpath("mlruns").as_uri())
         if not self._rolling:
             command = ["qrun", str(workflow_path)]
             try:
@@ -415,13 +417,7 @@ class TrainTask(Task):
                     encoding="utf8",
                     cwd=str(workspace),
                 )
-
-                # todo: change global R.uri
-                R.set_uri(Path(workspace).joinpath("mlruns").as_uri())
-                exp = R.get_exp(experiment_name="workflow")
-                # first recorder is the latest
-                recorder = exp.list_recorders(rtype=exp.RT_L)[0]
-                self._context_manager.set_context(f"experiment_{self._experiment_index}_recorder", recorder)
+                exp = R.get_exp(experiment_name="finCo")
 
             except subprocess.CalledProcessError as e:
                 print(f"An error occurred while running the subprocess: {e.stderr} {e.stdout}")
@@ -458,17 +454,27 @@ class TrainTask(Task):
             # Run the command and capture the output
             workspace = self._context_manager.struct_context.workspace
             subprocess.run(
-                command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, text=True, cwd=str(workspace)
+                command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True,
+                text=True, encoding="utf8", cwd=str(workspace)
             )
+            # todo: dont manage record by id, experiment_id=2 doesnt contains metrics
+            exp = R.get_exp(experiment_id="3")
+
         else:
             command = f"python -m qlib.contrib.rolling ddgda --conf_path {workflow_path} run"
             # Run the command and capture the output
             workspace = self._context_manager.struct_context.workspace
             subprocess.run(
-                command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, text=True, cwd=str(workspace)
+                command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True,
+                encoding="utf8", text=True, cwd=str(workspace)
             )
+            exp = R.get_exp(experiment_id="3")
 
-        return [AnalysisTask()]
+        # first recorder is the latest
+        recorder = exp.list_recorders(rtype=exp.RT_L)[0]
+        self._context_manager.set_context(f"experiment_{self._experiment_index}_recorder", recorder)
+
+        return []
 
     def summarize(self):
         if self._output is not None:
@@ -527,30 +533,25 @@ class AnalysisTask(Task):
 
         if isinstance(analysers, list) and len(analysers):
             self.logger.info(f"selected analysers: {analysers}", plain=True)
+            experiment_count = self._context_manager.get_context("experiment_count")
 
-            workflow_config = (
-                self._context_manager.get_context("workflow_config")
-                if self._context_manager.get_context("workflow_config")
-                else "workflow_config.yaml"
-            )
             workspace = self._context_manager.get_context("workspace")
+            for exp_id in range(1, experiment_count + 1):
+                recorder = self._context_manager.get_context(f"experiment_{exp_id}_recorder")
 
-            # todo: analysis multi experiment(get recorder by id)
-            experiment_name = "workflow"
-            R.set_uri(Path.joinpath(workspace, "mlruns").as_uri())
-
-            tasks = []
-            for analyser in analysers:
-                if analyser in self.__ANALYZERS_PROJECT.keys():
-                    tasks.append(
-                        self.__ANALYZERS_PROJECT.get(analyser)(
-                            recorder=R.get_recorder(experiment_name=experiment_name), output_dir=workspace
+                tasks = []
+                for analyser in analysers:
+                    if analyser in self.__ANALYZERS_PROJECT.keys():
+                        tasks.append(
+                            self.__ANALYZERS_PROJECT.get(analyser)(
+                                recorder=recorder, output_dir=workspace
+                            )
                         )
-                    )
 
-            for task in tasks:
-                resp = task.analyse()
-                self._context_manager.set_context(resp, task.__class__.__doc__)
+                # todo: set by experiment
+                for task in tasks:
+                    resp = task.analyse()
+                    self._context_manager.set_context(resp, task.__class__.__doc__)
 
         return []
 
@@ -1171,7 +1172,6 @@ class SummarizeTask(Task):
                 )
                 context_summary.update({key: response})
 
-            recorder = R.get_recorder(experiment_name="workflow")
             recorder.save_objects(context_summary=context_summary)
 
             prompt_workflow_selection = self.summarize_metrics_user.render(
@@ -1181,8 +1181,9 @@ class SummarizeTask(Task):
                 user_prompt=prompt_workflow_selection, system_prompt=self.summarize_metrics_system.render()
             )
 
-            KnowledgeBase().practice_knowledge.add([{"user_intention": user_prompt, "workflow": workflow_yaml,
-                                                     "reason": reason, "experiment_metrics": metrics_response}])
+            KnowledgeBase().practice_knowledge.add([{"user_intention": user_prompt, "experiment_id": exp_id,
+                                                     "workflow": workflow_yaml, "reason": reason,
+                                                     "experiment_metrics": metrics_response}])
 
         prompt_workflow_selection = self.user.render(
             information=file_info + KnowledgeBase().practice_knowledge.knowledge[-2:],
@@ -1214,7 +1215,8 @@ class SummarizeTask(Task):
         result = []
         for file in file_list:
             postfix = file.name.split(".")[-1]
-            if postfix in ["py", "log", "yaml"]:
+            # todo: filter file info more reasonable
+            if postfix in ["py", "log", "yaml"] and file.name.startswith("experiment"):
                 with open(file) as f:
                     content = f.read()
                     self.logger.info(f"file to summarize: {file}", plain=True)

@@ -2,9 +2,8 @@ import sys
 import shutil
 from typing import List
 
-from qlib.finco.task import HighLevelPlanTask, SummarizeTask
 from pathlib import Path
-from qlib.finco.task import HighLevelPlanTask, SummarizeTask
+from qlib.finco.task import HighLevelPlanTask, SummarizeTask, AnalysisTask
 from qlib.finco.prompt_template import PromptTemplate, Template
 from qlib.finco.log import FinCoLog, LogColors
 from qlib.finco.llm import APIBackend
@@ -54,7 +53,7 @@ class WorkflowManager:
 
         self.prompt_template = PromptTemplate()
         self.context = WorkflowContextManager(workspace=self._workspace)
-        self.default_user_prompt = "Please help me build a low turnover strategy that focus more on longterm return in China A csi300. Please help to use lightgbm model."
+        self.default_user_prompt = "build an A-share stock market daily portfolio in quantitative investment and minimize the maximum drawdown."
 
     def _confirm_and_rm(self):
         # if workspace exists, please confirm and remove it. Otherwise exit.
@@ -116,7 +115,7 @@ class WorkflowManager:
         self.logger.info(f"user_prompt: {self.get_context().get_context('user_prompt')}", title="Start")
 
         # NOTE: list may not be enough for general task list
-        task_list = [HighLevelPlanTask(), SummarizeTask()]
+        task_list = [HighLevelPlanTask(), AnalysisTask(), SummarizeTask()]
         task_finished = []
         while len(task_list):
             task_list_info = [str(task) for task in task_list]
@@ -181,6 +180,7 @@ class LearnManager:
         summary = self.wm.context.get_context("summary")
 
         [topic.summarize(self.knowledge_base.practice_knowledge.knowledge[-2:]) for topic in self.topics]
+        [self.knowledge_base.practice_knowledge.add([{"practice_knowledge": topic.knowledge}]) for topic in self.topics]
         knowledge_of_topics = [{topic.name: topic.knowledge} for topic in self.topics]
 
         for task in task_finished:
