@@ -3,7 +3,8 @@ import shutil
 from typing import List
 
 from pathlib import Path
-from qlib.finco.task import HighLevelPlanTask, SummarizeTask, AnalysisTask
+
+from qlib.finco.task import IdeaTask, SummarizeTask
 from qlib.finco.prompt_template import PromptTemplate, Template
 from qlib.finco.log import FinCoLog, LogColors
 from qlib.finco.llm import APIBackend
@@ -53,6 +54,7 @@ class WorkflowManager:
 
         self.prompt_template = PromptTemplate()
         self.context = WorkflowContextManager(workspace=self._workspace)
+        self.context.set_context("workspace", self._workspace)
         self.default_user_prompt = "build an A-share stock market daily portfolio in quantitative investment and minimize the maximum drawdown."
 
     def _confirm_and_rm(self):
@@ -109,13 +111,13 @@ class WorkflowManager:
 
         # NOTE: default user prompt might be changed in the future and exposed to the user
         if prompt is None:
-            self.set_context("user_prompt", self.default_user_prompt)
+            self.set_context("user_intention", self.default_user_prompt)
         else:
-            self.set_context("user_prompt", prompt)
-        self.logger.info(f"user_prompt: {self.get_context().get_context('user_prompt')}", title="Start")
+            self.set_context("user_intention", prompt)
+        self.logger.info(f"user_intention: {self.get_context().get_context('user_intention')}", title="Start")
 
         # NOTE: list may not be enough for general task list
-        task_list = [HighLevelPlanTask(), AnalysisTask(), SummarizeTask()]
+        task_list = [IdeaTask(), SummarizeTask()]
         task_finished = []
         while len(task_list):
             task_list_info = [str(task) for task in task_list]
@@ -176,7 +178,7 @@ class LearnManager:
         # one task maybe run several times in workflow
         task_finished = _drop_duplicate_task(self.wm.context.get_context("task_finished"))
 
-        user_prompt = self.wm.context.get_context("user_prompt")
+        user_intention = self.wm.context.get_context("user_intention")
         summary = self.wm.context.get_context("summary")
 
         [topic.summarize(self.knowledge_base.practice_knowledge.knowledge[-2:]) for topic in self.topics]
@@ -188,9 +190,7 @@ class LearnManager:
                 summary=summary,
                 brief=knowledge_of_topics,
                 task_finished=[str(t) for t in task_finished],
-                task=task.__class__.__name__,
-                system=task.system.render(),
-                user_prompt=user_prompt,
+                task=task.__class__.__name__, system=task.system.render(), user_intention=user_intention
             )
 
             response = APIBackend().build_messages_and_create_chat_completion(
