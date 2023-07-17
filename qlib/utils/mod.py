@@ -206,6 +206,9 @@ def find_all_classes(module_path: Union[str, ModuleType], cls: type) -> List[typ
         >>> from qlib.data.dataset.handler import DataHandler
         >>> find_all_classes("qlib.contrib.data.handler", DataHandler)
         [<class 'qlib.contrib.data.handler.Alpha158'>, <class 'qlib.contrib.data.handler.Alpha158vwap'>, <class 'qlib.contrib.data.handler.Alpha360'>, <class 'qlib.contrib.data.handler.Alpha360vwap'>, <class 'qlib.data.dataset.handler.DataHandlerLP'>]
+        >>> from qlib.contrib.rolling.base import Rolling
+        >>> find_all_classes("qlib.contrib.rolling", Rolling)
+        [<class 'qlib.contrib.rolling.base.Rolling'>, <class 'qlib.contrib.rolling.ddgda.DDGDA'>]
 
     TODO:
     - skip import error
@@ -220,7 +223,7 @@ def find_all_classes(module_path: Union[str, ModuleType], cls: type) -> List[typ
 
     def _append_cls(obj):
         # Leverage the closure trick to reuse code
-        if isinstance(obj, type) and issubclass(obj, cls) and cls not in cls_list:
+        if isinstance(obj, type) and issubclass(obj, cls) and obj not in cls_list:
             cls_list.append(obj)
 
     for attr in dir(mod):
