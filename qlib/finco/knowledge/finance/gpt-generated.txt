@@ -36,6 +36,8 @@ However, incorporating a rolling meta-controller also comes with potential chall
 
 Meta controller like rolling or DDGDA is proved to be relevant to the maximum drawdown but effect is still unknown. Because seeing the latest data is always good to avoid some new patterns recently. A static model is not good at doing it.
 
+If rolling has been proved in practice knowledge that it's useful in minimizing max drawdown or maximize dropdown, always try DDGDA in the following experiments to further minimize the max drawdown.
+
 DDG-DA, which stands for Data Distribution Generation for Predictable Concept Drift Adaptation, is a research paper focused on addressing the challenge of concept drift in machine learning and data mining. Concept drift occurs when the statistical properties of a target variable change over time, causing the model's performance to degrade. This is a common issue in various domains, including finance, where market conditions and economic factors can change rapidly.
 
 The DDG-DA paper proposes a framework for generating synthetic datasets that simulate concept drift in a controlled and predictable manner. By creating these datasets, researchers can better understand how concept drift affects the performance of their machine learning models and develop strategies for adapting to these changes.
