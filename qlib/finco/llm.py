@@ -1,11 +1,45 @@
+import re
 import os
 import time
 import openai
 import json
-from typing import Optional
+import yaml
+from typing import Optional, Tuple, Union
 from qlib.finco.conf import Config
 from qlib.finco.utils import SingletonBaseClass
 from qlib.finco.log import FinCoLog
+from qlib.config import DEFAULT_QLIB_DOT_PATH
+from pathlib import Path
+
+
+class ConvManager:
+    """
+    This is a conversation manager of LLM
+    It is for convenience of exporting conversation for debugging.
+    """
+
+    def __init__(self, path: Union[Path, str] = DEFAULT_QLIB_DOT_PATH / "llm_conv", recent_n: int = 10) -> None:
+        self.path = Path(path)
+        self.path.mkdir(parents=True, exist_ok=True)
+        self.recent_n = recent_n
+
+    def _rotate_files(self):
+        pairs = []
+        for f in self.path.glob("*.json"):
+            print(f)
+            m = re.match(r"(\d+).json", f.name)
+            if m is not None:
+                n = int(m.group(1))
+                pairs.append((n, f))
+            pass
+        pairs.sort(key=lambda x: x[0])
+        for n, f in pairs[: self.recent_n][::-1]:
+            f.rename(self.path / f"{n+1}.json")
+
+    def append(self, conv: Tuple[list, str]):
+        self._rotate_files()
+        json.dump(conv, open(self.path / "0.json", "w"))
+        # TODO: reseve line breaks to make it more convient to edit file directly.
 
 
 class APIBackend(SingletonBaseClass):
@@ -54,6 +88,8 @@ class APIBackend(SingletonBaseClass):
         response = self.try_create_chat_completion(messages=messages, **kwargs)
         fcl.log_message(messages)
         fcl.log_response(response)
+        if self.debug_mode:
+            ConvManager().append((messages, response))
         return response
 
     def try_create_chat_completion(self, max_retry=10, **kwargs):
