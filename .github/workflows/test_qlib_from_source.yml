@@ -14,26 +14,32 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-11, macos-latest, macos-10]
+        os: [macos-11, macos-latest]
         # not supporting 3.6 due to annotations is not supported https://stackoverflow.com/a/52890129
         python-version: [3.7, 3.8]
 
     steps:
     - name: Test qlib from source
-      uses: actions/checkout@v3
+      uses: actions/checkout@v2
 
     # Since version 3.7 of python for MacOS is installed in CI, version 3.7.17, this version causes "_bz not found error".
     # So we make the version number of python 3.7 for MacOS more specific.
     # refs: https://github.com/actions/setup-python/issues/682
     - name: Set up Python ${{ matrix.python-version }}
       if: (matrix.os == 'macos-latest' && matrix.python-version == '3.7') || (matrix.os == 'macos-11' && matrix.python-version == '3.7')
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v2
       with:
         python-version: "3.7.16"
 
     - name: Set up Python ${{ matrix.python-version }}
-      if: (matrix.os != 'macos-latest' || matrix.python-version != '3.7') && (matrix.os != 'macos-11' || matrix.python-version != '3.7')
-      uses: actions/setup-python@v4
+      if: (matrix.os == 'macos-latest' && matrix.python-version == '3.8') || (matrix.os == 'macos-11' && matrix.python-version == '3.8')
+      uses: actions/setup-python@v2
+      with:
+        python-version: "3.8.16"
+
+    - name: Set up Python ${{ matrix.python-version }}
+      if: matrix.os != 'macos-latest' && matrix.os != 'macos-11'
+      uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
 
