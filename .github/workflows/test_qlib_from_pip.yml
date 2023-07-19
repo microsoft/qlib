@@ -43,9 +43,6 @@ jobs:
     - name: Qlib installation test
       run: |
         python -m pip install pyqlib
-        # Specify the numpy version because the numpy upgrade caused the CI test to fail, 
-        # and this line of code will be removed when the next version of qlib is released.
-        python -m pip install "numpy<1.23"
 
     - name: Install Lightgbm for MacOS
       if: ${{ matrix.os == 'macos-11' || matrix.os == 'macos-latest' }}
