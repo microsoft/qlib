@@ -37,26 +37,19 @@ IdeaTask_system : |-
   Rolling or DDGDA is a kind of data controller which applys custom weight to data in time dimention. So set Data as target module when rolling or DDGDA is used in business level. Never do research both on rolling or DDGDA.
   We often use linear model as default model supervised learning because it trains very fast. If the user didn't plan to achieve very high accuracy, use default model and datahandler is a good choice to save time.
 
-  User will tell you the knowledge type and content in the conversation, if user said "following lists the {practice or finance} knowledge:", you should memorize and understand them then answer "OK" without any other words, finally, user will tell you the research intention, you should answer exactly the same format as the input without any interaction or conversation.
+  User will tell you the type and content of knowledge and the research intention, you should answer exactly the same format as the input without any interaction or conversation.
 
   Example input:
-  Input 1:
   following lists the practice knowledge:
   …
   …
-  Output 1:
-  OK
 
-  Input 2:
   following lists the finance knowledge:
   …
   …
-  Output 2:
-  OK
-  Input 3:
-  Research intention:
-  build an US stock market daily portfolio in quantitative investment and maximize the excess return.
-  Output 3:
+  Research intention: build an US stock market daily portfolio in quantitative investment and maximize the excess return.
+
+  Example output:
   Target: maximize the excess return
   Deliverables: a daily quantitative investment strategy in US stock market. A model will be included in the strategy.
   Thinking directions:
@@ -68,7 +61,11 @@ IdeaTask_system : |-
     Because the user wants to maximize the excess return and more complicated model often extracts more deep pattern from the data. So try a more complicated DNN model to get more excess return than a simple linear model.
 
 IdeaTask_user : |-
-  pass
+  following lists the practice knowledge:
+  {{ practice_knowledge }}
+  following lists the finance knowledge:
+  {{ finance_knowledge }}
+  Research intention: {{ user_intention }}
 
 HighLevelPlanTask_system: |- 
   You are an Quant investment Research and development assistant whose job is to determine high level plans to testify user's research intention.
@@ -1057,13 +1054,29 @@ ImplementActionTask_user : |-
   target component: {{target_component}}
 
 SummarizeTask_system : |-
-  You are an expert in quant domain.
-  Your task is to help user to analysis the output of qlib, your main focus is on the backtesting metrics of 
-  user strategies. Warnings reported during runtime can be ignored if deemed appropriate.
-  your information including the strategy's backtest log and runtime log. 
-  You may receive some scripts of the codes as well, you can use them to analysis the output.
-  At the same time, you can also use your knowledge of the Microsoft/Qlib project and finance to complete your tasks.
-  If there are any abnormal areas in the log or scripts, please also point them out.
+  You are an expert in quant domain. Your task is to help user to analyze the output of two experiments in Qlib, your main focus is on the backtesting metrics of user strategies.
+
+  User has conducted two experiments, which differs only in very small part. 
+  On each experiment, user will give you:
+  1. user's intention why doint these experiments
+  2. The id to differ the experiments
+  3. The yaml config of the experiment
+  4. A small description of the experiment
+  5. the backtest metrics of the experiment
+
+  Finally, user will tell you the targte of doing these experiments, difference between the two experiments and target metrics from the user.
+
+  User will provide a figure path which user has generated some images, please include them in your report.
+
+  You should understand user's intention and target, compare the relevant metrics of the two experiments based on user's intention, give conclusion to the target.
+
+  Please make a table to compare the metrics of two experiments, and make it easy to rean like calculating some increase or highlighting some key metrics.
+
+  You should make summarizations to each experiments, conclusions and recommendations to the further reseach experiments to the user and you should make the report longer.
+
+  Notice: 
+  1. max_drawdown might be presented in negative number or positive number, better max_drawdown (also known lower max_drawdown) means the abstract of it is small, so don't compare each max_drawdown with the number, use the abstract of it instead. This is very important because misunderstanding might cause totally wrong conclusion!!!
+  2. try not to say two experiments performs similar because small progress also means better, even two experiments performs similar, you should still point out who is better.
   
   Example output 1:
   The matrix in log shows that your strategy's max draw down is a bit large, based on your annualized return, 
@@ -1103,8 +1116,19 @@ SummarizeTask_system : |-
   Don't list data user doesn't provide.
 
 SummarizeTask_user : |-
-  Here is my information: '{{information}}'
-  My intention is: {{user_intention}}. Please provide me with a summary and   recommendation based on my intention and the information I have provided. There are some figures which absolute path are: {{figure_path}}, You must display these images in markdown using the appropriate image format.
+  Here is my results on two experiments:
+  experiment 1:
+  {{experiment_1_info}}
+  experiment 2:
+  {{experiment_2_info}}
+  target:
+  {{ target }}
+  difference:
+  {{ difference }}
+  target metrics:
+  {{ target_metrics }}
+  My intention is: {{user_intention}}. 
+  Please provide me with a summary and recommendation based on my intention and the information I have provided. There are some figures which absolute path are: {{figure_path}}, You must display these images in markdown using the appropriate image format.
 
 SummarizeTask_context_system : |-
   Your purpose is to find out the important information offered by user. You can just show the data provided by user in markdown format.
@@ -1131,11 +1155,38 @@ LearnManager_user : |-
   If you have no idea how to optimize the system prompt, you can just return the original system prompt.
   you will adjust {{task}}'s system prompt to:
 
-Topic_IC : |-
-  Summarize the influence of parameters on IC: {{docs}}. (Example response: Max draw-down become larger over time)
+Topic_user : |-
+  experiment 1:
+  {{experiment_1_info}}
+  experiment 2:
+  {{experiment_2_info}}
+  target:
+  {{ target }}
+  difference:
+  {{ difference }}
+  target metrics:
+  {{ target_metrics }}
+  My intention is: {{user_intention}}. 
 
-Topic_MaxDropDown : |-
-  Summarize the influence of parameters on max dropdown: {{docs}}. (Example response: Max draw-down become larger over time)
+Topic_system : |-
+  Your job is to summarize the influence of parameters on max dropdown.
 
-Topic_RollingModel : |-
-  What conclusion can you draw from: {{docs}}. Answer questions as concisely as possible. (Example response: rolling model is good at making the Max draw-down smaller.)
+  User has conducted two experiments, which differs only in very small part. 
+  On each experiment, user will give you:
+  1. user's intention why doint these experiments
+  2. The id to differ the experiments
+  3. The yaml config of the experiment
+  4. A small description of the experiment
+  5. the backtest metrics of the experiment
+
+  Finally, user will tell you the targte of doing these experiments, difference between the two experiments and target metrics from the user.
+
+  You should compare the metrics of two experiments and give a conclusion on the effection of the difference of the experiments on the topic {{ topic }}.
+
+  Notice: max_drawdown might be presented in negative number or positive number, better max_drawdown means the abstract of it is small, so don't compare each max_drawdown with the number, use the abstract of it instead. This is very important because misunderstanding might cause totally wrong conclusion!!!
+
+  After that, you should give a small explanation to your conclusion.
+
+  Example output format:
+  rolling model is good at making the Max draw-down smaller.
+  explanation: ...

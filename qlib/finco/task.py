@@ -176,27 +176,21 @@ class IdeaTask(PlanTask):
         practice_knowledge = KnowledgeBase().query(knowledge_type=KnowledgeBase.KT_PRACTICE, content=user_intention)
         finance_knowledge = KnowledgeBase().query(knowledge_type=KnowledgeBase.KT_FINANCE, content=user_intention)
 
+        if practice_knowledge == "":
+            practice_knowledge = "So far no former experiments have been done, so no practice knowledge is available."
+        else:
+            practice_knowledge = "\nSo you can try other advanced algorithm."
+            finance_knowledge += "\n11. When rolling is proved to be working in reducing max drawdown, it's a good idea to try DDGDA as controllerto to further improve performance."
+
+
         system_prompt = self.system.render()
 
         former_messages = []
-        for knowlege in [practice_knowledge, finance_knowledge]:
-            if knowlege != '':
-                knowlege_type = "practice" if knowlege is practice_knowledge else "finance"
-                user_prompt = ""
-                user_prompt += f"following lists the {knowlege_type} knowledge:\n"
-                user_prompt += f"{knowlege}\n"
-                response = APIBackend().build_messages_and_create_chat_completion(
-                    user_prompt, system_prompt, former_messages=former_messages
-                )
-                assert "ok" in response.lower(), "The response is not ok"
-                self.save_chat_history_to_context_manager(
-                    user_prompt, response, system_prompt
-                )
-                former_messages = self._context_manager.get_context("chat_history")[self.__class__.__name__]['None'][1:]
-        user_prompt = f"""\nResearch intention:\n{user_intention}"""
+        user_prompt = self.user.render(practice_knowledge=practice_knowledge, finance_knowledge=finance_knowledge, user_intention=user_intention)
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt, system_prompt, former_messages=former_messages
         )
+        self.save_chat_history_to_context_manager(user_prompt, response, system_prompt)
 
         re_search_pattern = f"Target: (.*)Deliverables:(.*)Thinking directions:(.*)Business level:(.*)Algorithm level:(.*)Details:(.*)"
         re_search_res = re.search(re_search_pattern, response, re.S)
@@ -260,7 +254,13 @@ class HighLevelPlanTask(PlanTask):
         ), "The response of config action task is not in the correct format"
 
         self._context_manager.set_context("high_level_workflow", res.group(1).strip())
+
         self._context_manager.set_context("high_level_experiments", res.group(2).strip())
+        experiment_description_search_res = re.search("1.(.*)2.(.*)", res.group(2).strip(), re.S)
+        assert experiment_description_search_res is not None, "The experiment description is not in the correct format"
+        self._context_manager.set_context("experiments_desc_1", experiment_description_search_res.group(1).strip())
+        self._context_manager.set_context("experiments_desc_2", experiment_description_search_res.group(2).strip())
+
         self._context_manager.set_context("high_level_metrics", res.group(3).strip())
 
         if "supervised learning" in self._context_manager.get_context("high_level_workflow").lower():
@@ -354,6 +354,7 @@ class SLPlanTask(PlanTask):
                 assert decision in ["Default", "Personized"], f"The decision of {name} is not correct"
             # TODO: the strctured experiments should replace
             self._context_manager.struct_context.exp_list.append(exp)
+        self._context_manager.set_context("experiments_difference", match_res.group(experiment_count + 1))
 
         # 1) create a workspace
         # TODO: we have to make choice between `sl` and  `sl-cfg`
@@ -479,10 +480,7 @@ class TrainTask(Task):
                 command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, text=True, cwd=str(workspace), shell=True
             )
             # todo: dont manage record by id, experiment_id=2 doesnt contains metrics
-            try:
-                exp = R.get_exp(experiment_id="3")
-            except qlib.utils.exceptions.ExpAlreadyExistError:
-                exp = R.get_exp(experiment_id="2")
+            exp = R.get_exp(experiment_name="Experiment")
 
         else:
             command = f"python -m qlib.contrib.rolling ddgda --conf_path {workflow_path} run"
@@ -491,11 +489,17 @@ class TrainTask(Task):
             subprocess.run(
                 command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, text=True, cwd=str(workspace), shell=True
             )
-            try:
-                exp = R.get_exp(experiment_id="3")
-            except qlib.utils.exceptions.ExpAlreadyExistError:
-                exp = R.get_exp(experiment_id="2")
+            exp = R.get_exp(experiment_name="Experiment")
+            
+        with open(rf"{workspace}/script.sh", "a") as fw:
+            fw.write(command)
+            fw.write("\n")
+            fw.write("\n")
+            fw.flush()
 
+        with open(rf"{workspace}/README.md", "w") as fw:
+            fw.write(f"\n")
+            fw.flush()
         # first recorder is the latest
         recorder = exp.list_recorders(rtype=exp.RT_L)[0]
         self._context_manager.set_context(f"experiment_{self._experiment_index}_recorder", recorder)
@@ -742,6 +746,8 @@ class HyperparameterFinetuneActionTask(ActionTask):
             self._context_manager.set_context(f"experiment_{experiment_id}_ddgda", ddgda_res)
             self._context_manager.set_context(f"experiment_{experiment_id}_config_finetune_reason", reason_res)
 
+        import shutil
+        shutil.copytree(r"/home/xuyang/workspace/qlib/qlib/finco/mlruns", r"/home/xuyang/workspace/qlib/qlib/finco/finco_workspace/mlruns")
         return return_tasks
 
 
@@ -1160,15 +1166,11 @@ class SummarizeTask(Task):
     def execute(self) -> Any:
         workspace = self._context_manager.get_context("workspace")
         user_intention = self._context_manager.get_context("user_intention")
-
-        file_info = self.get_info_from_file(workspace)
-        context_info = self.get_info_from_context()  # too long context make response unstable.
+        target = self._context_manager.get_context(f"target")
+        diffrence = self._context_manager.get_context(f"experiments_difference")
+        target_metrics = self._context_manager.get_context(f"high_level_metrics")
 
         figure_path = self.get_figure_path(workspace)
-
-        # todo: remove 'be' after test
-        be = APIBackend()
-        be.debug_mode = False
 
         def _get_value_from_info(info: list, k: str):
             for i in info:
@@ -1179,40 +1181,55 @@ class SummarizeTask(Task):
         experiment_count = self._context_manager.get_context("experiment_count")
         for exp_id in range(1, experiment_count + 1):
             recorder = self._context_manager.get_context(f"experiment_{exp_id}_recorder")
-            reason = self._context_manager.get_context(f"experiment_{exp_id}_config_finetune_reason")
+            experiments_desc = self._context_manager.get_context(f"experiments_desc_{exp_id}")
             workflow_yaml = self._context_manager.get_context(f"workflow_{exp_id}_yaml")
             record_info = [{"metrics": recorder.list_metrics()}]
 
-            information = context_info + file_info + record_info
+            # information = context_info + file_info + record_info
 
-            context_summary = {}
-            for key in self.__DEFAULT_SUMMARIZE_CONTEXT:
-                prompt_workflow_selection = self.summarize_context_user.render(
-                    key=key, value=_get_value_from_info(info=information, k=key)
-                )
-                response = be.build_messages_and_create_chat_completion(
-                    user_prompt=prompt_workflow_selection, system_prompt=self.summarize_context_system.render()
-                )
-                context_summary.update({key: response})
+            # context_summary = {}
+            # for key in self.__DEFAULT_SUMMARIZE_CONTEXT:
+            #     prompt_workflow_selection = self.summarize_context_user.render(
+            #         key=key, value=_get_value_from_info(info=information, k=key)
+            #     )
+            #     response = be.build_messages_and_create_chat_completion(
+            #         user_prompt=prompt_workflow_selection, system_prompt=self.summarize_context_system.render()
+            #     )
+            #     context_summary.update({key: response})
 
-            recorder.save_objects(context_summary=context_summary)
+            # recorder.save_objects(context_summary=context_summary)
 
             prompt_workflow_selection = self.summarize_metrics_user.render(
                 information=_get_value_from_info(info=record_info, k="metrics"), user_prompt=user_intention
             )
-            metrics_response = be.build_messages_and_create_chat_completion(
+            metrics_response = APIBackend().build_messages_and_create_chat_completion(
                 user_prompt=prompt_workflow_selection, system_prompt=self.summarize_metrics_system.render()
             )
 
-            KnowledgeBase().practice_knowledge.add([{"user_intention": user_intention, "experiment_id": exp_id,
-                                                     "workflow": workflow_yaml, "reason": reason,
-                                                     "experiment_metrics": metrics_response}])
+            experiment_practice_knowledge = f"""
+user_intention: {user_intention},
+experiment_id: {exp_id},
+workflow yaml: 
+```yaml
+{yaml.safe_dump(workflow_yaml)},
+```
+experiments description: 
+{experiments_desc},
+experiment_metrics: 
+{metrics_response}
+"""
+            KnowledgeBase().practice_knowledge.add([experiment_practice_knowledge])
 
         prompt_workflow_selection = self.user.render(
-            information=file_info + KnowledgeBase().practice_knowledge.knowledge[-2:],
-            figure_path=figure_path, user_prompt=user_intention
+            experiment_1_info = KnowledgeBase().practice_knowledge.knowledge[-2],
+            experiment_2_info = KnowledgeBase().practice_knowledge.knowledge[-1],
+            figure_path=figure_path, 
+            user_intention=user_intention,
+            target=target,
+            diffrence=diffrence,
+            target_metrics=target_metrics
         )
-        response = be.build_messages_and_create_chat_completion(
+        response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=prompt_workflow_selection, system_prompt=self.system.render()
         )
         self._context_manager.set_context("summary", response)

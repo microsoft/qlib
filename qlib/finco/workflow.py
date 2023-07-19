@@ -55,7 +55,7 @@ class WorkflowManager:
         self.prompt_template = PromptTemplate()
         self.context = WorkflowContextManager(workspace=self._workspace)
         self.context.set_context("workspace", self._workspace)
-        self.default_user_prompt = "build an A-share stock market daily portfolio in quantitative investment and minimize the maximum drawdown."
+        self.default_user_prompt = "build an A-share stock market daily portfolio in quantitative investment and minimize the maximum drawdown while maintaining return."
 
     def _confirm_and_rm(self):
         # if workspace exists, please confirm and remove it. Otherwise exit.
@@ -153,7 +153,7 @@ class LearnManager:
         self.wm = WorkflowManager()
 
         self.topics = [
-            Topic(name=topic, describe=self.wm.prompt_template.get(f"Topic_{topic}")) for topic in self.__DEFAULT_TOPICS
+            Topic(name=topic, system=self.wm.prompt_template.get(f"Topic_system"), user=self.wm.prompt_template.get(f"Topic_user")) for topic in self.__DEFAULT_TOPICS
         ]
         self.knowledge_base = KnowledgeBase()
 
@@ -181,25 +181,30 @@ class LearnManager:
         user_intention = self.wm.context.get_context("user_intention")
         summary = self.wm.context.get_context("summary")
 
-        [topic.summarize(self.knowledge_base.practice_knowledge.knowledge[-2:]) for topic in self.topics]
-        [self.knowledge_base.practice_knowledge.add([{"practice_knowledge": topic.knowledge}]) for topic in self.topics]
-        knowledge_of_topics = [{topic.name: topic.knowledge} for topic in self.topics]
+        
+        target = self.wm.context.get_context(f"target")
+        diffrence = self.wm.context.get_context(f"experiments_difference")
+        target_metrics = self.wm.context.get_context(f"high_level_metrics")
 
-        for task in task_finished:
-            prompt_workflow_selection = self.wm.prompt_template.get(f"{self.__class__.__name__}_user").render(
-                summary=summary,
-                brief=knowledge_of_topics,
-                task_finished=[str(t) for t in task_finished],
-                task=task.__class__.__name__, system=task.system.render(), user_intention=user_intention
-            )
+        [topic.summarize(self.knowledge_base.practice_knowledge.knowledge[-2:], user_intention, target, diffrence, target_metrics) for topic in self.topics]
+        [self.knowledge_base.practice_knowledge.add([f"practice_knowledge on {topic.name}:\,{topic.knowledge}"]) for topic in self.topics]
+        # knowledge_of_topics = [{topic.name: topic.knowledge} for topic in self.topics]
 
-            response = APIBackend().build_messages_and_create_chat_completion(
-                user_prompt=prompt_workflow_selection,
-                system_prompt=self.wm.prompt_template.get(f"{self.__class__.__name__}_system").render(),
-            )
+        # for task in task_finished:
+        #     prompt_workflow_selection = self.wm.prompt_template.get(f"{self.__class__.__name__}_user").render(
+        #         summary=summary,
+        #         brief=knowledge_of_topics,
+        #         task_finished=[str(t) for t in task_finished],
+        #         task=task.__class__.__name__, system=task.system.render(), user_intention=user_intention
+        #     )
 
-            # todo: response assertion
-            task.prompt_template.update(key=f"{task.__class__.__name__}_system", value=Template(response))
+        #     response = APIBackend().build_messages_and_create_chat_completion(
+        #         user_prompt=prompt_workflow_selection,
+        #         system_prompt=self.wm.prompt_template.get(f"{self.__class__.__name__}_system").render(),
+        #     )
+
+        #     # todo: response assertion
+        #     task.prompt_template.update(key=f"{task.__class__.__name__}_system", value=Template(response))
 
         self.wm.prompt_template.save(Path.joinpath(workspace, f"prompts/checkpoint_{self.epoch}.yml"))
         self.wm.context.clear(reserve=["workspace"])
