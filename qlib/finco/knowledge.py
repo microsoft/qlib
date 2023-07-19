@@ -238,10 +238,6 @@ class FinanceKnowledge(Knowledge):
         storage = self.get_storage(YamlStorage.DEFAULT_NAME)
         if len(storage.documents) == 0:
             docs = self.read_files_in_directory(self.workdir.joinpath(self.name))
-            docs.extend([
-                {"content": "[Success]: XXXX, the results looks reasonable  # Keywords: supervised learning, data"},
-                {"content": "[Fail]: XXXX, it raise memory error due to  YYYYY  "
-                            "# Keywords: supervised learning, data"}])
             self.add(docs)
         self.summarize()
 
@@ -378,20 +374,27 @@ class InfrastructureKnowledge(Knowledge):
 
 
 class Topic:
-    def __init__(self, name: str, describe: Template):
+    def __init__(self, name: str, system: Template, user: Template):
         self.name = name
-        self.describe = describe
+        self.system_prompt_template = system
+        self.user_prompt_template = user
         self.docs = []
         self.knowledge = None
         self.logger = FinCoLog()
 
-    def summarize(self, docs: list):
-        self.logger.info(f"Summarize Topic \nname: {self.name}\ndescribe: {self.describe.module}")
-        prompt_workflow_selection = self.describe.render(docs=docs)
-        response = APIBackend().build_messages_and_create_chat_completion(user_prompt=prompt_workflow_selection)
+    def summarize(self, practice_knowlege, user_intention, target, diffrence, target_metrics):
+        system_prompt = self.system_prompt_template.render(topic=self.name)
+        user_prompt = self.user_prompt_template.render(
+            experiment_1_info = practice_knowlege[0],
+            experiment_2_info = practice_knowlege[1],
+            user_intention=user_intention,
+            target=target,
+            diffrence=diffrence,
+            target_metrics=target_metrics)
+        response = APIBackend().build_messages_and_create_chat_completion(user_prompt=user_prompt, system_prompt=system_prompt)
 
         self.knowledge = response
-        self.docs = docs
+        self.docs = practice_knowlege
         self.logger.info(f"Summary of {self.name}:\n{self.knowledge}")
 
 
@@ -483,27 +486,48 @@ class KnowledgeBase(SingletonBaseClass):
         # literal search/semantic search
 
         knowledge = self.get_knowledge(knowledge_type=knowledge_type)
-        if len(knowledge) == 0:
+        if len(knowledge) == 0 or knowledge_type == "infrastructure":
             return ""
+
+        if knowledge_type == "practice":
+            knowledge = [line for line in knowledge if line.startswith("practice_knowledge on")]
 
         scores = []
         for k in knowledge:
             scores.append(similarity(str(k), content))
         sorted_indexes = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)
         similar_n_indexes = sorted_indexes[:n]
-        similar_n_docs = [knowledge[i] for i in similar_n_indexes]
+        similar_n_docs = "\n".join([knowledge[i] for i in similar_n_indexes])
 
-        prompt = Template(
+        user_prompt_template = Template(
 """
-find the most relevant doc with this query: '{{content}}' from docs='{{docs}}'. 
-Just return the most relevant item I provided, no more explain.
-please treat the docs as sentences and always response no less than 5 relevant sentences.
-List all the relevant sentences in number index without any interaction and conversation.
+query: '{{query}}' 
+paragraph:
+{{paragraph}}.
 """
         )
-        prompt_workflow_selection = prompt.render(content=content, docs=similar_n_docs)
+        user_prompt = user_prompt_template.render(query=content, paragraph=similar_n_docs)
+        system_prompt = """
+You are an assistant who find relevant sentences from a long paragraph to fit user's query sentence. Relevant means the sentence might provide userful information to explain user's query sentence. People after reading the relevant sentences might have a better understanding of the query sentence.
+
+Please response no less than ten sentences, if paragraph is not enough, you can return less than ten. Don't pop out irrelevant sentences. Please list the sentences in a number index instead of a whole paragraph.
+
+Example input:
+query: what is the best model for image classification?
+paragraph:
+Image classification is the process of identifying and categorizing objects within an image into different groups or classes.
+Machine learning is a type of artificial intelligence that enables computers to learn and make decisions without being explicitly programmed.
+The solar system is a collection of celestial bodies, including the Sun, planets, moons, and other objects, that orbit around the Sun due to its gravitational pull.
+A car is a wheeled vehicle, typically powered by an engine or electric motor, used for transportation of people and goods.
+ResNet, short for Residual Network, is a type of deep learning architecture designed to improve the accuracy and training speed of neural networks for image recognition tasks.
+
+Example output:
+1. ResNet, short for Residual Network, is a type of deep learning architecture designed to improve the accuracy and training speed of neural networks for image recognition tasks.
+2. Image classification is the process of identifying and categorizing objects within an image into different groups or classes.
+3. Machine learning is a type of artificial intelligence that enables computers to learn and make decisions without being explicitly programmed.
+"""
         response = APIBackend().build_messages_and_create_chat_completion(
-            user_prompt=prompt_workflow_selection, system_prompt="You are an excellent assistant."
+            user_prompt=user_prompt, system_prompt=system_prompt
         )
 
         return response

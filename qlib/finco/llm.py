@@ -26,7 +26,6 @@ class ConvManager:
     def _rotate_files(self):
         pairs = []
         for f in self.path.glob("*.json"):
-            print(f)
             m = re.match(r"(\d+).json", f.name)
             if m is not None:
                 n = int(m.group(1))
