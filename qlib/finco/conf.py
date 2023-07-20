@@ -13,7 +13,7 @@ class Config(SingletonBaseClass):
 
     def __init__(self):
         self.use_azure = os.getenv("USE_AZURE") == "True"
-        self.temperature = 0.5 if os.getenv("TEMPERATURE") is None else float(os.getenv("TEMPERATURE"))
+        self.temperature = 0 if os.getenv("TEMPERATURE") is None else float(os.getenv("TEMPERATURE"))
         self.max_tokens = 800 if os.getenv("MAX_TOKENS") is None else int(os.getenv("MAX_TOKENS"))
 
         self.openai_api_key = os.getenv("OPENAI_API_KEY")

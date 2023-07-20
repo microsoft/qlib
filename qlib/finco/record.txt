@@ -1,0 +1,2 @@
+conda activate qlib38
+python cli_learn.py "build an A-share stock market daily portfolio in quantitative investment and minimize the maximum drawdown while maintaining return."

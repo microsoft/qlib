@@ -9,6 +9,7 @@ from qlib.finco.task import SummarizeTask
 from qlib.finco.workflow import WorkflowContextManager
 from qlib.finco.llm import APIBackend
 from qlib.finco.workflow import WorkflowManager
+from qlib.finco.knowledge import PracticeKnowledge, YamlStorage
 
 load_dotenv(verbose=True, override=True)
 
@@ -61,6 +62,9 @@ class TestSummarize(unittest.TestCase):
         resp = task.get_info_from_file("")
         print(resp)
 
+    def test_practice_knowledge(self):
+        pk = PracticeKnowledge(YamlStorage(path.joinpath(Path.cwd().joinpath("knowledge")/f"{self.KT_PRACTICE}/{YamlStorage.DEFAULT_NAME}")))
+        pk.add(["test1", "test2"])
 
 if __name__ == "__main__":
     unittest.main()
