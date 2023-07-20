@@ -215,6 +215,8 @@ class PracticeKnowledge(Knowledge):
         self.summarize()
 
     def add(self, docs: List, storage_name: str = YamlStorage.DEFAULT_NAME):
+        s = "\n".join(docs)
+        logger.info(f'Add to Practice Knowledge:\n {s}')
         storage = self.get_storage(storage_name)
         if storage is None:
             storage = YamlStorage(path=self.workdir.joinpath(self.name).joinpath(storage_name))

@@ -2,6 +2,8 @@ import json
 import string
 import random
 
+from typing import List
+from pathlib import Path
 from fuzzywuzzy import fuzz
 
 
@@ -44,3 +46,26 @@ def similarity(text1, text2):
 def random_string(length=10):
     letters = string.ascii_letters + string.digits
     return "".join(random.choice(letters) for i in range(length))
+
+
+def directory_tree(root_dif, max_depth=None):
+
+    def _directory_tree(root_dir, padding="", deep=1, max_d=None) -> List:
+        _output = []
+        if max_d and deep > max_d:
+            return _output
+
+        files = sorted(root_dir.iterdir())
+        for i, file in enumerate(files):
+            if i == len(files) - 1:
+                _output.append(padding + '└── ' + file.name)
+                if file.is_dir():
+                    _output.extend(_directory_tree(file, padding + "    ", deep=deep + 1, max_d=max_d))
+            else:
+                _output.append(padding + '├── ' + file.name)
+                if file.is_dir():
+                    _output.extend(_directory_tree(file, padding + "│   ", deep=deep + 1, max_d=max_d))
+        return _output
+
+    output = _directory_tree(root_dif, max_d=max_depth)
+    return '\n'.join(output)
