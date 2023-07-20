@@ -511,6 +511,9 @@ class Exchange:
             self.logger.warning(f"(stock_id:{stock_id}, trade_time:{(start_time, end_time)}, {pstr}): {deal_price}!!!")
             self.logger.warning(f"setting deal_price to close price")
             deal_price = self.get_close(stock_id, start_time, end_time, method)
+        # if stock is delisted, the deal_price(close) will be None，set to 0
+        if deal_price is None or np.isnan(deal_price):
+            deal_price = 0.0
         return deal_price
 
     def get_factor(
