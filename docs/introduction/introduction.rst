@@ -36,7 +36,7 @@ Name                         Description
                              the training process of models which enable algorithms controlling the
                              training process.
 
-`Learning Framework` layer   The `Forecast Model` and `Trading Agent` are learnable. They are learned
+`Learning Framework` layer   The `Forecast Model` and `Trading Agent` are trainable. They are trained
                              based on the `Learning Framework` layer and then applied to multiple scenarios
                              in `Workflow` layer. The supported learning paradigms can be categorized into
                              reinforcement learning and supervised learning.  The learning framework
