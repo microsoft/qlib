@@ -1,4 +1,5 @@
 import os
+import time
 
 from pathlib import Path
 import io
@@ -19,6 +20,7 @@ from qlib.workflow import R
 from qlib.finco.log import FinCoLog, LogColors
 from qlib.finco.conf import Config
 from qlib.finco.knowledge import KnowledgeBase
+from qlib.finco.utils import directory_tree
 
 from qlib.finco.context import Design, Exp, WorkflowContextManager
 
@@ -191,6 +193,8 @@ class IdeaTask(PlanTask):
             user_prompt, system_prompt, former_messages=former_messages
         )
         self.save_chat_history_to_context_manager(user_prompt, response, system_prompt)
+        
+        time.sleep(3)
 
         re_search_pattern = f"Target: (.*)Deliverables:(.*)Thinking directions:(.*)Business level:(.*)Algorithm level:(.*)Details:(.*)"
         re_search_res = re.search(re_search_pattern, response, re.S)
@@ -279,7 +283,7 @@ class SLPlanTask(PlanTask):
 
     def execute(self):
         workflow = self._context_manager.get_context("high_level_workflow")
-        assert workflow.lower() == "supervised learning", "The workflow is not supervised learning"
+        assert "supervised learning" in workflow.lower(), "The workflow is not supervised learning"
 
         target = self._context_manager.get_context("target")
         deliverable = self._context_manager.get_context("deliverable")
@@ -414,7 +418,7 @@ class TrainTask(Task):
 
     def execute(self):
         workflow_config = f"experiment_{self._experiment_index}.yaml"
-
+        time.sleep(2)
         workspace = self._context_manager.get_context("workspace")
         workflow_path = workspace.joinpath(workflow_config)
         with workflow_path.open() as f:
@@ -434,6 +438,8 @@ class TrainTask(Task):
         R.set_uri(Path(workspace).joinpath("mlruns").as_uri())
         if not self._rolling:
             command = f"qrun {str(workflow_path)}"
+            self.logger.plain_info(f"Run the command: {command}")
+            
             try:
                 # Run the command and capture the output
                 workspace = self._context_manager.get_context("workspace")
@@ -474,6 +480,7 @@ class TrainTask(Task):
                     return ret_list
         elif not self._ddgda:
             command = f"python -m qlib.contrib.rolling base --conf_path {workflow_path} run"
+            self.logger.plain_info(f"Run the command: {command}")
             # Run the command and capture the output
             workspace = self._context_manager.struct_context.workspace
             subprocess.run(
@@ -484,6 +491,7 @@ class TrainTask(Task):
 
         else:
             command = f"python -m qlib.contrib.rolling ddgda --conf_path {workflow_path} run"
+            self.logger.plain_info(f"Run the command: {command}")
             # Run the command and capture the output
             workspace = self._context_manager.struct_context.workspace
             subprocess.run(
@@ -500,6 +508,8 @@ class TrainTask(Task):
         with open(rf"{workspace}/README.md", "w") as fw:
             fw.write(f"\n")
             fw.flush()
+
+        self.logger.plain_info(f"Workspace output:\n{directory_tree(workspace, max_depth=1)}")
         # first recorder is the latest
         recorder = exp.list_recorders(rtype=exp.RT_L)[0]
         self._context_manager.set_context(f"experiment_{self._experiment_index}_recorder", recorder)

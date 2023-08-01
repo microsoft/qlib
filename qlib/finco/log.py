@@ -2,6 +2,7 @@
 This module will base on Qlib's logger module and provides some interactive functions.
 """
 import logging
+import time
 
 from typing import Dict, List
 from qlib.finco.utils import SingletonBaseClass
@@ -58,15 +59,18 @@ def formatting_log(logger, title="Info"):
     """
     a context manager, print liens before and after a function
     """
-    length = {"Start": 120, "Task": 120, "Info": 60, "Interact": 60, "End": 120}.get(title, 60)
+    length = {"Start": 90, "Round": 90, "Task": 90, "Info": 60, "Interact": 60, "End": 90}.get(title, 60)
     color, bold = (
         (LogColors.YELLOW, LogColors.BOLD)
-        if title in ["Start", "Task", "Info", "Interact", "End"]
+        if title in ["Start", "Round", "Task", "Info", "Interact", "End"]
         else (LogColors.CYAN, "")
     )
     logger.info("")
     logger.info(f"{color}{bold}{'-'} {title} {'-' * (length - len(title))}{LogColors.END}")
+
     yield
+    if color == LogColors.YELLOW:
+        time.sleep(2)
     logger.info("")
 
 
@@ -109,6 +113,7 @@ class FinCoLog(SingletonBaseClass):
     def log_response(self, response: str):
         with formatting_log(self.logger, "GPT Response"):
             self.logger.info(f"{LogColors.CYAN}{response}{LogColors.END}\n")
+            time.sleep(1)
 
     # TODO:
     # It looks wierd if we only have logger

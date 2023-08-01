@@ -1,4 +1,5 @@
 import sys
+import time
 import shutil
 from typing import List
 
@@ -146,7 +147,7 @@ class WorkflowManager:
 
 
 class LearnManager:
-    __DEFAULT_TOPICS = ["IC", "MaxDropDown", "RollingModel"]
+    __DEFAULT_TOPICS = ["RollingModel"]
 
     def __init__(self):
         self.epoch = 0
@@ -160,6 +161,7 @@ class LearnManager:
     def run(self, prompt):
         # todo: add early stop condition
         for i in range(10):
+            self.wm.logger.info(f"Round: {self.epoch+1}", title="Round")
             self.wm.run(prompt)
             self.learn()
             self.epoch += 1
