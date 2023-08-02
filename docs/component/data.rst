@@ -140,10 +140,11 @@ Users can also provide their own data in CSV format. However, the CSV data **mus
 
         where the data are in the following format:
 
-        .. code-block::
-
-            symbol,close
-            SH600000,120
+            +-----------+-------+
+            | symbol    | close |
+            +===========+=======+
+            | SH600000  | 120   |
+            +-----------+-------+
 
 - CSV file **must** includes a column for the date, and when dumping the data, user must specify the date column name. Here is an example:
 
@@ -153,11 +154,13 @@ Users can also provide their own data in CSV format. However, the CSV data **mus
 
     where the data are in the following format:
 
-    .. code-block::
-
-        symbol,date,close,open,volume
-        SH600000,2020-11-01,120,121,12300000
-        SH600000,2020-11-02,123,120,12300000
+        +---------+------------+-------+------+----------+
+        | symbol  | date       | close | open | volume   |
+        +=========+============+=======+======+==========+
+        | SH600000| 2020-11-01 | 120   | 121  | 12300000 |
+        +---------+------------+-------+------+----------+
+        | SH600000| 2020-11-02 | 123   | 120  | 12300000 |
+        +---------+------------+-------+------+----------+
 
 
 Supposed that users prepare their CSV format data in the directory ``~/.qlib/csv_data/my_data``, they can run the following command to start the conversion.
