@@ -85,15 +85,13 @@ class SoftTopkStrategy(WeightStrategyBase):
                         max(1 / self.topk - final_stock_weight.get(stock_id, 0), 0.0),
                         sold_stock_weight,
                     )
-                    final_stock_weight[stock_id] = (
-                        final_stock_weight.get(stock_id, 0.0) + add_weight
-                    )
+                    final_stock_weight[stock_id] = final_stock_weight.get(stock_id, 0.0) + add_weight
                     sold_stock_weight -= add_weight
             elif self.buy_method == "average_fill":
                 for stock_id in buy_signal_stocks:
-                    final_stock_weight[stock_id] = final_stock_weight.get(
-                        stock_id, 0.0
-                    ) + sold_stock_weight / len(buy_signal_stocks)
+                    final_stock_weight[stock_id] = final_stock_weight.get(stock_id, 0.0) + sold_stock_weight / len(
+                        buy_signal_stocks
+                    )
             else:
                 raise ValueError("Buy method not found")
         return final_stock_weight
