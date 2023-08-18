@@ -80,6 +80,7 @@ REQUIRED = [
     "gym",
     # Installing the latest version of protobuf for python versions below 3.8 will cause unit tests to fail.
     "protobuf<=3.20.1;python_version<='3.8'",
+    "cryptography",
 ]
 
 # Numpy include
@@ -170,7 +171,7 @@ setup(
             "gym>=0.24",  # If you do not put gym at the end, gym will degrade causing pytest results to fail.
         ],
         "rl": [
-            "tianshou",
+            "tianshou<=0.4.10",
             "torch",
         ],
     },

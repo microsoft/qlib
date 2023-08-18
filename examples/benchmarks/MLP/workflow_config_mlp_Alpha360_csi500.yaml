@@ -29,9 +29,7 @@ port_analysis_config: &port_analysis_config
         class: TopkDropoutStrategy
         module_path: qlib.contrib.strategy
         kwargs:
-            signal:
-                - <MODEL> 
-                - <DATASET>
+            signal: <PRED>
             topk: 50
             n_drop: 5
     backtest:
@@ -52,8 +50,6 @@ task:
         kwargs:
             loss: mse
             lr: 0.002
-            lr_decay: 0.96
-            lr_decay_steps: 100
             optimizer: adam
             max_steps: 8000
             batch_size: 4096

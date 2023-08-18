@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import os
 import random
+import sys
 import warnings
 from pathlib import Path
 from typing import cast, List, Optional
@@ -207,6 +208,9 @@ def main(config: dict, run_training: bool, run_backtest: bool) -> None:
 
     if "seed" in config["runtime"]:
         seed_everything(config["runtime"]["seed"])
+
+    for extra_module_path in config["env"].get("extra_module_paths", []):
+        sys.path.append(extra_module_path)
 
     state_interpreter: StateInterpreter = init_instance_by_config(config["state_interpreter"])
     action_interpreter: ActionInterpreter = init_instance_by_config(config["action_interpreter"])

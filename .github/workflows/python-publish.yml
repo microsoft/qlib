@@ -19,7 +19,24 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Set up Python
+    #  This is because on macos systems you can install pyqlib using
+    # `pip install pyqlib` installs, it does not recognize the
+    # `pyqlib-<version>-cp38-cp38-macosx_11_0_x86_64.whl` and `pyqlib-<veresion>-cp38-cp37m-macosx_11_0_x86_64.whl`.
+    # So we limit the version of python, in order to generate a version of qlib that is usable for macos: `pyqlib-<veresion>-cp38-cp37m 
+    # `pyqlib-<version>-cp38-cp38-macosx_10_15_x86_64.whl` and `pyqlib-<veresion>-cp38-cp37m-macosx_10_15_x86_64.whl`.
+    # Python 3.7.16, 3.8.16  can build macosx_10_15.  But  Python 3.7.17, 3.8.17  can build macosx_11_0
+    - name: Set up Python ${{ matrix.python-version }}
+      if: matrix.os == 'macos-11' && matrix.python-version == '3.7'
+      uses: actions/setup-python@v2
+      with:
+        python-version: "3.7.16"
+    - name: Set up Python ${{ matrix.python-version }}
+      if: matrix.os == 'macos-11' && matrix.python-version == '3.8'
+      uses: actions/setup-python@v2
+      with:
+        python-version: "3.8.16"
+    - name: Set up Python ${{ matrix.python-version }}
+      if: matrix.os != 'macos-11'
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
@@ -27,7 +44,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install setuptools wheel twine
-    - name: Build wheel on Windows
+    - name: Build wheel on ${{ matrix.os }}
       run: |
         pip install numpy
         pip install cython
@@ -38,7 +55,7 @@ jobs:
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
         twine upload dist/*
-        
+
   deploy_with_manylinux:
     runs-on: ubuntu-latest
     steps:

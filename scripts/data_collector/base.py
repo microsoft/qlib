@@ -18,7 +18,6 @@ from qlib.utils import code_to_fname
 
 
 class BaseCollector(abc.ABC):
-
     CACHE_FLAG = "CACHED"
     NORMAL_FLAG = "NORMAL"
 
@@ -185,7 +184,6 @@ class BaseCollector(abc.ABC):
             return self.NORMAL_FLAG
 
     def _collector(self, instrument_list):
-
         error_symbol = []
         res = Parallel(n_jobs=self.max_workers)(
             delayed(self._simple_collector)(_inst) for _inst in tqdm(instrument_list)

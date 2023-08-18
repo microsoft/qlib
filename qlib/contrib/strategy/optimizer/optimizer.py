@@ -112,7 +112,6 @@ class PortfolioOptimizer(BaseOptimizer):
         return w
 
     def _optimize(self, S: np.ndarray, r: Optional[np.ndarray] = None, w0: Optional[np.ndarray] = None) -> np.ndarray:
-
         # inverse volatility
         if self.method == self.OPT_INV:
             if r is not None:
