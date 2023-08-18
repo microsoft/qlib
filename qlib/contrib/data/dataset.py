@@ -130,7 +130,6 @@ class MTSDatasetH(DatasetH):
         input_size=None,
         **kwargs,
     ):
-
         assert num_states == 0 or horizon > 0, "please specify `horizon` to avoid data leakage"
         assert memory_mode in ["sample", "daily"], "unsupported memory mode"
         assert memory_mode == "sample" or batch_size < 0, "daily memory requires daily sampling (`batch_size < 0`)"
@@ -153,7 +152,6 @@ class MTSDatasetH(DatasetH):
         super().__init__(handler, segments, **kwargs)
 
     def setup_data(self, handler_kwargs: dict = None, **kwargs):
-
         super().setup_data(**kwargs)
 
         if handler_kwargs is not None:
@@ -288,7 +286,6 @@ class MTSDatasetH(DatasetH):
             daily_count = []  # store number of samples for each day
 
             for j in indices[i : i + batch_size]:
-
                 # normal sampling: self.batch_size > 0 => slices is a list => slices_subset is a slice
                 # daily sampling: self.batch_size < 0 => slices is a nested list => slices_subset is a list
                 slices_subset = slices[j]
@@ -297,7 +294,6 @@ class MTSDatasetH(DatasetH):
                 # each slices_subset contains a list of slices for multiple stocks
                 # NOTE: daily sampling is used in 1) eval mode, 2) train mode with self.batch_size < 0
                 if self.batch_size < 0:
-
                     # store daily index
                     idx = self._daily_index.index[j]  # daily_index.index is the index of the original data
                     daily_index.append(idx)
@@ -320,7 +316,6 @@ class MTSDatasetH(DatasetH):
                     slices_subset = [slices_subset]
 
                 for slc in slices_subset:
-
                     # legacy support for Alpha360 data by `input_size`
                     if self.input_size:
                         data.append(self._data[slc.stop - 1].reshape(self.input_size, -1).T)

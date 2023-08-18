@@ -1,6 +1,7 @@
 order_file: ./data/orders/test_orders.pkl
 start_time: "9:30"
 end_time: "14:54"
+data_granularity: "5min"
 qlib:
   provider_uri_5min: ./data/bin/
 exchange:

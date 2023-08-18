@@ -6,7 +6,6 @@ from qlib.utils import init_instance_by_config
 
 
 def main(seed, config_file="configs/config_alstm.yaml"):
-
     # set random seed
     with open(config_file) as f:
         config = yaml.safe_load(f)
@@ -30,7 +29,6 @@ def main(seed, config_file="configs/config_alstm.yaml"):
 
 
 if __name__ == "__main__":
-
     # set params from cmd
     parser = argparse.ArgumentParser(allow_abbrev=False)
     parser.add_argument("--seed", type=int, default=1000, help="random seed")

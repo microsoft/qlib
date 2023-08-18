@@ -48,7 +48,6 @@ class Avg15minHandler(DataHandlerLP):
         )
 
     def loader_config(self):
-
         # Results for dataset: df: pd.DataFrame
         #   len(df.columns) == 6 + 6 * 16, len(df.index.get_level_values(level="datetime").unique()) == T
         #   df.columns: close0, close1, ..., close16, open0, ..., open16, ..., vwap16

@@ -30,7 +30,6 @@ class XGBModel(Model, FeatureInt):
         reweighter=None,
         **kwargs
     ):
-
         df_train, df_valid = dataset.prepare(
             ["train", "valid"],
             col_set=["feature", "label"],

@@ -14,7 +14,6 @@ from qlib.data.storage import CalendarStorage, InstrumentStorage, FeatureStorage
 
 
 class TestAutoData(unittest.TestCase):
-
     _setup_kwargs = {}
     provider_uri = "~/.qlib/qlib_data/cn_data_simple"  # target_dir
     provider_uri_1day = "~/.qlib/qlib_data/cn_data"  # target_dir
@@ -286,6 +285,5 @@ class TestMockData(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-
         provider_uri = "Not necessary."
         init(region=REG_TW, provider_uri=provider_uri, expression_cache=None, dataset_cache=None, **cls._setup_kwargs)

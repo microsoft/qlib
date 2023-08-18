@@ -88,7 +88,6 @@ class HyperparamOptManager:
         params_file = os.path.join(self.hyperparam_folder, "params.csv")
 
         if os.path.exists(results_file) and os.path.exists(params_file):
-
             self.results = pd.read_csv(results_file, index_col=0)
             self.saved_params = pd.read_csv(params_file, index_col=0)
 
@@ -178,7 +177,6 @@ class HyperparamOptManager:
             return parameters
 
         for _ in range(self._max_tries):
-
             parameters = _get_next()
             name = self._get_name(parameters)
 

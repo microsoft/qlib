@@ -43,7 +43,6 @@ class POETCovEstimator(RiskModel):
         self.thresh_method = thresh_method
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
-
         Y = X.T  # NOTE: to match POET's implementation
         p, n = Y.shape
 

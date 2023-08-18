@@ -20,16 +20,26 @@ jobs:
 
     steps:
     - name: Test qlib from source
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
+
+    # Since version 3.7 of python for MacOS is installed in CI, version 3.7.17, this version causes "_bz not found error".
+    # So we make the version number of python 3.7 for MacOS more specific.
+    # refs: https://github.com/actions/setup-python/issues/682
+    - name: Set up Python ${{ matrix.python-version }}
+      if: (matrix.os == 'macos-latest' && matrix.python-version == '3.7') || (matrix.os == 'macos-11' && matrix.python-version == '3.7')
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.7.16"
 
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      if: (matrix.os != 'macos-latest' || matrix.python-version != '3.7') && (matrix.os != 'macos-11' || matrix.python-version != '3.7')
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
 
     - name: Update pip to the latest version
       # pip release version 23.1 on Apr.15 2023, CI failed to run, Please refer to #1495 ofr detailed logs.
-      # The pip version has been temporarily fixed to 23.0.1
+      # The pip version has been temporarily fixed to 23.0
       run: |
         python -m pip install --upgrade pip
 
@@ -54,7 +64,10 @@ jobs:
         python -m pip install -e .[dev]
 
     - name: Lint with Black
+      # Python 3.7 will use a black with low level. So we use python with higher version for black check
+      if: (matrix.python-version != '3.7')
       run: |
+        pip install -U black  # follow the latest version of black, previous Qlib dependency will downgrade black
         black . -l 120 --check --diff
 
     - name: Make html with sphinx
@@ -129,8 +142,7 @@ jobs:
     - name: Test data downloads
       run: |
         python scripts/get_data.py qlib_data --name qlib_data_simple --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
-        azcopy copy https://qlibpublic.blob.core.windows.net/data/rl /tmp/qlibpublic/data --recursive
-        mv /tmp/qlibpublic/data tests/.data
+        python scripts/get_data.py download_data --file_name rl_data.zip --target_dir tests/.data/rl
 
     - name: Install Lightgbm for MacOS
       if: ${{ matrix.os == 'macos-11' || matrix.os == 'macos-latest' }}

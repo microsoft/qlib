@@ -76,7 +76,7 @@ class IndexDataTest(unittest.TestCase):
         self.assertTrue(np.isnan(sd.loc["bar", "g"]))
 
         # support slicing
-        print(sd.loc[~sd.loc[:, "g"].isna().data.astype(np.bool)])
+        print(sd.loc[~sd.loc[:, "g"].isna().data.astype(bool)])
 
         print(self.assertTrue(idd.SingleData().index == idd.SingleData().index))
 

@@ -417,7 +417,7 @@ class TSDataSampler:
             # NOTE: bool(np.nan) is True !!!!!!!!
             # make sure reindex comes first. Otherwise extra NaN may appear.
             flt_data = flt_data.swaplevel()
-            flt_data = flt_data.reindex(self.data_index).fillna(False).astype(np.bool)
+            flt_data = flt_data.reindex(self.data_index).fillna(False).astype(bool)
             self.flt_data = flt_data.values
             self.idx_map = self.flt_idx_map(self.flt_data, self.idx_map)
             self.data_index = self.data_index[np.where(self.flt_data)[0]]
