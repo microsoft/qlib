@@ -38,10 +38,8 @@ jobs:
         python-version: ${{ matrix.python-version }}
 
     - name: Update pip to the latest version
-      # pip release version 23.1 on Apr.15 2023, CI failed to run, Please refer to #1495 ofr detailed logs.
-      # The pip version has been temporarily fixed to 23.0
       run: |
-        python -m pip install pip==23.0
+        python -m pip install --upgrade pip
 
     - name: Installing pytorch for macos
       if: ${{ matrix.os == 'macos-11' || matrix.os == 'macos-latest' }}
