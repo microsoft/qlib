@@ -167,17 +167,6 @@ jobs:
         python qlib/workflow/cli.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
 
     - name: Unit tests with Pytest
-      if: ${{ matrix.os != ubuntu-20.04 && matrix.os != ubuntu-22.04 }}
-      uses: nick-fields/retry@v2
-      with:
-        timeout_minutes: 60
-        max_attempts: 3
-        command: |
-          cd tests
-          python -m pytest . -m "not slow" --durations=0
-
-    - name: Unit tests with Pytest
-      if: ${{ matrix.os == ubuntu-20.04 || matrix.os == ubuntu-22.04 }}
       uses: nick-fields/retry@v2
       with:
         timeout_minutes: 60
