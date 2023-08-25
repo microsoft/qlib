@@ -216,6 +216,7 @@ class QlibDataLoader(DLWParser):
             self.inst_processors if isinstance(self.inst_processors, list) else self.inst_processors.get(gp_name, [])
         )
         df = D.features(instruments, exprs, start_time, end_time, freq=freq, inst_processors=inst_processors)
+
         # NOTE: InstProcessors may add new columns
         if len(inst_processors):
             df.rename(columns=dict(zip(remove_repeat_field(remove_fields_space(exprs)), names)), inplace=True)
