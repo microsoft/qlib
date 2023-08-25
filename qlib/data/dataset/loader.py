@@ -15,7 +15,7 @@ from qlib.utils import (
     init_instance_by_config,
     time_to_slc_point,
     remove_fields_space,
-    remove_repeat_field
+    remove_repeat_field,
 )
 from qlib.log import get_module_logger
 from qlib.utils.serial import Serializable
