@@ -10,8 +10,13 @@ import pandas as pd
 from typing import Tuple, Union, List
 
 from qlib.data import D
-from qlib.utils import load_dataset, init_instance_by_config, time_to_slc_point, normalize_cache_fields, \
-    remove_fields_space, remove_repeat_field
+from qlib.utils import (
+    load_dataset,
+    init_instance_by_config,
+    time_to_slc_point,
+    remove_fields_space,
+    remove_repeat_field
+)
 from qlib.log import get_module_logger
 from qlib.utils.serial import Serializable
 
@@ -104,13 +109,13 @@ class DLWParser(DataLoader):
 
     @abc.abstractmethod
     def load_group_df(
-            self,
-            instruments,
-            exprs: list,
-            names: list,
-            start_time: Union[str, pd.Timestamp] = None,
-            end_time: Union[str, pd.Timestamp] = None,
-            gp_name: str = None,
+        self,
+        instruments,
+        exprs: list,
+        names: list,
+        start_time: Union[str, pd.Timestamp] = None,
+        end_time: Union[str, pd.Timestamp] = None,
+        gp_name: str = None,
     ) -> pd.DataFrame:
         """
         load the dataframe for specific group
@@ -149,12 +154,12 @@ class QlibDataLoader(DLWParser):
     """Same as QlibDataLoader. The fields can be define by config"""
 
     def __init__(
-            self,
-            config: Tuple[list, tuple, dict],
-            filter_pipe: List = None,
-            swap_level: bool = True,
-            freq: Union[str, dict] = "day",
-            inst_processors: Union[dict, list] = None,
+        self,
+        config: Tuple[list, tuple, dict],
+        filter_pipe: List = None,
+        swap_level: bool = True,
+        freq: Union[str, dict] = "day",
+        inst_processors: Union[dict, list] = None,
     ):
         """
         Parameters
@@ -195,13 +200,13 @@ class QlibDataLoader(DLWParser):
                 ), f"freq(={self.freq}), inst_processors(={self.inst_processors}) cannot be None/empty"
 
     def load_group_df(
-            self,
-            instruments,
-            exprs: list,
-            names: list,
-            start_time: Union[str, pd.Timestamp] = None,
-            end_time: Union[str, pd.Timestamp] = None,
-            gp_name: str = None,
+        self,
+        instruments,
+        exprs: list,
+        names: list,
+        start_time: Union[str, pd.Timestamp] = None,
+        end_time: Union[str, pd.Timestamp] = None,
+        gp_name: str = None,
     ) -> pd.DataFrame:
         if instruments is None:
             warnings.warn("`instruments` is not set, will load all stocks")
@@ -216,7 +221,6 @@ class QlibDataLoader(DLWParser):
             self.inst_processors if isinstance(self.inst_processors, list) else self.inst_processors.get(gp_name, [])
         )
         df = D.features(instruments, exprs, start_time, end_time, freq=freq, inst_processors=inst_processors)
-
         # NOTE: InstProcessors may add new columns
         if len(inst_processors):
             df.rename(columns=dict(zip(remove_repeat_field(remove_fields_space(exprs)), names)), inplace=True)
