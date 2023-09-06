@@ -1,3 +1,4 @@
+`".$_-0/build-setup-py.js
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 import os
@@ -191,4 +192,4 @@ setup(
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
     ],
-)
+)"`
