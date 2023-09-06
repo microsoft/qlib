@@ -1,4 +1,6 @@
-`"README.md
+`"
+"README"
+---------------------------------------
 [![Python Versions](https://img.shields.io/pypi/pyversions/pyqlib.svg?logo=python&logoColor=white)](https://pypi.org/project/pyqlib/#files)
 [![Platform](https://img.shields.io/badge/platform-linux%20%7C%20windows%20%7C%20macos-lightgrey)](https://pypi.org/project/pyqlib/#files)
 [![PypI Versions](https://img.shields.io/pypi/v/pyqlib)](https://pypi.org/project/pyqlib/#history)
@@ -10,33 +12,92 @@
 
 ## :newspaper: **What's NEW!** &nbsp;   :sparkling_heart: 
 Recent released features
-| Feature | Status |
-| --                      | ------    |
-| KRNN and Sandwich models | :chart_with_upwards_trend: [Released](https://github.com/microsoft/qlib/pull/1414/) on May 26, 2023 |
-| Release Qlib v0.9.0 | :octocat: [Released](https://github.com/microsoft/qlib/releases/tag/v0.9.0) on Dec 9, 2022 |
-| RL Learning Framework | :hammer: :chart_with_upwards_trend: Released on Nov 10, 2022. [#1332](https://github.com/microsoft/qlib/pull/1332), [#1322](https://github.com/microsoft/qlib/pull/1322), [#1316](https://github.com/microsoft/qlib/pull/1316),[#1299](https://github.com/microsoft/qlib/pull/1299),[#1263](https://github.com/microsoft/qlib/pull/1263), [#1244](https://github.com/microsoft/qlib/pull/1244), [#1169](https://github.com/microsoft/qlib/pull/1169), [#1125](https://github.com/microsoft/qlib/pull/1125), [#1076](https://github.com/microsoft/qlib/pull/1076)|
-| HIST and IGMTF models | :chart_with_upwards_trend: [Released](https://github.com/microsoft/qlib/pull/1040) on Apr 10, 2022 |
-| Qlib [notebook tutorial](https://github.com/microsoft/qlib/tree/main/examples/tutorial) | 📖 [Released](https://github.com/microsoft/qlib/pull/1037) on Apr 7, 2022 | 
-| Ibovespa index data | :rice: [Released](https://github.com/microsoft/qlib/pull/990) on Apr 6, 2022 |
-| Point-in-Time database | :hammer: [Released](https://github.com/microsoft/qlib/pull/343) on Mar 10, 2022 |
-| Arctic Provider Backend & Orderbook data example | :hammer: [Released](https://github.com/microsoft/qlib/pull/744) on Jan 17, 2022 |
-| Meta-Learning-based framework & DDG-DA  | :chart_with_upwards_trend:  :hammer: [Released](https://github.com/microsoft/qlib/pull/743) on Jan 10, 2022 | 
-| Planning-based portfolio optimization | :hammer: [Released](https://github.com/microsoft/qlib/pull/754) on Dec 28, 2021 | 
-| Release Qlib v0.8.0 | :octocat: [Released](https://github.com/microsoft/qlib/releases/tag/v0.8.0) on Dec 8, 2021 |
-| ADD model | :chart_with_upwards_trend: [Released](https://github.com/microsoft/qlib/pull/704) on Nov 22, 2021 |
-| ADARNN  model | :chart_with_upwards_trend: [Released](https://github.com/microsoft/qlib/pull/689) on Nov 14, 2021 |
-| TCN  model | :chart_with_upwards_trend: [Released](https://github.com/microsoft/qlib/pull/668) on Nov 4, 2021 |
-| Nested Decision Framework | :hammer: [Released](https://github.com/microsoft/qlib/pull/438) on Oct 1, 2021. [Example](https://github.com/microsoft/qlib/blob/main/examples/nested_decision_execution/workflow.py) and [Doc](https://qlib.readthedocs.io/en/latest/component/highfreq.html) |
-| Temporal Routing Adaptor (TRA) | :chart_with_upwards_trend: [Released](https://github.com/microsoft/qlib/pull/531) on July 30, 2021 |
-| Transformer & Localformer | :chart_with_upwards_trend: [Released](https://github.com/microsoft/qlib/pull/508) on July 22, 2021 |
-| Release Qlib v0.7.0 | :octocat: [Released](https://github.com/microsoft/qlib/releases/tag/v0.7.0) on July 12, 2021 |
-| TCTS Model | :chart_with_upwards_trend: [Released](https://github.com/microsoft/qlib/pull/491) on July 1, 2021 |
-| Online serving and automatic model rolling | :hammer:  [Released](https://github.com/microsoft/qlib/pull/290) on May 17, 2021 | 
-| DoubleEnsemble Model | :chart_with_upwards_trend: [Released](https://github.com/microsoft/qlib/pull/286) on Mar 2, 2021 | 
-| High-frequency data processing example | :hammer: [Released](https://github.com/microsoft/qlib/pull/257) on Feb 5, 2021  |
-| High-frequency trading example | :chart_with_upwards_trend: [Part of code released](https://github.com/microsoft/qlib/pull/227) on Jan 28, 2021  | 
-| High-frequency data(1min) | :rice: [Released](https://github.com/microsoft/qlib/pull/221) on Jan 27, 2021 |
-| Tabnet Model | :chart_with_upwards_trend: [Released](https://github.com/microsoft/qlib/pull/205) on Jan 22, 2021 |
+| Feature | Status ||
+| KRNN and Sandwich models 
+| :chart_with_upwards_trend: 
+[Released](https://github.com/microsoft/qlib/pull/1414/) on May26,2023 |
+| Release Qlib v0.9.0 | :octocat: 
+[Released](https://github.com/microsoft/qlib/releases/tag/v0.9.0)on Dec 9, 2022 |
+| RL Learning Framework 
+| :hammer: :chart_with_upwards_trend: 
+|Released on Nov 10, 2022. 
+|[#1332](https://github.com/microsoft/qlib/pull/1332), 
+|[#1322](https://github.com/microsoft/qlib/pull/1322), 
+|[#1316](https://github.com/microsoft/qlib/pull/1316),
+|[#1299](https://github.com/microsoft/qlib/pull/1299),
+|[#1263](https://github.com/microsoft/qlib/pull/1263), 
+|[#1244](https://github.com/microsoft/qlib/pull/1244), 
+|[#1169](https://github.com/microsoft/qlib/pull/1169), 
+|[#1125](https://github.com/microsoft/qlib/pull/1125), 
+|[#1076](https://github.com/microsoft/qlib/pull/1076)|
+| HIST and IGMTF models 
+| :chart_with_upwards_trend: 
+[Released](https://github.com/microsoft/qlib/pull/1040) 
+|on Apr 10, 2022
+| # Qlib 
+[notebook tutorial](https://github.com/microsoft/qlib/tree/main/examples/tutorial) |
+|#📖 
+[Released](https://github.com/microsoft/qlib/pull/1037) on Apr 7, 2022 | 
+| Ibovespa index data 
+| :rice: 
+[Released](https://github.com/microsoft/qlib/pull/990) on Apr 6, 2022 |
+| Point-in-Time database
+| :hammer: 
+[Released](https://github.com/microsoft/qlib/pull/343) on Mar 10, 2022 |
+| Arctic Provider Backend & Orderbook data example 
+| :hammer: 
+[Released](https://github.com/microsoft/qlib/pull/744) on Jan 17, 2022 |
+| Meta-Learning-based framework & DDG-DA  
+| :chart_with_upwards_trend:  
+| :hammer: 
+[Released(https://github.com/microsoft/qlib/pull/743) on Jan 10, 2022 | 
+| Planning-based portfolio optimization 
+| :hammer: 
+[Released(https://github.com/microsoft/qlib/pull/754) on Dec 28, 2021 | | Release Qlib |v0.8.0 |:octocat: 
+[Released](https://github.com/microsoft/qlib/releases/tag/v0.8.0) on Dec 8, 2021 
+| ADD model 
+| :chart_with_upwards_trend: 
+|[Released](https://github.com/microsoft/qlib/pull/704) on Nov 22, 2021 |
+| ADARNN  model 
+| :chart_with_upwards_trend:
+|[Released(https://github.com/microsoft/qlib/pull/689)on Nov 14, 2021 |
+| TCN  model 
+| :chart_with_upwards_trend: 
+[Released](https://github.com/microsoft/qlib/pull/668) on Nov 4, 2021 |
+| Nested Decision Framework 
+| :hammer: 
+[Released](https://github.com/microsoft/qlib/pull/438) on Oct 1, 2021. 
+[Example](https://github.com/microsoft/qlib/blob/main/examples/nested_decision_execution/workflow.py) and [Doc](https://qlib.readthedocs.io/en/latest/component/highfreq.html) |
+| Temporal Routing Adaptor (TRA) 
+| :chart_with_upwards_trend: 
+[Released](https://github.com/microsoft/qlib/pull/531) on July 30, 2021 |
+| Transformer & Localformer 
+| :chart_with_upwards_trend: 
+[Released](https://github.com/microsoft/qlib/pull/508) on July 22, 2021 |
+| Release Qlib v0.7.0 
+| :octocat: 
+[Released](https://github.com/microsoft/qlib/releases/tag/v0.7.0) on July 12, 2021 |
+| TCTS Model 
+| :chart_with_upwards_trend: 
+[Released](https://github.com/microsoft/qlib/pull/491) on July 1, 2021 |
+| Online serving and automatic model rolling 
+| :hammer:  
+[Released](https://github.com/microsoft/qlib/pull/290) on May 17, 2021  
+| DoubleEnsemble Model 
+| :chart_with_upwards_trend: 
+[Released](https://github.com/microsoft/qlib/pull/286) on Mar 2, 2021 | 
+| High-frequency data processing example 
+| :hammer: 
+[Released](https://github.com/microsoft/qlib/pull/257) on Feb 5, 2021  |
+| High-frequency trading example 
+| :chart_with_upwards_trend: 
+[Part of code released](https://github.com/microsoft/qlib/pull/227) on Jan 28, 2021   
+| High-frequency data(1min) 
+| :rice: 
+[Released](https://github.com/microsoft/qlib/pull/221) on Jan 27, 2021 |
+| Tabnet Model 
+| :chart_with_upwards_trend: 
+[Released](https://github.com/microsoft/qlib/pull/205) on Jan 22, 2021 |
 
 Features released before 2021 are not listed here.
 
