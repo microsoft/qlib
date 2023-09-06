@@ -1,6 +1,7 @@
 `"
 "README"
 ---------------------------------------
+#`> 
 [![Python Versions](https://img.shields.io/pypi/pyversions/pyqlib.svg?logo=python&logoColor=white)](https://pypi.org/project/pyqlib/#files)
 [![Platform](https://img.shields.io/badge/platform-linux%20%7C%20windows%20%7C%20macos-lightgrey)](https://pypi.org/project/pyqlib/#files)
 [![PypI Versions](https://img.shields.io/pypi/v/pyqlib)](https://pypi.org/project/pyqlib/#history)
@@ -97,8 +98,7 @@ Recent released features
 [Released](https://github.com/microsoft/qlib/pull/221) on Jan 27, 2021 |
 | Tabnet Model 
 | :chart_with_upwards_trend: 
-[Released](https://github.com/microsoft/qlib/pull/205) on Jan 22, 2021 |
-
+[Released](https://github.com/microsoft/qlib/pull/205) on Jan 22, 2021 |`
 Features released before 2021 are not listed here.
 
 <p align="center">
@@ -290,8 +290,8 @@ We recommend users to prepare their own data if they have a high-quality dataset
       * *trading_date*: start of trading day
       * *end_date*: end of trading day(not included)
 
-
-<!-- 
+```
+<-- 
 - Run the initialization code and get stock data:
 
   ```python
@@ -316,7 +316,7 @@ We recommend users to prepare their own data if they have a high-quality dataset
   fields = ['$close', '$volume', 'Ref($close, 1)', 'Mean($close, 3)', '$high-$low']
   print(D.features(instruments, fields, start_time='2010-01-01', end_time='2017-12-31', freq='day').head())
   ```
- -->
+``` -->
 
 ## Auto Quant Research Workflow
 Qlib provides a tool named `qrun` to run the whole workflow automatically (including building dataset, training models, backtest and evaluation). You can start an auto quant research workflow and have a graphical reports analysis according to the following steps: 
@@ -438,12 +438,12 @@ All the models listed above are runnable with ``Qlib``. Users can find the confi
 `Qlib` also provides a script [`run_all_model.py`](examples/run_all_model.py) which can run multiple models for several iterations. (**Note**: the script only support *Linux* for now. Other OS will be supported in the future. Besides, it doesn't support parallel running the same model for multiple times as well, and this will be fixed in the future development too.)
 
 The script will create a unique virtual environment for each model, and delete the environments after training. Thus, only experiment results such as `IC` and `backtest` results will be generated and stored.
-
+```
 Here is an example of running all the models for 10 iterations:
 ```python
 python run_all_model.py run 10
 ```
-
+```
 It also provides the API to run specific models at once. For more use cases, please refer to the file's [docstrings](examples/run_all_model.py). 
 
 ## [Adapting to Market Dynamics](examples/benchmarks_dynamic)
@@ -468,7 +468,7 @@ Here is a list of solutions built on `Qlib` categorized by scenarios.
 
 # Quant Dataset Zoo
 Dataset plays a very important role in Quant. Here is a list of the datasets built on `Qlib`:
-
+```
 | Dataset                                    | US Market | China Market |
 | --                                         | --        | --           |
 | [Alpha360](./qlib/contrib/data/handler.py) |  √        |  √           |
@@ -477,7 +477,7 @@ Dataset plays a very important role in Quant. Here is a list of the datasets bui
 [Here](https://qlib.readthedocs.io/en/latest/advanced/alpha.html) is a tutorial to build dataset with `Qlib`.
 Your PR to build new Quant dataset is highly welcomed.
 
-
+```
 # Learning Framework
 Qlib is high customizable and a lot of its components are learnable.
 The learnable components are instances of `Forecast Model` and `Trading Agent`. They are learned based on the `Learning Framework` layer and then applied to multiple scenarios in `Workflow` layer.
@@ -487,32 +487,31 @@ Based on learning paradigms, they can be categorized into reinforcement learning
 - For supervised learning, the detailed docs can be found [here](https://qlib.readthedocs.io/en/latest/component/model.html).
 - For reinforcement learning, the detailed docs can be found [here](https://qlib.readthedocs.io/en/latest/component/rl.html). Qlib's RL learning framework leverages `Execution Env` in `Workflow` layer to create environments.  It's worth noting that `NestedExecutor` is supported as well. This empowers users to optimize different level of strategies/models/agents together (e.g. optimizing an order execution strategy for a specific portfolio management strategy).
 
-
+```
 # More About Qlib
 If you want to have a quick glance at the most frequently used components of qlib, you can try notebooks [here](examples/tutorial/).
 
 The detailed documents are organized in [docs](docs/).
-[Sphinx](http://www.sphinx-doc.org) and the readthedocs theme is required to build the documentation in html formats. 
-```bash
+[Sphinx](http://www.sphinx-doc.org) and the readthedocs theme is required to build the documentation in html formats.
+```
+bash
 cd docs/
 conda install sphinx sphinx_rtd_theme -y
 # Otherwise, you can install them with pip
 # pip install sphinx sphinx_rtd_theme
 make html
-```
+
 You can also view the [latest document](http://qlib.readthedocs.io/) online directly.
-
+```
 Qlib is in active and continuing development. Our plan is in the roadmap, which is managed as a [github project](https://github.com/microsoft/qlib/projects/1).
-
-
-
+```
 # Offline Mode and Online Mode
 The data server of Qlib can either deployed as `Offline` mode or `Online` mode. The default mode is offline mode.
 
 Under `Offline` mode, the data will be deployed locally. 
 
 Under `Online` mode, the data will be deployed as a shared data service. The data and their cache will be shared by all the clients. The data retrieval performance is expected to be improved due to a higher rate of cache hits. It will consume less disk space, too. The documents of the online mode can be found in [Qlib-Server](https://qlib-server.readthedocs.io/). The online mode can be deployed automatically with [Azure CLI based scripts](https://qlib-server.readthedocs.io/en/latest/build.html#one-click-deployment-in-azure). The source code of online data server can be found in [Qlib-Server repository](https://github.com/microsoft/qlib-server).
-
+```
 ## Performance of Qlib Data Server
 The performance of data processing is important to data-driven methods like AI technologies. As an AI-oriented platform, Qlib provides a solution for data storage and data processing. To demonstrate the performance of Qlib data server, we
 compare it with several other data storage solutions. 
@@ -530,12 +529,12 @@ which creates a dataset (14 features/factors) from the basic OHLCV daily data of
 Most general-purpose databases take too much time to load data. After looking into the underlying implementation, we find that data go through too many layers of interfaces and unnecessary format transformations in general-purpose database solutions.
 Such overheads greatly slow down the data loading process.
 Qlib data are stored in a compact format, which is efficient to be combined into arrays for scientific computation.
-
+```
 # Related Reports
 - [Guide To Qlib: Microsoft’s AI Investment Platform](https://analyticsindiamag.com/qlib/)
 - [微软也搞AI量化平台？还是开源的！](https://mp.weixin.qq.com/s/47bP5YwxfTp2uTHjUBzJQQ)
 - [微矿Qlib：业内首个AI量化投资开源平台](https://mp.weixin.qq.com/s/vsJv7lsgjEi-ALYUz4CvtQ)
-
+```
 # Contact Us
 - If you have any issues, please create issue [here](https://github.com/microsoft/qlib/issues/new/choose) or send messages in [gitter](https://gitter.im/Microsoft/qlib).
 - If you want to make contributions to `Qlib`, please [create pull requests](https://github.com/microsoft/qlib/compare). 
@@ -546,7 +545,7 @@ Join IM discussion groups:
 |[Gitter](https://gitter.im/Microsoft/qlib)|
 |----|
 |![image](http://fintech.msra.cn/images_v070/qrcode/gitter_qr.png)|
-
+```
 # Contributing
 We appreciate all contributions and thank all the contributors!
 <a href="https://github.com/microsoft/qlib/graphs/contributors"><img src="https://contrib.rocks/image?repo=microsoft/qlib" /></a>
@@ -578,9 +577,9 @@ If you don't know how to start to contribute, you can refer to the following exa
 [Good first issues](https://github.com/microsoft/qlib/labels/good%20first%20issue) are labelled to indicate that they are easy to start your contributions.
 
 You can find some impefect implementation in Qlib by  `rg 'TODO|FIXME' qlib`
- 
+```
 If you would like to become one of Qlib's maintainers to contribute more (e.g. help merge PR, triage issues), please contact us by email([qlib@microsoft.com](mailto:qlib@microsoft.com)).  We are glad to help to upgrade your permission.
-
+```
 ## Licence
 Most contributions require you to agree to a
 Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
@@ -589,7 +588,7 @@ the right to use your contribution. For details, visit https://cla.opensource.mi
 When you submit a pull request, a CLA bot will automatically determine whether you need to provide
 a CLA and decorate the PR appropriately (e.g., status check, comment). Simply follow the instructions
 provided by the bot. You will only need to do this once across all repos using our CLA.
-
+```
 This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
 For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
 contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments."`
