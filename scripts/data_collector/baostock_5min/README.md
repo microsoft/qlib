@@ -32,7 +32,7 @@
      - examples:
           ```bash
           # cn 5min data
-          python collector.py download_data --source_dir ~/.qlib/stock_data/source/cn_data_5min --start 2022-01-01 --end 2022-01-30 --interval 5min --region HS300
+          python collector.py download_data --source_dir ~/.qlib/stock_data/source/hs300_5min_original --start 2022-01-01 --end 2022-01-30 --interval 5min --region HS300
           ```
   2. normalize data: `python scripts/data_collector/baostock_5min/collector.py normalize_data`
      

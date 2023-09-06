@@ -58,7 +58,7 @@ class BaostockCollectorHS3005min(BaseCollector):
         delay: float
             time.sleep(delay), default 0
         interval: str
-            freq, value from [1min, 1d], default 1min
+            freq, value from [5min], default 5min
         start: str
             start datetime, default None
         end: str
@@ -69,6 +69,7 @@ class BaostockCollectorHS3005min(BaseCollector):
             using for debug, by default None
         """
         bs.login()
+        interval="5min"
         super(BaostockCollectorHS3005min, self).__init__(
             save_dir=save_dir,
             start=start,
@@ -160,7 +161,7 @@ class BaostockNormalizeHS3005min(BaseNormalize):
     DAILY_FORMAT = "%Y-%m-%d"
     AM_RANGE = ("09:30:00", "11:29:00")
     PM_RANGE = ("13:00:00", "14:59:00")
-    # Whether the trading day of 1min data is consistent with 1d
+    # Whether the trading day of 5min data is consistent with 1d
     CONSISTENT_1d = True
     CALC_PAUSED_NUM = True
 
@@ -172,7 +173,7 @@ class BaostockNormalizeHS3005min(BaseNormalize):
         Parameters
         ----------
         qlib_data_1d_dir: str, Path
-            the qlib data to be updated for yahoo, usually from: Normalised to 1min using local 1d data
+            the qlib data to be updated for yahoo, usually from: Normalised to 5min using local 1d data
         date_field_name: str
             date field name, default is date
         symbol_field_name: str
@@ -412,7 +413,7 @@ class BaostockNormalizeHS3005min(BaseNormalize):
 
 
 class Run(BaseRun):
-    def __init__(self, source_dir=None, normalize_dir=None, max_workers=1, interval="1d", region=REGION_CN):
+    def __init__(self, source_dir=None, normalize_dir=None, max_workers=1, interval="5min", region="HS300"):
         """
 
         Parameters
@@ -424,9 +425,9 @@ class Run(BaseRun):
         max_workers: int
             Concurrent number, default is 1; when collecting data, it is recommended that max_workers be set to 1
         interval: str
-            freq, value from [1min, 1d], default 1d
+            freq, value from [5min, default 5min
         region: str
-            region, value from ["CN", "US", "BR"], default "CN"
+            region, value from ["HS300"], default "HS300"
         """
         super().__init__(source_dir, normalize_dir, max_workers, interval)
         self.region = region
@@ -472,16 +473,12 @@ class Run(BaseRun):
         Notes
         -----
             check_data_length, example:
-                daily, one year: 252 // 4
-                us 1min, a week: 6.5 * 60 * 5
-                cn 1min, a week: 4 * 60 * 5
+                hs300 5min, a week: 4 * 60 * 5
 
         Examples
         ---------
-            # get daily data
-            $ python collector.py download_data --source_dir ~/.qlib/stock_data/source --region CN --start 2020-11-01 --end 2020-11-10 --delay 0.1 --interval 1d
-            # get 1m data
-            $ python collector.py download_data --source_dir ~/.qlib/stock_data/source --region CN --start 2020-11-01 --end 2020-11-10 --delay 0.1 --interval 1m
+            # get hs300 5min data
+            $ python collector.py download_data --source_dir ~/.qlib/stock_data/source/hs300_5min_original --start 2022-01-01 --end 2022-01-30 --interval 5min --region HS300
         """
         super(Run, self).download_data(max_collector_count, delay, start, end, check_data_length, limit_nums)
 
@@ -503,22 +500,20 @@ class Run(BaseRun):
         end_date: str
             if not None, normalize the last date saved (including end_date); if None, it will ignore this parameter; by default None
         qlib_data_1d_dir: str
-            if interval==1min, qlib_data_1d_dir cannot be None, normalize 1min needs to use 1d data;
+            if interval==5min, qlib_data_1d_dir cannot be None, normalize 5min needs to use 1d data;
 
                 qlib_data_1d can be obtained like this:
-                    $ python scripts/get_data.py qlib_data --target_dir <qlib_data_1d_dir> --interval 1d
-                    $ python scripts/data_collector/yahoo/collector.py update_data_to_bin --qlib_data_1d_dir <qlib_data_1d_dir> --trading_date 2021-06-01
+                    $ python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn --version v3
                 or:
                     download 1d data, reference: https://github.com/microsoft/qlib/tree/main/scripts/data_collector/yahoo#1d-from-yahoo
 
         Examples
         ---------
-            $ python collector.py normalize_data --source_dir ~/.qlib/stock_data/source --normalize_dir ~/.qlib/stock_data/normalize --region cn --interval 1d
-            $ python collector.py normalize_data --qlib_data_1d_dir ~/.qlib/qlib_data/cn_data --source_dir ~/.qlib/stock_data/source_cn_1min --normalize_dir ~/.qlib/stock_data/normalize_cn_1min --region CN --interval 1min
+            $ python collector.py normalize_data --qlib_data_1d_dir ~/.qlib/qlib_data/cn_data --source_dir ~/.qlib/stock_data/source/hs300_5min_original --normalize_dir ~/.qlib/stock_data/source/hs300_5min_nor --region HS300 --interval 5min
         """
         if qlib_data_1d_dir is None or not Path(qlib_data_1d_dir).expanduser().exists():
             raise ValueError(
-                "If normalize 1min, the qlib_data_1d_dir parameter must be set: --qlib_data_1d_dir <user qlib 1d data >, Reference: https://github.com/microsoft/qlib/tree/main/scripts/data_collector/yahoo#automatic-update-of-daily-frequency-datafrom-yahoo-finance"
+                "If normalize 5min, the qlib_data_1d_dir parameter must be set: --qlib_data_1d_dir <user qlib 1d data >, Reference: https://github.com/microsoft/qlib/tree/main/scripts/data_collector/yahoo#automatic-update-of-daily-frequency-datafrom-yahoo-finance"
             )
         super(Run, self).normalize_data(
             date_field_name, symbol_field_name, end_date=end_date, qlib_data_1d_dir=qlib_data_1d_dir
