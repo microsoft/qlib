@@ -2,7 +2,6 @@
 # Licensed under the MIT License.
 
 import abc
-from re import I
 import sys
 import copy
 import time
@@ -21,6 +20,8 @@ from loguru import logger
 from yahooquery import Ticker
 from dateutil.tz import tzlocal
 
+import qlib
+from qlib.data import D
 from qlib.tests.data import GetData
 from qlib.utils import code_to_fname, fname_to_code, exists_qlib_data
 from qlib.constant import REG_CN as REGION_CN
@@ -229,9 +230,9 @@ class YahooCollectorCN1d(YahooCollectorCN):
                 df = pd.DataFrame(
                     map(
                         lambda x: x.split(","),
-                        requests.get(INDEX_BENCH_URL.format(index_code=_index_code, begin=_begin, end=_end)).json()[
-                            "data"
-                        ]["klines"],
+                        requests.get(
+                            INDEX_BENCH_URL.format(index_code=_index_code, begin=_begin, end=_end), timeout=None
+                        ).json()["data"]["klines"],
                     )
                 )
             except Exception as e:
@@ -316,7 +317,7 @@ class YahooCollectorIN1min(YahooCollectorIN):
 
 
 class YahooCollectorBR(YahooCollector, ABC):
-    def retry(cls):
+    def retry(cls):  # pylint: disable=E0213
         """
         The reason to use retry=2 is due to the fact that
         Yahoo Finance unfortunately does not keep track of some
@@ -356,12 +357,10 @@ class YahooCollectorBR(YahooCollector, ABC):
 
 class YahooCollectorBR1d(YahooCollectorBR):
     retry = 2
-    pass
 
 
 class YahooCollectorBR1min(YahooCollectorBR):
     retry = 2
-    pass
 
 
 class YahooNormalize(BaseNormalize):
@@ -527,9 +526,6 @@ class YahooNormalize1dExtend(YahooNormalize1d):
         self.old_qlib_data = self._get_old_data(old_qlib_data_dir)
 
     def _get_old_data(self, qlib_data_dir: [str, Path]):
-        import qlib
-        from qlib.data import D
-
         qlib_data_dir = str(Path(qlib_data_dir).expanduser().resolve())
         qlib.init(provider_uri=qlib_data_dir, expression_cache=None, dataset_cache=None)
         df = D.features(D.instruments("all"), ["$close/$factor", "$adjclose/$close"])
@@ -774,16 +770,10 @@ class YahooNormalize1minOffline(YahooNormalize1min):
         self._all_1d_data = self._get_all_1d_data()
 
     def _get_1d_calendar_list(self) -> Iterable[pd.Timestamp]:
-        import qlib
-        from qlib.data import D
-
         qlib.init(provider_uri=self.qlib_data_1d_dir)
         return list(D.calendar(freq="day"))
 
     def _get_all_1d_data(self):
-        import qlib
-        from qlib.data import D
-
         qlib.init(provider_uri=self.qlib_data_1d_dir)
         df = D.features(D.instruments("all"), ["$paused", "$volume", "$factor", "$close"], freq="day")
         df.reset_index(inplace=True)

@@ -68,7 +68,7 @@ def get_calendar_list(bench_code="CSI300") -> List[pd.Timestamp]:
     logger.info(f"get calendar list: {bench_code}......")
 
     def _get_calendar(url):
-        _value_list = requests.get(url).json()["data"]["klines"]
+        _value_list = requests.get(url, timeout=None).json()["data"]["klines"]
         return sorted(map(lambda x: pd.Timestamp(x.split(",")[0]), _value_list))
 
     calendar = _CALENDAR_MAP.get(bench_code, None)
@@ -85,12 +85,14 @@ def get_calendar_list(bench_code="CSI300") -> List[pd.Timestamp]:
                 def _get_calendar(month):
                     _cal = []
                     try:
-                        resp = requests.get(SZSE_CALENDAR_URL.format(month=month, random=random.random)).json()
+                        resp = requests.get(
+                            SZSE_CALENDAR_URL.format(month=month, random=random.random), timeout=None
+                        ).json()
                         for _r in resp["data"]:
                             if int(_r["jybz"]):
                                 _cal.append(pd.Timestamp(_r["jyrq"]))
                     except Exception as e:
-                        raise ValueError(f"{month}-->{e}")
+                        raise ValueError(f"{month}-->{e}") from e
                     return _cal
 
                 month_range = pd.date_range(start="2000-01", end=pd.Timestamp.now() + pd.Timedelta(days=31), freq="M")
@@ -109,7 +111,7 @@ def get_calendar_list(bench_code="CSI300") -> List[pd.Timestamp]:
 
 def return_date_list(date_field_name: str, file_path: Path):
     date_list = pd.read_csv(file_path, sep=",", index_col=0)[date_field_name].to_list()
-    return sorted(map(lambda x: pd.Timestamp(x), date_list))
+    return sorted([pd.Timestamp(x) for x in date_list])
 
 
 def get_calendar_list_by_ratio(
@@ -155,7 +157,7 @@ def get_calendar_list_by_ratio(
                 if date_list:
                     all_oldest_list.append(date_list[0])
                 for date in date_list:
-                    if date not in _dict_count_trade.keys():
+                    if date not in _dict_count_trade:
                         _dict_count_trade[date] = 0
 
                     _dict_count_trade[date] += 1
@@ -163,7 +165,7 @@ def get_calendar_list_by_ratio(
                 p_bar.update()
 
     logger.info(f"count how many funds have founded in this day......")
-    _dict_count_founding = {date: _number_all_funds for date in _dict_count_trade.keys()}  # dict{date:count}
+    _dict_count_founding = {date: _number_all_funds for date in _dict_count_trade}  # dict{date:count}
     with tqdm(total=_number_all_funds) as p_bar:
         for oldest_date in all_oldest_list:
             for date in _dict_count_founding.keys():
@@ -171,9 +173,7 @@ def get_calendar_list_by_ratio(
                     _dict_count_founding[date] -= 1
 
     calendar = [
-        date
-        for date in _dict_count_trade
-        if _dict_count_trade[date] >= max(int(_dict_count_founding[date] * threshold), minimum_count)
+        date for date, count in _dict_count_trade.items() if count >= max(int(count * threshold), minimum_count)
     ]
 
     return calendar
@@ -186,16 +186,18 @@ def get_hs_stock_symbols() -> list:
     -------
         stock symbols
     """
-    global _HS_SYMBOLS
+    global _HS_SYMBOLS  # pylint: disable=W0603
 
     def _get_symbol():
         _res = set()
         for _k, _v in (("ha", "ss"), ("sa", "sz"), ("gem", "sz")):
-            resp = requests.get(HS_SYMBOLS_URL.format(s_type=_k))
+            resp = requests.get(HS_SYMBOLS_URL.format(s_type=_k), timeout=None)
             _res |= set(
                 map(
-                    lambda x: "{}.{}".format(re.findall(r"\d+", x)[0], _v),
-                    etree.HTML(resp.text).xpath("//div[@class='result']/ul//li/a/text()"),
+                    [
+                        "{}.{}".format(re.findall(r"\d+", x)[0], _v)
+                        for x in etree.HTML(resp.text).xpath("//div[@class='result']/ul//li/a/text()")
+                    ]
                 )
             )
             time.sleep(3)
@@ -230,12 +232,12 @@ def get_us_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
     -------
         stock symbols
     """
-    global _US_SYMBOLS
+    global _US_SYMBOLS  # pylint: disable=W0603
 
     @deco_retry
     def _get_eastmoney():
         url = "http://4.push2.eastmoney.com/api/qt/clist/get?pn=1&pz=10000&fs=m:105,m:106,m:107&fields=f12"
-        resp = requests.get(url)
+        resp = requests.get(url, timeout=None)
         if resp.status_code != 200:
             raise ValueError("request error")
 
@@ -277,7 +279,7 @@ def get_us_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
             "maxResultsPerPage": 10000,
             "filterToken": "",
         }
-        resp = requests.post(url, json=_parms)
+        resp = requests.post(url, json=_parms, timeout=None)
         if resp.status_code != 200:
             raise ValueError("request error")
 
@@ -317,7 +319,7 @@ def get_in_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
     -------
         stock symbols
     """
-    global _IN_SYMBOLS
+    global _IN_SYMBOLS  # pylint: disable=W0603
 
     @deco_retry
     def _get_nifty():
@@ -358,7 +360,7 @@ def get_br_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
     -------
         B3 stock symbols
     """
-    global _BR_SYMBOLS
+    global _BR_SYMBOLS  # pylint: disable=W0603
 
     @deco_retry
     def _get_ibovespa():
@@ -367,7 +369,7 @@ def get_br_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
 
         # Request
         agent = {"User-Agent": "Mozilla/5.0"}
-        page = requests.get(url, headers=agent)
+        page = requests.get(url, headers=agent, timeout=None)
 
         # BeautifulSoup
         soup = BeautifulSoup(page.content, "html.parser")
@@ -375,7 +377,7 @@ def get_br_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
 
         children = tbody.findChildren("a", recursive=True)
         for child in children:
-            _symbols.append(str(child).split('"')[-1].split(">")[1].split("<")[0])
+            _symbols.append(str(child).rsplit('"', maxsplit=1)[-1].split(">")[1].split("<")[0])
 
         return _symbols
 
@@ -409,12 +411,12 @@ def get_en_fund_symbols(qlib_data_path: [str, Path] = None) -> list:
     -------
         fund symbols in China
     """
-    global _EN_FUND_SYMBOLS
+    global _EN_FUND_SYMBOLS  # pylint: disable=W0603
 
     @deco_retry
     def _get_eastmoney():
         url = "http://fund.eastmoney.com/js/fundcode_search.js"
-        resp = requests.get(url)
+        resp = requests.get(url, timeout=None)
         if resp.status_code != 200:
             raise ValueError("request error")
         try:

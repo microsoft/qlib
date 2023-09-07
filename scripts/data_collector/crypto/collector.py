@@ -5,7 +5,6 @@ from abc import ABC
 from pathlib import Path
 
 import fire
-import requests
 import pandas as pd
 from loguru import logger
 from dateutil.tz import tzlocal
@@ -31,15 +30,15 @@ def get_cg_crypto_symbols(qlib_data_path: [str, Path] = None) -> list:
     -------
         crypto symbols in given exchanges list of coingecko
     """
-    global _CG_CRYPTO_SYMBOLS
+    global _CG_CRYPTO_SYMBOLS  # pylint: disable=W0603
 
     @deco_retry
     def _get_coingecko():
         try:
             cg = CoinGeckoAPI()
             resp = pd.DataFrame(cg.get_coins_markets(vs_currency="usd"))
-        except:
-            raise ValueError("request error")
+        except Exception as e:
+            raise ValueError("request error") from e
         try:
             _symbols = resp["id"].to_list()
         except Exception as e:
@@ -226,7 +225,7 @@ class CryptoNormalize1d(CryptoNormalize):
 
 
 class Run(BaseRun):
-    def __init__(self, source_dir=None, normalize_dir=None, max_workers=1, interval="1d"):
+    def __init__(self, source_dir=None, normalize_dir=None, max_workers=1, interval="1d"):  # pylint: disable=W0246
         """
 
         Parameters
@@ -254,7 +253,7 @@ class Run(BaseRun):
     def default_base_dir(self) -> [Path, str]:
         return CUR_DIR
 
-    def download_data(
+    def download_data(  # pylint: disable=W0246
         self,
         max_collector_count=2,
         delay=0,
@@ -290,7 +289,7 @@ class Run(BaseRun):
 
         super(Run, self).download_data(max_collector_count, delay, start, end, check_data_length, limit_nums)
 
-    def normalize_data(self, date_field_name: str = "date", symbol_field_name: str = "symbol"):
+    def normalize_data(self, date_field_name: str = "date", symbol_field_name: str = "symbol"):  # pylint: disable=W0246
         """normalize data
 
         Parameters

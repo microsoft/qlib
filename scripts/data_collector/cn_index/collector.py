@@ -4,7 +4,6 @@
 import re
 import abc
 import sys
-import datetime
 from io import BytesIO
 from typing import List, Iterable
 from pathlib import Path
@@ -39,7 +38,7 @@ def retry_request(url: str, method: str = "get", exclude_status: List = None):
     if exclude_status is None:
         exclude_status = []
     method_func = getattr(requests, method)
-    _resp = method_func(url, headers=REQ_HEADERS)
+    _resp = method_func(url, headers=REQ_HEADERS, timeout=None)
     _status = _resp.status_code
     if _status not in exclude_status and _status != 200:
         raise ValueError(f"response status: {_status}, url={url}")

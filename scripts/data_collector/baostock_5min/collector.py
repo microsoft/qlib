@@ -1,34 +1,25 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-import os
-import abc
-from re import I
-from typing import List
-from tqdm import tqdm
+
 import sys
 import copy
-import time
-import datetime
-import baostock as bs
-from abc import ABC
-from pathlib import Path
-from typing import Iterable
-
 import fire
 import numpy as np
 import pandas as pd
+import baostock as bs
+from tqdm import tqdm
+from pathlib import Path
 from loguru import logger
+from typing import Iterable, List
 
 import qlib
 from qlib.data import D
-from qlib.constant import REG_CN as REGION_CN
 
 CUR_DIR = Path(__file__).resolve().parent
 sys.path.append(str(CUR_DIR.parent.parent))
 
-from data_collector.base import BaseCollector, BaseNormalize, BaseRun, Normalize
-
+from data_collector.base import BaseCollector, BaseNormalize, BaseRun
 from data_collector.utils import generate_minutes_calendar_from_daily
 
 
@@ -69,7 +60,7 @@ class BaostockCollectorHS3005min(BaseCollector):
             using for debug, by default None
         """
         bs.login()
-        interval="5min"
+        interval = "5min"
         super(BaostockCollectorHS3005min, self).__init__(
             save_dir=save_dir,
             start=start,
@@ -144,7 +135,7 @@ class BaostockCollectorHS3005min(BaseCollector):
                 while rs.error_code == "0" and rs.next():
                     hs300_stocks.append(rs.get_row_data())
                 p_bar.update()
-        return sorted(set([e[1] for e in hs300_stocks]))
+        return sorted({e[1] for e in hs300_stocks})
 
     def get_instrument_list(self):
         logger.info("get HS stock symbols......")

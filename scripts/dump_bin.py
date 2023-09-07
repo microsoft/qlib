@@ -176,7 +176,7 @@ class DumpDataBase:
     def save_calendars(self, calendars_data: list):
         self._calendars_dir.mkdir(parents=True, exist_ok=True)
         calendars_path = str(self._calendars_dir.joinpath(f"{self.freq}.txt").expanduser().resolve())
-        result_calendars_list = list(map(lambda x: self._format_datetime(x), calendars_data))
+        result_calendars_list = [self._format_datetime(x) for x in calendars_data]
         np.savetxt(calendars_path, result_calendars_list, fmt="%s", encoding="utf-8")
 
     def save_instruments(self, instruments_data: Union[list, pd.DataFrame]):
