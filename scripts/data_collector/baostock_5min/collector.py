@@ -20,7 +20,7 @@ CUR_DIR = Path(__file__).resolve().parent
 sys.path.append(str(CUR_DIR.parent.parent))
 
 from data_collector.base import BaseCollector, BaseNormalize, BaseRun
-from data_collector.utils import generate_minutes_calendar_from_daily
+from data_collector.utils import generate_minutes_calendar_from_daily, calc_adjusted_price
 
 
 class BaostockCollectorHS3005min(BaseCollector):
@@ -83,7 +83,6 @@ class BaostockCollectorHS3005min(BaseCollector):
             calendar_list.append(rs.get_row_data())
         calendar_df = pd.DataFrame(calendar_list, columns=rs.fields)
         trade_calendar_df = calendar_df[~calendar_df["is_trading_day"].isin(["0"])]
-        # bs.logout()
         return trade_calendar_df["calendar_date"].values
 
     @staticmethod
@@ -149,12 +148,8 @@ class BaostockCollectorHS3005min(BaseCollector):
 
 class BaostockNormalizeHS3005min(BaseNormalize):
     COLUMNS = ["open", "close", "high", "low", "volume"]
-    DAILY_FORMAT = "%Y-%m-%d"
     AM_RANGE = ("09:30:00", "11:29:00")
     PM_RANGE = ("13:00:00", "14:59:00")
-    # Whether the trading day of 5min data is consistent with 1d
-    CONSISTENT_1d = True
-    CALC_PAUSED_NUM = True
 
     def __init__(
         self, qlib_data_1d_dir: [str, Path], date_field_name: str = "date", symbol_field_name: str = "symbol", **kwargs
@@ -172,9 +167,8 @@ class BaostockNormalizeHS3005min(BaseNormalize):
         """
         bs.login()
         qlib.init(provider_uri=qlib_data_1d_dir)
-        # self.qlib_data_1d_dir = qlib_data_1d_dir
+        self.qlib_data_1d_dir = qlib_data_1d_dir
         super(BaostockNormalizeHS3005min, self).__init__(date_field_name, symbol_field_name)
-        self._all_1d_data = self._get_all_1d_data()
 
     @staticmethod
     def calc_change(df: pd.DataFrame, last_close: float) -> pd.Series:
@@ -187,15 +181,7 @@ class BaostockNormalizeHS3005min(BaseNormalize):
         return change_series
 
     def _get_calendar_list(self) -> Iterable[pd.Timestamp]:
-        # return list(D.calendar(freq="day"))
         return self.generate_5min_from_daily(self.calendar_list_1d)
-
-    def _get_all_1d_data(self):
-        df = D.features(D.instruments("all"), ["$paused", "$volume", "$factor", "$close"], freq="day")
-        df.reset_index(inplace=True)
-        df.rename(columns={"datetime": self._date_field_name, "instrument": self._symbol_field_name}, inplace=True)
-        df.columns = list(map(lambda x: x[1:] if x.startswith("$") else x, df.columns))
-        return df
 
     @property
     def calendar_list_1d(self):
@@ -228,7 +214,6 @@ class BaostockNormalizeHS3005min(BaseNormalize):
                 .index
             )
         df.sort_index(inplace=True)
-        # df.loc[(df["volume"] <= 0) | np.isnan(df["volume"]), list(set(df.columns) - {symbol_field_name})] = np.nan
         df.loc[(df["volume"] <= 0) | np.isnan(df["volume"]), list(set(df.columns) - {symbol_field_name})] = np.nan
 
         change_series = BaostockNormalizeHS3005min.calc_change(df, last_close)
@@ -265,131 +250,14 @@ class BaostockNormalizeHS3005min(BaseNormalize):
             calendars, freq="5min", am_range=self.AM_RANGE, pm_range=self.PM_RANGE
         )
 
-    def get_1d_data(self, symbol: str, start: str, end: str) -> pd.DataFrame:
-        """get 1d data
-
-        Returns
-        ------
-            data_1d: pd.DataFrame
-                data_1d.columns = [self._date_field_name, self._symbol_field_name, "paused", "volume", "factor", "close"]
-
-        """
-        return self._all_1d_data[
-            (self._all_1d_data[self._symbol_field_name] == symbol.upper())
-            & (self._all_1d_data[self._date_field_name] >= pd.Timestamp(start))
-            & (self._all_1d_data[self._date_field_name] < pd.Timestamp(end))
-        ]
-
     def adjusted_price(self, df: pd.DataFrame) -> pd.DataFrame:
-        # TODO: using daily data factor
-        if df.empty:
-            return df
-        df = df.copy()
-        df = df.sort_values(self._date_field_name)
-        symbol = df.iloc[0][self._symbol_field_name]
-        # get 1d data from baostock
-        _start = pd.Timestamp(df[self._date_field_name].min()).strftime(self.DAILY_FORMAT)
-        _end = (pd.Timestamp(df[self._date_field_name].max()) + pd.Timedelta(days=1)).strftime(self.DAILY_FORMAT)
-        data_1d: pd.DataFrame = self.get_1d_data(symbol, _start, _end)
-        data_1d = data_1d.copy()
-        if data_1d is None or data_1d.empty:
-            df["factor"] = 1 / df.loc[df["close"].first_valid_index()]["close"]
-            # TODO: np.nan or 1 or 0
-            df["paused"] = np.nan
-        else:
-            # NOTE: volume is np.nan or volume <= 0, paused = 1
-            # FIXME: find a more accurate data source
-            data_1d["paused"] = 0
-            data_1d.loc[(data_1d["volume"].isna()) | (data_1d["volume"] <= 0), "paused"] = 1
-            data_1d = data_1d.set_index(self._date_field_name)
-
-            # add factor from 1d data
-            # NOTE: yahoo 1d data info:
-            #   - Close price adjusted for splits. Adjusted close price adjusted for both dividends and splits.
-            #   - data_1d.adjclose: Adjusted close price adjusted for both dividends and splits.
-            #   - data_1d.close: `data_1d.adjclose / (close for the first trading day that is not np.nan)`
-            def _calc_factor(df_1d: pd.DataFrame):
-                try:
-                    _date = pd.Timestamp(pd.Timestamp(df_1d[self._date_field_name].iloc[0]).date())
-                    df_1d["factor"] = (
-                        data_1d.loc[_date]["close"] / df_1d.loc[df_1d["close"].last_valid_index()]["close"]
-                    )
-                    df_1d["paused"] = data_1d.loc[_date]["paused"]
-                except Exception:
-                    df_1d["factor"] = np.nan
-                    df_1d["paused"] = np.nan
-                return df_1d
-
-            df = df.groupby([df[self._date_field_name].dt.date]).apply(_calc_factor)
-
-            if self.CONSISTENT_1d:
-                # the date sequence is consistent with 1d
-                df.set_index(self._date_field_name, inplace=True)
-                df = df.reindex(
-                    self.generate_5min_from_daily(
-                        pd.to_datetime(data_1d.reset_index()[self._date_field_name].drop_duplicates())
-                    )
-                )
-                df[self._symbol_field_name] = df.loc[df[self._symbol_field_name].first_valid_index()][
-                    self._symbol_field_name
-                ]
-                df.index.names = [self._date_field_name]
-                df.reset_index(inplace=True)
-        for _col in self.COLUMNS:
-            if _col not in df.columns:
-                continue
-            if _col == "volume":
-                df[_col] = df[_col] / df["factor"]
-            else:
-                df[_col] = df[_col] * df["factor"]
-
-        if self.CALC_PAUSED_NUM:
-            df = self.calc_paused_num(df)
-        return df
-
-    def calc_paused_num(self, df: pd.DataFrame):
-        _symbol = df.iloc[0][self._symbol_field_name]
-        df = df.copy()
-        df["_tmp_date"] = df[self._date_field_name].apply(lambda x: pd.Timestamp(x).date())
-        # remove data that starts and ends with `np.nan` all day
-        all_data = []
-        # Record the number of consecutive trading days where the whole day is nan, to remove the last trading day where the whole day is nan
-        all_nan_nums = 0
-        # Record the number of consecutive occurrences of trading days that are not nan throughout the day
-        not_nan_nums = 0
-        for _date, _df in df.groupby("_tmp_date"):
-            _df["paused"] = 0
-            if not _df.loc[_df["volume"] < 0].empty:
-                logger.warning(f"volume < 0, will fill np.nan: {_date} {_symbol}")
-                _df.loc[_df["volume"] < 0, "volume"] = np.nan
-
-            check_fields = set(_df.columns) - {
-                "_tmp_date",
-                "paused",
-                "factor",
-                self._date_field_name,
-                self._symbol_field_name,
-            }
-            if _df.loc[:, check_fields].isna().values.all() or (_df["volume"] == 0).all():
-                all_nan_nums += 1
-                not_nan_nums = 0
-                _df["paused"] = 1
-                if all_data:
-                    _df["paused_num"] = not_nan_nums
-                    all_data.append(_df)
-            else:
-                all_nan_nums = 0
-                not_nan_nums += 1
-                _df["paused_num"] = not_nan_nums
-                all_data.append(_df)
-        all_data = all_data[: len(all_data) - all_nan_nums]
-        if all_data:
-            df = pd.concat(all_data, sort=False)
-        else:
-            logger.warning(f"data is empty: {_symbol}")
-            df = pd.DataFrame()
-            return df
-        del df["_tmp_date"]
+        df = calc_adjusted_price(
+            df=df,
+            qlib_data_1d_dir=self.qlib_data_1d_dir,
+            _date_field_name=self._date_field_name,
+            _symbol_field_name=self._symbol_field_name,
+            frequence="5min",
+        )
         return df
 
     def _get_1d_calendar_list(self) -> Iterable[pd.Timestamp]:
@@ -406,19 +274,7 @@ class BaostockNormalizeHS3005min(BaseNormalize):
 class Run(BaseRun):
     def __init__(self, source_dir=None, normalize_dir=None, max_workers=1, interval="5min", region="HS300"):
         """
-
-        Parameters
-        ----------
-        source_dir: str
-            The directory where the raw data collected from the Internet is saved, default "Path(__file__).parent/source"
-        normalize_dir: str
-            Directory for normalize data, default "Path(__file__).parent/normalize"
-        max_workers: int
-            Concurrent number, default is 1; when collecting data, it is recommended that max_workers be set to 1
-        interval: str
-            freq, value from [5min, default 5min
-        region: str
-            region, value from ["HS300"], default "HS300"
+        Changed the default value of: scripts.data_collector.base.BaseRun.
         """
         super().__init__(source_dir, normalize_dir, max_workers, interval)
         self.region = region
@@ -444,22 +300,7 @@ class Run(BaseRun):
         check_data_length=None,
         limit_nums=None,
     ):
-        """download data from Internet
-
-        Parameters
-        ----------
-        max_collector_count: int
-            default 2
-        delay: float
-            time.sleep(delay), default 0.5
-        start: str
-            start datetime, default "2000-01-01"; closed interval(including start)
-        end: str
-            end datetime, default ``pd.Timestamp(datetime.datetime.now() + pd.Timedelta(days=1))``; open interval(excluding end)
-        check_data_length: int
-            check data length, if not None and greater than 0, each symbol will be considered complete if its data length is greater than or equal to this value, otherwise it will be fetched again, the maximum number of fetches being (max_collector_count). By default None.
-        limit_nums: int
-            using for debug, by default None
+        """download data from Baostock
 
         Notes
         -----
@@ -482,21 +323,14 @@ class Run(BaseRun):
     ):
         """normalize data
 
-        Parameters
-        ----------
-        date_field_name: str
-            date field name, default date
-        symbol_field_name: str
-            symbol field name, default symbol
-        end_date: str
-            if not None, normalize the last date saved (including end_date); if None, it will ignore this parameter; by default None
-        qlib_data_1d_dir: str
-            if interval==5min, qlib_data_1d_dir cannot be None, normalize 5min needs to use 1d data;
+        Attention
+        ---------
+        qlib_data_1d_dir cannot be None, normalize 5min needs to use 1d data;
 
-                qlib_data_1d can be obtained like this:
-                    $ python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn --version v3
-                or:
-                    download 1d data, reference: https://github.com/microsoft/qlib/tree/main/scripts/data_collector/yahoo#1d-from-yahoo
+            qlib_data_1d can be obtained like this:
+                $ python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn --version v3
+            or:
+                download 1d data, reference: https://github.com/microsoft/qlib/tree/main/scripts/data_collector/yahoo#1d-from-yahoo
 
         Examples
         ---------

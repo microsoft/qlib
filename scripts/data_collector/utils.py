@@ -21,6 +21,7 @@ from tqdm import tqdm
 from functools import partial
 from concurrent.futures import ProcessPoolExecutor
 from bs4 import BeautifulSoup
+from qlib.data import D
 
 HS_SYMBOLS_URL = "http://app.finance.ifeng.com/hq/list.php?type=stock_a&class={s_type}"
 
@@ -194,10 +195,8 @@ def get_hs_stock_symbols() -> list:
             resp = requests.get(HS_SYMBOLS_URL.format(s_type=_k), timeout=None)
             _res |= set(
                 map(
-                    [
-                        "{}.{}".format(re.findall(r"\d+", x)[0], _v)
-                        for x in etree.HTML(resp.text).xpath("//div[@class='result']/ul//li/a/text()")
-                    ]
+                    lambda x: "{}.{}".format(re.findall(r"\d+", x)[0], _v),  # pylint: disable=W0640
+                    etree.HTML(resp.text).xpath("//div[@class='result']/ul//li/a/text()"),  # pylint: disable=I1101
                 )
             )
             time.sleep(3)
@@ -605,6 +604,155 @@ def get_instruments(
         qlib_dir=qlib_dir, index_name=index_name, freq=freq, request_retry=request_retry, retry_sleep=retry_sleep
     )
     getattr(obj, method)()
+
+
+def _get_all_1d_data(qlib_data_1d_dir: str, _date_field_name: str, _symbol_field_name: str):
+    # qlib.init(provider_uri=qlib_data_1d_dir)
+    df = D.features(D.instruments("all"), ["$paused", "$volume", "$factor", "$close"], freq="day")
+    df.reset_index(inplace=True)
+    df.rename(columns={"datetime": _date_field_name, "instrument": _symbol_field_name}, inplace=True)
+    df.columns = list(map(lambda x: x[1:] if x.startswith("$") else x, df.columns))
+    return df
+
+
+def get_1d_data(
+    qlib_data_1d_dir: str, _date_field_name: str, _symbol_field_name: str, symbol: str, start: str, end: str
+) -> pd.DataFrame:
+    """get 1d data
+
+    Returns
+    ------
+        data_1d: pd.DataFrame
+            data_1d.columns = [_date_field_name, _symbol_field_name, "paused", "volume", "factor", "close"]
+
+    """
+    _all_1d_data = _get_all_1d_data(qlib_data_1d_dir, _date_field_name, _symbol_field_name)
+    return _all_1d_data[
+        (_all_1d_data[_symbol_field_name] == symbol.upper())
+        & (_all_1d_data[_date_field_name] >= pd.Timestamp(start))
+        & (_all_1d_data[_date_field_name] < pd.Timestamp(end))
+    ]
+
+
+def calc_adjusted_price(
+    df: pd.DataFrame,
+    qlib_data_1d_dir: str,
+    _date_field_name: str,
+    _symbol_field_name: str,
+    frequence: str,
+    consistent_1d: bool = True,
+    calc_paused: bool = True,
+) -> pd.DataFrame:
+    # TODO: using daily data factor
+    if df.empty:
+        return df
+    df = df.copy()
+    df.drop_duplicates(subset=_date_field_name, inplace=True)
+    df.sort_values(_date_field_name, inplace=True)
+    symbol = df.iloc[0][_symbol_field_name]
+    df[_date_field_name] = pd.to_datetime(df[_date_field_name])
+    # get 1d data from qlib
+    _start = pd.Timestamp(df[_date_field_name].min()).strftime("%Y-%m-%d")
+    _end = (pd.Timestamp(df[_date_field_name].max()) + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
+    data_1d: pd.DataFrame = get_1d_data(qlib_data_1d_dir, _date_field_name, _symbol_field_name, symbol, _start, _end)
+    data_1d = data_1d.copy()
+    if data_1d is None or data_1d.empty:
+        df["factor"] = 1 / df.loc[df["close"].first_valid_index()]["close"]
+        # TODO: np.nan or 1 or 0
+        df["paused"] = np.nan
+    else:
+        # NOTE: volume is np.nan or volume <= 0, paused = 1
+        # FIXME: find a more accurate data source
+        data_1d["paused"] = 0
+        data_1d.loc[(data_1d["volume"].isna()) | (data_1d["volume"] <= 0), "paused"] = 1
+        data_1d = data_1d.set_index(_date_field_name)
+
+        # add factor from 1d data
+        # NOTE: 1d data info:
+        #   - Close price adjusted for splits. Adjusted close price adjusted for both dividends and splits.
+        #   - data_1d.adjclose: Adjusted close price adjusted for both dividends and splits.
+        #   - data_1d.close: `data_1d.adjclose / (close for the first trading day that is not np.nan)`
+        def _calc_factor(df_1d: pd.DataFrame):
+            try:
+                _date = pd.Timestamp(pd.Timestamp(df_1d[_date_field_name].iloc[0]).date())
+                df_1d["factor"] = data_1d.loc[_date]["close"] / df_1d.loc[df_1d["close"].last_valid_index()]["close"]
+                df_1d["paused"] = data_1d.loc[_date]["paused"]
+            except Exception:
+                df_1d["factor"] = np.nan
+                df_1d["paused"] = np.nan
+            return df_1d
+
+        df = df.groupby([df[_date_field_name].dt.date]).apply(_calc_factor)
+        if consistent_1d:
+            # the date sequence is consistent with 1d
+            df.set_index(_date_field_name, inplace=True)
+            df = df.reindex(
+                generate_minutes_calendar_from_daily(
+                    calendars=pd.to_datetime(data_1d.reset_index()[_date_field_name].drop_duplicates()),
+                    freq=frequence,
+                    am_range=("09:30:00", "11:29:00"),
+                    pm_range=("13:00:00", "14:59:00"),
+                )
+            )
+            df[_symbol_field_name] = df.loc[df[_symbol_field_name].first_valid_index()][_symbol_field_name]
+            df.index.names = [_date_field_name]
+            df.reset_index(inplace=True)
+    for _col in ["open", "close", "high", "low", "volume"]:
+        if _col not in df.columns:
+            continue
+        if _col == "volume":
+            df[_col] = df[_col] / df["factor"]
+        else:
+            df[_col] = df[_col] * df["factor"]
+    if calc_paused:
+        df = calc_paused_num(df, _date_field_name, _symbol_field_name)
+    return df
+
+
+def calc_paused_num(df: pd.DataFrame, _date_field_name, _symbol_field_name):
+    _symbol = df.iloc[0][_symbol_field_name]
+    df = df.copy()
+    df["_tmp_date"] = df[_date_field_name].apply(lambda x: pd.Timestamp(x).date())
+    # remove data that starts and ends with `np.nan` all day
+    all_data = []
+    # Record the number of consecutive trading days where the whole day is nan, to remove the last trading day where the whole day is nan
+    all_nan_nums = 0
+    # Record the number of consecutive occurrences of trading days that are not nan throughout the day
+    not_nan_nums = 0
+    for _date, _df in df.groupby("_tmp_date"):
+        _df["paused"] = 0
+        if not _df.loc[_df["volume"] < 0].empty:
+            logger.warning(f"volume < 0, will fill np.nan: {_date} {_symbol}")
+            _df.loc[_df["volume"] < 0, "volume"] = np.nan
+
+        check_fields = set(_df.columns) - {
+            "_tmp_date",
+            "paused",
+            "factor",
+            _date_field_name,
+            _symbol_field_name,
+        }
+        if _df.loc[:, list(check_fields)].isna().values.all() or (_df["volume"] == 0).all():
+            all_nan_nums += 1
+            not_nan_nums = 0
+            _df["paused"] = 1
+            if all_data:
+                _df["paused_num"] = not_nan_nums
+                all_data.append(_df)
+        else:
+            all_nan_nums = 0
+            not_nan_nums += 1
+            _df["paused_num"] = not_nan_nums
+            all_data.append(_df)
+    all_data = all_data[: len(all_data) - all_nan_nums]
+    if all_data:
+        df = pd.concat(all_data, sort=False)
+    else:
+        logger.warning(f"data is empty: {_symbol}")
+        df = pd.DataFrame()
+        return df
+    del df["_tmp_date"]
+    return df
 
 
 if __name__ == "__main__":
