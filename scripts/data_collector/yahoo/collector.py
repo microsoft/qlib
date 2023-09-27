@@ -540,15 +540,15 @@ class YahooNormalize1dExtend(YahooNormalize1d):
         symbol_name = df[self._symbol_field_name].iloc[0]
         old_df = self.old_qlib_data.loc[str(symbol_name).upper()]
         latest_date = old_df.index[-1]
-        new_latest_data = df.loc[latest_date]
+        df = df.loc[latest_date:]
+        new_latest_data = df.iloc[0]
         old_latest_data = old_df.loc[latest_date]
         for col in self.column_list[:-1]:
             if col == "volume":
                 df[col] = df[col] / (new_latest_data[col] / old_latest_data[col])
             else:
                 df[col] = df[col] * (old_latest_data[col] / new_latest_data[col])
-        df = df.loc[self._calendar_list[self._calendar_list.index(latest_date) + 1]:]
-        return df.reset_index()
+        return df.drop(df.index[0]).reset_index()
 
 
 class YahooNormalize1min(YahooNormalize, ABC):
@@ -981,7 +981,7 @@ class Run(BaseRun):
         # download data from yahoo
         # NOTE: when downloading data from YahooFinance, max_workers is recommended to be 1
         trading_date = (pd.Timestamp(trading_date) - pd.Timedelta(days=2)).strftime("%Y-%m-%d")
-        # self.download_data(delay=delay, start=trading_date, end=end_date, check_data_length=check_data_length)
+        self.download_data(delay=delay, start=trading_date, end=end_date, check_data_length=check_data_length)
         # NOTE: a larger max_workers setting here would be faster
         self.max_workers = (
             max(multiprocessing.cpu_count() - 2, 1)
