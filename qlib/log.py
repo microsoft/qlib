@@ -36,6 +36,7 @@ class QlibLogger(metaclass=MetaLogger):
     def logger(self):
         logger = logging.getLogger(self.module_name)
         logger.setLevel(self.__level)
+        logger.parent.propagate = False
         return logger
 
     def setLevel(self, level):
