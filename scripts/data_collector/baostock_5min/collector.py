@@ -167,6 +167,7 @@ class BaostockNormalizeHS3005min(BaseNormalize):
         """
         bs.login()
         qlib.init(provider_uri=qlib_data_1d_dir)
+        self.all_1d_data = D.features(D.instruments("all"), ["$paused", "$volume", "$factor", "$close"], freq="day")
         self.qlib_data_1d_dir = qlib_data_1d_dir
         super(BaostockNormalizeHS3005min, self).__init__(date_field_name, symbol_field_name)
 
@@ -257,6 +258,7 @@ class BaostockNormalizeHS3005min(BaseNormalize):
             _date_field_name=self._date_field_name,
             _symbol_field_name=self._symbol_field_name,
             frequence="5min",
+            _1d_data_all=self.all_1d_data,
         )
         return df
 

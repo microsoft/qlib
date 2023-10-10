@@ -578,6 +578,7 @@ class YahooNormalize1min(YahooNormalize, ABC):
         super(YahooNormalize1min, self).__init__(date_field_name, symbol_field_name)
         self.qlib_data_1d_dir = qlib_data_1d_dir
         qlib.init(provider_uri=self.qlib_data_1d_dir)
+        self.all_1d_data = D.features(D.instruments("all"), ["$paused", "$volume", "$factor", "$close"], freq="day")
 
     def _get_1d_calendar_list(self) -> Iterable[pd.Timestamp]:
         return list(D.calendar(freq="day"))
@@ -604,6 +605,7 @@ class YahooNormalize1min(YahooNormalize, ABC):
             frequence="1min",
             consistent_1d=self.CONSISTENT_1d,
             calc_paused=self.CALC_PAUSED_NUM,
+            _1d_data_all=self.all_1d_data,
         )
         return df
 
@@ -959,7 +961,6 @@ class Run(BaseRun):
         Examples
         -------
             $ python collector.py update_data_to_bin --qlib_data_1d_dir <user data dir> --trading_date <start date> --end_date <end date>
-            # get 1m data
         """
 
         if self.interval.lower() != "1d":

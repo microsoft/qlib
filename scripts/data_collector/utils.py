@@ -2,6 +2,7 @@
 #  Licensed under the MIT License.
 
 import re
+import copy
 import importlib
 import time
 import bisect
@@ -21,7 +22,6 @@ from tqdm import tqdm
 from functools import partial
 from concurrent.futures import ProcessPoolExecutor
 from bs4 import BeautifulSoup
-from qlib.data import D
 
 HS_SYMBOLS_URL = "http://app.finance.ifeng.com/hq/list.php?type=stock_a&class={s_type}"
 
@@ -606,9 +606,8 @@ def get_instruments(
     getattr(obj, method)()
 
 
-def _get_all_1d_data(qlib_data_1d_dir: str, _date_field_name: str, _symbol_field_name: str):
-    # qlib.init(provider_uri=qlib_data_1d_dir)
-    df = D.features(D.instruments("all"), ["$paused", "$volume", "$factor", "$close"], freq="day")
+def _get_all_1d_data(qlib_data_1d_dir: str, _date_field_name: str, _symbol_field_name: str, _1d_data_all: pd.DataFrame):
+    df = copy.deepcopy(_1d_data_all)
     df.reset_index(inplace=True)
     df.rename(columns={"datetime": _date_field_name, "instrument": _symbol_field_name}, inplace=True)
     df.columns = list(map(lambda x: x[1:] if x.startswith("$") else x, df.columns))
@@ -616,7 +615,13 @@ def _get_all_1d_data(qlib_data_1d_dir: str, _date_field_name: str, _symbol_field
 
 
 def get_1d_data(
-    qlib_data_1d_dir: str, _date_field_name: str, _symbol_field_name: str, symbol: str, start: str, end: str
+    qlib_data_1d_dir: str,
+    _date_field_name: str,
+    _symbol_field_name: str,
+    symbol: str,
+    start: str,
+    end: str,
+    _1d_data_all: pd.DataFrame,
 ) -> pd.DataFrame:
     """get 1d data
 
@@ -626,7 +631,7 @@ def get_1d_data(
             data_1d.columns = [_date_field_name, _symbol_field_name, "paused", "volume", "factor", "close"]
 
     """
-    _all_1d_data = _get_all_1d_data(qlib_data_1d_dir, _date_field_name, _symbol_field_name)
+    _all_1d_data = _get_all_1d_data(qlib_data_1d_dir, _date_field_name, _symbol_field_name, _1d_data_all)
     return _all_1d_data[
         (_all_1d_data[_symbol_field_name] == symbol.upper())
         & (_all_1d_data[_date_field_name] >= pd.Timestamp(start))
@@ -636,6 +641,7 @@ def get_1d_data(
 
 def calc_adjusted_price(
     df: pd.DataFrame,
+    _1d_data_all: pd.DataFrame,
     qlib_data_1d_dir: str,
     _date_field_name: str,
     _symbol_field_name: str,
@@ -654,7 +660,9 @@ def calc_adjusted_price(
     # get 1d data from qlib
     _start = pd.Timestamp(df[_date_field_name].min()).strftime("%Y-%m-%d")
     _end = (pd.Timestamp(df[_date_field_name].max()) + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
-    data_1d: pd.DataFrame = get_1d_data(qlib_data_1d_dir, _date_field_name, _symbol_field_name, symbol, _start, _end)
+    data_1d: pd.DataFrame = get_1d_data(
+        qlib_data_1d_dir, _date_field_name, _symbol_field_name, symbol, _start, _end, _1d_data_all
+    )
     data_1d = data_1d.copy()
     if data_1d is None or data_1d.empty:
         df["factor"] = 1 / df.loc[df["close"].first_valid_index()]["close"]
