@@ -247,7 +247,7 @@ class Run(BaseRun):
     def default_base_dir(self) -> [Path, str]:
         return CUR_DIR
 
-    def download_data(  # pylint: disable=W0246
+    def download_data(
         self,
         max_collector_count=2,
         delay=0,
@@ -283,7 +283,7 @@ class Run(BaseRun):
 
         super(Run, self).download_data(max_collector_count, delay, start, end, check_data_length, limit_nums)
 
-    def normalize_data(self, date_field_name: str = "date", symbol_field_name: str = "symbol"):  # pylint: disable=W0246
+    def normalize_data(self, date_field_name: str = "date", symbol_field_name: str = "symbol"):
         """normalize data
 
         Parameters
