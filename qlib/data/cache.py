@@ -160,6 +160,7 @@ class MemCache:
         self.__calendar_mem_cache = klass(size_limit)
         self.__instrument_mem_cache = klass(size_limit)
         self.__feature_mem_cache = klass(size_limit)
+        self.__index_mem_cache = klass(size_limit)
 
     def __getitem__(self, key):
         if key == "c":
@@ -168,6 +169,8 @@ class MemCache:
             return self.__instrument_mem_cache
         elif key == "f":
             return self.__feature_mem_cache
+        elif key == "x":
+            return self.__index_mem_cache
         else:
             raise KeyError("Unknown memcache unit")
 
