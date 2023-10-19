@@ -140,7 +140,8 @@ setup(
             "wheel",
             "setuptools",
             "black",
-            "pylint",
+            # Version 3.0 of pylint had problems with the build process, so we limited the version of pylint.
+            "pylint<=2.17.6",
             # Using the latest versions(0.981 and 0.982) of mypy,
             # the error "multiprocessing.Value()" is detected in the file "qlib/rl/utils/data_queue.py",
             # If this is fixed in a subsequent version of mypy, then we will revert to the latest version of mypy.
