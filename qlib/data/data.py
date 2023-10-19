@@ -33,8 +33,7 @@ from ..utils import (
     normalize_cache_fields,
     code_to_fname,
     time_to_slc_point,
-    read_period_data,
-    get_period_list,
+    get_period_list_by_offset,
 )
 from ..utils.paral import ParallelExt
 from .ops import Operators  # pylint: disable=W0611  # noqa: F401
@@ -746,13 +745,24 @@ class LocalPITProvider(PITProvider):
     # TODO: Add PIT backend file storage
     # NOTE: This class is not multi-threading-safe!!!!
 
-    def period_feature(self, instrument, field, start_index, end_index, cur_time, period=None):
+    def period_feature(self, instrument, field, start_offset, end_offset, cur_time, period=None, start_time=None):
+        """get raw data from PIT
+        we have 3 modes to query data from PIT, all method need current datetime
+
+        1. given period, return value observed at current datetime
+            return series with index as datetime
+        2. given start_time, return value **observed by each day** from start_time to current datetime
+            return series with index as datetime
+        3. given start_offset and end_offset, return period data between [-start_offset, end_offset] observed at current datetime
+            return series with index as period
+
+        """
         if not isinstance(cur_time, pd.Timestamp):
             raise ValueError(
                 f"Expected pd.Timestamp for `cur_time`, got '{cur_time}'. Advices: you can't query PIT data directly(e.g. '$$roewa_q'), you must use `P` operator to convert data to each day (e.g. 'P($$roewa_q)')"
             )
 
-        assert end_index <= 0  # PIT don't support querying future data
+        assert end_offset <= 0  # PIT don't support querying future data
 
         DATA_RECORDS = [
             ("date", C.pit_record_type["date"]),
@@ -777,58 +787,56 @@ class LocalPITProvider(PITProvider):
         #         self.period_index[field] = {}
         # For acceleration}
 
-        if not field.endswith("_q") and not field.endswith("_a"):
-            raise ValueError("period field must ends with '_q' or '_a'")
+        key = f"{instrument}.{field}"
         quarterly = field.endswith("_q")
-        index_path = C.dpm.get_data_uri() / "financial" / instrument.lower() / f"{field}.index"
-        data_path = C.dpm.get_data_uri() / "financial" / instrument.lower() / f"{field}.data"
-        if not (index_path.exists() and data_path.exists()):
-            raise FileNotFoundError("No file is found.")
-        # NOTE: The most significant performance loss is here.
-        # Does the acceleration that makes the program complicated really matters?
-        # - It makes parameters of the interface complicate
-        # - It does not performance in the optimal way (places all the pieces together, we may achieve higher performance)
-        #    - If we design it carefully, we can go through for only once to get the historical evolution of the data.
-        # So I decide to deprecated previous implementation and keep the logic of the program simple
-        # Instead, I'll add a cache for the index file.
-        data = np.fromfile(data_path, dtype=DATA_RECORDS)
-
-        # find all revision periods before `cur_time`
-        cur_time_int = int(cur_time.year) * 10000 + int(cur_time.month) * 100 + int(cur_time.day)
-        loc = np.searchsorted(data["date"], cur_time_int, side="right")
-        if loc <= 0:
-            return pd.Series(dtype=C.pit_record_type["value"])
-        last_period = data["period"][:loc].max()  # return the latest quarter
-        first_period = data["period"][:loc].min()
-        period_list = get_period_list(first_period, last_period, quarterly)
-        if period is not None:
-            # NOTE: `period` has higher priority than `start_index` & `end_index`
-            if period not in period_list:
-                return pd.Series(dtype=C.pit_record_type["value"])
-            else:
-                period_list = [period]
+        if key in H["f"]:
+            df = H["f"][key]
         else:
-            period_list = period_list[max(0, len(period_list) + start_index - 1) : len(period_list) + end_index]
-        value = np.full((len(period_list),), np.nan, dtype=VALUE_DTYPE)
-        for i, p in enumerate(period_list):
-            # last_period_index = self.period_index[field].get(period)  # For acceleration
-            value[i], now_period_index = read_period_data(
-                index_path, data_path, p, cur_time_int, quarterly  # , last_period_index  # For acceleration
-            )
-            # self.period_index[field].update({period: now_period_index})  # For acceleration
-        # NOTE: the index is period_list; So it may result in unexpected values(e.g. nan)
-        # when calculation between different features and only part of its financial indicator is published
-        series = pd.Series(value, index=period_list, dtype=VALUE_DTYPE)
+            if not field.endswith("_q") and not field.endswith("_a"):
+                raise ValueError("period field must ends with '_q' or '_a'")
+            index_path = C.dpm.get_data_uri() / "financial" / instrument.lower() / f"{field}.index"
+            data_path = C.dpm.get_data_uri() / "financial" / instrument.lower() / f"{field}.data"
+            if not (index_path.exists() and data_path.exists()):
+                raise FileNotFoundError("No file is found.")
+            ## get first period offset
+            ## NOTE: current index file return offset from a given period not date
+            ## so we cannot findout the offset by given date
+            ## stop using index in this version
+            # start_point = get_pitdata_offset(index_path, period, )
+            data = np.fromfile(data_path, dtype=DATA_RECORDS)
+            df = pd.DataFrame(data, columns=[i[0] for i in DATA_RECORDS])
+            df.sort_values(by=["date", "period"], inplace=True)
+            df["date"] = pd.to_datetime(df["date"].astype(str))
+            H["f"][key] = df
 
-        # {For acceleration
-        # if cur_index == end_index:
-        #     self.all_fields.remove(field)
-        #     if not len(self.all_fields):
-        #         del self.all_fields
-        #         del self.period_index
-        # For acceleration}
-
-        return series
+        df_ret = df[(df["date"] <= cur_time)]
+        if df_ret.empty:
+            return pd.Series(dtype=VALUE_DTYPE)
+        # keep only the latest period value
+        df_ret = df_ret.sort_values(by=["period"]).drop_duplicates(subset=["period"], keep="last")
+        df_ret = df_ret.set_index("period")
+        # return df
+        if period is not None:
+            retur = df[df["period"] == period].set_index("date")["value"]
+        elif start_time is not None:
+            # df is sorted by date, and the term whose period is monotonically non-decreasing is selected.
+            s_sign = pd.Series(False, index=df.index)
+            max_p = df["period"].iloc[0]
+            for i in range(0, len(s_sign)):
+                if df["period"].iloc[i] >= max_p:
+                    s_sign.iloc[i] = True
+                    max_p = df["period"].iloc[i]
+            df_sim = df[s_sign].drop_duplicates(subset=["date"], keep="last")
+            s_part = df_sim.set_index("date")[start_time:]["value"]
+            if start_time != s_part.index[0] and start_time >= df["date"].iloc[0]:
+                # add previous value to result to avoid nan in the first period
+                pre_value = pd.Series(df[df["date"] < start_time]["value"].iloc[-1], index=[start_time])
+                s_part = pd.concat([pre_value, s_part])
+            return s_part
+        else:
+            period_list = get_period_list_by_offset(df_ret.index[-1], -start_offset, quarterly)
+            retur = df_ret["value"].reindex(period_list, fill_value=np.nan)
+        return retur
 
 
 class LocalExpressionProvider(ExpressionProvider):
