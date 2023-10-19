@@ -88,6 +88,39 @@ def get_period_list(first: int, last: int, quarterly: bool) -> List[int]:
         return res
 
 
+def get_period_list_by_offset(last: int, offset: int, quarterly: bool) -> List[int]:
+    """
+    This method will be used in PIT database.
+    It return all the possible values between `first(offset-last)` and `end`  (first and end is included)
+
+    Parameters
+    ----------
+    offset: int
+        offset quarter or year from last
+    quarterly : bool
+        will it return quarterly index or yearly index.
+
+    Returns
+    -------
+    List[int]
+        the possible index between [first, last]
+    """
+
+    if not quarterly:
+        assert all(1900 <= x <= 2099 for x in (last,)), "invalid arguments"
+        return list(range(last - offset, last + 1))
+    else:
+        assert all(190000 <= x <= 209904 for x in (last,)), "invalid arguments"
+        res = []
+        # last minus offset quarters
+        for year in range(int(last // 100 - (offset // 4 + 1)), int(last // 100 + 1)):
+            for q in range(1, 5):
+                period = year * 100 + q
+                if period <= last:
+                    res.append(year * 100 + q)
+        return res[len(res) - offset - 1 :]
+
+
 def get_period_offset(first_year, period, quarterly):
     if quarterly:
         offset = (period // 100 - first_year) * 4 + period % 100 - 1

@@ -9,6 +9,7 @@ __pycache__/
 _build
 build/
 dist/
+tests/test_pit_data/
 
 *.pkl
 *.hd5
