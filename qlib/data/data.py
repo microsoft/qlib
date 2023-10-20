@@ -835,8 +835,15 @@ class LocalPITProvider(PITProvider):
             # keep only the latest period value
             df_remain = df_remain.sort_values(by=["period"]).drop_duplicates(subset=["period"], keep="last")
             df_remain = df_remain.set_index("period")
-            
-            cache_key = (instrument, field, last_observe_date, start_offset, end_offset, quarterly)  # f"{instrument}.{field}.{last_observe_date}.{start_offset}.{end_offset}.{quarterly}"
+
+            cache_key = (
+                instrument,
+                field,
+                last_observe_date,
+                start_offset,
+                end_offset,
+                quarterly,
+            )  # f"{instrument}.{field}.{last_observe_date}.{start_offset}.{end_offset}.{quarterly}"
             if cache_key in H["p"]:
                 retur = H["p"][cache_key]
             else:
