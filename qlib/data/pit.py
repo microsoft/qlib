@@ -31,8 +31,10 @@ class P(ElemOperator):
             try:
                 # get start and end date
                 s = self._load_feature(instrument, 0, 0, _calendar[end_index], None, _calendar[start_index])
+                if len(s) == 0:
+                    return pd.Series(dtype="float32", name=str(self))
                 # index in s may not in calendar, so we need to reindex it to continue date first
-                s = s.reindex(pd.date_range(start=s.iloc[0], end=_calendar[end_index])).fillna(method="ffill")
+                s = s.reindex(pd.date_range(start=s.index[0], end=_calendar[end_index])).fillna(method="ffill")
                 resample_data = s.reindex(_calendar[start_index : end_index + 1]).fillna(method="ffill").values
             except FileNotFoundError:
                 get_module_logger("base").warning(f"WARN: period data not found for {str(self)}")
