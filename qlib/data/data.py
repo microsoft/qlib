@@ -822,6 +822,8 @@ class LocalPITProvider(PITProvider):
                     max_p = df["period"].iloc[i]
             df_sim = df[s_sign].drop_duplicates(subset=["date"], keep="last")
             s_part = df_sim.set_index("date")[start_time:]["value"]
+            if s_part.empty:
+                return pd.Series(dtype=VALUE_DTYPE)
             if start_time != s_part.index[0] and start_time >= df["date"].iloc[0]:
                 # add previous value to result to avoid nan in the first period
                 pre_value = pd.Series(df[df["date"] < start_time]["value"].iloc[-1], index=[start_time])
