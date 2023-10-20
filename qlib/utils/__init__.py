@@ -25,7 +25,12 @@ import pandas as pd
 from pathlib import Path
 from typing import List, Union, Optional, Callable
 from packaging import version
-from .file import get_or_create_path, save_multiple_parts_file, unpack_archive_with_buffer, get_tmp_file_with_buffer
+from .file import (
+    get_or_create_path,
+    save_multiple_parts_file,
+    unpack_archive_with_buffer,
+    get_tmp_file_with_buffer,
+)
 from ..config import C
 from ..log import get_module_logger, set_log_with_config
 
@@ -37,7 +42,9 @@ is_deprecated_lexsorted_pandas = version.parse(pd.__version__) > version.parse("
 #################### Server ####################
 def get_redis_connection():
     """get redis connection instance."""
-    return redis.StrictRedis(host=C.redis_host, port=C.redis_port, db=C.redis_task_db, password=C.redis_password)
+    return redis.StrictRedis(
+        host=C.redis_host, port=C.redis_port, db=C.redis_task_db, password=C.redis_password
+    )
 
 
 #################### Data ####################
@@ -88,7 +95,9 @@ def get_period_list(first: int, last: int, quarterly: bool) -> List[int]:
         return res
 
 
-def get_period_list_by_offset(last: int, offset: int, quarterly: bool) -> List[int]:
+def get_period_list_by_offset(
+    last: int, start_offset: int, end_offset: int, quarterly: bool
+) -> List[int]:
     """
     This method will be used in PIT database.
     It return all the possible values between `first(offset-last)` and `end`  (first and end is included)
@@ -105,20 +114,22 @@ def get_period_list_by_offset(last: int, offset: int, quarterly: bool) -> List[i
     List[int]
         the possible index between [first, last]
     """
-
+    assert end_offset <= 0
     if not quarterly:
         assert all(1900 <= x <= 2099 for x in (last,)), "invalid arguments"
-        return list(range(last - offset, last + 1))
+        return list(range(last + start_offset, last + 1 + end_offset))
     else:
         assert all(190000 <= x <= 209904 for x in (last,)), "invalid arguments"
         res = []
         # last minus offset quarters
-        for year in range(int(last // 100 - (offset // 4 + 1)), int(last // 100 + 1)):
+        for year in range(
+            int(last // 100 + start_offset // 4 - 1), int(last // 100 + 1) + end_offset
+        ):
             for q in range(1, 5):
                 period = year * 100 + q
                 if period <= last:
                     res.append(year * 100 + q)
-        return res[len(res) - offset - 1 :]
+        return res[len(res) + start_offset - 1 : len(res) + end_offset + 1]
 
 
 def get_period_offset(first_year, period, quarterly):
@@ -129,7 +140,9 @@ def get_period_offset(first_year, period, quarterly):
     return offset
 
 
-def read_period_data(index_path, data_path, period, cur_date_int: int, quarterly, last_period_index: int = None):
+def read_period_data(
+    index_path, data_path, period, cur_date_int: int, quarterly, last_period_index: int = None
+):
     """
     At `cur_date`(e.g. 20190102), read the information at `period`(e.g. 201803).
     Only the updating info before cur_date or at cur_date will be used.
@@ -180,7 +193,9 @@ def read_period_data(index_path, data_path, period, cur_date_int: int, quarterly
     with open(data_path, "rb") as fd:
         while _next != NAN_INDEX:
             fd.seek(_next)
-            date, period, value, new_next = struct.unpack(DATA_DTYPE, fd.read(struct.calcsize(DATA_DTYPE)))
+            date, period, value, new_next = struct.unpack(
+                DATA_DTYPE, fd.read(struct.calcsize(DATA_DTYPE))
+            )
             if date > cur_date_int:
                 break
             prev_next = _next
@@ -416,7 +431,9 @@ def get_date_range(trading_date, left_shift=0, right_shift=0, future=False):
     return calendar
 
 
-def get_date_by_shift(trading_date, shift, future=False, clip_shift=True, freq="day", align: Optional[str] = None):
+def get_date_by_shift(
+    trading_date, shift, future=False, clip_shift=True, freq="day", align: Optional[str] = None
+):
     """get trading date with shift bias will cur_date
         e.g. : shift == 1,  return next trading date
                shift == -1, return previous trading date
@@ -449,7 +466,9 @@ def get_date_by_shift(trading_date, shift, future=False, clip_shift=True, freq="
         if clip_shift:
             shift_index = np.clip(shift_index, 0, len(cal) - 1)
         else:
-            raise IndexError(f"The shift_index({shift_index}) of the trading day ({trading_date}) is out of range")
+            raise IndexError(
+                f"The shift_index({shift_index}) of the trading day ({trading_date}) is out of range"
+            )
     return cal[shift_index]
 
 
@@ -486,7 +505,11 @@ def transform_end_date(end_date=None, freq="day"):
     from ..data import D  # pylint: disable=C0415
 
     last_date = D.calendar(freq=freq)[-1]
-    if end_date is None or (str(end_date) == "-1") or (pd.Timestamp(last_date) < pd.Timestamp(end_date)):
+    if (
+        end_date is None
+        or (str(end_date) == "-1")
+        or (pd.Timestamp(last_date) < pd.Timestamp(end_date))
+    ):
         log.warning(
             "\nInfo: the end_date in the configuration file is {}, "
             "so the default last date {} is used.".format(end_date, last_date)
@@ -602,7 +625,9 @@ def exists_qlib_data(qlib_dir):
     # check instruments
     code_names = set(map(lambda x: fname_to_code(x.name.lower()), features_dir.iterdir()))
     _instrument = instruments_dir.joinpath("all.txt")
-    miss_code = set(pd.read_csv(_instrument, sep="\t", header=None).loc[:, 0].apply(str.lower)) - set(code_names)
+    miss_code = set(
+        pd.read_csv(_instrument, sep="\t", header=None).loc[:, 0].apply(str.lower)
+    ) - set(code_names)
     if miss_code and any(map(lambda x: "sht" not in x, miss_code)):
         return False
 
@@ -838,7 +863,9 @@ class Wrapper:
         self._provider = provider
 
     def __repr__(self):
-        return "{name}(provider={provider})".format(name=self.__class__.__name__, provider=self._provider)
+        return "{name}(provider={provider})".format(
+            name=self.__class__.__name__, provider=self._provider
+        )
 
     def __getattr__(self, key):
         if self.__dict__.get("_provider", None) is None:

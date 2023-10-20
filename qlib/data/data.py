@@ -787,10 +787,10 @@ class LocalPITProvider(PITProvider):
         #         self.period_index[field] = {}
         # For acceleration}
 
-        key = f"{instrument}.{field}"
+        key = (instrument, field)
         quarterly = field.endswith("_q")
-        if key in H["f"]:
-            df = H["f"][key]
+        if key in H["p"]:
+            df = H["p"][key]
         else:
             if not field.endswith("_q") and not field.endswith("_a"):
                 raise ValueError("period field must ends with '_q' or '_a'")
@@ -809,12 +809,6 @@ class LocalPITProvider(PITProvider):
             df["date"] = pd.to_datetime(df["date"].astype(str))
             H["f"][key] = df
 
-        df_ret = df[(df["date"] <= cur_time)]
-        if df_ret.empty:
-            return pd.Series(dtype=VALUE_DTYPE)
-        # keep only the latest period value
-        df_ret = df_ret.sort_values(by=["period"]).drop_duplicates(subset=["period"], keep="last")
-        df_ret = df_ret.set_index("period")
         # return df
         if period is not None:
             retur = df[df["period"] == period].set_index("date")["value"]
@@ -834,8 +828,22 @@ class LocalPITProvider(PITProvider):
                 s_part = pd.concat([pre_value, s_part])
             return s_part
         else:
-            period_list = get_period_list_by_offset(df_ret.index[-1], -start_offset, quarterly)
-            retur = df_ret["value"].reindex(period_list, fill_value=np.nan)
+            df_remain = df[(df["date"] <= cur_time)]
+            if df_remain.empty:
+                return pd.Series(dtype=VALUE_DTYPE)
+            last_observe_date = df_remain["date"].iloc[-1]
+            # keep only the latest period value
+            df_remain = df_remain.sort_values(by=["period"]).drop_duplicates(subset=["period"], keep="last")
+            df_remain = df_remain.set_index("period")
+            
+            cache_key = (instrument, field, last_observe_date, start_offset, end_offset, quarterly)  # f"{instrument}.{field}.{last_observe_date}.{start_offset}.{end_offset}.{quarterly}"
+            if cache_key in H["p"]:
+                retur = H["p"][cache_key]
+            else:
+                last_period = df_remain.index[-1]
+                period_list = get_period_list_by_offset(last_period, start_offset, end_offset, quarterly)
+                retur = df_remain["value"].reindex(period_list, fill_value=np.nan)
+                H["p"][cache_key] = retur
         return retur
 
 
