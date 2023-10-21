@@ -409,7 +409,7 @@ class Indicator:
             raise NotImplementedError(f"This type of input is not supported")
 
         # if there is no stock data during the time period
-        if price_s is None:
+        if price_s.empty:
             return None, None
 
         if isinstance(price_s, (int, float, np.number)):
