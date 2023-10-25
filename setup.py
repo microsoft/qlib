@@ -70,7 +70,11 @@ REQUIRED = [
     "lightgbm>=3.3.0",
     "tornado",
     "joblib>=0.17.0",
-    "ruamel.yaml>=0.16.12",
+    # With the upgrading of ruamel.yaml to 0.18, the safe_load method was deprecated,
+    # which would cause qlib.workflow.cli to not work properly,
+    # and no good replacement has been found, so the version of ruamel.yaml has been restricted for now.
+    # Refs: https://pypi.org/project/ruamel.yaml/
+    "ruamel.yaml<=0.17.36",
     "pymongo==3.7.2",  # For task management
     "scikit-learn>=0.22",
     "dill",

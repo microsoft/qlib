@@ -658,9 +658,7 @@ def calc_adjusted_price(
     # get 1d data from qlib
     _start = pd.Timestamp(df[_date_field_name].min()).strftime("%Y-%m-%d")
     _end = (pd.Timestamp(df[_date_field_name].max()) + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
-    data_1d: pd.DataFrame = get_1d_data(
-        _date_field_name, _symbol_field_name, symbol, _start, _end, _1d_data_all
-    )
+    data_1d: pd.DataFrame = get_1d_data(_date_field_name, _symbol_field_name, symbol, _start, _end, _1d_data_all)
     data_1d = data_1d.copy()
     if data_1d is None or data_1d.empty:
         df["factor"] = 1 / df.loc[df["close"].first_valid_index()]["close"]
