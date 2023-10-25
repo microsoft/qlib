@@ -574,7 +574,7 @@ class YahooNormalize1min(YahooNormalize, ABC):
             symbol field name, default is symbol
         """
         super(YahooNormalize1min, self).__init__(date_field_name, symbol_field_name)
-        qlib.init(provider_uri=self.qlib_data_1d_dir)
+        qlib.init(provider_uri=qlib_data_1d_dir)
         self.all_1d_data = D.features(D.instruments("all"), ["$paused", "$volume", "$factor", "$close"], freq="day")
 
     def _get_1d_calendar_list(self) -> Iterable[pd.Timestamp]:
