@@ -168,7 +168,6 @@ class BaostockNormalizeHS3005min(BaseNormalize):
         bs.login()
         qlib.init(provider_uri=qlib_data_1d_dir)
         self.all_1d_data = D.features(D.instruments("all"), ["$paused", "$volume", "$factor", "$close"], freq="day")
-        self.qlib_data_1d_dir = qlib_data_1d_dir
         super(BaostockNormalizeHS3005min, self).__init__(date_field_name, symbol_field_name)
 
     @staticmethod
@@ -254,7 +253,6 @@ class BaostockNormalizeHS3005min(BaseNormalize):
     def adjusted_price(self, df: pd.DataFrame) -> pd.DataFrame:
         df = calc_adjusted_price(
             df=df,
-            qlib_data_1d_dir=self.qlib_data_1d_dir,
             _date_field_name=self._date_field_name,
             _symbol_field_name=self._symbol_field_name,
             frequence="5min",

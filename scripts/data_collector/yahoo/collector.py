@@ -522,8 +522,6 @@ class YahooNormalize1dExtend(YahooNormalize1d):
             symbol field name, default is symbol
         """
         super(YahooNormalize1dExtend, self).__init__(date_field_name, symbol_field_name)
-        self._first_close_field = "first_close"
-        self._ori_close_field = "ori_close"
         self.column_list = ["open", "high", "low", "close", "volume", "factor", "change"]
         self.old_qlib_data = self._get_old_data(old_qlib_data_dir)
 
@@ -576,7 +574,6 @@ class YahooNormalize1min(YahooNormalize, ABC):
             symbol field name, default is symbol
         """
         super(YahooNormalize1min, self).__init__(date_field_name, symbol_field_name)
-        self.qlib_data_1d_dir = qlib_data_1d_dir
         qlib.init(provider_uri=self.qlib_data_1d_dir)
         self.all_1d_data = D.features(D.instruments("all"), ["$paused", "$volume", "$factor", "$close"], freq="day")
 
@@ -599,7 +596,6 @@ class YahooNormalize1min(YahooNormalize, ABC):
     def adjusted_price(self, df: pd.DataFrame) -> pd.DataFrame:
         df = calc_adjusted_price(
             df=df,
-            qlib_data_1d_dir=self.qlib_data_1d_dir,
             _date_field_name=self._date_field_name,
             _symbol_field_name=self._symbol_field_name,
             frequence="1min",

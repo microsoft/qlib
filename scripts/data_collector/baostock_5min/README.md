@@ -49,11 +49,10 @@
           - `symbol_field_name`: column *name* identifying symbol in csv files, by default `symbol`
           - `end_date`: if not `None`, normalize the last date saved (*including end_date*); if `None`, it will ignore this parameter; by default `None`
           - `qlib_data_1d_dir`: qlib directory(1d data)
-            ```
             if interval==5min, qlib_data_1d_dir cannot be None, normalize 5min needs to use 1d data;
-        
-                qlib_data_1d can be obtained like this:
-                    $ python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn --version v3
+            ```
+                # qlib_data_1d can be obtained like this:
+                python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn --version v3
             ```
       - examples:
         ```bash
