@@ -934,6 +934,7 @@ class Run(BaseRun):
         end_date: str = None,
         check_data_length: int = None,
         delay: float = 1,
+        exists_skip: bool = False,
     ):
         """update yahoo data to bin
 
@@ -950,6 +951,8 @@ class Run(BaseRun):
             check data length, if not None and greater than 0, each symbol will be considered complete if its data length is greater than or equal to this value, otherwise it will be fetched again, the maximum number of fetches being (max_collector_count). By default None.
         delay: float
             time.sleep(delay), default 1
+        exists_skip: bool
+            exists skip, by default False
         Notes
         -----
             If the data in qlib_data_dir is incomplete, np.nan will be populated to trading_date for the previous trading day
@@ -973,7 +976,7 @@ class Run(BaseRun):
         # download qlib 1d data
         qlib_data_1d_dir = str(Path(qlib_data_1d_dir).expanduser().resolve())
         if not exists_qlib_data(qlib_data_1d_dir):
-            GetData().qlib_data(target_dir=qlib_data_1d_dir, interval=self.interval, region=self.region)
+            GetData().qlib_data(target_dir=qlib_data_1d_dir, interval=self.interval, region=self.region, exists_skip=exists_skip)
 
         # download data from yahoo
         # NOTE: when downloading data from YahooFinance, max_workers is recommended to be 1
