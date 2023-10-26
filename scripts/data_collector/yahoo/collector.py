@@ -976,7 +976,9 @@ class Run(BaseRun):
         # download qlib 1d data
         qlib_data_1d_dir = str(Path(qlib_data_1d_dir).expanduser().resolve())
         if not exists_qlib_data(qlib_data_1d_dir):
-            GetData().qlib_data(target_dir=qlib_data_1d_dir, interval=self.interval, region=self.region, exists_skip=exists_skip)
+            GetData().qlib_data(
+                target_dir=qlib_data_1d_dir, interval=self.interval, region=self.region, exists_skip=exists_skip
+            )
 
         # download data from yahoo
         # NOTE: when downloading data from YahooFinance, max_workers is recommended to be 1
