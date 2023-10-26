@@ -3,6 +3,8 @@
 
 
 import sys
+
+import numpy as np
 import qlib
 import shutil
 import unittest
@@ -12,6 +14,7 @@ import baostock as bs
 from pathlib import Path
 
 from qlib.data import D
+from qlib.data.storage.file_storage import FilePITStorage
 from qlib.tests.data import GetData
 
 sys.path.append(str(Path(__file__).resolve().parent.parent.joinpath("scripts")))
@@ -32,37 +35,37 @@ QLIB_DIR.mkdir(exist_ok=True, parents=True)
 
 
 class TestPIT(unittest.TestCase):
-    @classmethod
-    def tearDownClass(cls) -> None:
-        shutil.rmtree(str(DATA_DIR.resolve()))
+    # @classmethod
+    # def tearDownClass(cls) -> None:
+    #     shutil.rmtree(str(DATA_DIR.resolve()))
 
-    @classmethod
-    def setUpClass(cls) -> None:
-        cn_data_dir = str(QLIB_DIR.joinpath("cn_data").resolve())
-        pit_dir = str(SOURCE_DIR.joinpath("pit").resolve())
-        pit_normalized_dir = str(SOURCE_DIR.joinpath("pit_normalized").resolve())
-        GetData().qlib_data(
-            name="qlib_data_simple", target_dir=cn_data_dir, region="cn", delete_old=False, exists_skip=True
-        )
-        GetData().qlib_data(name="qlib_data", target_dir=pit_dir, region="pit", delete_old=False, exists_skip=True)
+    # @classmethod
+    # def setUpClass(cls) -> None:
+    #     cn_data_dir = str(QLIB_DIR.joinpath("cn_data").resolve())
+    #     pit_dir = str(SOURCE_DIR.joinpath("pit").resolve())
+    #     pit_normalized_dir = str(SOURCE_DIR.joinpath("pit_normalized").resolve())
+    #     GetData().qlib_data(
+    #         name="qlib_data_simple", target_dir=cn_data_dir, region="cn", delete_old=False, exists_skip=True
+    #     )
+    #     GetData().qlib_data(name="qlib_data", target_dir=pit_dir, region="pit", delete_old=False, exists_skip=True)
 
-        # NOTE: This code does the same thing as line 43, but since baostock is not stable in downloading data, we have chosen to download offline data.
-        # bs.login()
-        # Run(
-        #     source_dir=pit_dir,
-        #     interval="quarterly",
-        # ).download_data(start="2000-01-01", end="2020-01-01", symbol_regex="^(600519|000725).*")
-        # bs.logout()
+    #     # NOTE: This code does the same thing as line 43, but since baostock is not stable in downloading data, we have chosen to download offline data.
+    #     # bs.login()
+    #     # Run(
+    #     #     source_dir=pit_dir,
+    #     #     interval="quarterly",
+    #     # ).download_data(start="2000-01-01", end="2020-01-01", symbol_regex="^(600519|000725).*")
+    #     # bs.logout()
 
-        Run(
-            source_dir=pit_dir,
-            normalize_dir=pit_normalized_dir,
-            interval="quarterly",
-        ).normalize_data()
-        DumpPitData(
-            csv_path=pit_normalized_dir,
-            qlib_dir=cn_data_dir,
-        ).dump(interval="quarterly")
+    #     Run(
+    #         source_dir=pit_dir,
+    #         normalize_dir=pit_normalized_dir,
+    #         interval="quarterly",
+    #     ).normalize_data()
+    #     DumpPitData(
+    #         csv_path=pit_normalized_dir,
+    #         qlib_dir=cn_data_dir,
+    #     ).dump(interval="quarterly")
 
     def setUp(self):
         # qlib.init(kernels=1)  # NOTE: set kernel to 1 to make it debug easier
@@ -70,10 +73,83 @@ class TestPIT(unittest.TestCase):
         qlib.init(provider_uri=provider_uri)
 
     def to_str(self, obj):
-        return "".join(str(obj).split())
+        return "\n".join(str(obj).split())
 
     def check_same(self, a, b):
         self.assertEqual(self.to_str(a), self.to_str(b))
+
+    def test_storage_read(self):
+        s = FilePITStorage("sh600519", "roewa_q")
+        np_data = s.np_data(1)
+        self.assertEqual(np_data.shape, (1,))
+        data = s.data
+        self.check_same(
+            data.head(),
+            """
+                date  period     value       _next
+            0  20070428  200701  0.090219  4294967295
+            1  20070817  200702  0.139330  4294967295
+            2  20071023  200703  0.245863  4294967295
+            3  20080301  200704  0.347900          80
+            4  20080313  200704  0.395989  4294967295
+            """,
+        )
+
+    def test_storage_write(self):
+        base = FilePITStorage("sh600519", "roewa_q")
+        s = FilePITStorage("sh600519", "roewa2_q")
+
+        shutil.copy(base.uri, s.uri)
+        s.write(
+            np.array([(20070917, 200703, 0.239330, 0)], dtype=s.raw_dtype),
+            1,
+        )
+        data = s.data
+        self.check_same(
+            data.head(),
+            """
+                date  period     value       _next
+            0  20070428  200701  0.090219  4294967295
+            1  20070917  200703  0.239330  0
+            2  20071023  200703  0.245863  4294967295
+            3  20080301  200704  0.347900          80
+            4  20080313  200704  0.395989  4294967295
+            """,
+        )
+
+    def test_storage_slice(self):
+        s = FilePITStorage("sh600519", "roewa_q")
+        data = s[1:4]
+        self.check_same(
+            data,
+            """
+                date  period     value       _next
+            1  20070817  200702  0.139330  4294967295
+            2  20071023  200703  0.245863  4294967295
+            3  20080301  200704  0.347900          80
+            """,
+        )
+
+    def test_storage_update(self):
+        base = FilePITStorage("sh600519", "roewa_q")
+        s = FilePITStorage("sh600519", "roewa3_q")
+
+        shutil.copy(base.uri, s.uri)
+        s.update(
+            np.array([(20070917, 200703, 0.111111, 0), (20100314, 200703, 0.111111, 0)], dtype=s.raw_dtype),
+        )
+        data = s.data
+        self.check_same(
+            data.head(),
+            """
+                date  period     value       _next
+            0  20070428  200701  0.090219  4294967295
+            1  20070817  200702  0.139330  4294967295
+            2  20070917  200703  0.111111           0
+            3  20100314  200703  0.111111           0
+            4  20100402  200904  0.335461  4294967295
+            """,
+        )
 
     def test_query(self):
         instruments = ["sh600519"]
@@ -107,7 +183,13 @@ class TestPIT(unittest.TestCase):
 
     def test_no_exist_data(self):
         fields = ["P($$roewa_q)", "P($$yoyni_q)", "$close"]
-        data = D.features(["sh600519", "sh601988"], fields, start_time="2019-01-01", end_time="2019-07-19", freq="day")
+        data = D.features(
+            ["sh600519", "sh601988"],
+            fields,
+            start_time="2019-01-01",
+            end_time="2019-07-19",
+            freq="day",
+        )
         data["$close"] = 1  # in case of different dataset gives different values
         expect = """
                                P($$roewa_q)  P($$yoyni_q)  $close

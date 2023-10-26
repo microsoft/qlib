@@ -47,7 +47,10 @@ class ProviderBackendMixin:
 
     def get_default_backend(self):
         backend = {}
-        provider_name: str = re.findall("[A-Z][^A-Z]*", self.__class__.__name__)[-2]
+        if hasattr(self, "provider_name"):
+            provider_name = getattr(self, "provider_name")
+        else:
+            provider_name: str = re.findall("[A-Z][^A-Z]*", self.__class__.__name__)[-2]
         # set default storage class
         backend.setdefault("class", f"File{provider_name}Storage")
         # set default storage module
@@ -335,6 +338,10 @@ class FeatureProvider(abc.ABC):
 
 
 class PITProvider(abc.ABC):
+    @property
+    def provider_name(self):
+        return "PIT"
+
     @abc.abstractmethod
     def period_feature(
         self,
@@ -741,9 +748,14 @@ class LocalFeatureProvider(FeatureProvider, ProviderBackendMixin):
         return self.backend_obj(instrument=instrument, field=field, freq=freq)[start_index : end_index + 1]
 
 
-class LocalPITProvider(PITProvider):
+class LocalPITProvider(PITProvider, ProviderBackendMixin):
     # TODO: Add PIT backend file storage
     # NOTE: This class is not multi-threading-safe!!!!
+
+    def __init__(self, remote=False, backend={}):
+        super().__init__()
+        self.remote = remote
+        self.backend = backend
 
     def period_feature(self, instrument, field, start_offset, end_offset, cur_time, period=None, start_time=None):
         """get raw data from PIT
@@ -764,16 +776,10 @@ class LocalPITProvider(PITProvider):
 
         assert end_offset <= 0  # PIT don't support querying future data
 
-        DATA_RECORDS = [
-            ("date", C.pit_record_type["date"]),
-            ("period", C.pit_record_type["period"]),
-            ("value", C.pit_record_type["value"]),
-            ("_next", C.pit_record_type["index"]),
-        ]
-        VALUE_DTYPE = C.pit_record_type["value"]
-
         field = str(field).lower()[2:]
         instrument = code_to_fname(instrument)
+
+        backend_obj = self.backend_obj(instrument=instrument, field=field)
 
         # {For acceleration
         # start_index, end_index, cur_index = kwargs["info"]
@@ -803,8 +809,8 @@ class LocalPITProvider(PITProvider):
             ## so we cannot findout the offset by given date
             ## stop using index in this version
             # start_point = get_pitdata_offset(index_path, period, )
-            data = np.fromfile(data_path, dtype=DATA_RECORDS)
-            df = pd.DataFrame(data, columns=[i[0] for i in DATA_RECORDS])
+            data = backend_obj.np_data()
+            df = pd.DataFrame(data)
             df.sort_values(by=["date", "period"], inplace=True)
             df["date"] = pd.to_datetime(df["date"].astype(str))
             H["f"][key] = df
@@ -823,7 +829,7 @@ class LocalPITProvider(PITProvider):
             df_sim = df[s_sign].drop_duplicates(subset=["date"], keep="last")
             s_part = df_sim.set_index("date")[start_time:]["value"]
             if s_part.empty:
-                return pd.Series(dtype=VALUE_DTYPE)
+                return pd.Series(index=backend_obj.columns, dtype="float64")
             if start_time != s_part.index[0] and start_time >= df["date"].iloc[0]:
                 # add previous value to result to avoid nan in the first period
                 pre_value = pd.Series(df[df["date"] < start_time]["value"].iloc[-1], index=[start_time])
@@ -832,7 +838,7 @@ class LocalPITProvider(PITProvider):
         else:
             df_remain = df[(df["date"] <= cur_time)]
             if df_remain.empty:
-                return pd.Series(dtype=VALUE_DTYPE)
+                return pd.Series(index=backend_obj.columns, dtype="float64")
             last_observe_date = df_remain["date"].iloc[-1]
             # keep only the latest period value
             df_remain = df_remain.sort_values(by=["period"]).drop_duplicates(subset=["period"], keep="last")

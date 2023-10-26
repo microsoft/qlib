@@ -492,3 +492,129 @@ class FeatureStorage(BaseStorage):
 
         """
         raise NotImplementedError("Subclass of FeatureStorage must implement `__len__`  method")
+
+
+class PITStorage(FeatureStorage):
+    @property
+    def storage_name(self) -> str:
+        return "financial"  # for compatibility
+
+    @property
+    def data(self) -> pd.DataFrame:
+        """get all data
+
+        dataframe index is date, columns are report_period and value
+
+        Notes
+        ------
+        if data(storage) does not exist, return empty pd.DataFrame: `return pd.DataFrame(dtype=np.float32)`
+        """
+        raise NotImplementedError("Subclass of FeatureStorage must implement `data` method")
+
+    def write(self, data_array: Union[List, np.ndarray, Tuple], index: int = None):
+        """Write data_array to FeatureStorage starting from index.
+
+        Notes
+        ------
+            If index is None, append data_array to feature.
+
+            If len(data_array) == 0; return
+
+            If (index - self.end_index) >= 1, self[end_index+1: index] will be filled with np.nan
+
+        Examples
+        ---------
+            .. code-block::
+
+                feature:
+                    3   4
+                    4   5
+                    5   6
+
+
+            >>> self.write([6, 7], index=6)
+
+                feature:
+                    3   4
+                    4   5
+                    5   6
+                    6   6
+                    7   7
+
+            >>> self.write([8], index=9)
+
+                feature:
+                    3   4
+                    4   5
+                    5   6
+                    6   6
+                    7   7
+                    8   np.nan
+                    9   8
+
+            >>> self.write([1, np.nan], index=3)
+
+                feature:
+                    3   1
+                    4   np.nan
+                    5   6
+                    6   6
+                    7   7
+                    8   np.nan
+                    9   8
+
+        """
+        raise NotImplementedError("Subclass of FeatureStorage must implement `write` method")
+
+    def rewrite(self, data: Union[List, np.ndarray, Tuple], index: int):
+        """overwrite all data in FeatureStorage with data
+
+        Parameters
+        ----------
+        data: Union[List, np.ndarray, Tuple]
+            data
+        index: int
+            data start index
+        """
+        self.clear()
+        self.write(data, index)
+
+    @overload
+    def __getitem__(self, s: slice) -> pd.Series:
+        """x.__getitem__(slice(start: int, stop: int, step: int)) <==> x[start:stop:step]
+
+        Returns
+        -------
+            pd.Series(values, index=pd.RangeIndex(start, len(values))
+        """
+
+    @overload
+    def __getitem__(self, i: int) -> Tuple[int, float]:
+        """x.__getitem__(y) <==> x[y]"""
+
+    def __getitem__(self, i) -> Union[Tuple[int, float], pd.Series]:
+        """x.__getitem__(y) <==> x[y]
+
+        Notes
+        -------
+        if data(storage) does not exist:
+            if isinstance(i, int):
+                return (None, None)
+            if isinstance(i,  slice):
+                # return empty pd.Series
+                return pd.Series(dtype=np.float32)
+        """
+        raise NotImplementedError(
+            "Subclass of FeatureStorage must implement `__getitem__(i: int)`/`__getitem__(s: slice)` method"
+        )
+
+    def __len__(self) -> int:
+        """
+
+        Raises
+        ------
+        ValueError
+            If the data(storage) does not exist, raise ValueError
+
+        """
+        raise NotImplementedError("Subclass of FeatureStorage must implement `__len__`  method")
