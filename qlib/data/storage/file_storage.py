@@ -490,7 +490,7 @@ class FilePITStorage(FileStorageMixin, PITStorage):
 
         Args:
             data_array: Structured arrays contains date, period, value and next
-            index: _description_. Defaults to None.
+            index: target index to start writing. Defaults to None.
         """
 
         if len(data_array) == 0:
@@ -509,6 +509,8 @@ class FilePITStorage(FileStorageMixin, PITStorage):
             with self.uri.open("wb") as fp:
                 data_array.tofile(self.uri)
         else:
+            if index is None or index > self.end_index:
+                index = self.end_index + 1
             with self.uri.open("rb+") as fp:
                 fp.seek(index * self.itemsize)
                 data_array.tofile(fp)
@@ -525,6 +527,14 @@ class FilePITStorage(FileStorageMixin, PITStorage):
         return self.start_index + len(self) - 1
 
     def np_data(self, i: Union[int, slice] = None) -> np.ndarray:
+        """return numpy structured array
+
+        Args:
+            i: index or slice. Defaults to None.
+
+        Returns:
+            np.ndarray
+        """
         if not self.uri.exists():
             if isinstance(i, int):
                 return None, None
