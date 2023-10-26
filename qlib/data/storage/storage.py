@@ -574,7 +574,7 @@ class PITStorage(FeatureStorage):
         """
         raise NotImplementedError("Subclass of FeatureStorage must implement `write` method")
 
-    def rewrite(self, data: Union[List, np.ndarray, Tuple], index: int):
+    def rewrite(self, data: Union[List, np.ndarray, Tuple]):
         """overwrite all data in FeatureStorage with data
 
         Parameters
@@ -585,7 +585,7 @@ class PITStorage(FeatureStorage):
             data start index
         """
         self.clear()
-        self.write(data, index)
+        self.write(data, 0)
 
     def update(self, data_array: np.ndarray) -> None:
         """update data to storage, replace current data from start_date to end_date with given data_array
