@@ -495,9 +495,35 @@ class FeatureStorage(BaseStorage):
 
 
 class PITStorage(FeatureStorage):
+    """PIT data is a special case of Feature data, it looks like
+
+                date  period     value       _next
+            0  20070428  200701  0.090219  4294967295
+            1  20070817  200702  0.139330  4294967295
+            2  20071023  200703  0.245863  4294967295
+            3  20080301  200704  0.347900          80
+            4  20080313  200704  0.395989  4294967295
+
+    It is sorted by [date, period].
+
+    next field currently is not used. just for forward compatible.
+    """
+
     @property
     def storage_name(self) -> str:
         return "financial"  # for compatibility
+
+    def np_data(self, i: Union[int, slice] = None) -> np.ndarray:
+        """return numpy structured array
+
+        Args:
+            i: index or slice. Defaults to None.
+
+        Returns:
+            np.ndarray
+        """
+
+        raise NotImplementedError("Subclass of FeatureStorage must implement `write` method")
 
     @property
     def data(self) -> pd.DataFrame:
@@ -511,7 +537,7 @@ class PITStorage(FeatureStorage):
         """
         raise NotImplementedError("Subclass of FeatureStorage must implement `data` method")
 
-    def write(self, data_array: Union[List, np.ndarray, Tuple], index: int = None):
+    def write(self, data_array: np.ndarray, index: int = None):
         """Write data_array to FeatureStorage starting from index.
 
         Notes
@@ -526,42 +552,24 @@ class PITStorage(FeatureStorage):
         ---------
             .. code-block::
 
-                feature:
-                    3   4
-                    4   5
-                    5   6
+                pit data:
+                    date  period     value       _next
+                0  20070428  200701  0.090219  4294967295
+                1  20070817  200702  0.139330  4294967295
+                2  20071023  200703  0.245863  4294967295
+                3  20080301  200704  0.347900          80
+                4  20080313  200704  0.395989  4294967295
 
 
-            >>> self.write([6, 7], index=6)
-
-                feature:
-                    3   4
-                    4   5
-                    5   6
-                    6   6
-                    7   7
-
-            >>> self.write([8], index=9)
+            >>> s.write(np.array([(20070917, 200703, 0.239330, 0)], dtype=s.raw_dtype), 1)
 
                 feature:
-                    3   4
-                    4   5
-                    5   6
-                    6   6
-                    7   7
-                    8   np.nan
-                    9   8
-
-            >>> self.write([1, np.nan], index=3)
-
-                feature:
-                    3   1
-                    4   np.nan
-                    5   6
-                    6   6
-                    7   7
-                    8   np.nan
-                    9   8
+                    date  period     value       _next
+                0  20070428  200701  0.090219  4294967295
+                1  20070917  200703  0.239330  0
+                2  20071023  200703  0.245863  4294967295
+                3  20080301  200704  0.347900          80
+                4  20080313  200704  0.395989  4294967295
 
         """
         raise NotImplementedError("Subclass of FeatureStorage must implement `write` method")
@@ -578,6 +586,34 @@ class PITStorage(FeatureStorage):
         """
         self.clear()
         self.write(data, index)
+
+    def update(self, data_array: np.ndarray) -> None:
+        """update data to storage, replace current data from start_date to end_date with given data_array
+
+        Args:
+            data_array: Structured arrays contains date, period, value and next. same with self.raw_dtype
+
+        Examples
+        ---------
+            .. code-block::
+
+                pit data:
+                    date  period     value       _next
+                0  20070428  200701  0.090219  4294967295
+                1  20070817  200702  0.139330  4294967295
+                2  20071023  200703  0.245863  4294967295
+                3  20080301  200704  0.347900          80
+                4  20080313  200704  0.395989  4294967295
+
+            >>> s.update(np.array([(20070917, 200703, 0.111111, 0), (20100314, 200703, 0.111111, 0)], dtype=s.raw_dtype))
+                    date  period     value       _next
+                0  20070428  200701  0.090219  4294967295
+                1  20070817  200702  0.139330  4294967295
+                2  20070917  200703  0.111111           0
+                3  20100314  200703  0.111111           0
+
+        """
+        raise NotImplementedError("Subclass of FeatureStorage must implement `update` method")
 
     @overload
     def __getitem__(self, s: slice) -> pd.Series:
