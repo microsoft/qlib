@@ -800,9 +800,9 @@ class LocalPITProvider(PITProvider, ProviderBackendMixin):
         else:
             if not field.endswith("_q") and not field.endswith("_a"):
                 raise ValueError("period field must ends with '_q' or '_a'")
-            index_path = C.dpm.get_data_uri() / "financial" / instrument.lower() / f"{field}.index"
+            # index_path = C.dpm.get_data_uri() / "financial" / instrument.lower() / f"{field}.index"
             data_path = C.dpm.get_data_uri() / "financial" / instrument.lower() / f"{field}.data"
-            if not (index_path.exists() and data_path.exists()):
+            if not data_path.exists():
                 raise FileNotFoundError("No file is found.")
             ## get first period offset
             ## NOTE: current index file return offset from a given period not date
