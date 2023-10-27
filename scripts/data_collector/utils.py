@@ -686,7 +686,7 @@ def calc_adjusted_price(
                 df_1d["paused"] = np.nan
             return df_1d
 
-        df = df.groupby([df[_date_field_name].dt.date]).apply(_calc_factor)
+        df = df.groupby([df[_date_field_name].dt.date], group_keys=False).apply(_calc_factor)
         if consistent_1d:
             # the date sequence is consistent with 1d
             df.set_index(_date_field_name, inplace=True)
