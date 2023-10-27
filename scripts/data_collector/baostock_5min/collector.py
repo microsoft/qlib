@@ -60,7 +60,6 @@ class BaostockCollectorHS3005min(BaseCollector):
             using for debug, by default None
         """
         bs.login()
-        interval = "5min"
         super(BaostockCollectorHS3005min, self).__init__(
             save_dir=save_dir,
             start=start,
