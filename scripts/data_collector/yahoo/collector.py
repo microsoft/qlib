@@ -968,7 +968,7 @@ class Run(BaseRun):
             GetData().qlib_data(
                 target_dir=qlib_data_1d_dir, interval=self.interval, region=self.region, exists_skip=exists_skip
             )
-        
+
         # start/end date
         calendar_df = pd.read_csv(Path(qlib_data_1d_dir).joinpath("calendars/day.txt"))
         trading_date = (pd.Timestamp(calendar_df.iloc[-1, 0]) - pd.Timedelta(days=1)).strftime("%Y-%m-%d")
