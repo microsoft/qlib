@@ -121,6 +121,7 @@ pip install -r requirements.txt
         
                 qlib_data_1d can be obtained like this:
                     $ python scripts/get_data.py qlib_data --target_dir <qlib_data_1d_dir> --interval 1d
+                    $ python scripts/data_collector/yahoo/collector.py update_data_to_bin --qlib_data_1d_dir <qlib_data_1d_dir> --trading_date <trading_date>
                 or:
                     download 1d data from YahooFinance
             
