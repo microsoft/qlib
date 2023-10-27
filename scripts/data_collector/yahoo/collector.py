@@ -930,7 +930,6 @@ class Run(BaseRun):
     def update_data_to_bin(
         self,
         qlib_data_1d_dir: str,
-        trading_date: str = None,
         end_date: str = None,
         check_data_length: int = None,
         delay: float = 1,
@@ -943,8 +942,6 @@ class Run(BaseRun):
         qlib_data_1d_dir: str
             the qlib data to be updated for yahoo, usually from: https://github.com/microsoft/qlib/tree/main/scripts#download-cn-data
 
-        trading_date: str
-            trading days to be updated, by default ``datetime.datetime.now().strftime("%Y-%m-%d")``
         end_date: str
             end datetime, default ``pd.Timestamp(trading_date + pd.Timedelta(days=1))``; open interval(excluding end)
         check_data_length: int
@@ -965,24 +962,22 @@ class Run(BaseRun):
         if self.interval.lower() != "1d":
             logger.warning(f"currently supports 1d data updates: --interval 1d")
 
-        # start/end date
-        if trading_date is None:
-            trading_date = datetime.datetime.now().strftime("%Y-%m-%d")
-            logger.warning(f"trading_date is None, use the current date: {trading_date}")
-
-        if end_date is None:
-            end_date = (pd.Timestamp(trading_date) + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
-
         # download qlib 1d data
         qlib_data_1d_dir = str(Path(qlib_data_1d_dir).expanduser().resolve())
         if not exists_qlib_data(qlib_data_1d_dir):
             GetData().qlib_data(
                 target_dir=qlib_data_1d_dir, interval=self.interval, region=self.region, exists_skip=exists_skip
             )
+        
+        # start/end date
+        calendar_df = pd.read_csv(Path(qlib_data_1d_dir).joinpath("calendars/day.txt"))
+        trading_date = (pd.Timestamp(calendar_df.iloc[-1, 0]) - pd.Timedelta(days=2)).strftime("%Y-%m-%d")
+
+        if end_date is None:
+            end_date = (pd.Timestamp(trading_date) + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
 
         # download data from yahoo
         # NOTE: when downloading data from YahooFinance, max_workers is recommended to be 1
-        trading_date = (pd.Timestamp(trading_date) - pd.Timedelta(days=2)).strftime("%Y-%m-%d")
         self.download_data(delay=delay, start=trading_date, end=end_date, check_data_length=check_data_length)
         # NOTE: a larger max_workers setting here would be faster
         self.max_workers = (
