@@ -474,6 +474,7 @@ class FilePITStorage(FileStorageMixin, PITStorage):
         if not self.uri.exists():
             # write
             index = 0
+            self.write(data_array, index)
         else:
             # sort it
             data_array = np.sort(data_array, order=["date", "period"])
