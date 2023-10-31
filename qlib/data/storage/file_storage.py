@@ -507,7 +507,7 @@ class FilePITStorage(FileStorageMixin, PITStorage):
             # write
             index = 0 if index is None else index
             with self.uri.open("wb") as fp:
-                data_array.tofile(self.uri)
+                data_array.tofile(fp)
         else:
             if index is None or index > self.end_index:
                 index = self.end_index + 1
