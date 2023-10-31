@@ -439,7 +439,7 @@ class FilePITStorage(FileStorageMixin, PITStorage):
 
         self._provider_uri = None if provider_uri is None else C.DataPathManager.format_provider_uri(provider_uri)
         self.file_name = f"{instrument.lower()}/{field.lower()}.data"
-        self.uri.parent.mkdir(exist_ok=True)
+        self.uri.parent.mkdir(parents=True, exist_ok=True)
         self.raw_dtype = [
             ("date", C.pit_record_type["date"]),
             ("period", C.pit_record_type["period"]),
