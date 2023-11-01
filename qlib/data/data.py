@@ -829,7 +829,7 @@ class LocalPITProvider(PITProvider, ProviderBackendMixin):
             df_sim = df[s_sign].drop_duplicates(subset=["date"], keep="last")
             s_part = df_sim.set_index("date")[start_time:]["value"]
             if s_part.empty:
-                return pd.Series(index=backend_obj.columns, dtype="float64")
+                return pd.Series(dtype="float64")
             if start_time != s_part.index[0] and start_time >= df["date"].iloc[0]:
                 # add previous value to result to avoid nan in the first period
                 pre_value = pd.Series(df[df["date"] < start_time]["value"].iloc[-1], index=[start_time])
@@ -838,7 +838,7 @@ class LocalPITProvider(PITProvider, ProviderBackendMixin):
         else:
             df_remain = df[(df["date"] <= cur_time)]
             if df_remain.empty:
-                return pd.Series(index=backend_obj.columns, dtype="float64")
+                return pd.Series(dtype="float64")
             last_observe_date = df_remain["date"].iloc[-1]
             # keep only the latest period value
             df_remain = df_remain.sort_values(by=["period"]).drop_duplicates(subset=["period"], keep="last")
