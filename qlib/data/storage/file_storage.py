@@ -501,7 +501,10 @@ class FilePITStorage(FileStorageMixin, PITStorage):
                 "if you need to clear the FeatureStorage, please execute: FeatureStorage.clear"
             )
             return
-
+        # check data_array dtype
+        if data_array.dtype != self.dtypes:
+            raise ValueError(f"data_array.dtype = {data_array.dtype}, self.dtypes = {self.dtypes}")
+        
         # sort data_array with first 2 columns
         data_array = np.sort(data_array, order=["date", "period"])
 
