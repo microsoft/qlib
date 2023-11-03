@@ -31,12 +31,17 @@ class QlibLogger(metaclass=MetaLogger):
         # this feature name conflicts with the attribute with Logger
         # rename it to avoid some corner cases that result in comparing `str` and `int`
         self.__level = 0
+        # Normally this should be set to `False` to avoid duplicated logging [1].
+        # However, due to bug in pytest, it requires log message to propagate to root logger to be captured by `caplog` [2].
+        # [1] https://github.com/microsoft/qlib/pull/1661
+        # [2] https://github.com/pytest-dev/pytest/issues/3697
+        self.propagate = False
 
     @property
     def logger(self):
         logger = logging.getLogger(self.module_name)
         logger.setLevel(self.__level)
-        logger.parent.propagate = False
+        logger.parent.propagate = self.propagate
         return logger
 
     def setLevel(self, level):
