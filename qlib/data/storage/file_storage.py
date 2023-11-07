@@ -471,7 +471,7 @@ class FilePITStorage(FileStorageMixin, PITStorage):
         Args:
             data_array: Structured arrays contains date, period, value and next. same with self.raw_dtype
         """
-        if not self.uri.exists():
+        if not self.uri.exists() or len(self) == 0:
             # write
             index = 0
             self.write(data_array, index)
@@ -544,7 +544,7 @@ class FilePITStorage(FileStorageMixin, PITStorage):
             if isinstance(i, int):
                 return None, None
             elif isinstance(i, slice):
-                return pd.Series(dtype=np.float32)
+                return np.array(dtype=self.dtypes)
             else:
                 raise TypeError(f"type(i) = {type(i)}")
 
@@ -563,7 +563,7 @@ class FilePITStorage(FileStorageMixin, PITStorage):
                 end_index = storage_end_index if i.stop is None else i.stop - 1
                 si = max(start_index, storage_start_index)
                 if si > end_index:
-                    return pd.Series(dtype=np.float32)
+                    return np.array(dtype=self.dtypes)
                 fp.seek(start_index * self.itemsize)
                 # read n bytes
                 count = end_index - si + 1
