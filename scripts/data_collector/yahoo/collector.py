@@ -393,8 +393,8 @@ class YahooNormalize(BaseNormalize):
         df = df.copy()
         df.set_index(date_field_name, inplace=True)
         df.index = pd.to_datetime(df.index)
+        df.index = df.index.tz_localize(None)
         df = df[~df.index.duplicated(keep="first")]
-        calendar_list = calendar_list.tz_localize("Asia/Shanghai")
         if calendar_list is not None:
             df = df.reindex(
                 pd.DataFrame(index=calendar_list)
