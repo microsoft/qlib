@@ -390,26 +390,21 @@ class YahooNormalize(BaseNormalize):
             return df
         symbol = df.loc[df[symbol_field_name].first_valid_index(), symbol_field_name]
         columns = copy.deepcopy(YahooNormalize.COLUMNS)
+        df = df.copy()
         df.set_index(date_field_name, inplace=True)
         df.index = pd.to_datetime(df.index)
         df = df[~df.index.duplicated(keep="first")]
-        df_tmp = df.copy()
+        calendar_list = calendar_list.tz_localize("Asia/Shanghai")
         if calendar_list is not None:
-            df_tmp = df_tmp.reindex(
+            df = df.reindex(
                 pd.DataFrame(index=calendar_list)
                 .loc[
-                    pd.Timestamp(df_tmp.index.min()).date() : pd.Timestamp(df_tmp.index.max()).date()
+                    pd.Timestamp(df.index.min()).date() : pd.Timestamp(df.index.max()).date()
                     + pd.Timedelta(hours=23, minutes=59)
                 ]
                 .index
             )
-        df_tmp.index = pd.to_datetime(df_tmp.index)
-        df_tmp.sort_index(inplace=True)
-        df_tmp.index = df_tmp.index.tz_localize(None)
-        df.index = df.index.tz_localize(None)
-        df_tmp["symbol"] = df.iloc[0]["symbol"]
-        df_tmp = df_tmp.drop(columns=["open", "high", "low", "close", "volume"])
-        df = df_tmp.merge(df[["open", "high", "low", "close", "volume"]], left_index=True, right_index=True, how="left")
+        df.sort_index(inplace=True)
         df.loc[(df["volume"] <= 0) | np.isnan(df["volume"]), list(set(df.columns) - {symbol_field_name})] = np.nan
 
         change_series = YahooNormalize.calc_change(df, last_close)
