@@ -321,7 +321,7 @@ Qlib provides a tool named `qrun` to run the whole workflow automatically (inclu
 The automatic workflow may not suit the research workflow of all Quant researchers. To support a flexible Quant research workflow, Qlib also provides a modularized interface to allow researchers to build their own workflow by code. [Here](examples/workflow_by_code.ipynb) is a demo for customized Quant research workflow by code.
 
 # Main Challenges & Solutions in Quant Research
-Quant investment is an very unique scenario with lots of key challenges to be solved.
+Quant investment is a very unique scenario with lots of key challenges to be solved.
 Currently, Qlib provides some solutions for several of them.
 
 ## Forecasting: Finding Valuable Signals/Patterns
