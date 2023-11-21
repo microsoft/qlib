@@ -647,6 +647,21 @@ def calc_adjusted_price(
     consistent_1d: bool = True,
     calc_paused: bool = True,
 ) -> pd.DataFrame:
+    """calc adjusted price
+    This method does 4 things.
+    1. Adds the `paused` field.
+        - The added paused field comes from the paused field of the 1d data.
+    2. Aligns the time of the 1d data.
+    3. The data is reweighted.
+        - The reweighting method:
+            - volume / factor
+            - open * factor
+            - high * factor
+            - low * factor
+            - close * factor
+    4. Called `calc_paused_num` method to add the `paused_num` field.
+        - The `paused_num` is the number of consecutive days of trading suspension.
+    """
     # TODO: using daily data factor
     if df.empty:
         return df
@@ -714,6 +729,10 @@ def calc_adjusted_price(
 
 
 def calc_paused_num(df: pd.DataFrame, _date_field_name, _symbol_field_name):
+    """calc paused num
+    This method adds the paused_num field
+        - The `paused_num` is the number of consecutive days of trading suspension.
+    """
     _symbol = df.iloc[0][_symbol_field_name]
     df = df.copy()
     df["_tmp_date"] = df[_date_field_name].apply(lambda x: pd.Timestamp(x).date())
