@@ -4,7 +4,6 @@
 import abc
 from functools import partial
 import sys
-import importlib
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 from typing import List
@@ -113,7 +112,7 @@ class WIKIIndex(IndexBase):
         return _calendar_list
 
     def _request_new_companies(self) -> requests.Response:
-        resp = requests.get(self._target_url)
+        resp = requests.get(self._target_url, timeout=None)
         if resp.status_code != 200:
             raise ValueError(f"request error: {self._target_url}")
 
@@ -164,7 +163,7 @@ class NASDAQ100Index(WIKIIndex):
             df = pd.read_pickle(cache_path)
         else:
             url = self.HISTORY_COMPANIES_URL.format(trade_date=trade_date)
-            resp = requests.post(url)
+            resp = requests.post(url, timeout=None)
             if resp.status_code != 200:
                 raise ValueError(f"request error: {url}")
             df = pd.DataFrame(resp.json()["aaData"])
