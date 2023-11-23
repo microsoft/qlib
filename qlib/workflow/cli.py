@@ -68,7 +68,8 @@ def workflow(config_path, experiment_name="workflow", uri_folder="mlruns"):
 
     """
     with open(config_path) as fp:
-        config = yaml.safe_load(fp)
+        yml = yaml.YAML(typ='safe', pure=True)
+        config = yml.load(fp)
 
     base_config_path = config.get("BASE_CONFIG_PATH", None)
     if base_config_path:
@@ -90,7 +91,8 @@ def workflow(config_path, experiment_name="workflow", uri_folder="mlruns"):
                 raise FileNotFoundError(f"Can't find the BASE_CONFIG file: {base_config_path}")
 
         with open(path) as fp:
-            base_config = yaml.safe_load(fp)
+            yml = yaml.YAML(typ='safe', pure=True)
+            base_config = yml.load(fp)
         logger.info(f"Load BASE_CONFIG_PATH succeed: {path.resolve()}")
         config = update_config(base_config, config)
 
