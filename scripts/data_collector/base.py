@@ -309,7 +309,7 @@ class Normalize:
                     df = df[_mask]
                 df.to_csv(self._target_dir.joinpath(file_path.name), index=False)
         except Exception as e:
-            logger.error(f"normalize {file_path.name} failed, error: {e}")
+            logger.warning(f"normalize {file_path.name} failed, error: {e}")
 
     def normalize(self):
         logger.info("normalize data......")
