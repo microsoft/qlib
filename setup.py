@@ -70,7 +70,11 @@ REQUIRED = [
     "lightgbm>=3.3.0",
     "tornado",
     "joblib>=0.17.0",
-    "ruamel.yaml>=0.16.12",
+    # With the upgrading of ruamel.yaml to 0.18, the safe_load method was deprecated,
+    # which would cause qlib.workflow.cli to not work properly,
+    # and no good replacement has been found, so the version of ruamel.yaml has been restricted for now.
+    # Refs: https://pypi.org/project/ruamel.yaml/
+    "ruamel.yaml<=0.17.36",
     "pymongo==3.7.2",  # For task management
     "scikit-learn>=0.22",
     "dill",
@@ -80,6 +84,7 @@ REQUIRED = [
     "gym",
     # Installing the latest version of protobuf for python versions below 3.8 will cause unit tests to fail.
     "protobuf<=3.20.1;python_version<='3.8'",
+    "cryptography",
 ]
 
 # Numpy include
@@ -139,7 +144,8 @@ setup(
             "wheel",
             "setuptools",
             "black",
-            "pylint",
+            # Version 3.0 of pylint had problems with the build process, so we limited the version of pylint.
+            "pylint<=2.17.6",
             # Using the latest versions(0.981 and 0.982) of mypy,
             # the error "multiprocessing.Value()" is detected in the file "qlib/rl/utils/data_queue.py",
             # If this is fixed in a subsequent version of mypy, then we will revert to the latest version of mypy.
@@ -170,7 +176,7 @@ setup(
             "gym>=0.24",  # If you do not put gym at the end, gym will degrade causing pytest results to fail.
         ],
         "rl": [
-            "tianshou",
+            "tianshou<=0.4.10",
             "torch",
         ],
     },

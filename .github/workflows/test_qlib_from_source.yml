@@ -20,18 +20,26 @@ jobs:
 
     steps:
     - name: Test qlib from source
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
+
+    # Since version 3.7 of python for MacOS is installed in CI, version 3.7.17, this version causes "_bz not found error".
+    # So we make the version number of python 3.7 for MacOS more specific.
+    # refs: https://github.com/actions/setup-python/issues/682
+    - name: Set up Python ${{ matrix.python-version }}
+      if: (matrix.os == 'macos-latest' && matrix.python-version == '3.7') || (matrix.os == 'macos-11' && matrix.python-version == '3.7')
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.7.16"
 
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      if: (matrix.os != 'macos-latest' || matrix.python-version != '3.7') && (matrix.os != 'macos-11' || matrix.python-version != '3.7')
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
 
     - name: Update pip to the latest version
-      # pip release version 23.1 on Apr.15 2023, CI failed to run, Please refer to #1495 ofr detailed logs.
-      # The pip version has been temporarily fixed to 23.0.1
       run: |
-        python -m pip install pip==23.0.1
+        python -m pip install --upgrade pip
 
     - name: Installing pytorch for macos
       if: ${{ matrix.os == 'macos-11' || matrix.os == 'macos-latest' }}
@@ -54,7 +62,10 @@ jobs:
         python -m pip install -e .[dev]
 
     - name: Lint with Black
+      # Python 3.7 will use a black with low level. So we use python with higher version for black check
+      if: (matrix.python-version != '3.7')
       run: |
+        pip install -U black  # follow the latest version of black, previous Qlib dependency will downgrade black
         black . -l 120 --check --diff
 
     - name: Make html with sphinx
@@ -91,6 +102,7 @@ jobs:
     - name: Check Qlib with pylint
       run: |
         pylint --disable=C0104,C0114,C0115,C0116,C0301,C0302,C0411,C0413,C1802,R0401,R0801,R0902,R0903,R0911,R0912,R0913,R0914,R0915,R1720,W0105,W0123,W0201,W0511,W0613,W1113,W1514,E0401,E1121,C0103,C0209,R0402,R1705,R1710,R1725,R1735,W0102,W0212,W0221,W0223,W0231,W0237,W0612,W0621,W0622,W0703,W1309,E1102,E1136 --const-rgx='[a-z_][a-z0-9_]{2,30}$' qlib --init-hook "import astroid; astroid.context.InferenceContext.max_inferred = 500; import sys; sys.setrecursionlimit(2000)"
+        pylint --disable=C0104,C0114,C0115,C0116,C0301,C0302,C0411,C0413,C1802,R0401,R0801,R0902,R0903,R0911,R0912,R0913,R0914,R0915,R1720,W0105,W0123,W0201,W0511,W0613,W1113,W1514,E0401,E1121,C0103,C0209,R0402,R1705,R1710,R1725,R1735,W0102,W0212,W0221,W0223,W0231,W0237,W0246,W0612,W0621,W0622,W0703,W1309,E1102,E1136 --const-rgx='[a-z_][a-z0-9_]{2,30}$' scripts --init-hook "import astroid; astroid.context.InferenceContext.max_inferred = 500; import sys; sys.setrecursionlimit(2000)"
 
     # The following flake8 error codes were ignored:
       # E501 line too long
@@ -129,8 +141,7 @@ jobs:
     - name: Test data downloads
       run: |
         python scripts/get_data.py qlib_data --name qlib_data_simple --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
-        azcopy copy https://qlibpublic.blob.core.windows.net/data/rl /tmp/qlibpublic/data --recursive
-        mv /tmp/qlibpublic/data tests/.data
+        python scripts/get_data.py download_data --file_name rl_data.zip --target_dir tests/.data/rl
 
     - name: Install Lightgbm for MacOS
       if: ${{ matrix.os == 'macos-11' || matrix.os == 'macos-latest' }}

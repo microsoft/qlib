@@ -522,7 +522,6 @@ class ACStrategy(BaseStrategy):
             _order_amount = min(_order_amount, self.trade_amount[order.stock_id])
 
             if _order_amount > 1e-5:
-
                 _order = Order(
                     stock_id=order.stock_id,
                     amount=_order_amount,
@@ -635,7 +634,7 @@ class FileOrderStrategy(BaseStrategy):
             self.order_df = file
         else:
             with get_io_object(file) as f:
-                self.order_df = pd.read_csv(f, dtype={"datetime": np.str})
+                self.order_df = pd.read_csv(f, dtype={"datetime": str})
 
         self.order_df["datetime"] = self.order_df["datetime"].apply(pd.Timestamp)
         self.order_df = self.order_df.set_index(["datetime", "instrument"])

@@ -8,7 +8,7 @@ import datetime
 import importlib
 from pathlib import Path
 from typing import Type, Iterable
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
 
 import pandas as pd
 from tqdm import tqdm
@@ -18,7 +18,6 @@ from qlib.utils import code_to_fname
 
 
 class BaseCollector(abc.ABC):
-
     CACHE_FLAG = "CACHED"
     NORMAL_FLAG = "NORMAL"
 
@@ -185,7 +184,6 @@ class BaseCollector(abc.ABC):
             return self.NORMAL_FLAG
 
     def _collector(self, instrument_list):
-
         error_symbol = []
         res = Parallel(n_jobs=self.max_workers)(
             delayed(self._simple_collector)(_inst) for _inst in tqdm(instrument_list)
@@ -292,7 +290,7 @@ class Normalize:
 
         # some symbol_field values such as TRUE, NA are decoded as True(bool), NaN(np.float) by pandas default csv parsing.
         # manually defines dtype and na_values of the symbol_field.
-        default_na = pd._libs.parsers.STR_NA_VALUES
+        default_na = pd._libs.parsers.STR_NA_VALUES  # pylint: disable=I1101
         symbol_na = default_na.copy()
         symbol_na.remove("NA")
         columns = pd.read_csv(file_path, nrows=0).columns

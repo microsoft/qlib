@@ -53,7 +53,7 @@ class CollectorFutureCalendar:
         return datetime_d.strftime(self.calendar_format)
 
     def write_calendar(self, calendar: Iterable):
-        calendars_list = list(map(lambda x: self._format_datetime(x), sorted(set(self.calendar_list + calendar))))
+        calendars_list = [self._format_datetime(x) for x in sorted(set(self.calendar_list + calendar))]
         np.savetxt(self.future_path, calendars_list, fmt="%s", encoding="utf-8")
 
     @abc.abstractmethod

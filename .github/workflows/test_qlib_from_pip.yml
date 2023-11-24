@@ -19,10 +19,20 @@ jobs:
 
     steps:
     - name: Test qlib from pip
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
+
+    # Since version 3.7 of python for MacOS is installed in CI, version 3.7.17, this version causes "_bz not found error".
+    # So we make the version number of python 3.7 for MacOS more specific.
+    # refs: https://github.com/actions/setup-python/issues/682
+    - name: Set up Python ${{ matrix.python-version }}
+      if: (matrix.os == 'macos-latest' && matrix.python-version == '3.7') || (matrix.os == 'macos-11' && matrix.python-version == '3.7')
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.7.16"
 
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      if: (matrix.os != 'macos-latest' || matrix.python-version != '3.7') && (matrix.os != 'macos-11' || matrix.python-version != '3.7')
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -33,9 +43,6 @@ jobs:
     - name: Qlib installation test
       run: |
         python -m pip install pyqlib
-        # Specify the numpy version because the numpy upgrade caused the CI test to fail, 
-        # and this line of code will be removed when the next version of qlib is released.
-        python -m pip install "numpy<1.23"
 
     - name: Install Lightgbm for MacOS
       if: ${{ matrix.os == 'macos-11' || matrix.os == 'macos-latest' }}
@@ -50,7 +57,9 @@ jobs:
 
     - name: Downloads dependencies data
       run: |
-        python scripts/get_data.py qlib_data --name qlib_data_simple --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
+        cd ..
+        python -m qlib.run.get_data qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn
+        cd qlib
 
     - name: Test workflow by config
       run: |

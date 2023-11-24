@@ -16,12 +16,12 @@ Though the dataset is different, the conclusion remains the same. By applying `D
 # Run the Code
 Users can try `DDG-DA` by running the following command:
 ```bash
-    python workflow.py run_all
+    python workflow.py run
 ```
 
 The default forecasting models are `Linear`. Users can choose other forecasting models by changing the `forecast_model` parameter when `DDG-DA` initializes. For example, users can try `LightGBM` forecasting models by running the following command:
 ```bash
-    python workflow.py --forecast_model="gbdt" run_all
+    python workflow.py --conf_path=../workflow_config_lightgbm_Alpha158.yaml run
 ```
 
 # Results

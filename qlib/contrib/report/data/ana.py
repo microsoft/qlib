@@ -30,7 +30,6 @@ class CombFeaAna(FeaAnalyser):
         """The statistics of features are finished in the underlying analysers"""
 
     def plot_all(self, *args, **kwargs):
-
         ax_gen = iter(sub_fig_generator(row_n=len(self._fea_ana_l), *args, **kwargs))
 
         for col in self._dataset:
