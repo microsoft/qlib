@@ -134,66 +134,6 @@ def get_period_offset(first_year, period, quarterly):
     return offset
 
 
-def read_period_data(index_path, data_path, period, cur_date_int: int, quarterly, last_period_index: int = None):
-    """
-    At `cur_date`(e.g. 20190102), read the information at `period`(e.g. 201803).
-    Only the updating info before cur_date or at cur_date will be used.
-
-    Parameters
-    ----------
-    period: int
-        date period represented by interger, e.g. 201901 corresponds to the first quarter in 2019
-    cur_date_int: int
-        date which represented by interger, e.g. 20190102
-    last_period_index: int
-        it is a optional parameter; it is designed to avoid repeatedly access the .index data of PIT database when
-        sequentially observing the data (Because the latest index of a specific period of data certainly appear in after the one in last observation).
-
-    Returns
-    -------
-    the query value and byte index the index value
-    """
-    DATA_DTYPE = "".join(
-        [
-            C.pit_record_type["date"],
-            C.pit_record_type["period"],
-            C.pit_record_type["value"],
-            C.pit_record_type["index"],
-        ]
-    )
-
-    PERIOD_DTYPE = C.pit_record_type["period"]
-    INDEX_DTYPE = C.pit_record_type["index"]
-
-    NAN_VALUE = C.pit_record_nan["value"]
-    NAN_INDEX = C.pit_record_nan["index"]
-
-    # find the first index of linked revisions
-    if last_period_index is None:
-        with open(index_path, "rb") as fi:
-            (first_year,) = struct.unpack(PERIOD_DTYPE, fi.read(struct.calcsize(PERIOD_DTYPE)))
-            all_periods = np.fromfile(fi, dtype=INDEX_DTYPE)
-        offset = get_period_offset(first_year, period, quarterly)
-        _next = all_periods[offset]
-    else:
-        _next = last_period_index
-
-    # load data following the `_next` link
-    prev_value = NAN_VALUE
-    prev_next = _next
-
-    with open(data_path, "rb") as fd:
-        while _next != NAN_INDEX:
-            fd.seek(_next)
-            date, period, value, new_next = struct.unpack(DATA_DTYPE, fd.read(struct.calcsize(DATA_DTYPE)))
-            if date > cur_date_int:
-                break
-            prev_next = _next
-            _next = new_next
-            prev_value = value
-    return prev_value, prev_next
-
-
 def np_ffill(arr: np.array):
     """
     forward fill a 1D numpy array
