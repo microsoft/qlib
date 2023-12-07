@@ -69,7 +69,7 @@ class AnyPolicy(BasePolicy):
 def test_simple_env_logger(caplog):
     set_log_with_config(C.logging_config)
     writer = ConsoleWriter()
-    writer.console_logger.propagate = True
+    writer.console_logger.parent_propagate = True
     for venv_cls_name in ["dummy", "shmem", "subproc"]:
         csv_writer = CsvWriter(Path(__file__).parent / ".output")
         venv = vectorize_env(lambda: SimpleEnv(), venv_cls_name, 4, [writer, csv_writer])

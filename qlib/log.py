@@ -35,13 +35,13 @@ class QlibLogger(metaclass=MetaLogger):
         # However, due to bug in pytest, it requires log message to propagate to root logger to be captured by `caplog` [2].
         # [1] https://github.com/microsoft/qlib/pull/1661
         # [2] https://github.com/pytest-dev/pytest/issues/3697
-        self.propagate = False
+        self.parent_propagate = False
 
     @property
     def logger(self):
         logger = logging.getLogger(self.module_name)
         logger.setLevel(self.__level)
-        logger.parent.propagate = self.propagate
+        logger.parent.propagate = self.parent_propagate
         return logger
 
     def setLevel(self, level):
