@@ -356,6 +356,7 @@ Here is a list of models built on `Qlib`.
 - [ADD based on pytorch (Hongshun Tang, et al.2020)](examples/benchmarks/ADD/)
 - [IGMTF based on pytorch (Wentao Xu, et al.2021)](examples/benchmarks/IGMTF/)
 - [HIST based on pytorch (Wentao Xu, et al.2021)](examples/benchmarks/HIST/)
+- [MTMD based on pytorch (Mingjie Wang, et al.2021)](examples/benchmarks/MTMD/)
 - [KRNN based on pytorch](examples/benchmarks/KRNN/)
 - [Sandwich based on pytorch](examples/benchmarks/Sandwich/)
 
