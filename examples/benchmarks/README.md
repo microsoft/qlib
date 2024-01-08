@@ -70,7 +70,7 @@ The numbers shown below demonstrate the performance of the entire `workflow` of 
 | HIST(Wentao Xu, et al.)                   | Alpha360 | 0.0522±0.00 | 0.3530±0.01 | 0.0667±0.00 | 0.4576±0.01 | 0.0987±0.02       | 1.3726±0.27       | -0.0681±0.01 |
 | KRNN                                      | Alpha360 | 0.0173±0.01 | 0.1210±0.06 | 0.0270±0.01 | 0.2018±0.04 | -0.0465±0.05      | -0.5415±0.62      | -0.2919±0.13 |
 | Sandwich                                  | Alpha360 | 0.0258±0.00 | 0.1924±0.04 | 0.0337±0.00 | 0.2624±0.03 | 0.0005±0.03       | 0.0001±0.33       | -0.1752±0.05 |
-
+| MTMD(Mingjie Wang, et al.)                | Alpha360 | 0.0538±0.00 | 0.3849±0.01 | 0.0672±0.00 | 0.4656±0.01 | 0.1022±0.02       | 1.4031±0.26       | -0.0664±0.01 |
 
 - The selected 20 features are based on the feature importance of a lightgbm-based model.
 - The base model of DoubleEnsemble is LGBM.
