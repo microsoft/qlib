@@ -116,7 +116,8 @@ class Freq:
     NORM_FREQ_WEEK = "week"
     NORM_FREQ_DAY = "day"
     NORM_FREQ_MINUTE = "min"  # using min instead of minute for align with Qlib's data filename
-    SUPPORT_CAL_LIST = [NORM_FREQ_MINUTE, NORM_FREQ_DAY]  # FIXME: this list should from data
+    NORM_FREQ_SECOND = "sec"  # using min instead of minute for align with Qlib's data filename
+    SUPPORT_CAL_LIST = [NORM_FREQ_SECOND, NORM_FREQ_MINUTE, NORM_FREQ_DAY]  # FIXME: this list should from data
 
     def __init__(self, freq: Union[str, "Freq"]) -> None:
         if isinstance(freq, str):
@@ -164,7 +165,7 @@ class Freq:
 
         """
         freq = freq.lower()
-        match_obj = re.match("^([0-9]*)(month|mon|week|w|day|d|minute|min)$", freq)
+        match_obj = re.match("^([0-9]*)(month|mon|week|w|day|d|minute|min|second|sec)$", freq)
         if match_obj is None:
             raise ValueError(
                 "freq format is not supported, the freq should be like (n)month/mon, (n)week/w, (n)day/d, (n)minute/min"
@@ -180,6 +181,8 @@ class Freq:
             "d": Freq.NORM_FREQ_DAY,
             "minute": Freq.NORM_FREQ_MINUTE,
             "min": Freq.NORM_FREQ_MINUTE,
+            "second": Freq.NORM_FREQ_SECOND,
+            "sec": Freq.NORM_FREQ_SECOND,
         }
         return _count, _freq_format_dict[_freq]
 
@@ -214,6 +217,7 @@ class Freq:
 
         """
         minutes_map = {
+            Freq.NORM_FREQ_SECOND: 1 / 60,
             Freq.NORM_FREQ_MINUTE: 1,
             Freq.NORM_FREQ_DAY: 60 * 24,
             Freq.NORM_FREQ_WEEK: 7 * 60 * 24,

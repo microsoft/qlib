@@ -1,379 +1,381 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+"""
+Time related utils are compiled in this script
+"""
+import bisect
+from datetime import datetime, time, date, timedelta
+from typing import List, Optional, Tuple, Union
+import functools
+import re
 
-import struct
-from pathlib import Path
-from typing import Iterable, Union, Dict, Mapping, Tuple, List
-
-import numpy as np
 import pandas as pd
 
-from qlib.utils.time import Freq
-from qlib.utils.resam import resam_calendar
 from qlib.config import C
-from qlib.data.cache import H
-from qlib.log import get_module_logger
-from qlib.data.storage import CalendarStorage, InstrumentStorage, FeatureStorage, CalVT, InstKT, InstVT
-
-logger = get_module_logger("file_storage")
+from qlib.constant import REG_CN, REG_TW, REG_US
 
 
-class FileStorageMixin:
-    """FileStorageMixin, applicable to FileXXXStorage
-    Subclasses need to have provider_uri, freq, storage_name, file_name attributes
+CN_TIME = [
+    datetime.strptime("9:30", "%H:%M"),
+    datetime.strptime("11:30", "%H:%M"),
+    datetime.strptime("13:00", "%H:%M"),
+    datetime.strptime("15:00", "%H:%M"),
+]
+US_TIME = [datetime.strptime("9:30", "%H:%M"), datetime.strptime("16:00", "%H:%M")]
+TW_TIME = [
+    datetime.strptime("9:00", "%H:%M"),
+    datetime.strptime("13:30", "%H:%M"),
+]
+
+
+@functools.lru_cache(maxsize=240)
+def get_min_cal(shift: int = 0, region: str = REG_CN) -> List[time]:
+    """
+    get the minute level calendar in day period
+
+    Parameters
+    ----------
+    shift : int
+        the shift direction would be like pandas shift.
+        series.shift(1) will replace the value at `i`-th with the one at `i-1`-th
+    region: str
+        Region, for example, "cn", "us"
+
+    Returns
+    -------
+    List[time]:
 
     """
+    cal = []
 
-    # NOTE: provider_uri priority:
-    #   1. self._provider_uri : if provider_uri is provided.
-    #   2. provider_uri in qlib.config.C
+    if region == REG_CN:
+        for ts in list(
+            pd.date_range(CN_TIME[0], CN_TIME[1] - timedelta(minutes=1), freq="1min") - pd.Timedelta(minutes=shift)
+        ) + list(
+            pd.date_range(CN_TIME[2], CN_TIME[3] - timedelta(minutes=1), freq="1min") - pd.Timedelta(minutes=shift)
+        ):
+            cal.append(ts.time())
+    elif region == REG_TW:
+        for ts in list(
+            pd.date_range(TW_TIME[0], TW_TIME[1] - timedelta(minutes=1), freq="1min") - pd.Timedelta(minutes=shift)
+        ):
+            cal.append(ts.time())
+    elif region == REG_US:
+        for ts in list(
+            pd.date_range(US_TIME[0], US_TIME[1] - timedelta(minutes=1), freq="1min") - pd.Timedelta(minutes=shift)
+        ):
+            cal.append(ts.time())
+    else:
+        raise ValueError(f"{region} is not supported")
+    return cal
 
-    @property
-    def provider_uri(self):
-        return C["provider_uri"] if getattr(self, "_provider_uri", None) is None else self._provider_uri
 
-    @property
-    def dpm(self):
-        return (
-            C.dpm
-            if getattr(self, "_provider_uri", None) is None
-            else C.DataPathManager(self._provider_uri, C.mount_path)
-        )
+def is_single_value(start_time, end_time, freq, region: str = REG_CN):
+    """Is there only one piece of data for stock market.
 
-    @property
-    def support_freq(self) -> List[str]:
-        _v = "_support_freq"
-        if hasattr(self, _v):
-            return getattr(self, _v)
-        if len(self.provider_uri) == 1 and C.DEFAULT_FREQ in self.provider_uri:
-            freq_l = filter(
-                lambda _freq: not _freq.endswith("_future"),
-                map(lambda x: x.stem, self.dpm.get_data_uri(C.DEFAULT_FREQ).joinpath("calendars").glob("*.txt")),
-            )
+    Parameters
+    ----------
+    start_time : Union[pd.Timestamp, str]
+        closed start time for data.
+    end_time : Union[pd.Timestamp, str]
+        closed end time for data.
+    freq :
+    region: str
+        Region, for example, "cn", "us"
+    Returns
+    -------
+    bool
+        True means one piece of data to obtain.
+    """
+    if region == REG_CN:
+        if end_time - start_time < freq:
+            return True
+        if start_time.hour == 11 and start_time.minute == 29 and start_time.second == 0:
+            return True
+        if start_time.hour == 14 and start_time.minute == 59 and start_time.second == 0:
+            return True
+        return False
+    elif region == REG_TW:
+        if end_time - start_time < freq:
+            return True
+        if start_time.hour == 13 and start_time.minute >= 25 and start_time.second == 0:
+            return True
+        return False
+    elif region == REG_US:
+        if end_time - start_time < freq:
+            return True
+        if start_time.hour == 15 and start_time.minute == 59 and start_time.second == 0:
+            return True
+        return False
+    else:
+        raise NotImplementedError(f"please implement the is_single_value func for {region}")
+
+
+class Freq:
+    NORM_FREQ_MONTH = "month"
+    NORM_FREQ_WEEK = "week"
+    NORM_FREQ_DAY = "day"
+    NORM_FREQ_MINUTE = "min"  # using min instead of minute for align with Qlib's data filename
+    NORM_FREQ_SECOND = "sec"  # using min instead of minute for align with Qlib's data filename
+    SUPPORT_CAL_LIST = [NORM_FREQ_SECOND, NORM_FREQ_MINUTE, NORM_FREQ_DAY]  # FIXME: this list should from data
+
+    def __init__(self, freq: Union[str, "Freq"]) -> None:
+        if isinstance(freq, str):
+            self.count, self.base = self.parse(freq)
+        elif isinstance(freq, Freq):
+            self.count, self.base = freq.count, freq.base
         else:
-            freq_l = self.provider_uri.keys()
-        freq_l = [Freq(freq) for freq in freq_l]
-        setattr(self, _v, freq_l)
-        return freq_l
+            raise NotImplementedError(f"This type of input is not supported")
 
-    @property
-    def uri(self) -> Path:
-        if self.freq not in self.support_freq:
-            raise ValueError(f"{self.storage_name}: {self.provider_uri} does not contain data for {self.freq}")
-        return self.dpm.get_data_uri(self.freq).joinpath(f"{self.storage_name}s", self.file_name)
+    def __eq__(self, freq):
+        freq = Freq(freq)
+        return freq.count == self.count and freq.base == self.base
 
-    def check(self):
-        """check self.uri
+    def __str__(self):
+        # trying to align to the filename of Qlib: day, 30min, 5min, 1min...
+        return f"{self.count if self.count != 1 or self.base != 'day' else ''}{self.base}"
 
-        Raises
-        -------
-        ValueError
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({str(self)})"
+
+    @staticmethod
+    def parse(freq: str) -> Tuple[int, str]:
         """
-        if not self.uri.exists():
-            raise ValueError(f"{self.storage_name} not exists: {self.uri}")
+        Parse freq into a unified format
 
+        Parameters
+        ----------
+        freq : str
+            Raw freq, supported freq should match the re '^([0-9]*)(month|mon|week|w|day|d|minute|min)$'
 
-class FileCalendarStorage(FileStorageMixin, CalendarStorage):
-    def __init__(self, freq: str, future: bool, provider_uri: dict = None, **kwargs):
-        super(FileCalendarStorage, self).__init__(freq, future, **kwargs)
-        self.future = future
-        self._provider_uri = None if provider_uri is None else C.DataPathManager.format_provider_uri(provider_uri)
-        self.enable_read_cache = True  # TODO: make it configurable
-        self.region = C["region"]
+        Returns
+        -------
+        freq: Tuple[int, str]
+            Unified freq, including freq count and unified freq unit. The freq unit should be '[month|week|day|minute]'.
+                Example:
 
-    @property
-    def file_name(self) -> str:
-        return f"{self._freq_file}_future.txt" if self.future else f"{self._freq_file}.txt".lower()
+                .. code-block::
 
-    @property
-    def _freq_file(self) -> str:
-        """the freq to read from file"""
-        if not hasattr(self, "_freq_file_cache"):
-            freq = Freq(self.freq)
-            if freq not in self.support_freq:
-                # NOTE: uri
-                #   1. If `uri` does not exist
-                #       - Get the `min_uri` of the closest `freq` under the same "directory" as the `uri`
-                #       - Read data from `min_uri` and resample to `freq`
+                    print(Freq.parse("day"))
+                    (1, "day" )
+                    print(Freq.parse("2mon"))
+                    (2, "month")
+                    print(Freq.parse("10w"))
+                    (10, "week")
 
-                freq = Freq.get_recent_freq(freq, self.support_freq)
-                if freq is None:
-                    raise ValueError(f"can't find a freq from {self.support_freq} that can resample to {self.freq}!")
-            self._freq_file_cache = freq
-        return self._freq_file_cache
-
-    def _read_calendar(self) -> List[CalVT]:
-        # NOTE:
-        # if we want to accelerate partial reading calendar
-        # we can add parameters like `skip_rows: int = 0, n_rows: int = None` to the interface.
-        # Currently, it is not supported for the txt-based calendar
-
-        if not self.uri.exists():
-            self._write_calendar(values=[])
-
-        with self.uri.open("r") as fp:
-            res = []
-            for line in fp.readlines():
-                line = line.strip()
-                if len(line) > 0:
-                    res.append(line)
-            return res
-
-    def _write_calendar(self, values: Iterable[CalVT], mode: str = "wb"):
-        with self.uri.open(mode=mode) as fp:
-            np.savetxt(fp, values, fmt="%s", encoding="utf-8")
-
-    @property
-    def uri(self) -> Path:
-        return self.dpm.get_data_uri(self._freq_file).joinpath(f"{self.storage_name}s", self.file_name)
-
-    @property
-    def data(self) -> List[CalVT]:
-        self.check()
-        # If cache is enabled, then return cache directly
-        if self.enable_read_cache:
-            key = "orig_file" + str(self.uri)
-            if key not in H["c"]:
-                H["c"][key] = self._read_calendar()
-            _calendar = H["c"][key]
-        else:
-            _calendar = self._read_calendar()
-        if Freq(self._freq_file) != Freq(self.freq):
-            _calendar = resam_calendar(
-                np.array(list(map(pd.Timestamp, _calendar))), self._freq_file, self.freq, self.region
+        """
+        freq = freq.lower()
+        match_obj = re.match("^([0-9]*)(month|mon|week|w|day|d|minute|min|second|sec)$", freq)
+        if match_obj is None:
+            raise ValueError(
+                "freq format is not supported, the freq should be like (n)month/mon, (n)week/w, (n)day/d, (n)minute/min"
             )
-        return _calendar
+        _count = int(match_obj.group(1)) if match_obj.group(1) else 1
+        _freq = match_obj.group(2)
+        _freq_format_dict = {
+            "month": Freq.NORM_FREQ_MONTH,
+            "mon": Freq.NORM_FREQ_MONTH,
+            "week": Freq.NORM_FREQ_WEEK,
+            "w": Freq.NORM_FREQ_WEEK,
+            "day": Freq.NORM_FREQ_DAY,
+            "d": Freq.NORM_FREQ_DAY,
+            "minute": Freq.NORM_FREQ_MINUTE,
+            "min": Freq.NORM_FREQ_MINUTE,
+            "second": Freq.NORM_FREQ_SECOND,
+            "sec": Freq.NORM_FREQ_SECOND,
+        }
+        return _count, _freq_format_dict[_freq]
 
-    def _get_storage_freq(self) -> List[str]:
-        return sorted(set(map(lambda x: x.stem.split("_")[0], self.uri.parent.glob("*.txt"))))
+    @staticmethod
+    def get_timedelta(n: int, freq: str) -> pd.Timedelta:
+        """
+        get pd.Timedeta object
 
-    def extend(self, values: Iterable[CalVT]) -> None:
-        self._write_calendar(values, mode="ab")
+        Parameters
+        ----------
+        n : int
+        freq : str
+            Typically, they are the return value of Freq.parse
 
-    def clear(self) -> None:
-        self._write_calendar(values=[])
+        Returns
+        -------
+        pd.Timedelta:
+        """
+        return pd.Timedelta(f"{n}{freq}")
 
-    def index(self, value: CalVT) -> int:
-        self.check()
-        calendar = self._read_calendar()
-        return int(np.argwhere(calendar == value)[0])
+    @staticmethod
+    def get_min_delta(left_frq: str, right_freq: str):
+        """Calculate freq delta
 
-    def insert(self, index: int, value: CalVT):
-        calendar = self._read_calendar()
-        calendar = np.insert(calendar, index, value)
-        self._write_calendar(values=calendar)
+        Parameters
+        ----------
+        left_frq: str
+        right_freq: str
 
-    def remove(self, value: CalVT) -> None:
-        self.check()
-        index = self.index(value)
-        calendar = self._read_calendar()
-        calendar = np.delete(calendar, index)
-        self._write_calendar(values=calendar)
+        Returns
+        -------
 
-    def __setitem__(self, i: Union[int, slice], values: Union[CalVT, Iterable[CalVT]]) -> None:
-        calendar = self._read_calendar()
-        calendar[i] = values
-        self._write_calendar(values=calendar)
+        """
+        minutes_map = {
+            Freq.NORM_FREQ_SECOND: 1 / 60,
+            Freq.NORM_FREQ_MINUTE: 1,
+            Freq.NORM_FREQ_DAY: 60 * 24,
+            Freq.NORM_FREQ_WEEK: 7 * 60 * 24,
+            Freq.NORM_FREQ_MONTH: 30 * 7 * 60 * 24,
+        }
+        left_freq = Freq(left_frq)
+        left_minutes = left_freq.count * minutes_map[left_freq.base]
+        right_freq = Freq(right_freq)
+        right_minutes = right_freq.count * minutes_map[right_freq.base]
+        return left_minutes - right_minutes
 
-    def __delitem__(self, i: Union[int, slice]) -> None:
-        self.check()
-        calendar = self._read_calendar()
-        calendar = np.delete(calendar, i)
-        self._write_calendar(values=calendar)
+    @staticmethod
+    def get_recent_freq(base_freq: Union[str, "Freq"], freq_list: List[Union[str, "Freq"]]) -> Optional["Freq"]:
+        """Get the closest freq to base_freq from freq_list
 
-    def __getitem__(self, i: Union[int, slice]) -> Union[CalVT, List[CalVT]]:
-        self.check()
-        return self._read_calendar()[i]
+        Parameters
+        ----------
+        base_freq
+        freq_list
 
-    def __len__(self) -> int:
-        return len(self.data)
-
-
-class FileInstrumentStorage(FileStorageMixin, InstrumentStorage):
-    INSTRUMENT_SEP = "\t"
-    INSTRUMENT_START_FIELD = "start_datetime"
-    INSTRUMENT_END_FIELD = "end_datetime"
-    SYMBOL_FIELD_NAME = "instrument"
-
-    def __init__(self, market: str, freq: str, provider_uri: dict = None, **kwargs):
-        super(FileInstrumentStorage, self).__init__(market, freq, **kwargs)
-        self._provider_uri = None if provider_uri is None else C.DataPathManager.format_provider_uri(provider_uri)
-        self.file_name = f"{market.lower()}.txt"
-
-    def _read_instrument(self) -> Dict[InstKT, InstVT]:
-        if not self.uri.exists():
-            self._write_instrument()
-
-        _instruments = dict()
-        df = pd.read_csv(
-            self.uri,
-            sep="\t",
-            usecols=[0, 1, 2],
-            names=[self.SYMBOL_FIELD_NAME, self.INSTRUMENT_START_FIELD, self.INSTRUMENT_END_FIELD],
-            dtype={self.SYMBOL_FIELD_NAME: str},
-            parse_dates=[self.INSTRUMENT_START_FIELD, self.INSTRUMENT_END_FIELD],
-        )
-        for row in df.itertuples(index=False):
-            _instruments.setdefault(row[0], []).append((row[1], row[2]))
-        return _instruments
-
-    def _write_instrument(self, data: Dict[InstKT, InstVT] = None) -> None:
-        if not data:
-            with self.uri.open("w") as _:
-                pass
-            return
-
-        res = []
-        for inst, v_list in data.items():
-            _df = pd.DataFrame(v_list, columns=[self.INSTRUMENT_START_FIELD, self.INSTRUMENT_END_FIELD])
-            _df[self.SYMBOL_FIELD_NAME] = inst
-            res.append(_df)
-
-        df = pd.concat(res, sort=False)
-        df.loc[:, [self.SYMBOL_FIELD_NAME, self.INSTRUMENT_START_FIELD, self.INSTRUMENT_END_FIELD]].to_csv(
-            self.uri, header=False, sep=self.INSTRUMENT_SEP, index=False
-        )
-        df.to_csv(self.uri, sep="\t", encoding="utf-8", header=False, index=False)
-
-    def clear(self) -> None:
-        self._write_instrument(data={})
-
-    @property
-    def data(self) -> Dict[InstKT, InstVT]:
-        self.check()
-        return self._read_instrument()
-
-    def __setitem__(self, k: InstKT, v: InstVT) -> None:
-        inst = self._read_instrument()
-        inst[k] = v
-        self._write_instrument(inst)
-
-    def __delitem__(self, k: InstKT) -> None:
-        self.check()
-        inst = self._read_instrument()
-        del inst[k]
-        self._write_instrument(inst)
-
-    def __getitem__(self, k: InstKT) -> InstVT:
-        self.check()
-        return self._read_instrument()[k]
-
-    def update(self, *args, **kwargs) -> None:
-        if len(args) > 1:
-            raise TypeError(f"update expected at most 1 arguments, got {len(args)}")
-        inst = self._read_instrument()
-        if args:
-            other = args[0]  # type: dict
-            if isinstance(other, Mapping):
-                for key in other:
-                    inst[key] = other[key]
-            elif hasattr(other, "keys"):
-                for key in other.keys():
-                    inst[key] = other[key]
-            else:
-                for key, value in other:
-                    inst[key] = value
-        for key, value in kwargs.items():
-            inst[key] = value
-
-        self._write_instrument(inst)
-
-    def __len__(self) -> int:
-        return len(self.data)
-
-
-class FileFeatureStorage(FileStorageMixin, FeatureStorage):
-    def __init__(self, instrument: str, field: str, freq: str, provider_uri: dict = None, **kwargs):
-        super(FileFeatureStorage, self).__init__(instrument, field, freq, **kwargs)
-        self._provider_uri = None if provider_uri is None else C.DataPathManager.format_provider_uri(provider_uri)
-        self.file_name = f"{instrument.lower()}/{field.lower()}.{freq.lower()}.bin"
-
-    def clear(self):
-        with self.uri.open("wb") as _:
-            pass
-
-    @property
-    def data(self) -> pd.Series:
-        return self[:]
-
-    def write(self, data_array: Union[List, np.ndarray], index: int = None) -> None:
-        if len(data_array) == 0:
-            logger.info(
-                "len(data_array) == 0, write"
-                "if you need to clear the FeatureStorage, please execute: FeatureStorage.clear"
-            )
-            return
-        if not self.uri.exists():
-            # write
-            index = 0 if index is None else index
-            with self.uri.open("wb") as fp:
-                np.hstack([index, data_array]).astype("<f").tofile(fp)
+        Returns
+        -------
+        if the recent frequency is found
+            Freq
         else:
-            if index is None or index > self.end_index:
-                # append
-                index = 0 if index is None else index
-                with self.uri.open("ab+") as fp:
-                    np.hstack([[np.nan] * (index - self.end_index - 1), data_array]).astype("<f").tofile(fp)
-            else:
-                # rewrite
-                with self.uri.open("rb+") as fp:
-                    _old_data = np.fromfile(fp, dtype="<f")
-                    _old_index = _old_data[0]
-                    _old_df = pd.DataFrame(
-                        _old_data[1:], index=range(_old_index, _old_index + len(_old_data) - 1), columns=["old"]
-                    )
-                    fp.seek(0)
-                    _new_df = pd.DataFrame(data_array, index=range(index, index + len(data_array)), columns=["new"])
-                    _df = pd.concat([_old_df, _new_df], sort=False, axis=1)
-                    _df = _df.reindex(range(_df.index.min(), _df.index.max() + 1))
-                    _df["new"].fillna(_df["old"]).values.astype("<f").tofile(fp)
+            None
+        """
+        base_freq = Freq(base_freq)
+        # use the nearest freq greater than 0
+        min_freq = None
+        for _freq in freq_list:
+            _min_delta = Freq.get_min_delta(base_freq, _freq)
+            if _min_delta < 0:
+                continue
+            if min_freq is None:
+                min_freq = (_min_delta, str(_freq))
+                continue
+            min_freq = min_freq if min_freq[0] <= _min_delta else (_min_delta, _freq)
+        return min_freq[1] if min_freq else None
 
-    @property
-    def start_index(self) -> Union[int, None]:
-        if not self.uri.exists():
-            return None
-        with self.uri.open("rb") as fp:
-            index = int(np.frombuffer(fp.read(4), dtype="<f")[0])
-        return index
 
-    @property
-    def end_index(self) -> Union[int, None]:
-        if not self.uri.exists():
-            return None
-        # The next  data appending index point will be  `end_index + 1`
-        return self.start_index + len(self) - 1
+def time_to_day_index(time_obj: Union[str, datetime], region: str = REG_CN):
+    if isinstance(time_obj, str):
+        time_obj = datetime.strptime(time_obj, "%H:%M")
 
-    def __getitem__(self, i: Union[int, slice]) -> Union[Tuple[int, float], pd.Series]:
-        if not self.uri.exists():
-            if isinstance(i, int):
-                return None, None
-            elif isinstance(i, slice):
-                return pd.Series(dtype=np.float32)
-            else:
-                raise TypeError(f"type(i) = {type(i)}")
+    if region == REG_CN:
+        if CN_TIME[0] <= time_obj < CN_TIME[1]:
+            return int((time_obj - CN_TIME[0]).total_seconds() / 60)
+        elif CN_TIME[2] <= time_obj < CN_TIME[3]:
+            return int((time_obj - CN_TIME[2]).total_seconds() / 60) + 120
+        else:
+            raise ValueError(f"{time_obj} is not the opening time of the {region} stock market")
+    elif region == REG_US:
+        if US_TIME[0] <= time_obj < US_TIME[1]:
+            return int((time_obj - US_TIME[0]).total_seconds() / 60)
+        else:
+            raise ValueError(f"{time_obj} is not the opening time of the {region} stock market")
+    elif region == REG_TW:
+        if TW_TIME[0] <= time_obj < TW_TIME[1]:
+            return int((time_obj - TW_TIME[0]).total_seconds() / 60)
+        else:
+            raise ValueError(f"{time_obj} is not the opening time of the {region} stock market")
+    else:
+        raise ValueError(f"{region} is not supported")
 
-        storage_start_index = self.start_index
-        storage_end_index = self.end_index
-        with self.uri.open("rb") as fp:
-            if isinstance(i, int):
-                if storage_start_index > i:
-                    raise IndexError(f"{i}: start index is {storage_start_index}")
-                fp.seek(4 * (i - storage_start_index) + 4)
-                return i, struct.unpack("f", fp.read(4))[0]
-            elif isinstance(i, slice):
-                start_index = storage_start_index if i.start is None else i.start
-                end_index = storage_end_index if i.stop is None else i.stop - 1
-                si = max(start_index, storage_start_index)
-                if si > end_index:
-                    return pd.Series(dtype=np.float32)
-                fp.seek(4 * (si - storage_start_index) + 4)
-                # read n bytes
-                count = end_index - si + 1
-                data = np.frombuffer(fp.read(4 * count), dtype="<f")
-                return pd.Series(data, index=pd.RangeIndex(si, si + len(data)))
-            else:
-                raise TypeError(f"type(i) = {type(i)}")
 
-    def __len__(self) -> int:
-        self.check()
-        return self.uri.stat().st_size // 4 - 1
+def get_day_min_idx_range(start: str, end: str, freq: str, region: str) -> Tuple[int, int]:
+    """
+    get the min-bar index in a day for a time range (both left and right is closed) given a fixed frequency
+    Parameters
+    ----------
+    start : str
+        e.g. "9:30"
+    end : str
+        e.g. "14:30"
+    freq : str
+        "1min"
+
+    Returns
+    -------
+    Tuple[int, int]:
+        The index of start and end in the calendar. Both left and right are **closed**
+    """
+    start = pd.Timestamp(start).time()
+    end = pd.Timestamp(end).time()
+    freq = Freq(freq)
+    in_day_cal = get_min_cal(region=region)[:: freq.count]
+    left_idx = bisect.bisect_left(in_day_cal, start)
+    right_idx = bisect.bisect_right(in_day_cal, end) - 1
+    return left_idx, right_idx
+
+
+def concat_date_time(date_obj: date, time_obj: time) -> pd.Timestamp:
+    return pd.Timestamp(
+        datetime(
+            date_obj.year,
+            month=date_obj.month,
+            day=date_obj.day,
+            hour=time_obj.hour,
+            minute=time_obj.minute,
+            second=time_obj.second,
+            microsecond=time_obj.microsecond,
+        )
+    )
+
+
+def cal_sam_minute(x: pd.Timestamp, sam_minutes: int, region: str = REG_CN) -> pd.Timestamp:
+    """
+    align the minute-level data to a down sampled calendar
+
+    e.g. align 10:38 to 10:35 in 5 minute-level(10:30 in 10 minute-level)
+
+    Parameters
+    ----------
+    x : pd.Timestamp
+        datetime to be aligned
+    sam_minutes : int
+        align to `sam_minutes` minute-level calendar
+    region: str
+        Region, for example, "cn", "us"
+
+    Returns
+    -------
+    pd.Timestamp:
+        the datetime after aligned
+    """
+    cal = get_min_cal(C.min_data_shift, region)[::sam_minutes]
+    idx = bisect.bisect_right(cal, x.time()) - 1
+    _date, new_time = x.date(), cal[idx]
+    return concat_date_time(_date, new_time)
+
+
+def epsilon_change(date_time: pd.Timestamp, direction: str = "backward") -> pd.Timestamp:
+    """
+    change the time by infinitely small quantity.
+
+
+    Parameters
+    ----------
+    date_time : pd.Timestamp
+        the original time
+    direction : str
+        the direction the time are going to
+        - "backward" for going to history
+        - "forward" for going to the future
+
+    Returns
+    -------
+    pd.Timestamp:
+        the shifted time
+    """
+    if direction == "backward":
+        return date_time - pd.Timedelta(seconds=1)
+    elif direction == "forward":
+        return date_time + pd.Timedelta(seconds=1)
+    else:
+        raise ValueError("Wrong input")
+
+
+if __name__ == "__main__":
+    print(get_day_min_idx_range("8:30", "14:59", "10min", REG_CN))
