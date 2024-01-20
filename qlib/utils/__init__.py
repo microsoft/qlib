@@ -567,9 +567,13 @@ def exists_qlib_data(qlib_dir):
             return False
 
     # check instruments
-    code_names = set(map(lambda x: fname_to_code(x.name.lower()), features_dir.iterdir()))
+    code_names = set(map(lambda x: fname_to_code(
+        x.name.lower()), features_dir.iterdir()))
     _instrument = instruments_dir.joinpath("all.txt")
-    miss_code = set(pd.read_csv(_instrument, sep="\t", header=None).loc[:, 0].apply(str.lower)) - set(code_names)
+    miss_code = set(pd.read_csv(_instrument, sep="\t", header=None, keep_default_na=False,
+                                na_values={0: [" ", "#N/A", "#N/A N/A", "#NA", "-1.#IND", "-1.#QNAN", "-NaN", "-nan", "1.#IND", "1.#QNAN", "<NA>", "N/A", "NaN", "None", "n/a", "nan", "null "],
+                                           1: [" ", "#N/A", "#N/A N/A", "#NA", "-1.#IND", "-1.#QNAN", "-NaN", "-nan", "1.#IND", "1.#QNAN", "<NA>", "N/A", "NA", "NULL", "NaN", "None", "n/a", "nan", "null "],
+                                           2: [" ", "#N/A", "#N/A N/A", "#NA", "-1.#IND", "-1.#QNAN", "-NaN", "-nan", "1.#IND", "1.#QNAN", "<NA>", "N/A", "NA", "NULL", "NaN", "None", "n/a", "nan", "null "]}).loc[:, 0].apply(str.lower)) - set(code_names)
     if miss_code and any(map(lambda x: "sht" not in x, miss_code)):
         return False
 

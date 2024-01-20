@@ -49,3 +49,7 @@ tags
 
 ./pretrain
 .idea/
+
+# personal
+personal/
+myenv/
