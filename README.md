@@ -148,7 +148,7 @@ This table demonstrates the supported Python version of `Qlib`:
 Users can easily install ``Qlib`` by pip according to the following command.
 
 ```bash
-  pip install pyqlib
+  pip install qlib
 ```
 
 **Note**: pip will install the latest stable qlib. However, the main branch of qlib is in active development. If you want to test the latest scripts or functions in the main branch. Please install qlib with the methods below.
@@ -159,8 +159,8 @@ Also, users can install the latest dev version ``Qlib`` by the source code accor
 * Before installing ``Qlib`` from source, users need to install some dependencies:
 
   ```bash
-  pip install numpy
-  pip install --upgrade  cython
+  conda install numpy pandas matplotlib pyyaml hdf5 requests
+  conda install -c conda-forge liblapack lightgbm
   ```
 
 * Clone the repository and install ``Qlib`` as follows.
