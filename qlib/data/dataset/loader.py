@@ -250,7 +250,7 @@ class StaticDataLoader(DataLoader, Serializable):
         if instruments is None:
             df = self._data
         else:
-            df = self._data.loc(axis=0)[:, instruments]
+            df = self._data.loc[:, instruments]
         if start_time is None and end_time is None:
             return df  # NOTE: avoid copy by loc
         # pd.Timestamp(None) == NaT, use NaT as index can not fetch correct thing, so do not change None.
