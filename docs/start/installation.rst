@@ -17,7 +17,7 @@ Users can easily install ``Qlib`` by pip according to the following command:
 
 .. code-block:: bash
 
-   pip install pyqlib
+   pip install qlib
 
 
 Also, Users can install ``Qlib`` by the source code according to the following steps:
