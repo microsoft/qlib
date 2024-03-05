@@ -26,7 +26,7 @@ jobs:
       if: (matrix.python-version == '3.8')
       uses: actions/setup-python@v4
       with:
-        python-version: "3.8.17"
+        python-version: "3.8.16"
 
     # Since version 3.7 of python for MacOS is installed in CI, version 3.7.17, this version causes "_bz not found error".
     # So we make the version number of python 3.7 for MacOS more specific.
