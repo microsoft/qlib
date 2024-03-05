@@ -24,7 +24,7 @@ jobs:
 
     - name: Set up Python ${{ matrix.python-version }}
       if: (matrix.python-version == '3.8')
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v3
       with:
         python-version: "3.8.16"
 
