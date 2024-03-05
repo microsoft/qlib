@@ -65,6 +65,8 @@ REQUIRED = [
     # To ensure stable operation of the experiment manager, we have limited the version of mlflow,
     # and we need to verify whether version 2.0 of mlflow can serve qlib properly.
     "mlflow>=1.12.1, <=1.30.0",
+    # mlflow 1.30.0 requires packaging<22, so we limit the packaging version, otherwise the CI will fail.
+    "packaging<22",
     "tqdm",
     "loguru",
     "lightgbm>=3.3.0",
