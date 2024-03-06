@@ -66,14 +66,10 @@ jobs:
         python -m pip install "prometheus-client<=0.19.0"
         python -m pip install "python-dateutil<=2.8.2"
         python -m pip install "sqlalchemy<=1.4.51"
-        python -m pip uninstall certifi
-        python -m pip uninstall charset-normalizer
-        python -m pip uninstall requests
-        python -m pip uninstall urllib3
-        python -m pip uninstall certifi
-        python -m pip uninstall charset-normalizer
-        python -m pip uninstall requests
-        python -m pip uninstall urllib3
+        python -m pip uninstall -y certifi
+        python -m pip uninstall -y charset-normalizer
+        python -m pip uninstall -y requests
+        python -m pip uninstall -y urllib3
 
     - name: Lint with Black
       # Python 3.7 will use a black with low level. So we use python with higher version for black check
