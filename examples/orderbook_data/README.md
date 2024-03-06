@@ -27,12 +27,11 @@ pip install arctic  # NOTE: pip may fail to resolve the right package dependency
 2. Please follow following steps to download example data
 ```bash
 cd examples/orderbook_data/
-python get_data.py download_data --target_dir ~/.qlib/orderbook_data --file_name highfreq_orderbook_example_data.zip
+python ../../scripts/get_data.py download_data --target_dir . --file_name highfreq_orderbook_example_data.zip
 ```
 
 3. Please import the example data to your mongo db
 ```bash
-cd examples/orderbook_data/
 python create_dataset.py initialize_library  # Initialization Libraries
 python create_dataset.py import_data  # Initialization Libraries
 ```
@@ -41,7 +40,6 @@ python create_dataset.py import_data  # Initialization Libraries
 
 After importing these data, you run `example.py` to create some high-frequency features.
 ```bash
-cd examples/orderbook_data/
 pytest -s --disable-warnings example.py   # If you want run all examples
 pytest -s --disable-warnings example.py::TestClass::test_exp_10  # If you want to run specific example
 ```
