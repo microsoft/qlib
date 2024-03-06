@@ -10,8 +10,6 @@ from qlib.tests import TestAutoData
 
 class WorkflowTest(TestAutoData):
     TMP_PATH = Path("./.mlruns_tmp/")
-    TMP_PATH.mkdir()
-    print("创建的文件夹路径:", TMP_PATH.resolve())
 
     def tearDown(self) -> None:
         if self.TMP_PATH.exists():
@@ -19,6 +17,8 @@ class WorkflowTest(TestAutoData):
 
     def test_get_local_dir(self):
         """ """
+        self.TMP_PATH.mkdir()
+        print(self.TMP_PATH.resolve())
         with R.start(uri=str(self.TMP_PATH)):
             pass
 
