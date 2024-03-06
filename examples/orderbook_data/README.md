@@ -27,7 +27,7 @@ pip install arctic  # NOTE: pip may fail to resolve the right package dependency
 2. Please follow following steps to download example data
 ```bash
 cd examples/orderbook_data/
-python scripts/get_data.py qlib_data --target_dir "~/.qlib/orderbook_data" --name orderbook_data
+python get_data.py other_data --target_dir ~/.qlib/other_data/orderbook_data --name highfreq_orderbook_example_data.zip
 ```
 
 3. Please import the example data to your mongo db

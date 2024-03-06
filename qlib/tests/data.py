@@ -130,6 +130,47 @@ class GetData:
                 logger.warning(f"delete: {_p}")
                 shutil.rmtree(_p)
 
+    def other_data(
+        self,
+        target_dir="~/.qlib/other_data",
+        name=None,
+        version=None,
+        delete_old=True,
+    ):
+        """Specifies a file name to download a file from a remote location.
+
+        Parameters
+        ----------
+        target_dir: str
+            data save directory
+        name: str
+            filename, by default None
+        version: str
+            data version, value from [v1, ...], by default None(use script to specify version)
+        delete_old: bool
+            delete an existing directory, by default True
+
+        Examples
+        ---------
+        # get orderbook data
+        python get_data.py other_data --target_dir ~/.qlib/other_data/orderbook_data --name highfreq_orderbook_example_data.zip
+        When this command is run, the data will be downloaded from this link: https://qlibpublic.blob.core.windows.net/data/default/stock_data/highfreq_orderbook_example_data.zip?{token}
+        -------
+
+        """
+        if name == None:
+            logger.warning("Specify the name of the file to be downloaded.")
+            return
+
+        file_name = f"{version}/{name}"
+        file_name = name if version == None else file_name
+
+        if not self.check_dataset(file_name):
+            logger.warning("The file you specified does not exist in the remote repository.")
+            return
+
+        self.download_data(file_name.lower(), target_dir, delete_old)
+
     def qlib_data(
         self,
         name="qlib_data",
