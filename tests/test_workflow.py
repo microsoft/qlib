@@ -17,7 +17,8 @@ class WorkflowTest(TestAutoData):
 
     def test_get_local_dir(self):
         """ """
-        self.TMP_PATH.mkdir()
+        folder_path = Path("./.mlruns_tmp/.trash")
+        folder_path.mkdir(parents=True, exist_ok=True)
         print(self.TMP_PATH.resolve())
         with R.start(uri=str(self.TMP_PATH)):
             pass
