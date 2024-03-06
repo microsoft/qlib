@@ -68,7 +68,6 @@ jobs:
         python -m pip install "sqlalchemy<=1.4.51"
         python -m pip uninstall -y certifi
         python -m pip uninstall -y charset-normalizer
-        python -m pip uninstall -y requests
         python -m pip uninstall -y urllib3
 
     - name: Lint with Black
