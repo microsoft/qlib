@@ -224,9 +224,6 @@ class GetData:
         def _get_file_name_with_version(qlib_version, dataset_version):
             dataset_version = "v2" if dataset_version is None else dataset_version
             file_name_with_version = f"{dataset_version}/{name}_{region.lower()}_{interval.lower()}_{qlib_version}.zip"
-            file_name_with_version = (
-                "highfreq_orderbook_example_data.zip" if name == "orderbook_data" else file_name_with_version
-            )
             return file_name_with_version
 
         file_name = _get_file_name_with_version(qlib_version, dataset_version=version)
