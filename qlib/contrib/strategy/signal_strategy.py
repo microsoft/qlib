@@ -373,7 +373,6 @@ class WeightStrategyBase(BaseSignalStrategy):
 
 
 class EnhancedIndexingStrategy(WeightStrategyBase):
-
     """Enhanced Indexing Strategy
 
     Enhanced indexing combines the arts of active management and passive management,

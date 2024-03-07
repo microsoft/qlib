@@ -622,9 +622,11 @@ class Indicator:
             print(
                 "[Indicator({}) {}]: FFR: {}, PA: {}, POS: {}".format(
                     freq,
-                    trade_start_time
-                    if isinstance(trade_start_time, str)
-                    else trade_start_time.strftime("%Y-%m-%d %H:%M:%S"),
+                    (
+                        trade_start_time
+                        if isinstance(trade_start_time, str)
+                        else trade_start_time.strftime("%Y-%m-%d %H:%M:%S")
+                    ),
                     fulfill_rate,
                     price_advantage,
                     positive_rate,
