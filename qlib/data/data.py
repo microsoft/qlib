@@ -536,7 +536,6 @@ class DatasetProvider(abc.ABC):
         """
         if len(fields) == 0:
             raise ValueError("fields cannot be empty")
-        fields = fields.copy()
         column_names = [str(f) for f in fields]
         return column_names
 
