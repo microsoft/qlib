@@ -88,8 +88,12 @@ class PitCollector(BaseCollector):
         return symbols
 
     def normalize_symbol(self, symbol: str) -> str:
-        symbol, exchange = symbol.split(".")
-        exchange = "sh" if exchange == "ss" else "sz"
+        if symbol.startswith('6'):
+            exchange = 'sh'
+        elif symbol.startswith('0') or symbol.startswith('3'):
+            exchange = 'sz'
+        else:
+            exchange = 'bj'
         return f"{exchange}{symbol}"
 
     @staticmethod
@@ -201,8 +205,13 @@ class PitCollector(BaseCollector):
     ) -> pd.DataFrame:
         if interval != self.INTERVAL_QUARTERLY:
             raise ValueError(f"cannot support {interval}")
-        symbol, exchange = symbol.split(".")
-        exchange = "sh" if exchange == "ss" else "sz"
+        if symbol.startswith('6'):
+            exchange = 'sh'
+        elif symbol.startswith('0') or symbol.startswith('3'):
+            exchange = 'sz'
+        else:
+            exchange = 'bj'
+
         code = f"{exchange}.{symbol}"
         start_date = start_datetime.strftime("%Y-%m-%d")
         end_date = end_datetime.strftime("%Y-%m-%d")
