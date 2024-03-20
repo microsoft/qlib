@@ -171,6 +171,14 @@ Also, users can install the latest dev version ``Qlib`` by the source code accor
   **Note**:  You can install Qlib with `python setup.py install` as well. But it is not the recommended approach. It will skip `pip` and cause obscure problems. For example, **only** the command ``pip install .`` **can** overwrite the stable version installed by ``pip install pyqlib``, while the command ``python setup.py install`` **can't**.
 
 **Tips**: If you fail to install `Qlib` or run the examples in your environment,  comparing your steps and the [CI workflow](.github/workflows/test_qlib_from_source.yml) may help you find the problem.
+**Tips for Mac**: If you are using Mac with M1, you might encounter issues in building the wheel for LightGBM. In this case, osx-arm64 builds of lightgbm are supported by the lightgbm conda-forge feedstock. Hence, one could use conda to install with the following command. 
+
+```bash
+    conda install \
+   --yes \
+   -c conda-forge \
+   'lightgbm>=3.3.3'
+    ```
 
 ## Data Preparation
 Load and prepare data by running the following code:
