@@ -5,6 +5,7 @@ This strategy is not well maintained
 """
 
 
+import pandas as pd
 from .order_generator import OrderGenWInteract
 from .signal_strategy import WeightStrategyBase
 import copy
@@ -13,16 +14,11 @@ import copy
 class SoftTopkStrategy(WeightStrategyBase):
     def __init__(
         self,
-        model,
-        dataset,
         topk,
         order_generator_cls_or_obj=OrderGenWInteract,
         max_sold_weight=1.0,
         risk_degree=0.95,
         buy_method="first_fill",
-        trade_exchange=None,
-        level_infra=None,
-        common_infra=None,
         **kwargs,
     ):
         """
@@ -37,7 +33,8 @@ class SoftTopkStrategy(WeightStrategyBase):
                 average_fill: assign the weight to the stocks rank high averagely.
         """
         super(SoftTopkStrategy, self).__init__(
-            model, dataset, order_generator_cls_or_obj, trade_exchange, level_infra, common_infra, **kwargs
+            order_generator_cls_or_obj=order_generator_cls_or_obj,
+            **kwargs,
         )
         self.topk = topk
         self.max_sold_weight = max_sold_weight
@@ -70,6 +67,8 @@ class SoftTopkStrategy(WeightStrategyBase):
         # TODO:
         # If the current stock list is more than topk(eg. The weights are modified
         # by risk control), the weight will not be handled correctly.
+        if isinstance(score, pd.DataFrame):
+            score = score.iloc[:, 0]
         buy_signal_stocks = set(score.sort_values(ascending=False).iloc[: self.topk].index)
         cur_stock_weight = current.get_stock_weight_dict(only_stock=True)
 
