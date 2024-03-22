@@ -35,7 +35,7 @@ class Client:
     def connect_server(self):
         """Connect to server."""
         try:
-            self.sio.connect("ws://" + self.server_host + ":" + str(self.server_port))
+            self.sio.connect(f"ws://{self.server_host}:{self.server_port}")
         except socketio.exceptions.ConnectionError:
             self.logger.error("Cannot connect to server - check your network or server status")
 
