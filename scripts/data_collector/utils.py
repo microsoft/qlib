@@ -190,17 +190,21 @@ def get_hs_stock_symbols() -> list:
     global _HS_SYMBOLS  # pylint: disable=W0603
 
     def _get_symbol():
-        _res = set()
-        for _k, _v in (("ha", "ss"), ("sa", "sz"), ("gem", "sz")):
-            resp = requests.get(HS_SYMBOLS_URL.format(s_type=_k), timeout=None)
-            _res |= set(
-                map(
-                    lambda x: "{}.{}".format(re.findall(r"\d+", x)[0], _v),  # pylint: disable=W0640
-                    etree.HTML(resp.text).xpath("//div[@class='result']/ul//li/a/text()"),  # pylint: disable=I1101
-                )
-            )
-            time.sleep(3)
-        return _res
+        url = "http://99.push2.eastmoney.com/api/qt/clist/get?pn=1&pz=10000&po=1&np=1&fs=m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23,m:0+t:81+s:2048&fields=f12"
+        resp = requests.get(url, timeout=None)
+        if resp.status_code != 200:
+            raise ValueError("request error")
+
+        try:
+            _symbols = [_v["f12"] for _v in resp.json()["data"]["diff"]]
+        except Exception as e:
+            logger.warning(f"request error: {e}")
+            raise
+
+        if len(_symbols) < 3900:
+            raise ValueError("request error")
+
+        return set(_symbols)
 
     if _HS_SYMBOLS is None:
         symbols = set()
