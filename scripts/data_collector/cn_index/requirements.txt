@@ -5,3 +5,5 @@ pandas
 lxml
 loguru
 tqdm
+yahooquery
+openpyxl
