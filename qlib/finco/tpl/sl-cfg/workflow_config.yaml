@@ -1,0 +1,83 @@
+qlib_init:
+    provider_uri: "~/.qlib/qlib_data/cn_data"
+    region: cn
+market: &market csi300
+benchmark: &benchmark SH000300
+data_handler_config: &data_handler_config
+    start_time: 2008-01-01
+    end_time: 2020-08-01
+    fit_start_time: 2008-01-01
+    fit_end_time: 2014-12-31
+    instruments: *market
+    data_loader:
+        class: QlibDataLoader
+        kwargs:
+            config:
+              feature:
+              - [($close-$open)/$open, ($high-$low)/$open, ($close-$open)/($high-$low+1e-12), '($high-Greater($open, $close))/$open', '($high-Greater($open, $close))/($high-$low+1e-12)', '(Less($open, $close)-$low)/$open', '(Less($open, $close)-$low)/($high-$low+1e-12)', (2*$close-$high-$low)/$open, (2*$close-$high-$low)/($high-$low+1e-12), $open/$close, $high/$close, $low/$close, $vwap/$close, 'Ref($close, 5)/$close', 'Ref($close, 10)/$close', 'Ref($close, 20)/$close', 'Ref($close, 30)/$close', 'Ref($close, 60)/$close', 'Mean($close, 5)/$close', 'Mean($close, 10)/$close', 'Mean($close, 20)/$close', 'Mean($close, 30)/$close', 'Mean($close, 60)/$close', 'Std($close, 5)/$close', 'Std($close, 10)/$close', 'Std($close, 20)/$close', 'Std($close, 30)/$close', 'Std($close, 60)/$close', 'Slope($close, 5)/$close', 'Slope($close, 10)/$close', 'Slope($close, 20)/$close', 'Slope($close, 30)/$close', 'Slope($close, 60)/$close', 'Rsquare($close, 5)', 'Rsquare($close, 10)', 'Rsquare($close, 20)', 'Rsquare($close, 30)', 'Rsquare($close, 60)', 'Resi($close, 5)/$close', 'Resi($close, 10)/$close', 'Resi($close, 20)/$close', 'Resi($close, 30)/$close', 'Resi($close, 60)/$close', 'Max($high, 5)/$close', 'Max($high, 10)/$close', 'Max($high, 20)/$close', 'Max($high, 30)/$close', 'Max($high, 60)/$close', 'Min($low, 5)/$close', 'Min($low, 10)/$close', 'Min($low, 20)/$close', 'Min($low, 30)/$close', 'Min($low, 60)/$close', 'Quantile($close, 5, 0.8)/$close', 'Quantile($close, 10, 0.8)/$close', 'Quantile($close, 20, 0.8)/$close', 'Quantile($close, 30, 0.8)/$close', 'Quantile($close, 60, 0.8)/$close', 'Quantile($close, 5, 0.2)/$close', 'Quantile($close, 10, 0.2)/$close', 'Quantile($close, 20, 0.2)/$close', 'Quantile($close, 30, 0.2)/$close', 'Quantile($close, 60, 0.2)/$close', 'Rank($close, 5)', 'Rank($close, 10)', 'Rank($close, 20)', 'Rank($close, 30)', 'Rank($close, 60)', '($close-Min($low, 5))/(Max($high, 5)-Min($low, 5)+1e-12)', '($close-Min($low, 10))/(Max($high, 10)-Min($low, 10)+1e-12)', '($close-Min($low, 20))/(Max($high, 20)-Min($low, 20)+1e-12)', '($close-Min($low, 30))/(Max($high, 30)-Min($low, 30)+1e-12)', '($close-Min($low, 60))/(Max($high, 60)-Min($low, 60)+1e-12)', 'IdxMax($high, 5)/5', 'IdxMax($high, 10)/10', 'IdxMax($high, 20)/20', 'IdxMax($high, 30)/30', 'IdxMax($high, 60)/60', 'IdxMin($low, 5)/5', 'IdxMin($low, 10)/10', 'IdxMin($low, 20)/20', 'IdxMin($low, 30)/30', 'IdxMin($low, 60)/60', '(IdxMax($high, 5)-IdxMin($low, 5))/5', '(IdxMax($high, 10)-IdxMin($low, 10))/10', '(IdxMax($high, 20)-IdxMin($low, 20))/20', '(IdxMax($high, 30)-IdxMin($low, 30))/30', '(IdxMax($high, 60)-IdxMin($low, 60))/60', 'Corr($close, Log($volume+1), 5)', 'Corr($close, Log($volume+1), 10)', 'Corr($close, Log($volume+1), 20)', 'Corr($close, Log($volume+1), 30)', 'Corr($close, Log($volume+1), 60)', 'Corr($close/Ref($close,1), Log($volume/Ref($volume, 1)+1), 5)', 'Corr($close/Ref($close,1), Log($volume/Ref($volume, 1)+1), 10)', 'Corr($close/Ref($close,1), Log($volume/Ref($volume, 1)+1), 20)', 'Corr($close/Ref($close,1), Log($volume/Ref($volume, 1)+1), 30)', 'Corr($close/Ref($close,1), Log($volume/Ref($volume, 1)+1), 60)', 'Mean($close>Ref($close, 1), 5)', 'Mean($close>Ref($close, 1), 10)', 'Mean($close>Ref($close, 1), 20)', 'Mean($close>Ref($close, 1), 30)', 'Mean($close>Ref($close, 1), 60)', 'Mean($close<Ref($close, 1), 5)', 'Mean($close<Ref($close, 1), 10)', 'Mean($close<Ref($close, 1), 20)', 'Mean($close<Ref($close, 1), 30)', 'Mean($close<Ref($close, 1), 60)', 'Mean($close>Ref($close, 1), 5)-Mean($close<Ref($close, 1), 5)', 'Mean($close>Ref($close, 1), 10)-Mean($close<Ref($close, 1), 10)', 'Mean($close>Ref($close, 1), 20)-Mean($close<Ref($close, 1), 20)', 'Mean($close>Ref($close, 1), 30)-Mean($close<Ref($close, 1), 30)', 'Mean($close>Ref($close, 1), 60)-Mean($close<Ref($close, 1), 60)', 'Sum(Greater($close-Ref($close, 1), 0), 5)/(Sum(Abs($close-Ref($close, 1)), 5)+1e-12)', 'Sum(Greater($close-Ref($close, 1), 0), 10)/(Sum(Abs($close-Ref($close, 1)), 10)+1e-12)', 'Sum(Greater($close-Ref($close, 1), 0), 20)/(Sum(Abs($close-Ref($close, 1)), 20)+1e-12)', 'Sum(Greater($close-Ref($close, 1), 0), 30)/(Sum(Abs($close-Ref($close, 1)), 30)+1e-12)', 'Sum(Greater($close-Ref($close, 1), 0), 60)/(Sum(Abs($close-Ref($close, 1)), 60)+1e-12)', 'Sum(Greater(Ref($close, 1)-$close, 0), 5)/(Sum(Abs($close-Ref($close, 1)), 5)+1e-12)', 'Sum(Greater(Ref($close, 1)-$close, 0), 10)/(Sum(Abs($close-Ref($close, 1)), 10)+1e-12)', 'Sum(Greater(Ref($close, 1)-$close, 0), 20)/(Sum(Abs($close-Ref($close, 1)), 20)+1e-12)', 'Sum(Greater(Ref($close, 1)-$close, 0), 30)/(Sum(Abs($close-Ref($close, 1)), 30)+1e-12)', 'Sum(Greater(Ref($close, 1)-$close, 0), 60)/(Sum(Abs($close-Ref($close, 1)), 60)+1e-12)', '(Sum(Greater($close-Ref($close, 1), 0), 5)-Sum(Greater(Ref($close, 1)-$close, 0), 5))/(Sum(Abs($close-Ref($close, 1)), 5)+1e-12)', '(Sum(Greater($close-Ref($close, 1), 0), 10)-Sum(Greater(Ref($close, 1)-$close, 0), 10))/(Sum(Abs($close-Ref($close, 1)), 10)+1e-12)', '(Sum(Greater($close-Ref($close, 1), 0), 20)-Sum(Greater(Ref($close, 1)-$close, 0), 20))/(Sum(Abs($close-Ref($close, 1)), 20)+1e-12)', '(Sum(Greater($close-Ref($close, 1), 0), 30)-Sum(Greater(Ref($close, 1)-$close, 0), 30))/(Sum(Abs($close-Ref($close, 1)), 30)+1e-12)', '(Sum(Greater($close-Ref($close, 1), 0), 60)-Sum(Greater(Ref($close, 1)-$close, 0), 60))/(Sum(Abs($close-Ref($close, 1)), 60)+1e-12)', 'Mean($volume, 5)/($volume+1e-12)', 'Mean($volume, 10)/($volume+1e-12)', 'Mean($volume, 20)/($volume+1e-12)', 'Mean($volume, 30)/($volume+1e-12)', 'Mean($volume, 60)/($volume+1e-12)', 'Std($volume, 5)/($volume+1e-12)', 'Std($volume, 10)/($volume+1e-12)', 'Std($volume, 20)/($volume+1e-12)', 'Std($volume, 30)/($volume+1e-12)', 'Std($volume, 60)/($volume+1e-12)', 'Std(Abs($close/Ref($close, 1)-1)*$volume, 5)/(Mean(Abs($close/Ref($close, 1)-1)*$volume, 5)+1e-12)', 'Std(Abs($close/Ref($close, 1)-1)*$volume, 10)/(Mean(Abs($close/Ref($close, 1)-1)*$volume, 10)+1e-12)', 'Std(Abs($close/Ref($close, 1)-1)*$volume, 20)/(Mean(Abs($close/Ref($close, 1)-1)*$volume, 20)+1e-12)', 'Std(Abs($close/Ref($close, 1)-1)*$volume, 30)/(Mean(Abs($close/Ref($close, 1)-1)*$volume, 30)+1e-12)', 'Std(Abs($close/Ref($close, 1)-1)*$volume, 60)/(Mean(Abs($close/Ref($close, 1)-1)*$volume, 60)+1e-12)', 'Sum(Greater($volume-Ref($volume, 1), 0), 5)/(Sum(Abs($volume-Ref($volume, 1)), 5)+1e-12)', 'Sum(Greater($volume-Ref($volume, 1), 0), 10)/(Sum(Abs($volume-Ref($volume, 1)), 10)+1e-12)', 'Sum(Greater($volume-Ref($volume, 1), 0), 20)/(Sum(Abs($volume-Ref($volume, 1)), 20)+1e-12)', 'Sum(Greater($volume-Ref($volume, 1), 0), 30)/(Sum(Abs($volume-Ref($volume, 1)), 30)+1e-12)', 'Sum(Greater($volume-Ref($volume, 1), 0), 60)/(Sum(Abs($volume-Ref($volume, 1)), 60)+1e-12)', 'Sum(Greater(Ref($volume, 1)-$volume, 0), 5)/(Sum(Abs($volume-Ref($volume, 1)), 5)+1e-12)', 'Sum(Greater(Ref($volume, 1)-$volume, 0), 10)/(Sum(Abs($volume-Ref($volume, 1)), 10)+1e-12)', 'Sum(Greater(Ref($volume, 1)-$volume, 0), 20)/(Sum(Abs($volume-Ref($volume, 1)), 20)+1e-12)', 'Sum(Greater(Ref($volume, 1)-$volume, 0), 30)/(Sum(Abs($volume-Ref($volume, 1)), 30)+1e-12)', 'Sum(Greater(Ref($volume, 1)-$volume, 0), 60)/(Sum(Abs($volume-Ref($volume, 1)), 60)+1e-12)', '(Sum(Greater($volume-Ref($volume, 1), 0), 5)-Sum(Greater(Ref($volume, 1)-$volume, 0), 5))/(Sum(Abs($volume-Ref($volume, 1)), 5)+1e-12)', '(Sum(Greater($volume-Ref($volume, 1), 0), 10)-Sum(Greater(Ref($volume, 1)-$volume, 0), 10))/(Sum(Abs($volume-Ref($volume, 1)), 10)+1e-12)', '(Sum(Greater($volume-Ref($volume, 1), 0), 20)-Sum(Greater(Ref($volume, 1)-$volume, 0), 20))/(Sum(Abs($volume-Ref($volume, 1)), 20)+1e-12)', '(Sum(Greater($volume-Ref($volume, 1), 0), 30)-Sum(Greater(Ref($volume, 1)-$volume, 0), 30))/(Sum(Abs($volume-Ref($volume, 1)), 30)+1e-12)', '(Sum(Greater($volume-Ref($volume, 1), 0), 60)-Sum(Greater(Ref($volume, 1)-$volume, 0), 60))/(Sum(Abs($volume-Ref($volume, 1)), 60)+1e-12)']
+              - [KMID, KLEN, KMID2, KUP, KUP2, KLOW, KLOW2, KSFT, KSFT2, OPEN0, HIGH0, LOW0, VWAP0, ROC5, ROC10, ROC20, ROC30, ROC60, MA5, MA10, MA20, MA30, MA60, STD5, STD10, STD20, STD30, STD60, BETA5, BETA10, BETA20, BETA30, BETA60, RSQR5, RSQR10, RSQR20, RSQR30, RSQR60, RESI5, RESI10, RESI20, RESI30, RESI60, MAX5, MAX10, MAX20, MAX30, MAX60, MIN5, MIN10, MIN20, MIN30, MIN60, QTLU5, QTLU10, QTLU20, QTLU30, QTLU60, QTLD5, QTLD10, QTLD20, QTLD30, QTLD60, RANK5, RANK10, RANK20, RANK30, RANK60, RSV5, RSV10, RSV20, RSV30, RSV60, IMAX5, IMAX10, IMAX20, IMAX30, IMAX60, IMIN5, IMIN10, IMIN20, IMIN30, IMIN60, IMXD5, IMXD10, IMXD20, IMXD30, IMXD60, CORR5, CORR10, CORR20, CORR30, CORR60, CORD5, CORD10, CORD20, CORD30, CORD60, CNTP5, CNTP10, CNTP20, CNTP30, CNTP60, CNTN5, CNTN10, CNTN20, CNTN30, CNTN60, CNTD5, CNTD10, CNTD20, CNTD30, CNTD60, SUMP5, SUMP10, SUMP20, SUMP30, SUMP60, SUMN5, SUMN10, SUMN20, SUMN30, SUMN60, SUMD5, SUMD10, SUMD20, SUMD30, SUMD60, VMA5, VMA10, VMA20, VMA30, VMA60, VSTD5, VSTD10, VSTD20, VSTD30, VSTD60, WVMA5, WVMA10, WVMA20, WVMA30, WVMA60, VSUMP5, VSUMP10, VSUMP20, VSUMP30, VSUMP60, VSUMN5, VSUMN10, VSUMN20, VSUMN30, VSUMN60, VSUMD5, VSUMD10, VSUMD20, VSUMD30, VSUMD60]
+              label:
+              - ['Ref($close, -2)/Ref($close, -1) - 1']
+              - [LABEL0]
+            freq: day
+port_analysis_config: &port_analysis_config
+    strategy:
+        class: TopkDropoutStrategy
+        module_path: qlib.contrib.strategy
+        kwargs:
+            model: <MODEL> 
+            dataset: <DATASET>
+            topk: 50
+            n_drop: 5
+    backtest:
+        start_time: 2017-01-01
+        end_time: 2020-08-01
+        account: 100000000
+        benchmark: *benchmark
+        exchange_kwargs:
+            limit_threshold: 0.095
+            deal_price: close
+            open_cost: 0.0005
+            close_cost: 0.0015
+            min_cost: 5
+task:
+    model:
+        class: LGBModel
+        module_path: qlib.contrib.model.gbdt
+        kwargs:
+            loss: mse
+            colsample_bytree: 0.8879
+            learning_rate: 0.2
+            subsample: 0.8789
+            lambda_l1: 205.6999
+            lambda_l2: 580.9768
+            max_depth: 8
+            num_leaves: 210
+            num_threads: 20
+    dataset:
+        class: DatasetH
+        module_path: qlib.data.dataset
+        kwargs:
+            handler:
+                class: Alpha158
+                module_path: qlib.contrib.data.handler
+                kwargs: *data_handler_config
+            segments:
+                train: [2008-01-01, 2014-12-31]
+                valid: [2015-01-01, 2016-12-31]
+                test: [2017-01-01, 2020-08-01]
+    record: 
+        - class: SignalRecord
+          module_path: qlib.workflow.record_temp
+          kwargs: 
+            model: <MODEL>
+            dataset: <DATASET>
+        - class: SigAnaRecord
+          module_path: qlib.workflow.record_temp
+          kwargs: 
+            ana_long_short: False
+            ann_scaler: 252
+        - class: PortAnaRecord
+          module_path: qlib.workflow.record_temp
+          kwargs: 
+            config: *port_analysis_config

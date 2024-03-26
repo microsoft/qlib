@@ -21,7 +21,7 @@ from ..utils.time import Freq
 from ..utils.data import deepcopy_basic_type
 from ..utils.exceptions import QlibException
 from ..contrib.eva.alpha import calc_ic, calc_long_short_return, calc_long_short_prec
-
+from qlib.contrib.analyzer import HFAnalyzer, SignalAnalyzer
 
 logger = get_module_logger("workflow", logging.INFO)
 
@@ -157,6 +157,9 @@ class RecordTemp:
             if self.depend_cls is not None:
                 with class_casting(self, self.depend_cls):
                     self.check(include_self=True)
+
+    def analyse(self):
+        raise NotImplementedError(f"Please implement the `analysis` method.")
 
 
 class SignalRecord(RecordTemp):
