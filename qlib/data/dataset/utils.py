@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from qlib.data.dataset import DataHandler
 
 
-def get_level_index(df: pd.DataFrame, level=Union[str, int]) -> int:
+def get_level_index(df: pd.DataFrame, level: Union[str, int]) -> int:
     """
 
     get the level index of `df` given `level`
