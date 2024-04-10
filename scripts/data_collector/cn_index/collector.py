@@ -458,5 +458,4 @@ class CSI500Index(CSIIndex):
 
 
 if __name__ == "__main__":
-    # fire.Fire(get_instruments)
-    get_instruments(index_name="CSI500", qlib_dir="C:/Users/v-lvlinlang/Desktop/20230914175824_qlib_data_cn_1d_latest", method="parse_instruments")
+    fire.Fire(get_instruments)
