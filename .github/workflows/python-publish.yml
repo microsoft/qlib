@@ -10,6 +10,8 @@ on:
 jobs:
   deploy_with_bdist_wheel:
     runs-on: ${{ matrix.os }}
+    permissions:
+      id-token: write
     strategy:
       matrix:
         os: [windows-latest, macos-11]
@@ -49,15 +51,18 @@ jobs:
         pip install numpy
         pip install cython
         python setup.py bdist_wheel
+    - name: Set up publish
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        password: ${{ steps.mint-token.outputs.api-token }}
     - name: Build and publish
-      env:
-        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
         twine upload dist/*
 
   deploy_with_manylinux:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
     steps:
     - uses: actions/checkout@v2
     - name: Build wheel on Linux
@@ -72,10 +77,11 @@ jobs:
         python-version: 3.7
     - name: Install dependencies
       run: |
-        pip install twine  
+        pip install twine
+    - name: Set up publish
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        password: ${{ steps.mint-token.outputs.api-token }}
     - name: Build and publish
-      env:
-        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
         twine upload dist/pyqlib-*-manylinux*.whl
