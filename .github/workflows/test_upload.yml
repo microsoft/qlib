@@ -56,7 +56,7 @@ jobs:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}
       run: |
-        twine upload dist/*
+        twine upload --repository-url https://test.pypi.org/legacy/ dist/*
 
   deploy_with_manylinux:
     runs-on: ubuntu-latest
@@ -82,4 +82,4 @@ jobs:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}
       run: |
-        twine upload dist/pyqlib-*-manylinux*.whl
+        twine upload --repository-url https://test.pypi.org/legacy/ dist/pyqlib-*-manylinux*.whl
