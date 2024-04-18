@@ -4,8 +4,10 @@
 name: Upload qlib package to testpypi
 
 on:
-  release:
-    types: [published]
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 
 jobs:
