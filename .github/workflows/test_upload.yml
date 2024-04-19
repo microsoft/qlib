@@ -52,10 +52,11 @@ jobs:
         pip install cython
         python scripts/publish.py
         python setup.py bdist_wheel
+    - name: Set up publish
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        password: ${{ steps.mint-token.outputs.api-token }}
     - name: Build and publish
-      env:
-        TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}
       run: |
         twine upload --repository-url https://test.pypi.org/legacy/ dist/*
 
@@ -78,9 +79,10 @@ jobs:
     - name: Install dependencies
       run: |
         pip install twine
+    - name: Set up publish
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        password: ${{ steps.mint-token.outputs.api-token }}
     - name: Build and publish
-      env:
-        TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}
       run: |
         twine upload --repository-url https://test.pypi.org/legacy/ dist/pyqlib-*-manylinux*.whl
