@@ -50,6 +50,7 @@ jobs:
       run: |
         pip install numpy
         pip install cython
+        python scripts/publish.py
         python setup.py bdist_wheel
     - name: Build and publish
       env:
