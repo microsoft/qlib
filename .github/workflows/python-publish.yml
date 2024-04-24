@@ -10,8 +10,6 @@ on:
 jobs:
   deploy_with_bdist_wheel:
     runs-on: ${{ matrix.os }}
-    permissions:
-      id-token: write
     strategy:
       matrix:
         os: [windows-latest, macos-11]
