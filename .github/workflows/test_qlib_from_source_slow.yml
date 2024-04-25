@@ -57,6 +57,7 @@ jobs:
         wget https://raw.githubusercontent.com/Homebrew/homebrew-core/fb8323f2b170bd4ae97e1bac9bf3e2983af3fdb0/Formula/libomp.rb
         brew unlink libomp
         brew install libomp.rb
+        export DYLD_LIBRARY_PATH=/usr/local/opt/libomp/lib:$DYLD_LIBRARY_PATH
 
     - name: Unit tests with Pytest
       uses: nick-fields/retry@v2
