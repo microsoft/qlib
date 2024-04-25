@@ -27,15 +27,15 @@ jobs:
     # refs: https://github.com/actions/setup-python/issues/682
     - name: Set up Python ${{ matrix.python-version }}
       if: (matrix.os == 'macos-latest' && matrix.python-version == '3.7') || (matrix.os == 'macos-11' && matrix.python-version == '3.7')
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v4
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: "3.7.15"
 
     - name: Set up Python ${{ matrix.python-version }}
       if: (matrix.os != 'macos-latest' || matrix.python-version != '3.7') && (matrix.os != 'macos-11' || matrix.python-version != '3.7')
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v4
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: "3.7.15"
 
     - name: Set up Python tools
       run: |
