@@ -14,7 +14,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-20.04, ubuntu-22.04, macos-11, macos-13]
+        os: [windows-latest, ubuntu-20.04, ubuntu-22.04, macos-11, macos-12]
         # not supporting 3.6 due to annotations is not supported https://stackoverflow.com/a/52890129
         python-version: [3.7, 3.8]
 
@@ -153,7 +153,6 @@ jobs:
         wget https://raw.githubusercontent.com/Homebrew/homebrew-core/fb8323f2b170bd4ae97e1bac9bf3e2983af3fdb0/Formula/libomp.rb
         brew unlink libomp
         brew install libomp.rb
-        export DYLD_LIBRARY_PATH=/usr/local/opt/libomp/lib:$DYLD_LIBRARY_PATH
 
     # Run after data downloads
     - name: Check Qlib ipynb with nbconvert
