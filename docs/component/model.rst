@@ -86,7 +86,7 @@ Example
             },
         }
 
-        # model initiaiton
+        # model initiation
         model = init_instance_by_config(task["model"])
         dataset = init_instance_by_config(task["dataset"])
 

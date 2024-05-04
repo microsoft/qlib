@@ -541,7 +541,7 @@ We've specially designed a file structure to manage data and cache, please refer
         [cached data] updated when raw data is updated
         - calculated features/
             - sh600000/
-                - [hash(instrtument, field_expression, freq)]
+                - [hash(instrument, field_expression, freq)]
                     - all-time expression -cache data file
                     - .meta : an assorted meta file recording the instrument name, field name, freq, and visit times
             - ...

@@ -521,7 +521,7 @@ You can find some impefect implementation in Qlib by  `rg 'TODO|FIXME' qlib`
  
 If you would like to become one of Qlib's maintainers to contribute more (e.g. help merge PR, triage issues), please contact us by email([qlib@microsoft.com](mailto:qlib@microsoft.com)).  We are glad to help to upgrade your permission.
 
-## Licence
+## License
 Most contributions require you to agree to a
 Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
 the right to use your contribution. For details, visit https://cla.opensource.microsoft.com.
