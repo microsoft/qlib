@@ -3,7 +3,7 @@
 """
 TODO:
 - A more well-designed PIT database is required.
-    - seperated insert, delete, update, query operations are required.
+    - separated insert, delete, update, query operations are required.
 """
 
 import shutil
