@@ -204,6 +204,9 @@ def get_hs_stock_symbols() -> list:
         if len(_symbols) < 3900:
             raise ValueError("request error")
 
+        _symbols = [_symbol + '.ss' if _symbol.startswith('6') else _symbol + '.sz' if _symbol.startswith(('0', '3')) else None for _symbol in _symbols]
+        _symbols = [_symbol for _symbol in _symbols if _symbol is not None]
+
         return set(_symbols)
 
     if _HS_SYMBOLS is None:
