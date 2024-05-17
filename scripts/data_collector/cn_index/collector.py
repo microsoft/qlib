@@ -396,14 +396,7 @@ class CSI500Index(CSIIndex):
         today = pd.Timestamp.now()
         date_range = pd.DataFrame(pd.date_range(start="2007-01-15", end=today, freq="7D"))[0].dt.date
         ret_list = []
-        col = ["date", "symbol", "code_name"]
         for date in tqdm(date_range, desc="Download CSI500"):
-            rs = bs.query_zz500_stocks(date=str(date))
-            zz500_stocks = []
-            while (rs.error_code == "0") & rs.next():
-                zz500_stocks.append(rs.get_row_data())
-            result = pd.DataFrame(zz500_stocks, columns=col)
-            result["symbol"] = result["symbol"].apply(lambda x: x.replace(".", "").upper())
             result = self.get_data_from_baostock(date)
             ret_list.append(result[["date", "symbol"]])
         bs.logout()
