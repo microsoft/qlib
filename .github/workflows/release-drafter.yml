@@ -6,8 +6,14 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   update_release_draft:
+    permissions:
+      contents: write
+      pull-requests: read
     runs-on: ubuntu-latest
     steps:
       # Drafts your next Release notes as Pull Requests are merged into "master"
