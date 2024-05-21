@@ -148,7 +148,7 @@ class ALSTM(Model):
     def metric_fn(self, pred, label):
         mask = torch.isfinite(label)
 
-        if self.metric in ("", "loss"):
+        if self.metric in ("", "loss","mse"):
             return -self.loss_fn(pred[mask], label[mask])
 
         raise ValueError("unknown metric `%s`" % self.metric)
