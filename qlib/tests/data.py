@@ -12,15 +12,11 @@ import datetime
 from tqdm import tqdm
 from pathlib import Path
 from loguru import logger
-from cryptography.fernet import Fernet
 from qlib.utils import exists_qlib_data
 
 
 class GetData:
-    REMOTE_URL = "https://qlibpublic.blob.core.windows.net/data/default/stock_data"
-    # "?" is not included in the token.
-    TOKEN = b"gAAAAABkmDhojHc0VSCDdNK1MqmRzNLeDFXe5hy8obHpa6SDQh4de6nW5gtzuD-fa6O_WZb0yyqYOL7ndOfJX_751W3xN5YB4-n-P22jK-t6ucoZqhT70KPD0Lf0_P328QPJVZ1gDnjIdjhi2YLOcP4BFTHLNYO0mvzszR8TKm9iT5AKRvuysWnpi8bbYwGU9zAcJK3x9EPL43hOGtxliFHcPNGMBoJW4g_ercdhi0-Qgv5_JLsV-29_MV-_AhuaYvJuN2dEywBy"
-    KEY = "EYcA8cgorA8X9OhyMwVfuFxn_1W3jGk6jCbs3L2oPoA="
+    REMOTE_URL = "https://github.com/SunsetWolf/qlib_dataset/releases/download"
 
     def __init__(self, delete_zip_file=False):
         """
@@ -33,9 +29,7 @@ class GetData:
         self.delete_zip_file = delete_zip_file
 
     def merge_remote_url(self, file_name: str):
-        fernet = Fernet(self.KEY)
-        token = fernet.decrypt(self.TOKEN).decode()
-        return f"{self.REMOTE_URL}/{file_name}?{token}"
+        return f"{self.REMOTE_URL}/{file_name}"
 
     def download_data(self, file_name: str, target_dir: [Path, str], delete_old: bool = True):
         """
@@ -99,7 +93,9 @@ class GetData:
         return status
 
     @staticmethod
-    def _unzip(file_path: Path, target_dir: Path, delete_old: bool = True):
+    def _unzip(file_path: [Path, str], target_dir: [Path, str], delete_old: bool = True):
+        file_path = Path(file_path)
+        target_dir = Path(target_dir)
         if delete_old:
             logger.warning(
                 f"will delete the old qlib data directory(features, instruments, calendars, features_cache, dataset_cache): {target_dir}"
