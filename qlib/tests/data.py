@@ -29,7 +29,7 @@ class GetData:
         self.delete_zip_file = delete_zip_file
 
     def merge_remote_url(self, file_name: str):
-        return f"{self.REMOTE_URL}/{file_name}"
+        return f"{self.REMOTE_URL}/{file_name}" if "/" in file_name else f"{self.REMOTE_URL}/v0/{file_name}"
 
     def download_data(self, file_name: str, target_dir: [Path, str], delete_old: bool = True):
         """
