@@ -29,6 +29,16 @@ class GetData:
         self.delete_zip_file = delete_zip_file
 
     def merge_remote_url(self, file_name: str):
+        """
+        Generate download links.
+
+        Parameters
+        ----------
+        file_name: str
+            The name of the file to be downloaded.
+            The file name can be accompanied by a version number, (e.g.: v2/qlib_data_simple_cn_1d_latest.zip),
+            if no version number is attached, it will be downloaded from v0 by default.
+        """
         return f"{self.REMOTE_URL}/{file_name}" if "/" in file_name else f"{self.REMOTE_URL}/v0/{file_name}"
 
     def download(self, url: str, target_path: [Path, str]):
