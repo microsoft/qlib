@@ -42,7 +42,7 @@ class GetData:
         target_path: str
             The location where the data is saved, including the file name.
         """
-        file_name = str(target_path).split("/")[-1]
+        file_name = str(target_path).rsplit("/", maxsplit=1)[-1]
         resp = requests.get(url, stream=True, timeout=60)
         resp.raise_for_status()
         if resp.status_code != 200:
