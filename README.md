@@ -175,6 +175,20 @@ Also, users can install the latest dev version ``Qlib`` by the source code accor
 **Tips for Mac**: If you are using Mac with M1, you might encounter issues in building the wheel for LightGBM, which is due to missing dependencies from OpenMP. To solve the problem, install openmp first with ``brew install libomp`` and then run ``pip install .`` to build it successfully. 
 
 ## Data Preparation
+❗ Due to more restrict data security policy. The offical dataset is disabled temporarily. You can try [this data source](https://github.com/chenditc/investment_data/releases) contributed by the community.
+Here is an example to download the data updated on 20220720.
+```bash
+wget https://github.com/chenditc/investment_data/releases/download/20220720/qlib_bin.tar.gz
+mkdir -p ~/.qlib/qlib_data/cn_data
+tar -zxvf qlib_bin.tar.gz -C ~/.qlib/qlib_data/cn_data --strip-components=2
+rm -f qlib_bin.tar.gz
+```
+
+The official dataset below will resume in short future.
+
+
+----
+
 Load and prepare data by running the following code:
 
 ### Get with module

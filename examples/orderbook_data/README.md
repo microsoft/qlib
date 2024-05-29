@@ -16,7 +16,7 @@ Current version of script with default value tries to connect localhost **via de
 
 Run following command to install necessary libraries
 ```
-pip install pytest coverage
+pip install pytest coverage gdown
 pip install arctic  # NOTE: pip may fail to resolve the right package dependency !!! Please make sure the dependency are satisfied.
 ```
 
@@ -27,7 +27,8 @@ pip install arctic  # NOTE: pip may fail to resolve the right package dependency
 2. Please follow following steps to download example data
 ```bash
 cd examples/orderbook_data/
-python ../../scripts/get_data.py download_data --target_dir . --file_name highfreq_orderbook_example_data.zip
+gdown https://drive.google.com/uc?id=15nZF7tFT_eKVZAcMFL1qPS4jGyJflH7e  # Proxies may be necessary here.
+python ../../scripts/get_data.py _unzip --file_path highfreq_orderbook_example_data.zip --target_dir .
 ```
 
 3. Please import the example data to your mongo db
