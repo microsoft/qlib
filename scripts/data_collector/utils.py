@@ -15,7 +15,6 @@ from typing import Iterable, Tuple, List
 
 import numpy as np
 import pandas as pd
-from lxml import etree
 from loguru import logger
 from yahooquery import Ticker
 from tqdm import tqdm
