@@ -166,7 +166,7 @@ Also, users can install the latest dev version ``Qlib`` by the source code accor
 * Clone the repository and install ``Qlib`` as follows.
     ```bash
     git clone https://github.com/microsoft/qlib.git && cd qlib
-    pip install .
+    pip install .  # `pip install -e .[dev]` is recommended for development. check details in docs/developer/code_standard_and_dev_guide.rst
     ```
   **Note**:  You can install Qlib with `python setup.py install` as well. But it is not the recommended approach. It will skip `pip` and cause obscure problems. For example, **only** the command ``pip install .`` **can** overwrite the stable version installed by ``pip install pyqlib``, while the command ``python setup.py install`` **can't**.
 
