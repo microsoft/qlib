@@ -301,15 +301,13 @@ class Normalize:
             na_values={col: symbol_na if col == self._symbol_field_name else default_na for col in columns},
         )
 
-        try:
-            df = self._normalize_obj.normalize(df)
-            if df is not None and not df.empty:
-                if self._end_date is not None:
-                    _mask = pd.to_datetime(df[self._date_field_name]) <= pd.Timestamp(self._end_date)
-                    df = df[_mask]
-                df.to_csv(self._target_dir.joinpath(file_path.name), index=False)
-        except Exception as e:
-            logger.warning(f"normalize {file_path.name} failed, error: {e}")
+        # NOTE: It has been reported that there may be some problems here, and the specific issues will be dealt with when they are identified.
+        df = self._normalize_obj.normalize(df)
+        if df is not None and not df.empty:
+            if self._end_date is not None:
+                _mask = pd.to_datetime(df[self._date_field_name]) <= pd.Timestamp(self._end_date)
+                df = df[_mask]
+            df.to_csv(self._target_dir.joinpath(file_path.name), index=False)
 
     def normalize(self):
         logger.info("normalize data......")
