@@ -190,18 +190,20 @@ def get_hs_stock_symbols() -> list:
 
     def _get_symbol():
         url = "http://99.push2.eastmoney.com/api/qt/clist/get?pn=1&pz=10000&po=1&np=1&fs=m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23,m:0+t:81+s:2048&fields=f12"
-        resp = requests.get(url, timeout=None)
-        if resp.status_code != 200:
-            raise ValueError("request error: {}".format(requests.exceptions.HTTPError))
+        try:
+            resp = requests.get(url, timeout=None)
+            resp.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise requests.exceptions.HTTPError(f"Request to {url} failed with status code {resp.status_code}") from e
 
         try:
             _symbols = [_v["f12"] for _v in resp.json()["data"]["diff"]]
-        except requests.exceptions.HTTPError as e:
-            logger.warning("request error: {}".format(e))
+        except Exception as e:
+            logger.warning("An error occurred while extracting data from the response.")
             raise
 
         if len(_symbols) < 3900:
-            raise ValueError("request error: {}".format(requests.exceptions.HTTPError))
+            raise ValueError("The complete list of stocks is not available.")
 
         # Add suffix after the stock code to conform to yahooquery standard, otherwise the data will not be fetched.
         _symbols = [
