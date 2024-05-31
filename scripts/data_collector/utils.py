@@ -189,6 +189,19 @@ def get_hs_stock_symbols() -> list:
     global _HS_SYMBOLS  # pylint: disable=W0603
 
     def _get_symbol():
+        """
+        Get the stock pool from a web page and process it into the format required by yahooquery.
+        Format of data retrieved from the web page: 600519, 000001
+        The data format required by yahooquery: 600519.ss, 000001.sz
+
+        Returns
+        -------
+            set: Returns the set of symbol codes.
+
+        Examples:
+        -------
+            {600000.ss, 600001.ss, 600002.ss, 600003.ss, ...}
+        """
         url = "http://99.push2.eastmoney.com/api/qt/clist/get?pn=1&pz=10000&po=1&np=1&fs=m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23,m:0+t:81+s:2048&fields=f12"
         try:
             resp = requests.get(url, timeout=None)
