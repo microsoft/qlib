@@ -627,7 +627,7 @@ class TSDataSampler:
         indices = np.nan_to_num(indices.astype(np.float64), nan=self.nan_idx).astype(int)
 
         if (np.diff(indices) == 1).all():  # slicing instead of indexing for speeding up.
-            if indices[0] < 0 :
+            if indices[0] == -1 :
                 data = self.data_arr[0 : indices[-1] + 1]
                 # Prepend nan values to the data to match the step_len
                 data = np.concatenate([np.full((self.step_len - len(data), *data.shape[1:]), np.nan), data])
