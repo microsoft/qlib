@@ -16,7 +16,7 @@ Current version of script with default value tries to connect localhost **via de
 
 Run following command to install necessary libraries
 ```
-pip install pytest coverage
+pip install pytest coverage gdown
 pip install arctic  # NOTE: pip may fail to resolve the right package dependency !!! Please make sure the dependency are satisfied.
 ```
 
@@ -27,13 +27,12 @@ pip install arctic  # NOTE: pip may fail to resolve the right package dependency
 2. Please follow following steps to download example data
 ```bash
 cd examples/orderbook_data/
-wget http://fintech.msra.cn/stock_data/downloads/highfreq_orderboook_example_data.tar.bz2
-tar xf highfreq_orderboook_example_data.tar.bz2
+gdown https://drive.google.com/uc?id=15nZF7tFT_eKVZAcMFL1qPS4jGyJflH7e  # Proxies may be necessary here.
+python ../../scripts/get_data.py _unzip --file_path highfreq_orderbook_example_data.zip --target_dir .
 ```
 
 3. Please import the example data to your mongo db
 ```bash
-cd examples/orderbook_data/
 python create_dataset.py initialize_library  # Initialization Libraries
 python create_dataset.py import_data  # Initialization Libraries
 ```
@@ -42,7 +41,6 @@ python create_dataset.py import_data  # Initialization Libraries
 
 After importing these data, you run `example.py` to create some high-frequency features.
 ```bash
-cd examples/orderbook_data/
 pytest -s --disable-warnings example.py   # If you want run all examples
 pytest -s --disable-warnings example.py::TestClass::test_exp_10  # If you want to run specific example
 ```
