@@ -980,7 +980,7 @@ class Run(BaseRun):
         if end_date is None:
             end_date = (pd.Timestamp(trading_date) + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
 
-        if pd.Timestamp(end_date) >= pd.Timestamp(datetime.datetime.now().strftime("%Y-%m-%d")):
+        if pd.Timestamp(end_date) > pd.Timestamp(datetime.datetime.now().strftime("%Y-%m-%d")):
             raise ValueError(f"end_date: {end_date} is greater than the current date.")
 
         # download data from yahoo
