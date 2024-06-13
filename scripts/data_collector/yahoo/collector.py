@@ -134,16 +134,7 @@ class YahooCollector(BaseCollector):
         try:
             _resp = Ticker(symbol, asynchronous=False).history(interval=interval, start=start, end=end)
             if isinstance(_resp, pd.DataFrame):
-                if interval == "1d" and end > pd.Timestamp(
-                    datetime.datetime.now().strftime("%Y-%m-%d"), tz=datetime.datetime.now().astimezone().tzinfo
-                ):
-                    # while _resp contains current day data, date index contains H:M:S which is different from
-                    # before index format, align it here
-                    resp = _resp.reset_index()
-                    resp["date"] = pd.to_datetime(resp["date"]).dt.date
-                    return resp
-                else:
-                    return _resp.reset_index()
+                return _resp.reset_index()
             elif isinstance(_resp, dict):
                 _temp_data = _resp.get(symbol, {})
                 if isinstance(_temp_data, str) or (
@@ -990,10 +981,7 @@ class Run(BaseRun):
             end_date = (pd.Timestamp(trading_date) + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
 
         if pd.Timestamp(end_date) >= pd.Timestamp(datetime.datetime.now().strftime("%Y-%m-%d")):
-            logger.warning(
-                f"end_date: {end_date} greater than or equal to current date, "
-                f"close price of 1d may not be the final price of the day."
-            )
+            raise ValueError(f"end_date: {end_date} is greater than the current date.")
 
         # download data from yahoo
         # NOTE: when downloading data from YahooFinance, max_workers is recommended to be 1
