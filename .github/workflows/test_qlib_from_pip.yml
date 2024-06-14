@@ -45,6 +45,9 @@ jobs:
 
     - name: Qlib installation test
       run: |
+        # 2024-05-30 scs has released a new version: 3.2.4.post2,
+        # This will cause the CI to fail, so we have limited the version of scs for now.
+        python -m pip install "scs<=3.2.4"
         python -m pip install pyqlib
 
     - name: Install Lightgbm for MacOS
