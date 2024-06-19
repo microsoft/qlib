@@ -46,7 +46,7 @@ if not _CYTHON_INSTALLED:
 REQUIRED = [
     "numpy>=1.12.0, <1.24",
     "pandas>=0.25.1",
-    "scipy>=1.0.0",
+    "scipy>=1.7.3",
     "requests>=2.18.0",
     "sacred>=0.7.4",
     "python-socketio",
