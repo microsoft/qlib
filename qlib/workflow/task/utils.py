@@ -242,7 +242,7 @@ class TimeAdjuster:
 
     def shift(self, seg: tuple, step: int, rtype=SHIFT_SD) -> tuple:
         """
-        Shift the datatime of segment
+        Shift the datetime of segment
 
         If there are None (which indicates unbounded index) in the segment, this method will return None.
 
