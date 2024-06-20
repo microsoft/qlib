@@ -167,6 +167,7 @@ jobs:
         jupyter nbconvert --to notebook --execute examples/workflow_by_code.ipynb
 
     - name: Test workflow by config (install from source)
+      if: ${{ matrix.os != 'macos-11' }}
       run: |
         python -m pip install numba
         python qlib/workflow/cli.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
