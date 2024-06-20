@@ -74,7 +74,8 @@ jobs:
     - name: Make html with sphinx
       run: |
         cd docs
-        python -m pip install sphinx sphinx-autobuild
+        python -m pip install sphinx-autobuild
+        python -m pip install cmake==3.29.5
         sphinx-build -W --keep-going -b html . _build -j 1 -v -vv
         cd ..
 
