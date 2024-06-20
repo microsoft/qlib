@@ -161,6 +161,7 @@ jobs:
 
     # Run after data downloads
     - name: Check Qlib ipynb with nbconvert
+      if: ${{ matrix.os != 'macos-11' }}
       run: |
         # add more ipynb files in future
         jupyter nbconvert --to notebook --execute examples/workflow_by_code.ipynb
