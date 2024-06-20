@@ -72,11 +72,11 @@ jobs:
         black . -l 120 --check --diff
 
     - name: Make html with sphinx
+      # Since read the docs builds on ubuntu 22.04, we only need to test that the build passes on ubuntu 22.04.
+      if: ${{ matrix.os == 'ubuntu-22.04' }}
       run: |
         cd docs
-        python -m pip install sphinx-autobuild
-        python -m pip install cmake==3.29.5
-        sphinx-build -W --keep-going -b html . _build -j 1 -v -vv
+        sphinx-build -W --keep-going -b html . _build
         cd ..
 
     # Check Qlib with pylint
