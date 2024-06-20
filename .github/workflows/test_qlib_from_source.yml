@@ -75,7 +75,7 @@ jobs:
       run: |
         cd docs
         python -m pip install sphinx sphinx-autobuild
-        sphinx-build -W --keep-going -b html . _build -j 1 -v
+        sphinx-build -W --keep-going -b html . _build -j 1 -v -vv
         cd ..
 
     # Check Qlib with pylint
