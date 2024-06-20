@@ -27,7 +27,7 @@ def train(uri_path: str = None):
             model performance
     """
 
-    # model initiaiton
+    # model initialization
     model = init_instance_by_config(CSI300_GBDT_TASK["model"])
     dataset = init_instance_by_config(CSI300_GBDT_TASK["dataset"])
     # To test __repr__
