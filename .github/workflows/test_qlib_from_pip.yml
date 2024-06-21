@@ -68,6 +68,5 @@ jobs:
         cd qlib
 
     - name: Test workflow by config
-      if: ${{ matrix.os != 'macos-11' }}
       run: |
         qrun examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
