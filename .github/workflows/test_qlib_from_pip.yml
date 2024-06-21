@@ -68,5 +68,8 @@ jobs:
         cd qlib
 
     - name: Test workflow by config
+      # On macos-11 system, it will lead to "Segmentation fault: 11" error,
+      # which may be caused by the excessive memory overhead of macos-11 system, so we disable macos-11 temporarily here.
+      if: ${{ matrix.os != 'macos-11' }}
       run: |
         qrun examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml

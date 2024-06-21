@@ -46,7 +46,7 @@ if not _CYTHON_INSTALLED:
 REQUIRED = [
     "numpy>=1.12.0, <1.24",
     "pandas>=0.25.1",
-    "scipy>=1.0.0",
+    "scipy>=1.7.3",
     "requests>=2.18.0",
     "sacred>=0.7.4",
     "python-socketio",
@@ -82,7 +82,7 @@ REQUIRED = [
     "dill",
     "dataclasses;python_version<'3.7'",
     "filelock",
-    "jinja2<3.1.0",  # for passing the readthedocs workflow.
+    "jinja2",
     "gym",
     # Installing the latest version of protobuf for python versions below 3.8 will cause unit tests to fail.
     "protobuf<=3.20.1;python_version<='3.8'",
