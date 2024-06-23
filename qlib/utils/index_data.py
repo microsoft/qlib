@@ -141,7 +141,7 @@ class Index:
             elif isinstance(item, np.datetime64):
                 # This happens often when creating index based on np.datetime64 and query with another precision
                 return item.astype(self.idx_list.dtype)
-            # NOTE: It is hard to consider every cases at first. 
+            # NOTE: It is hard to consider every case at first. 
             # We just try to cover part of cases to make it more user-friendly 
         return item
 
