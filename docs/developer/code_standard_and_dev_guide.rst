@@ -60,10 +60,4 @@ The `[dev]` option will help you to install some related packages when developin
 
 .. code-block:: bash
 
-    pip install -e .[dev]
-
-If you use zsh instead of bash, remember to use the following command.
-
-.. code-block:: bash
-
     pip install -e ".[dev]"
