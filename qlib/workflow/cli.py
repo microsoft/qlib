@@ -2,14 +2,12 @@
 #  Licensed under the MIT License.
 import logging
 import os
-import os
 from pathlib import Path
 import sys
 
 import fire
 from jinja2 import Template, meta
 import ruamel.yaml as yaml
-import yaml
 
 import qlib
 from qlib.config import C
