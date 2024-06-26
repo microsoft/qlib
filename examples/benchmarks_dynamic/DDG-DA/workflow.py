@@ -1,5 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+import os
 from pathlib import Path
 from typing import Union
 
@@ -35,6 +36,10 @@ class DDGDABench(DDGDA):
 
 
 if __name__ == "__main__":
-    GetData().qlib_data(exists_skip=True)
-    auto_init()
+    kwargs = {}
+    if os.environ.get("PROVIDER_URI", "") == "":
+        GetData().qlib_data(exists_skip=True)
+    else:
+        kwargs["provider_uri"] = os.environ["PROVIDER_URI"]
+    auto_init(**kwargs)
     fire.Fire(DDGDABench)

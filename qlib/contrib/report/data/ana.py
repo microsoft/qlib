@@ -1,5 +1,17 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+"""
+Here we have a comprehensive set of analysis classes.
+
+Here is an example.
+
+.. code-block:: python
+
+    from qlib.contrib.report.data.ana import FeaMeanStd
+    fa = FeaMeanStd(ret_df)
+    fa.plot_all(wspace=0.3, sub_figsize=(12, 3), col_n=5)
+
+"""
 import pandas as pd
 import numpy as np
 from qlib.contrib.report.data.base import FeaAnalyser
@@ -152,6 +164,7 @@ class FeaSkewTurt(NumFeaAnalyser):
         self._kurt[col].plot(ax=right_ax, label="kurt", color="green")
         right_ax.set_xlabel("")
         right_ax.set_ylabel("kurt")
+        right_ax.grid(None)  # set the grid to None to avoid two layer of grid
 
         h1, l1 = ax.get_legend_handles_labels()
         h2, l2 = right_ax.get_legend_handles_labels()
@@ -171,12 +184,15 @@ class FeaMeanStd(NumFeaAnalyser):
         ax.set_xlabel("")
         ax.set_ylabel("mean")
         ax.legend()
+        ax.tick_params(axis="x", rotation=90)
 
         right_ax = ax.twinx()
 
         self._std[col].plot(ax=right_ax, label="std", color="green")
         right_ax.set_xlabel("")
         right_ax.set_ylabel("std")
+        right_ax.tick_params(axis="x", rotation=90)
+        right_ax.grid(None)  # set the grid to None to avoid two layer of grid
 
         h1, l1 = ax.get_legend_handles_labels()
         h2, l2 = right_ax.get_legend_handles_labels()

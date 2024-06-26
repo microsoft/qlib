@@ -10,7 +10,11 @@ from qlib.log import get_module_logger
 
 
 class ICLoss(nn.Module):
-    def forward(self, pred, y, idx, skip_size=50):
+    def __init__(self, skip_size=50):
+        super().__init__()
+        self.skip_size = skip_size
+
+    def forward(self, pred, y, idx):
         """forward.
         FIXME:
         - Some times it will be a slightly different from the result from `pandas.corr()`
@@ -33,7 +37,7 @@ class ICLoss(nn.Module):
         skip_n = 0
         for start_i, end_i in zip(diff_point, diff_point[1:]):
             pred_focus = pred[start_i:end_i]  # TODO: just for fake
-            if pred_focus.shape[0] < skip_size:
+            if pred_focus.shape[0] < self.skip_size:
                 # skip some days which have very small amount of stock.
                 skip_n += 1
                 continue
@@ -50,6 +54,7 @@ class ICLoss(nn.Module):
             )
             ic_all += ic_day
         if len(diff_point) - 1 - skip_n <= 0:
+            __import__("ipdb").set_trace()
             raise ValueError("No enough data for calculating IC")
         if skip_n > 0:
             get_module_logger("ICLoss").info(
