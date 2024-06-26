@@ -51,3 +51,6 @@ class MetaTask:
         Return the **processed** meta_info
         """
         return self.meta_info
+
+    def __repr__(self):
+        return f"MetaTask(task={self.task}, meta_info={self.meta_info})"
