@@ -54,7 +54,7 @@ class ICLoss(nn.Module):
             )
             ic_all += ic_day
         if len(diff_point) - 1 - skip_n <= 0:
-            __import__('ipdb').set_trace()
+            __import__("ipdb").set_trace()
             raise ValueError("No enough data for calculating IC")
         if skip_n > 0:
             get_module_logger("ICLoss").info(

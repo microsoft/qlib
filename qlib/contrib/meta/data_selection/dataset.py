@@ -388,11 +388,11 @@ class MetaDatasetDS(MetaTaskDataset):
             train_task_n = int(len(self.meta_task_l) * self.segments)
             if segment == "train":
                 train_tasks = self.meta_task_l[:train_task_n]
-                get_module_logger("MetaDatasetDS").info(f"The first train meta task: {train_tasks[0]}")   
+                get_module_logger("MetaDatasetDS").info(f"The first train meta task: {train_tasks[0]}")
                 return train_tasks
             elif segment == "test":
                 test_tasks = self.meta_task_l[train_task_n:]
-                get_module_logger("MetaDatasetDS").info(f"The first test meta task: {test_tasks[0]}")   
+                get_module_logger("MetaDatasetDS").info(f"The first test meta task: {test_tasks[0]}")
                 return test_tasks
             else:
                 raise NotImplementedError(f"This type of input is not supported")
@@ -405,8 +405,8 @@ class MetaDatasetDS(MetaTaskDataset):
                     train_tasks.append(t)
                 else:
                     test_tasks.append(t)
-            get_module_logger("MetaDatasetDS").info(f"The first train meta task: {train_tasks[0]}")   
-            get_module_logger("MetaDatasetDS").info(f"The first test meta task: {test_tasks[0]}")   
+            get_module_logger("MetaDatasetDS").info(f"The first train meta task: {train_tasks[0]}")
+            get_module_logger("MetaDatasetDS").info(f"The first test meta task: {test_tasks[0]}")
             if segment == "train":
                 return train_tasks
             elif segment == "test":

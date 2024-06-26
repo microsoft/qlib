@@ -184,14 +184,14 @@ class FeaMeanStd(NumFeaAnalyser):
         ax.set_xlabel("")
         ax.set_ylabel("mean")
         ax.legend()
-        ax.tick_params(axis='x', rotation=90)
+        ax.tick_params(axis="x", rotation=90)
 
         right_ax = ax.twinx()
 
         self._std[col].plot(ax=right_ax, label="std", color="green")
         right_ax.set_xlabel("")
         right_ax.set_ylabel("std")
-        right_ax.tick_params(axis='x', rotation=90)
+        right_ax.tick_params(axis="x", rotation=90)
         right_ax.grid(None)  # set the grid to None to avoid two layer of grid
 
         h1, l1 = ax.get_legend_handles_labels()

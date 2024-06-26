@@ -37,21 +37,23 @@ class GRU(Model):
         the GPU ID(s) used for training
     """
 
-    def __init__(self,
-                 d_feat=6,
-                 hidden_size=64,
-                 num_layers=2,
-                 dropout=0.0,
-                 n_epochs=200,
-                 lr=0.001,
-                 metric="",
-                 batch_size=2000,
-                 early_stop=20,
-                 loss="mse",
-                 optimizer="adam",
-                 GPU=0,
-                 seed=None,
-                 **kwargs):
+    def __init__(
+        self,
+        d_feat=6,
+        hidden_size=64,
+        num_layers=2,
+        dropout=0.0,
+        n_epochs=200,
+        lr=0.001,
+        metric="",
+        batch_size=2000,
+        early_stop=20,
+        loss="mse",
+        optimizer="adam",
+        GPU=0,
+        seed=None,
+        **kwargs
+    ):
         # Set logger.
         self.logger = get_module_logger("GRU")
         self.logger.info("GRU pytorch version...")
@@ -71,36 +73,38 @@ class GRU(Model):
         self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
         self.seed = seed
 
-        self.logger.info("GRU parameters setting:"
-                         "\nd_feat : {}"
-                         "\nhidden_size : {}"
-                         "\nnum_layers : {}"
-                         "\ndropout : {}"
-                         "\nn_epochs : {}"
-                         "\nlr : {}"
-                         "\nmetric : {}"
-                         "\nbatch_size : {}"
-                         "\nearly_stop : {}"
-                         "\noptimizer : {}"
-                         "\nloss_type : {}"
-                         "\nvisible_GPU : {}"
-                         "\nuse_GPU : {}"
-                         "\nseed : {}".format(
-                             d_feat,
-                             hidden_size,
-                             num_layers,
-                             dropout,
-                             n_epochs,
-                             lr,
-                             metric,
-                             batch_size,
-                             early_stop,
-                             optimizer.lower(),
-                             loss,
-                             GPU,
-                             self.use_gpu,
-                             seed,
-                         ))
+        self.logger.info(
+            "GRU parameters setting:"
+            "\nd_feat : {}"
+            "\nhidden_size : {}"
+            "\nnum_layers : {}"
+            "\ndropout : {}"
+            "\nn_epochs : {}"
+            "\nlr : {}"
+            "\nmetric : {}"
+            "\nbatch_size : {}"
+            "\nearly_stop : {}"
+            "\noptimizer : {}"
+            "\nloss_type : {}"
+            "\nvisible_GPU : {}"
+            "\nuse_GPU : {}"
+            "\nseed : {}".format(
+                d_feat,
+                hidden_size,
+                num_layers,
+                dropout,
+                n_epochs,
+                lr,
+                metric,
+                batch_size,
+                early_stop,
+                optimizer.lower(),
+                loss,
+                GPU,
+                self.use_gpu,
+                seed,
+            )
+        )
 
         if self.seed is not None:
             np.random.seed(self.seed)
@@ -130,7 +134,7 @@ class GRU(Model):
         return self.device != torch.device("cpu")
 
     def mse(self, pred, label):
-        loss = (pred - label)**2
+        loss = (pred - label) ** 2
         return torch.mean(loss)
 
     def loss_fn(self, pred, label):
@@ -158,12 +162,12 @@ class GRU(Model):
         indices = np.arange(len(x_train_values))
         np.random.shuffle(indices)
 
-        for i in range(len(indices))[::self.batch_size]:
+        for i in range(len(indices))[:: self.batch_size]:
             if len(indices) - i < self.batch_size:
                 break
 
-            feature = torch.from_numpy(x_train_values[indices[i:i + self.batch_size]]).float().to(self.device)
-            label = torch.from_numpy(y_train_values[indices[i:i + self.batch_size]]).float().to(self.device)
+            feature = torch.from_numpy(x_train_values[indices[i : i + self.batch_size]]).float().to(self.device)
+            label = torch.from_numpy(y_train_values[indices[i : i + self.batch_size]]).float().to(self.device)
 
             pred = self.gru_model(feature)
             loss = self.loss_fn(pred, label)
@@ -185,12 +189,12 @@ class GRU(Model):
 
         indices = np.arange(len(x_values))
 
-        for i in range(len(indices))[::self.batch_size]:
+        for i in range(len(indices))[:: self.batch_size]:
             if len(indices) - i < self.batch_size:
                 break
 
-            feature = torch.from_numpy(x_values[indices[i:i + self.batch_size]]).float().to(self.device)
-            label = torch.from_numpy(y_values[indices[i:i + self.batch_size]]).float().to(self.device)
+            feature = torch.from_numpy(x_values[indices[i : i + self.batch_size]]).float().to(self.device)
+            label = torch.from_numpy(y_values[indices[i : i + self.batch_size]]).float().to(self.device)
 
             with torch.no_grad():
                 pred = self.gru_model(feature)
@@ -203,10 +207,10 @@ class GRU(Model):
         return np.mean(losses), np.mean(scores)
 
     def fit(
-            self,
-            dataset: DatasetH,
-            evals_result=dict(),
-            save_path=None,
+        self,
+        dataset: DatasetH,
+        evals_result=dict(),
+        save_path=None,
     ):
         # prepare training and validation data
         dfs = {
@@ -214,7 +218,9 @@ class GRU(Model):
                 k,
                 col_set=["feature", "label"],
                 data_key=DataHandlerLP.DK_L,
-            ) for k in ["train", "valid"] if k in dataset.segments
+            )
+            for k in ["train", "valid"]
+            if k in dataset.segments
         }
         df_train, df_valid = dfs.get("train", pd.DataFrame()), dfs.get("valid", pd.DataFrame())
 
@@ -294,7 +300,7 @@ class GRU(Model):
         sample_num = x_values.shape[0]
         preds = []
 
-        for begin in range(sample_num)[::self.batch_size]:
+        for begin in range(sample_num)[:: self.batch_size]:
             if sample_num - begin < self.batch_size:
                 end = sample_num
             else:

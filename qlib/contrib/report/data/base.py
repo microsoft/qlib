@@ -20,15 +20,15 @@ class FeaAnalyser:
         ----------
         dataset : pd.DataFrame
 
-            We often have multiple columns for dataset. Each column corresponds to one sub figure. 
+            We often have multiple columns for dataset. Each column corresponds to one sub figure.
             There will be a datatime column in the index levels.
             Aggretation will be used for more summarized metrics overtime.
             Here is an example of data:
 
-            .. code-block:: 
+            .. code-block::
 
                                             return
-                datetime   instrument             
+                datetime   instrument
                 2007-02-06 equity_tpx     0.010087
                            equity_spx     0.000786
         """

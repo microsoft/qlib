@@ -83,7 +83,7 @@ class DDGDA(Rolling):
         loss_skip_thresh: int = 50,
         fea_imp_n: Optional[int] = 30,
         meta_data_proc: Optional[str] = "V01",
-        segments: Union[float, str]= 0.62,
+        segments: Union[float, str] = 0.62,
         hist_step_n: int = 30,
         working_dir: Optional[Union[str, Path]] = None,
         **kwargs,
@@ -258,7 +258,7 @@ class DDGDA(Rolling):
         # 1) leverage the simplified proxy forecasting model to train meta model.
         # - Only the dataset part is important, in current version of meta model will integrate the
 
-        # NOTE: 
+        # NOTE:
         # - The train_start for training meta model does not necessarily align with final rolling
         #   But please select a right time to make sure the finnal rolling tasks are not leaked in the training data.
         # - The test_start is automatically aligned to the next day of test_end.  Validation is ignored.
@@ -306,7 +306,13 @@ class DDGDA(Rolling):
         with R.start(experiment_name=self.meta_exp_name):
             R.log_params(**kwargs)
             mm = MetaModelDS(
-                step=self.step, hist_step_n=kwargs["hist_step_n"], lr=0.001, max_epoch=30, seed=43, alpha=self.alpha, loss_skip_thresh=self.loss_skip_thresh,
+                step=self.step,
+                hist_step_n=kwargs["hist_step_n"],
+                lr=0.001,
+                max_epoch=30,
+                seed=43,
+                alpha=self.alpha,
+                loss_skip_thresh=self.loss_skip_thresh,
             )
             mm.fit(md)
             R.save_objects(model=mm)
