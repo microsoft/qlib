@@ -47,6 +47,10 @@ REQUIRED = [
     "numpy>=1.12.0, <1.24",
     "pandas>=0.25.1",
     "scipy>=1.7.3",
+    # scs is a dependency package,
+    # and the latest version of scs: scs-3.2.4.post3.tar.gz causes the documentation build to fail,
+    # so we have temporarily limited the version of scs.
+    "scs<=3.2.4",
     "requests>=2.18.0",
     "sacred>=0.7.4",
     "python-socketio",
