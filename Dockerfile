@@ -22,5 +22,3 @@ RUN python -m pip install scikit-learn==1.3.2
 RUN python -m pip install cython packaging tables matplotlib statsmodels
 
 RUN python -m pip install pyqlib
-
-EXPOSE 10050
