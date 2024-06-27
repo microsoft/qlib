@@ -8,7 +8,7 @@ sudo docker build -t qlib_image -f ./Dockerfile .
 sudo docker login
 
 # Tag the Docker image
-sudo docker tag qlib_image <Your docker hub username, not your email>/qlib_image:stable
+sudo docker tag qlib_image <Your docker hub username, not your email>/qlib_image:<version stable or nightly>
 
 # Push the Docker image to Docker Hub
-sudo docker push <Your docker hub username, not your email>/qlib_image:stable
+sudo docker push <Your docker hub username, not your email>/qlib_image:<version stable or nightly>
