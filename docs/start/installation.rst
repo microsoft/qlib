@@ -49,6 +49,7 @@ Use the following code to make sure the installation successful:
 Running ``build_docker_image.sh`` is the right choice when you want to create a docker image for ``Qlib``.
 Of course, before running it, please open this file and make some necessary changes according to your docker hub account.
 .. code-block:: bash
+
    #!/bin/bash
 
    # Build the Docker image
