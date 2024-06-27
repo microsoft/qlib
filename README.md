@@ -272,6 +272,25 @@ We recommend users to prepare their own data if they have a high-quality dataset
   ```
  -->
 
+## Build docker images
+Running `build_docker_image.sh` is the right choice when you want to create a docker image for qlib. Of course, before running it, please open this file and make some necessary changes according to your docker hub account.
+  ```bash
+    #!/bin/bash
+
+    # Build the Docker image
+    sudo docker build -t qlib_image -f ./Dockerfile .
+
+    # Log in to Docker Hub
+    # If you are a new docker hub user, please verify your email address before proceeding with this step.
+    sudo docker login
+
+    # Tag the Docker image
+    sudo docker tag qlib_image <Your docker hub username, not your email>/qlib_image:stable
+
+    # Push the Docker image to Docker Hub
+    sudo docker push <Your docker hub username, not your email>/qlib_image:stable
+  ```
+
 ## Auto Quant Research Workflow
 Qlib provides a tool named `qrun` to run the whole workflow automatically (including building dataset, training models, backtest and evaluation). You can start an auto quant research workflow and have a graphical reports analysis according to the following steps: 
 

@@ -19,8 +19,8 @@ RUN python -m pip install importlib-metadata==5.2.0
 RUN python -m pip install "cloudpickle<3"
 RUN python -m pip install scikit-learn==1.3.2
 
-RUN pip install cython packaging tables matplotlib statsmodels
+RUN python -m pip install cython packaging tables matplotlib statsmodels
 
-RUN python setup.py install
+RUN python -m pip install pyqlib
 
 EXPOSE 10050
