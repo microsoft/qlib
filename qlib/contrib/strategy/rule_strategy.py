@@ -328,6 +328,8 @@ class SBBStrategyEMA(SBBStrategyBase):
             self.instruments = "all"
         if isinstance(instruments, str):
             self.instruments = D.instruments(instruments)
+        if isinstance(instruments, List):
+            self.instruments = instruments
         self.freq = freq
         super(SBBStrategyEMA, self).__init__(
             outer_trade_decision, level_infra, common_infra, trade_exchange=trade_exchange, **kwargs
