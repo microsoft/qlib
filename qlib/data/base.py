@@ -138,6 +138,12 @@ class Expression(abc.ABC):
         from .ops import Or  # pylint: disable=C0415
 
         return Or(other, self)
+    
+    def __pos__(self):
+        return self
+    
+    def __neg__(self):
+        return 0 - self
 
     def load(self, instrument, start_index, end_index, *args):
         """load  feature
