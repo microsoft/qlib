@@ -1,11 +1,12 @@
-
 from qlib.data.dataset.loader import DataLoader, QlibDataLoader
+
 
 class Alpha360DL(QlibDataLoader):
     """Dataloader to get Alpha360"""
+
     def __init__(self, config=None, **kwargs):
         _config = {
-            "feature":self.get_feature_config(),
+            "feature": self.get_feature_config(),
         }
         if config is not None:
             _config.update(config)
@@ -59,23 +60,26 @@ class Alpha360DL(QlibDataLoader):
 
 class Alpha158DL(QlibDataLoader):
     """Dataloader to get Alpha158"""
+
     def __init__(self, config=None, **kwargs):
         _config = {
-            "feature":self.get_feature_config(),
+            "feature": self.get_feature_config(),
         }
         if config is not None:
             _config.update(config)
         super().__init__(config=_config, **kwargs)
 
     @staticmethod
-    def get_feature_config(config={
+    def get_feature_config(
+        config={
             "kbar": {},
             "price": {
                 "windows": [0],
                 "feature": ["OPEN", "HIGH", "LOW", "VWAP"],
             },
             "rolling": {},
-    }):
+        }
+    ):
         """create factors from config
 
         config = {
@@ -304,4 +308,3 @@ class Alpha158DL(QlibDataLoader):
                 names += ["VSUMD%d" % d for d in windows]
 
         return fields, names
-

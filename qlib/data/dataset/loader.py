@@ -7,7 +7,7 @@ from pathlib import Path
 import warnings
 import pandas as pd
 
-from typing import Tuple, Union, List
+from typing import Tuple, Union, List, Dict
 
 from qlib.data import D
 from qlib.utils import load_dataset, init_instance_by_config, time_to_slc_point
@@ -283,7 +283,8 @@ class NestedDataLoader(DataLoader):
     """
     We have multiple DataLoader, we can use this class to combine them.
     """
-    def __init__(self, dataloader_l: list[dict], join="left") -> None:
+
+    def __init__(self, dataloader_l: List[Dict], join="left") -> None:
         """
 
         Parameters
@@ -307,18 +308,23 @@ class NestedDataLoader(DataLoader):
                         }
                     ]
                 )
-        join : 
+        join :
             it will pass to pd.concat when merging it.
         """
         super().__init__()
-        self.data_loader_l = [(dl if isinstance(dl, DataLoader) else init_instance_by_config(dl)) for dl in dataloader_l]
+        self.data_loader_l = [
+            (dl if isinstance(dl, DataLoader) else init_instance_by_config(dl)) for dl in dataloader_l
+        ]
         self.join = join
 
     def load(self, instruments=None, start_time=None, end_time=None) -> pd.DataFrame:
-        df_l = []
+        df_full = None
         for dl in self.data_loader_l:
-            df_l = dl.load(instruments, start_time, end_time)
-        df_full = pd.concat(df_l, axis=1, join=self.join)
+            df_current = dl.load(instruments, start_time, end_time)
+            if df_full is None:
+                df_full = df_current
+            else:
+                df_full = pd.merge(df_full, df_current, left_index=True, right_index=True, how=self.join)
         return df_full.sort_index(axis=1)
 
 
