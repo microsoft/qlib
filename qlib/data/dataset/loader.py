@@ -247,10 +247,14 @@ class StaticDataLoader(DataLoader, Serializable):
 
     def load(self, instruments=None, start_time=None, end_time=None) -> pd.DataFrame:
         self._maybe_load_raw_data()
+
+        # 1) Filter by instruments
         if instruments is None:
             df = self._data
         else:
             df = self._data.loc(axis=0)[:, instruments]
+
+        # 2) Filter by Datetime
         if start_time is None and end_time is None:
             return df  # NOTE: avoid copy by loc
         # pd.Timestamp(None) == NaT, use NaT as index can not fetch correct thing, so do not change None.
@@ -273,6 +277,23 @@ class StaticDataLoader(DataLoader, Serializable):
                 self._data = pickle.load(f)
         elif isinstance(self._config, pd.DataFrame):
             self._data = self._config
+
+
+class NestedDataLoader(DataLoader):
+    """
+    We have multiple DataLoader, we can use this class to combine them.
+    """
+    def __init__(self, dataloader_l: list[dict], join="left") -> None:
+        super().__init__()
+        self.data_loader_l = [(dl if isinstance(dl, DataLoader) else init_instance_by_config(dl)) for dl in dataloader_l]
+        self.join = join
+
+    def load(self, instruments=None, start_time=None, end_time=None) -> pd.DataFrame:
+        df_l = []
+        for dl in self.data_loader_l:
+            df_l = dl.load(instruments, start_time, end_time)
+        df_full = pd.concat(df_l, axis=1, join=self.join)
+        return df_full.sort_index(axis=1)
 
 
 class DataLoaderDH(DataLoader):
