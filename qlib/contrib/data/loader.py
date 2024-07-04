@@ -1,4 +1,4 @@
-from qlib.data.dataset.loader import DataLoader, QlibDataLoader
+from qlib.data.dataset.loader import QlibDataLoader
 
 
 class Alpha360DL(QlibDataLoader):
