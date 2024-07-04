@@ -284,6 +284,32 @@ class NestedDataLoader(DataLoader):
     We have multiple DataLoader, we can use this class to combine them.
     """
     def __init__(self, dataloader_l: list[dict], join="left") -> None:
+        """
+
+        Parameters
+        ----------
+        dataloader_l : list[dict]
+            A list of dataloader, for exmaple
+
+            .. code-block:: python
+
+                nd = NestedDataLoader(
+                    dataloader_l=[
+                        {
+                            "class": "qlib.contrib.data.loader.Alpha158DL",
+                        }, {
+                            "class": "qlib.contrib.data.loader.Alpha360DL",
+                            "kwargs": {
+                                "config": {
+                                    "label": ( ["Ref($close, -2)/Ref($close, -1) - 1"], ["LABEL0"])
+                                }
+                            }
+                        }
+                    ]
+                )
+        join : 
+            it will pass to pd.concat when merging it.
+        """
         super().__init__()
         self.data_loader_l = [(dl if isinstance(dl, DataLoader) else init_instance_by_config(dl)) for dl in dataloader_l]
         self.join = join

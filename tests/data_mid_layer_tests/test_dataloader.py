@@ -26,9 +26,12 @@ class TestDataLoader(unittest.TestCase):
                 }
             ]
         )
+        # Of course you can use StaticDataLoader
 
         nd.load
         ...
+
+        # Then you can use it wth DataHandler;
 
 
 if __name__ == "__main__":
