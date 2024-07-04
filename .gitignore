@@ -22,6 +22,10 @@ dist/
 qlib/VERSION.txt
 qlib/data/_libs/expanding.cpp
 qlib/data/_libs/rolling.cpp
+qlib/finco/prompt_cache.json
+qlib/finco/finco_workspace/
+qlib/finco/knowledge/*/knowledge.pkl
+qlib/finco/knowledge/*/storage.yml
 examples/estimator/estimator_example/
 examples/rl/data/
 examples/rl/checkpoints/

@@ -486,5 +486,8 @@ class QlibConfig(Config):
         return self._registered
 
 
+DEFAULT_QLIB_DOT_PATH = Path("~/.qlib/").expanduser()
+
+
 # global config
 C = QlibConfig(_default_config)

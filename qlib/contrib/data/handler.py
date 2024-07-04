@@ -1,6 +1,8 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+from typing import Optional
+from qlib.utils.data import update_config
 from ...data.dataset.handler import DataHandlerLP
 from ...data.dataset.processor import Processor
 from ...utils import get_callable_kwargs
@@ -57,12 +59,13 @@ class Alpha360(DataHandlerLP):
         fit_end_time=None,
         filter_pipe=None,
         inst_processors=None,
+        data_loader: Optional[dict] = None,
         **kwargs
     ):
         infer_processors = check_transform_proc(infer_processors, fit_start_time, fit_end_time)
         learn_processors = check_transform_proc(learn_processors, fit_start_time, fit_end_time)
 
-        data_loader = {
+        _data_loader = {
             "class": "QlibDataLoader",
             "kwargs": {
                 "config": {
@@ -74,12 +77,14 @@ class Alpha360(DataHandlerLP):
                 "inst_processors": inst_processors,
             },
         }
+        if data_loader is not None:
+            update_config(_data_loader, data_loader)
 
         super().__init__(
             instruments=instruments,
             start_time=start_time,
             end_time=end_time,
-            data_loader=data_loader,
+            data_loader=_data_loader,
             learn_processors=learn_processors,
             infer_processors=infer_processors,
             **kwargs
@@ -153,12 +158,13 @@ class Alpha158(DataHandlerLP):
         process_type=DataHandlerLP.PTYPE_A,
         filter_pipe=None,
         inst_processors=None,
+        data_loader: Optional[dict] = None,
         **kwargs
     ):
         infer_processors = check_transform_proc(infer_processors, fit_start_time, fit_end_time)
         learn_processors = check_transform_proc(learn_processors, fit_start_time, fit_end_time)
 
-        data_loader = {
+        _data_loader = {
             "class": "QlibDataLoader",
             "kwargs": {
                 "config": {
@@ -170,11 +176,13 @@ class Alpha158(DataHandlerLP):
                 "inst_processors": inst_processors,
             },
         }
+        if data_loader is not None:
+            update_config(_data_loader, data_loader)
         super().__init__(
             instruments=instruments,
             start_time=start_time,
             end_time=end_time,
-            data_loader=data_loader,
+            data_loader=_data_loader,
             infer_processors=infer_processors,
             learn_processors=learn_processors,
             process_type=process_type,
