@@ -14,7 +14,7 @@ from qlib.contrib.data.loader import Alpha158DL, Alpha360DL
 class TestDataLoader(unittest.TestCase):
 
     def test_nested_data_loader(self):
-        qlib.init(provider_uri="C:/Users/v-lvlinlang/.qlib/qlib_data/cn_data_simple")
+        qlib.init()
         nd = NestedDataLoader(
             dataloader_l=[
                 {
