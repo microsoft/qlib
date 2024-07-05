@@ -96,7 +96,6 @@ class Alpha360vwap(Alpha360):
 
 
 class Alpha158(DataHandlerLP):
-    # TODO: use Alpha158Loader
     def __init__(
         self,
         instruments="csi500",
