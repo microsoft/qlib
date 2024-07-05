@@ -147,7 +147,7 @@ class Alpha158(DataHandlerLP):
             },
             "rolling": {},
         }
-        return Alpha158DL.parse_config_to_fields(conf)  # pylint: disable=E1101
+        return Alpha158DL.get_feature_config(conf)
 
     def get_label_config(self):
         return ["Ref($close, -2)/Ref($close, -1) - 1"], ["LABEL0"]
