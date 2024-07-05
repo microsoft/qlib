@@ -41,7 +41,6 @@ class TestDataLoader(unittest.TestCase):
         for col in Alpha360DL.get_feature_config()[1]:
             assert col in columns_list
 
-        # 断言标签也包含在数据中
         assert "LABEL0" in columns_list
 
         # Then you can use it wth DataHandler;
