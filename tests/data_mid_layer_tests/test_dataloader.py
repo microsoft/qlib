@@ -44,7 +44,42 @@ class TestDataLoader(unittest.TestCase):
         assert "LABEL0" in columns_list
 
         # Then you can use it wth DataHandler;
-
+        # NOTE: please note that the data processors are missing!!!  You should add based on your requirements
+"""
+class: DataHandlerLP
+module_path: qlib.data.dataset.handler
+kwargs:
+    start_time: 2008-01-01
+    end_time: 2020-08-01
+    instruments: csi300
+    data_loader:
+        class: NestedDataLoader
+        kwargs:
+            dataloader_l=[
+                {
+                    "class": "qlib.contrib.data.loader.Alpha158DL",
+                    "kwargs": {"config": {"label": (["Ref($close, -2)/Ref($close, -1) - 1"], ["LABEL0"])}},
+                },
+                {
+                    "class": "qlib.contrib.data.loader.Alpha360DL",
+                },
+                # Show StaticDataLoader
+                # Dump dataframe for testing,
+            ]
+"""
+        dataset.to_pickle("test_df.pkl")  # dump 360 as example pickle.
+"""
+            dataloader_l=[
+                {
+                    "class": "qlib.contrib.data.loader.Alpha158DL",
+                    "kwargs": {"config": {"label": (["Ref($close, -2)/Ref($close, -1) - 1"], ["LABEL0"])}},
+                },
+                {
+                    "class": "qlib....StaticDataLoader",
+                    "config": "test_df.pkl",
+                },
+            }
+"""
 
 if __name__ == "__main__":
     unittest.main()
