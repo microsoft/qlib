@@ -8,7 +8,9 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parent))
 from qlib.data.dataset.loader import NestedDataLoader
+from qlib.data.dataset.handler import DataHandlerLP
 from qlib.contrib.data.loader import Alpha158DL, Alpha360DL
+from qlib.data import D
 
 
 class TestDataLoader(unittest.TestCase):
@@ -45,16 +47,11 @@ class TestDataLoader(unittest.TestCase):
 
         # Then you can use it wth DataHandler;
         # NOTE: please note that the data processors are missing!!!  You should add based on your requirements
-"""
-class: DataHandlerLP
-module_path: qlib.data.dataset.handler
-kwargs:
-    start_time: 2008-01-01
-    end_time: 2020-08-01
-    instruments: csi300
-    data_loader:
-        class: NestedDataLoader
-        kwargs:
+
+        """
+        dataset.to_pickle("test_df.pkl")
+        stock_pool = D.instruments(market="csi300")
+        nested_data_loader = NestedDataLoader(
             dataloader_l=[
                 {
                     "class": "qlib.contrib.data.loader.Alpha158DL",
@@ -63,23 +60,23 @@ kwargs:
                 {
                     "class": "qlib.contrib.data.loader.Alpha360DL",
                 },
-                # Show StaticDataLoader
-                # Dump dataframe for testing,
+                {
+                    "class": "qlib.data.dataset.loader.StaticDataLoader",
+                    "kwargs": {"config": "test_df.pkl"},
+                },
             ]
-"""
-        dataset.to_pickle("test_df.pkl")  # dump 360 as example pickle.
-"""
-            dataloader_l=[
-                {
-                    "class": "qlib.contrib.data.loader.Alpha158DL",
-                    "kwargs": {"config": {"label": (["Ref($close, -2)/Ref($close, -1) - 1"], ["LABEL0"])}},
-                },
-                {
-                    "class": "qlib....StaticDataLoader",
-                    "config": "test_df.pkl",
-                },
-            }
-"""
+        )
+        data_handler_config = {
+            "start_time": "2008-01-01",
+            "end_time": "2020-08-01",
+            "instruments": stock_pool,
+            "data_loader": nested_data_loader,
+        }
+        data_handler = DataHandlerLP(**data_handler_config)
+        data = data_handler.fetch()
+        print(data)
+        """
+
 
 if __name__ == "__main__":
     unittest.main()
