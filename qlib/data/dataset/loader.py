@@ -324,7 +324,7 @@ class NestedDataLoader(DataLoader):
             try:
                 df_current = dl.load(instruments, start_time, end_time)
             except:
-                df_current = dl.load(instruments=None, start_time, end_time)
+                df_current = dl.load(start_time, end_time)
                 warnings.warn(
                     "If the value of `instruments` cannot be processed, it will set instruments to None to get all the data."
                 )
