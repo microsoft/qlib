@@ -324,8 +324,7 @@ class NestedDataLoader(DataLoader):
             try:
                 df_current = dl.load(instruments, start_time, end_time)
             except:
-                instruments = None
-                df_current = dl.load(instruments, start_time, end_time)
+                df_current = dl.load(instruments=None, start_time, end_time)
                 warnings.warn("If the value of `instruments` is csi300, it will set instruments to None to get all the data.")
             if df_full is None:
                 df_full = df_current
