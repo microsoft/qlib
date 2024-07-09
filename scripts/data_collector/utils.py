@@ -15,7 +15,6 @@ from typing import Iterable, Tuple, List
 
 import numpy as np
 import pandas as pd
-from lxml import etree
 from loguru import logger
 from yahooquery import Ticker
 from tqdm import tqdm
@@ -190,17 +189,43 @@ def get_hs_stock_symbols() -> list:
     global _HS_SYMBOLS  # pylint: disable=W0603
 
     def _get_symbol():
-        _res = set()
-        for _k, _v in (("ha", "ss"), ("sa", "sz"), ("gem", "sz")):
-            resp = requests.get(HS_SYMBOLS_URL.format(s_type=_k), timeout=None)
-            _res |= set(
-                map(
-                    lambda x: "{}.{}".format(re.findall(r"\d+", x)[0], _v),  # pylint: disable=W0640
-                    etree.HTML(resp.text).xpath("//div[@class='result']/ul//li/a/text()"),  # pylint: disable=I1101
-                )
-            )
-            time.sleep(3)
-        return _res
+        """
+        Get the stock pool from a web page and process it into the format required by yahooquery.
+        Format of data retrieved from the web page: 600519, 000001
+        The data format required by yahooquery: 600519.ss, 000001.sz
+
+        Returns
+        -------
+            set: Returns the set of symbol codes.
+
+        Examples:
+        -------
+            {600000.ss, 600001.ss, 600002.ss, 600003.ss, ...}
+        """
+        url = "http://99.push2.eastmoney.com/api/qt/clist/get?pn=1&pz=10000&po=1&np=1&fs=m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23,m:0+t:81+s:2048&fields=f12"
+        try:
+            resp = requests.get(url, timeout=None)
+            resp.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise requests.exceptions.HTTPError(f"Request to {url} failed with status code {resp.status_code}") from e
+
+        try:
+            _symbols = [_v["f12"] for _v in resp.json()["data"]["diff"]]
+        except Exception as e:
+            logger.warning("An error occurred while extracting data from the response.")
+            raise
+
+        if len(_symbols) < 3900:
+            raise ValueError("The complete list of stocks is not available.")
+
+        # Add suffix after the stock code to conform to yahooquery standard, otherwise the data will not be fetched.
+        _symbols = [
+            _symbol + ".ss" if _symbol.startswith("6") else _symbol + ".sz" if _symbol.startswith(("0", "3")) else None
+            for _symbol in _symbols
+        ]
+        _symbols = [_symbol for _symbol in _symbols if _symbol is not None]
+
+        return set(_symbols)
 
     if _HS_SYMBOLS is None:
         symbols = set()

@@ -7,7 +7,7 @@ from pathlib import Path
 import warnings
 import pandas as pd
 
-from typing import Tuple, Union, List
+from typing import Tuple, Union, List, Dict
 
 from qlib.data import D
 from qlib.utils import load_dataset, init_instance_by_config, time_to_slc_point
@@ -247,10 +247,14 @@ class StaticDataLoader(DataLoader, Serializable):
 
     def load(self, instruments=None, start_time=None, end_time=None) -> pd.DataFrame:
         self._maybe_load_raw_data()
+
+        # 1) Filter by instruments
         if instruments is None:
             df = self._data
         else:
             df = self._data.loc(axis=0)[:, instruments]
+
+        # 2) Filter by Datetime
         if start_time is None and end_time is None:
             return df  # NOTE: avoid copy by loc
         # pd.Timestamp(None) == NaT, use NaT as index can not fetch correct thing, so do not change None.
@@ -273,6 +277,55 @@ class StaticDataLoader(DataLoader, Serializable):
                 self._data = pickle.load(f)
         elif isinstance(self._config, pd.DataFrame):
             self._data = self._config
+
+
+class NestedDataLoader(DataLoader):
+    """
+    We have multiple DataLoader, we can use this class to combine them.
+    """
+
+    def __init__(self, dataloader_l: List[Dict], join="left") -> None:
+        """
+
+        Parameters
+        ----------
+        dataloader_l : list[dict]
+            A list of dataloader, for exmaple
+
+            .. code-block:: python
+
+                nd = NestedDataLoader(
+                    dataloader_l=[
+                        {
+                            "class": "qlib.contrib.data.loader.Alpha158DL",
+                        }, {
+                            "class": "qlib.contrib.data.loader.Alpha360DL",
+                            "kwargs": {
+                                "config": {
+                                    "label": ( ["Ref($close, -2)/Ref($close, -1) - 1"], ["LABEL0"])
+                                }
+                            }
+                        }
+                    ]
+                )
+        join :
+            it will pass to pd.concat when merging it.
+        """
+        super().__init__()
+        self.data_loader_l = [
+            (dl if isinstance(dl, DataLoader) else init_instance_by_config(dl)) for dl in dataloader_l
+        ]
+        self.join = join
+
+    def load(self, instruments=None, start_time=None, end_time=None) -> pd.DataFrame:
+        df_full = None
+        for dl in self.data_loader_l:
+            df_current = dl.load(instruments, start_time, end_time)
+            if df_full is None:
+                df_full = df_current
+            else:
+                df_full = pd.merge(df_full, df_current, left_index=True, right_index=True, how=self.join)
+        return df_full.sort_index(axis=1)
 
 
 class DataLoaderDH(DataLoader):

@@ -60,4 +60,4 @@ The `[dev]` option will help you to install some related packages when developin
 
 .. code-block:: bash
 
-    pip install -e .[dev]
+    pip install -e ".[dev]"

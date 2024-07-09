@@ -73,8 +73,8 @@ class Rolling:
             The horizon of the prediction target.
             This is used to override the prediction horizon of the file.
         h_path : Optional[str]
-            the dumped data handler;
-            It may come from other data source. It will override the data handler in the config.
+            It is other data source that is dumped as a handler. It will override the data handler section in the config.
+            If it is not given, it will create a customized cache for the handler when `enable_handler_cache=True`
         test_end : Optional[str]
             the test end for the data. It is typically used together with the handler
             You can do the same thing with task_ext_conf in a more complicated way
@@ -119,7 +119,7 @@ class Rolling:
         with self.conf_path.open("r") as f:
             return yaml.safe_load(f)
 
-    def _replace_hanler_with_cache(self, task: dict):
+    def _replace_handler_with_cache(self, task: dict):
         """
         Due to the data processing part in original rolling is slow. So we have to
         This class tries to add more feature
@@ -159,19 +159,36 @@ class Rolling:
             # - get horizon automatically from the expression!!!!
             raise NotImplementedError(f"This type of input is not supported")
         else:
-            self.logger.info("The prediction horizon is overrided")
-            task["dataset"]["kwargs"]["handler"]["kwargs"]["label"] = [
-                "Ref($close, -{}) / Ref($close, -1) - 1".format(self.horizon + 1)
-            ]
+            if enable_handler_cache and self.h_path is not None:
+                self.logger.info("Fail to override the horizon due to data handler cache")
+            else:
+                self.logger.info("The prediction horizon is overrided")
+                if isinstance(task["dataset"]["kwargs"]["handler"], dict):
+                    task["dataset"]["kwargs"]["handler"]["kwargs"]["label"] = [
+                        "Ref($close, -{}) / Ref($close, -1) - 1".format(self.horizon + 1)
+                    ]
+                else:
+                    self.logger.warning("Try to automatically configure the lablel but failed.")
 
-        if enable_handler_cache:
-            task = self._replace_hanler_with_cache(task)
+        if self.h_path is not None or enable_handler_cache:
+            # if we already have provided data source or we want to create one
+            task = self._replace_handler_with_cache(task)
         task = self._update_start_end_time(task)
 
         if self.task_ext_conf is not None:
             task = update_config(task, self.task_ext_conf)
         self.logger.info(task)
         return task
+
+    def run_basic_task(self):
+        """
+        Run the basic task without rolling.
+        This is for fast testing for model tunning.
+        """
+        task = self.basic_task()
+        print(task)
+        trainer = TrainerR(experiment_name=self.exp_name)
+        trainer([task])
 
     def get_task_list(self) -> List[dict]:
         """return a batch of tasks for rolling."""

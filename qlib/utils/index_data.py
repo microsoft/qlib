@@ -108,6 +108,12 @@ class Index:
             self.index_map = self.idx_list = np.arange(idx_list)
             self._is_sorted = True
         else:
+            # Check if all elements in idx_list are of the same type
+            if not all(isinstance(x, type(idx_list[0])) for x in idx_list):
+                raise TypeError("All elements in idx_list must be of the same type")
+            # Check if all elements in idx_list are of the same datetime64 precision
+            if isinstance(idx_list[0], np.datetime64) and not all(x.dtype == idx_list[0].dtype for x in idx_list):
+                raise TypeError("All elements in idx_list must be of the same datetime64 precision")
             self.idx_list = np.array(idx_list)
             # NOTE: only the first appearance is indexed
             self.index_map = dict(zip(self.idx_list, range(len(self))))
@@ -131,7 +137,12 @@ class Index:
         if self.idx_list.dtype.type is np.datetime64:
             if isinstance(item, pd.Timestamp):
                 # This happens often when creating index based on pandas.DatetimeIndex and query with pd.Timestamp
-                return item.to_numpy()
+                return item.to_numpy().astype(self.idx_list.dtype)
+            elif isinstance(item, np.datetime64):
+                # This happens often when creating index based on np.datetime64 and query with another precision
+                return item.astype(self.idx_list.dtype)
+            # NOTE: It is hard to consider every case at first.
+            # We just try to cover part of cases to make it more user-friendly
         return item
 
     def index(self, item) -> int:
