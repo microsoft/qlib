@@ -7,7 +7,7 @@ import qlib
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parent))
-from qlib.data.dataset.loader import NestedDataLoader
+from qlib.data.dataset.loader import NestedDataLoader, QlibDataLoader
 from qlib.data.dataset.handler import DataHandlerLP
 from qlib.contrib.data.loader import Alpha158DL, Alpha360DL
 from qlib.data import D
@@ -50,7 +50,6 @@ class TestDataLoader(unittest.TestCase):
 
         """
         dataset.to_pickle("test_df.pkl")
-        stock_pool = D.instruments(market="csi300")
         nested_data_loader = NestedDataLoader(
             dataloader_l=[
                 {
@@ -69,7 +68,7 @@ class TestDataLoader(unittest.TestCase):
         data_handler_config = {
             "start_time": "2008-01-01",
             "end_time": "2020-08-01",
-            "instruments": stock_pool,
+            "instruments": "csi300",
             "data_loader": nested_data_loader,
         }
         data_handler = DataHandlerLP(**data_handler_config)
