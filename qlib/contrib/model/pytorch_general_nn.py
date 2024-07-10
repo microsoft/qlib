@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 from typing import Callable, Optional, Text, Union
 from sklearn.metrics import roc_auc_score, mean_squared_error
+import copy
 
 import torch
 import torch.nn as nn
@@ -181,6 +182,7 @@ class GeneralPTNN(Model):
             for x_batch, y_batch in valid_loader:
                 x_batch = x_batch.to(self.device)
                 y_batch = y_batch.to(self.device)
+                preds = self.dnn_model(x_batch)
                 cur_loss = self.get_loss(preds, y_batch, self.loss_type)
                 val_loss.append(cur_loss.detach().cpu().numpy().item())
             val_loss = np.mean(val_loss)
@@ -538,9 +540,7 @@ class GeneralPTNN(Model):
         losses = []
 
         for data, weight in data_loader:
-            feature = data[:, :, 0:-1].to(self.device)
-            # feature[torch.isnan(feature)] = 0
-            label = data[:, -1, -1].to(self.device)
+            feature , label = self._get_fl(data)
 
             with torch.no_grad():
                 pred = self.dnn_model(feature.float())
@@ -624,6 +624,8 @@ class GeneralPTNN(Model):
             evals_result["train"].append(train_score)
             evals_result["valid"].append(val_score)
 
+            if step == 0:
+                best_param = copy.deepcopy(self.dnn_model.state_dict())
             if val_score > best_score:
                 best_score = val_score
                 stop_steps = 0
@@ -647,17 +649,29 @@ class GeneralPTNN(Model):
             raise ValueError("model is not fitted yet!")
 
         dl_test = dataset.prepare("test", col_set=["feature", "label"], data_key=DataHandlerLP.DK_I)
-        dl_test.config(fillna_type="ffill+bfill")
+        index = dl_test.index
+
+        if isinstance(dataset, TSDatasetH):
+            dl_test.config(fillna_type="ffill+bfill")  # process nan brought by dataloader
+        else:
+            # If it is a tabular, we convert the dataframe to numpy to be indexable by DataLoader
+            dl_test = dl_test.values
+
         test_loader = DataLoader(dl_test, batch_size=self.batch_size, num_workers=self.n_jobs)
         self.dnn_model.eval()
         preds = []
 
         for data in test_loader:
-            feature = data[:, :, 0:-1].to(self.device)
+            feature, _ = self._get_fl(data)
+            feature = feature.to(self.device)
 
             with torch.no_grad():
                 pred = self.dnn_model(feature.float()).detach().cpu().numpy()
 
             preds.append(pred)
 
-        return pd.Series(np.concatenate(preds), index=dl_test.get_index())
+        preds_concat = np.concatenate(preds)
+        if preds_concat.ndim != 1:
+            preds_concat = preds_concat.ravel()
+
+        return pd.Series(preds_concat, index=index)
