@@ -51,6 +51,11 @@ class DataLoader(abc.ABC):
         -------
         pd.DataFrame:
             data load from the under layer source
+
+        Raise
+        -----
+        KeyError:
+            if the instruments filter is not supported, raise KeyError
         """
 
 
@@ -323,11 +328,11 @@ class NestedDataLoader(DataLoader):
         for dl in self.data_loader_l:
             try:
                 df_current = dl.load(instruments, start_time, end_time)
-            except ValueError:
-                df_current = dl.load(instruments=None, start_time=start_time, end_time=end_time)
+            except ValueError:  # FIXME:
                 warnings.warn(
                     "If the value of `instruments` cannot be processed, it will set instruments to None to get all the data."
                 )
+                df_current = dl.load(instruments=None, start_time=start_time, end_time=end_time)
             if df_full is None:
                 df_full = df_current
             else:
