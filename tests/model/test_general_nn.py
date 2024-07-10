@@ -55,11 +55,24 @@ class TestNN(TestAutoData):
 
         # tabular dataset
         tbds = DatasetH(handler=data_handler, segments=segments)
+
+        model_l = [
+            GeneralPTNN(
+                n_epochs=2,
+                pt_model_uri="qlib.contrib.model.pytorch_gru_ts.GRUModel",
+                pt_model_kwargs={
+                    "d_feat":3,
+                    "hidden_size":8,
+                    "num_layers":1,
+                    "dropout":0.,
+                },
+            ),
+        ]
         
-        for ds in (tsds, tbds):
-            ptnn = GeneralPTNN()
-            ptnn.fit(ds)  # It works
-            ptnn.predict(ds)  # It works
+        for ds, model in zip((tsds, tbds), model_l):
+            model.fit(ds)  # It works
+            model.predict(ds)  # It works
+            break
 
 
 if __name__ == "__main__":
