@@ -67,9 +67,16 @@ class TestNN(TestAutoData):
                     "dropout":0.,
                 },
             ),
+            GeneralPTNN(
+                n_epochs=2,
+                pt_model_uri="qlib.contrib.model.pytorch_nn.Net",  # it is a MLP
+                pt_model_kwargs={
+                    "input_dim":3,
+                },
+            ),
         ]
         
-        for ds, model in zip((tsds, tbds), model_l):
+        for ds, model in reversed(list(zip((tsds, tbds), model_l))):
             model.fit(ds)  # It works
             model.predict(ds)  # It works
             break
