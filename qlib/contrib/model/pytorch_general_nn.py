@@ -649,12 +649,13 @@ class GeneralPTNN(Model):
             raise ValueError("model is not fitted yet!")
 
         dl_test = dataset.prepare("test", col_set=["feature", "label"], data_key=DataHandlerLP.DK_I)
-        index = dl_test.index
 
         if isinstance(dataset, TSDatasetH):
             dl_test.config(fillna_type="ffill+bfill")  # process nan brought by dataloader
+            index = dl_test.get_index()
         else:
             # If it is a tabular, we convert the dataframe to numpy to be indexable by DataLoader
+            index = dl_test.index
             dl_test = dl_test.values
 
         test_loader = DataLoader(dl_test, batch_size=self.batch_size, num_workers=self.n_jobs)

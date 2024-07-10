@@ -55,10 +55,6 @@ task:
         class: GeneralPTNN
         module_path: qlib.contrib.model.pytorch_general_nn
         kwargs:
-            d_feat: 20
-            hidden_size: 64
-            num_layers: 2
-            dropout: 0.0
             n_epochs: 200
             lr: 2e-4
             early_stop: 10
@@ -67,6 +63,12 @@ task:
             loss: mse
             n_jobs: 20
             GPU: 0
+            pt_model_kwargs: {
+                "d_feat":20,
+                "hidden_size":64,
+                "num_layers":2,
+                "dropout":0.,
+            }
     dataset:
         class: TSDatasetH
         module_path: qlib.data.dataset

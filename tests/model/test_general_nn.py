@@ -83,4 +83,9 @@ class TestNN(TestAutoData):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    try:
+        import torch
+        unittest.main()
+    except ImportError:
+        print("PyTorch is not installed.")
+    
