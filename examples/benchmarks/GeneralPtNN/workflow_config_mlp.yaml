@@ -57,8 +57,8 @@ port_analysis_config: &port_analysis_config
             min_cost: 5
 task:
     model:
-        class: DNNModelPytorch
-        module_path: qlib.contrib.model.pytorch_nn
+        class: GeneralPTNN
+        module_path: qlib.contrib.model.pytorch_general_nn
         kwargs:
             loss: mse
             lr: 0.002

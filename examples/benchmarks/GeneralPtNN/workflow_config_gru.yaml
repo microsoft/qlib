@@ -52,8 +52,8 @@ port_analysis_config: &port_analysis_config
             min_cost: 5
 task:
     model:
-        class: GRU
-        module_path: qlib.contrib.model.pytorch_gru_ts
+        class: GeneralPTNN
+        module_path: qlib.contrib.model.pytorch_general_nn
         kwargs:
             d_feat: 20
             hidden_size: 64
