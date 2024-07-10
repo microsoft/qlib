@@ -328,7 +328,7 @@ class NestedDataLoader(DataLoader):
         for dl in self.data_loader_l:
             try:
                 df_current = dl.load(instruments, start_time, end_time)
-            except ValueError:  # FIXME:
+            except KeyError:
                 warnings.warn(
                     "If the value of `instruments` cannot be processed, it will set instruments to None to get all the data."
                 )
