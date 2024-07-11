@@ -61,17 +61,14 @@ task:
         module_path: qlib.contrib.model.pytorch_general_nn
         kwargs:
             # FIXME: wrong parameters.
-            loss: mse
-            lr: 0.002
-            optimizer: adam
-            max_steps: 8000
+            lr: 2e-3
             batch_size: 8192
-            GPU: 0
+            loss: mse
             weight_decay: 0.0002
-            pt_model_uri: ...
-            pt_model_kwargs: {
-                "input_dim": 157,
-            }
+            optimizer: adam
+            pt_model_uri: "qlib.contrib.model.pytorch_nn.Net"
+            pt_model_kwargs: 
+                input_dim: 157
     dataset:
         class: DatasetH
         module_path: qlib.data.dataset

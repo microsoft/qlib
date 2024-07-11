@@ -55,23 +55,17 @@ task:
         class: GeneralPTNN
         module_path: qlib.contrib.model.pytorch_general_nn
         kwargs:
-            n_epochs: 200
-            lr: 2e-4
-            early_stop: 10
+            lr: 1e-3
+            n_epochs: 1
             batch_size: 800
-            metric: loss
             loss: mse
-            n_jobs: 20
-            GPU: 0
-            pt_model_uri: "qlib.contrib.model.pytorch_gru_ts.GRUModel"
-            pt_model_kwargs: {
-                "d_feat": 20,
-                "hidden_size": 64,
-                "num_layers": 2,
-                "dropout": 0.,
-            }
+            optimizer: adam
+            pt_model_uri: "qlib.contrib.model.pytorch_nn.Net"
+            pt_model_kwargs: 
+                input_dim: 20
+                layers: [20,]
     dataset:
-        class: TSDatasetH
+        class: DatasetH
         module_path: qlib.data.dataset
         kwargs:
             handler:

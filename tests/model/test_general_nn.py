@@ -1,4 +1,5 @@
 import unittest
+from qlib.tests import TestAutoData
 
 
 class TestNN(TestAutoData):
@@ -7,7 +8,6 @@ class TestNN(TestAutoData):
             from qlib.contrib.model.pytorch_general_nn import GeneralPTNN
             from qlib.data.dataset import DatasetH, TSDatasetH
             from qlib.data.dataset.handler import DataHandlerLP
-            from qlib.tests import TestAutoData
         except ImportError:
             print("Import error.")
             return

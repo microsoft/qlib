@@ -3,20 +3,16 @@
 from __future__ import division
 from __future__ import print_function
 
-from torch.utils.data import DataLoader, RandomSampler, StackDataset
+from torch.utils.data import DataLoader
 
 
-import os
 import numpy as np
 import pandas as pd
-from typing import Callable, Optional, Text, Union
-from sklearn.metrics import roc_auc_score, mean_squared_error
+from typing import Union
 import copy
 
 import torch
-import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import StackDataset
 
 from qlib.data.dataset.weight import Reweighter
 
@@ -25,16 +21,10 @@ from ...model.base import Model
 from ...data.dataset import DatasetH, TSDatasetH
 from ...data.dataset.handler import DataHandlerLP
 from ...utils import (
-    auto_filter_kwargs,
     init_instance_by_config,
-    unpack_archive_with_buffer,
-    save_multiple_parts_file,
     get_or_create_path,
 )
 from ...log import get_module_logger
-from ...workflow import R
-from qlib.contrib.meta.data_selection.utils import ICLoss
-from torch.nn import DataParallel
 
 from ...model.utils import ConcatDataset
 
@@ -66,6 +56,7 @@ class GeneralPTNN(Model):
         batch_size=2000,
         early_stop=20,
         loss="mse",
+        weight_decay=0.0,
         optimizer="adam",
         n_jobs=10,
         GPU=0,
@@ -90,6 +81,7 @@ class GeneralPTNN(Model):
         self.early_stop = early_stop
         self.optimizer = optimizer.lower()
         self.loss = loss
+        self.weight_decay = weight_decay
         self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
         self.n_jobs = n_jobs
         self.seed = seed
@@ -109,6 +101,7 @@ class GeneralPTNN(Model):
             "\ndevice : {}"
             "\nn_jobs : {}"
             "\nuse_GPU : {}"
+            "\nweight_decay : {}"
             "\nseed : {}"
             "\npt_model_uri: {}"
             "\npt_model_kwargs: {}".format(
@@ -122,6 +115,7 @@ class GeneralPTNN(Model):
                 self.device,
                 n_jobs,
                 self.use_gpu,
+                weight_decay,
                 seed,
                 pt_model_uri,
                 pt_model_kwargs,
@@ -136,9 +130,9 @@ class GeneralPTNN(Model):
         self.logger.info("model size: {:.4f} MB".format(count_parameters(self.dnn_model)))
 
         if optimizer.lower() == "adam":
-            self.train_optimizer = optim.Adam(self.dnn_model.parameters(), lr=self.lr)
+            self.train_optimizer = optim.Adam(self.dnn_model.parameters(), lr=self.lr, weight_decay=weight_decay)
         elif optimizer.lower() == "gd":
-            self.train_optimizer = optim.SGD(self.dnn_model.parameters(), lr=self.lr)
+            self.train_optimizer = optim.SGD(self.dnn_model.parameters(), lr=self.lr, weight_decay=weight_decay)
         else:
             raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
 
