@@ -8,6 +8,8 @@ What is GeneralPtNN
 
 We provide an example to demonstrate the effectiveness of the current design.
 - `workflow_config_gru.yaml` align with previous results [GRU(Kyunghyun Cho, et al.)](../README.md#Alpha158 dataset)
+  - `workflow_config_gru2mlp.yaml` to demonstrate we can convert config from time-series to tabular data with minimal changes
+    - You only have to change the net & dataset class to make the conversion.
 - `workflow_config_mlp.yaml` align with previous results [MLP](../README.md#Alpha158 dataset)
 
 # TODO
