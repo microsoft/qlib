@@ -67,8 +67,9 @@ task:
             batch_size: 8192
             GPU: 0
             weight_decay: 0.0002
-            pt_model_kwargs:
-              input_dim: 157
+            pt_model_kwargs: {
+                "input_dim": 157,
+            }
     dataset:
         class: DatasetH
         module_path: qlib.data.dataset

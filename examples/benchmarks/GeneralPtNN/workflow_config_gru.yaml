@@ -64,10 +64,10 @@ task:
             n_jobs: 20
             GPU: 0
             pt_model_kwargs: {
-                "d_feat":20,
-                "hidden_size":64,
-                "num_layers":2,
-                "dropout":0.,
+                "d_feat": 20,
+                "hidden_size": 64,
+                "num_layers": 2,
+                "dropout": 0.,
             }
     dataset:
         class: TSDatasetH
