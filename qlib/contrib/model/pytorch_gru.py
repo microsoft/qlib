@@ -317,7 +317,6 @@ class GRU(Model):
 
 
 class GRUModel(nn.Module):
-
     def __init__(self, d_feat=6, hidden_size=64, num_layers=2, dropout=0.0):
         super().__init__()
 
