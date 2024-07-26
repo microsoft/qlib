@@ -24,15 +24,13 @@ from ..data.dataset.utils import get_level_index
 logger = get_module_logger("Evaluate")
 
 
-def risk_analysis(r, N: int = None, freq: str = "day"):
+def risk_analysis(r, N: int = None, freq: str = "day", accumulation_mode = "summation"):
     """Risk Analysis
     NOTE:
     The calculation of annulaized return is different from the definition of annualized return.
     It is implemented by design.
     Qlib tries to cumulated returns by summation instead of production to avoid the cumulated curve being skewed exponentially.
     All the calculation of annualized returns follows this principle in Qlib.
-
-    TODO: add a parameter to enable calculating metrics with production accumulation of return.
 
     Parameters
     ----------
@@ -42,6 +40,8 @@ def risk_analysis(r, N: int = None, freq: str = "day"):
         scaler for annualizing information_ratio (day: 252, week: 50, month: 12), at least one of `N` and `freq` should exist
     freq: str
         analysis frequency used for calculating the scaler, at least one of `N` and `freq` should exist
+    accumulation_mode: str
+        the mode of calculating the cumulative return, options are 'exponential' and 'summation'
     """
 
     def cal_risk_analysis_scaler(freq):
@@ -61,10 +61,16 @@ def risk_analysis(r, N: int = None, freq: str = "day"):
         warnings.warn("risk_analysis freq will be ignored")
     if N is None:
         N = cal_risk_analysis_scaler(freq)
+        
+    if accumulation_mode not in ["summation", "exponential"]:
+        raise ValueError("Invalid value for `accumulation_mode`. Only 'summation' and 'exponential' are supported")
 
     mean = r.mean()
     std = r.std(ddof=1)
-    annualized_return = mean * N
+    if accumulation_mode == "summation":
+        annualized_return = mean * N
+    else:
+        annualized_return = (np.prod(1 + r) - 1)
     information_ratio = mean / std * np.sqrt(N)
     max_drawdown = (r.cumsum() - r.cumsum().cummax()).min()
     data = {
