@@ -67,7 +67,7 @@ task:
             loss: mse
             n_jobs: 20
             GPU: 0
-            rnn_type: GRU
+            rnn_type: LSTM
     dataset:
         class: TSDatasetH
         module_path: qlib.data.dataset
