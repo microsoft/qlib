@@ -34,8 +34,9 @@ try:
     from .pytorch_sfm import SFM_Model
     from .pytorch_tcn import TCN
     from .pytorch_add import ADD
+    from .pytorch_mtmd import MTMD
 
-    pytorch_classes = (ALSTM, GATs, GRU, LSTM, DNNModelPytorch, TabnetModel, SFM_Model, TCN, ADD)
+    pytorch_classes = (ALSTM, GATs, GRU, LSTM, DNNModelPytorch, TabnetModel, SFM_Model, TCN, ADD, MTMD)
 except ModuleNotFoundError:
     pytorch_classes = ()
     print("ModuleNotFoundError.  PyTorch models are skipped (optional: maybe installing pytorch can fix it).")
