@@ -309,19 +309,19 @@ Qlib provides a tool named `qrun` to run the whole workflow automatically (inclu
 2. Graphical Reports Analysis: Run `examples/workflow_by_code.ipynb` with `jupyter notebook` to get graphical reports
     - Forecasting signal (model prediction) analysis
       - Cumulative Return of groups
-      ![Cumulative Return](http://fintech.msra.cn/images_v070/analysis/analysis_model_cumulative_return.png?v=0.1)
+      ![Cumulative Return](https://github.com/microsoft/qlib/blob/main/docs/_static/img/analysis/analysis_model_cumulative_return.png)
       - Return distribution
-      ![long_short](http://fintech.msra.cn/images_v070/analysis/analysis_model_long_short.png?v=0.1)
+      ![long_short](https://github.com/microsoft/qlib/blob/main/docs/_static/img/analysis/analysis_model_long_short.png)
       - Information Coefficient (IC)
-      ![Information Coefficient](http://fintech.msra.cn/images_v070/analysis/analysis_model_IC.png?v=0.1)
-      ![Monthly IC](http://fintech.msra.cn/images_v070/analysis/analysis_model_monthly_IC.png?v=0.1)
-      ![IC](http://fintech.msra.cn/images_v070/analysis/analysis_model_NDQ.png?v=0.1)
+      ![Information Coefficient](https://github.com/microsoft/qlib/blob/main/docs/_static/img/analysis/analysis_model_IC.png)
+      ![Monthly IC](https://github.com/microsoft/qlib/blob/main/docs/_static/img/analysis/analysis_model_monthly_IC.png)
+      ![IC](https://github.com/microsoft/qlib/blob/main/docs/_static/img/analysis/analysis_model_NDQ.png)
       - Auto Correlation of forecasting signal (model prediction)
-      ![Auto Correlation](http://fintech.msra.cn/images_v070/analysis/analysis_model_auto_correlation.png?v=0.1)
+      ![Auto Correlation](https://github.com/microsoft/qlib/blob/main/docs/_static/img/analysis/analysis_model_auto_correlation.png)
 
     - Portfolio analysis
       - Backtest return
-      ![Report](http://fintech.msra.cn/images_v070/analysis/report.png?v=0.1)
+      ![Report](https://github.com/microsoft/qlib/blob/main/docs/_static/img/analysis/report.png)
       <!-- 
       - Score IC
       ![Score IC](docs/_static/img/score_ic.png)
@@ -500,7 +500,7 @@ Qlib data are stored in a compact format, which is efficient to be combined into
 Join IM discussion groups:
 |[Gitter](https://gitter.im/Microsoft/qlib)|
 |----|
-|![image](http://fintech.msra.cn/images_v070/qrcode/gitter_qr.png)|
+|![image](https://github.com/microsoft/qlib/blob/main/docs/_static/img/qrcode/gitter_qr.png)|
 
 # Contributing
 We appreciate all contributions and thank all the contributors!
