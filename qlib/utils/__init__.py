@@ -31,6 +31,12 @@ from .file import (
     unpack_archive_with_buffer,
     get_tmp_file_with_buffer,
 )
+from .file import (
+    get_or_create_path,
+    save_multiple_parts_file,
+    unpack_archive_with_buffer,
+    get_tmp_file_with_buffer,
+)
 from ..config import C
 from ..log import get_module_logger, set_log_with_config
 
@@ -42,7 +48,12 @@ is_deprecated_lexsorted_pandas = version.parse(pd.__version__) > version.parse("
 #################### Server ####################
 def get_redis_connection():
     """get redis connection instance."""
-    return redis.StrictRedis(host=C.redis_host, port=C.redis_port, db=C.redis_task_db, password=C.redis_password)
+    return redis.StrictRedis(
+        host=C.redis_host,
+        port=C.redis_port,
+        db=C.redis_task_db,
+        password=C.redis_password,
+    )
 
 
 #################### Data ####################
@@ -251,7 +262,10 @@ def parse_field(field):
     # \uff09 -> )
     chinese_punctuation_regex = r"\u3001\uff1a\uff08\uff09"
     for pattern, new in [
-        (rf"\$\$([\w{chinese_punctuation_regex}]+)", r'PFeature("\1")'),  # $$ must be before $
+        (
+            rf"\$\$([\w{chinese_punctuation_regex}]+)",
+            r'PFeature("\1")',
+        ),  # $$ must be before $
         (rf"\$([\w{chinese_punctuation_regex}]+)", r'Feature("\1")'),
         (r"(\w+\s*)\(", r"Operators.\1("),
     ]:  # Features  # Operators
@@ -361,7 +375,14 @@ def get_date_range(trading_date, left_shift=0, right_shift=0, future=False):
     return calendar
 
 
-def get_date_by_shift(trading_date, shift, future=False, clip_shift=True, freq="day", align: Optional[str] = None):
+def get_date_by_shift(
+    trading_date,
+    shift,
+    future=False,
+    clip_shift=True,
+    freq="day",
+    align: Optional[str] = None,
+):
     """get trading date with shift bias will cur_date
         e.g. : shift == 1,  return next trading date
                shift == -1, return previous trading date
@@ -547,7 +568,38 @@ def exists_qlib_data(qlib_dir):
     # check instruments
     code_names = set(map(lambda x: fname_to_code(x.name.lower()), features_dir.iterdir()))
     _instrument = instruments_dir.joinpath("all.txt")
-    miss_code = set(pd.read_csv(_instrument, sep="\t", header=None).loc[:, 0].apply(str.lower)) - set(code_names)
+    # Removed two possible ticker names "NA" and "NULL" from the default na_values list for column 0
+    miss_code = set(
+        pd.read_csv(
+            _instrument,
+            sep="\t",
+            header=None,
+            keep_default_na=False,
+            na_values={
+                0: [
+                    " ",
+                    "#N/A",
+                    "#N/A N/A",
+                    "#NA",
+                    "-1.#IND",
+                    "-1.#QNAN",
+                    "-NaN",
+                    "-nan",
+                    "1.#IND",
+                    "1.#QNAN",
+                    "<NA>",
+                    "N/A",
+                    "NaN",
+                    "None",
+                    "n/a",
+                    "nan",
+                    "null ",
+                ]
+            },
+        )
+        .loc[:, 0]
+        .apply(str.lower)
+    ) - set(code_names)
     if miss_code and any(map(lambda x: "sht" not in x, miss_code)):
         return False
 

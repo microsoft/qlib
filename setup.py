@@ -46,7 +46,7 @@ if not _CYTHON_INSTALLED:
 REQUIRED = [
     "numpy>=1.12.0, <1.24",
     "pandas>=0.25.1",
-    "scipy>=1.0.0",
+    "scipy>=1.7.3",
     "requests>=2.18.0",
     "sacred>=0.7.4",
     "python-socketio",
@@ -65,6 +65,8 @@ REQUIRED = [
     # To ensure stable operation of the experiment manager, we have limited the version of mlflow,
     # and we need to verify whether version 2.0 of mlflow can serve qlib properly.
     "mlflow>=1.12.1, <=1.30.0",
+    # mlflow 1.30.0 requires packaging<22, so we limit the packaging version, otherwise the CI will fail.
+    "packaging<22",
     "tqdm",
     "loguru",
     "lightgbm>=3.3.0",
@@ -80,7 +82,7 @@ REQUIRED = [
     "dill",
     "dataclasses;python_version<'3.7'",
     "filelock",
-    "jinja2<3.1.0",  # for passing the readthedocs workflow.
+    "jinja2",
     "gym",
     # Installing the latest version of protobuf for python versions below 3.8 will cause unit tests to fail.
     "protobuf<=3.20.1;python_version<='3.8'",
@@ -164,6 +166,9 @@ setup(
             "lxml",
             "baostock",
             "yahooquery",
+            # 2024-05-30 scs has released a new version: 3.2.4.post2,
+            # this version, causes qlib installation to fail, so we've limited the scs version a bit for now.
+            "scs<=3.2.4",
             "beautifulsoup4",
             # In version 0.4.11 of tianshou, the code:
             # logits, hidden = self.actor(batch.obs, state=state, info=batch.info)

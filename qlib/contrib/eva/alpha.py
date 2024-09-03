@@ -3,6 +3,7 @@ Here is a batch of evaluation functions.
 
 The interface should be redesigned carefully in the future.
 """
+
 import pandas as pd
 from typing import Tuple
 from qlib import get_module_logger

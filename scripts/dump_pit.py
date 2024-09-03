@@ -3,7 +3,7 @@
 """
 TODO:
 - A more well-designed PIT database is required.
-    - seperated insert, delete, update, query operations are required.
+    - separated insert, delete, update, query operations are required.
 """
 
 import shutil
@@ -132,9 +132,11 @@ class DumpPitData:
         return (
             set(self._include_fields)
             if self._include_fields
-            else set(df[self.field_column_name]) - set(self._exclude_fields)
-            if self._exclude_fields
-            else set(df[self.field_column_name])
+            else (
+                set(df[self.field_column_name]) - set(self._exclude_fields)
+                if self._exclude_fields
+                else set(df[self.field_column_name])
+            )
         )
 
     def get_filenames(self, symbol, field, interval):

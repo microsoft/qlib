@@ -30,7 +30,6 @@ class Ensemble:
 
 
 class SingleKeyEnsemble(Ensemble):
-
     """
     Extract the object if there is only one key and value in the dict. Make the result more readable.
     {Only key: Only value} -> Only value
@@ -64,7 +63,6 @@ class SingleKeyEnsemble(Ensemble):
 
 
 class RollingEnsemble(Ensemble):
-
     """Merge a dict of rolling dataframe like `prediction` or `IC` into an ensemble.
 
     NOTE: The values of dict must be pd.DataFrame, and have the index "datetime".
