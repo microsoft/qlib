@@ -22,9 +22,9 @@ To learn more, please visit our [♾️Demo page](https://rdagent.azurewebsites.
 We have prepared several demo videos for you:
 | Scenario | Demo video (English) | Demo video (中文) |
 | --                      | ------    | ------    |
-| Quant Factor Mining | [Link](https://rdagent.azurewebsites.net/factor_loop) | [Link](https://rdagent.azurewebsites.net/factor_loop) |
-| Quant Factor Mining from reports | [Link](https://rdagent.azurewebsites.net/report_factor) | [Link](https://rdagent.azurewebsites.net/report_factor) |
-| Quant Model Building | [Link](https://rdagent.azurewebsites.net/model_loop) | [Link](https://rdagent.azurewebsites.net/model_loop) |
+| Quant Factor Mining | [Link](https://rdagent.azurewebsites.net/factor_loop?lang=en) | [Link](https://rdagent.azurewebsites.net/factor_loop?lang=zh) |
+| Quant Factor Mining from reports | [Link](https://rdagent.azurewebsites.net/report_factor?lang=en) | [Link](https://rdagent.azurewebsites.net/report_factor?lang=zh) |
+| Quant Model Building | [Link](https://rdagent.azurewebsites.net/model_loop?lang=en) | [Link](https://rdagent.azurewebsites.net/model_loop?lang=zh) |
 
 | Feature | Status |
 | --                      | ------    |
