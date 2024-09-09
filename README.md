@@ -11,7 +11,7 @@
 
 Recent released features
 
-### Introducing <a href="https://github.com/microsoft/RD-Agent"><img src="docs/_static/img/rdagent_logo.png" alt="RD_Agent" style="max-height: 2em;"></a>: LLM-Based Autonomous Evolving Agents for Industrial Data-Driven R&D
+### Introducing <a href="https://github.com/microsoft/RD-Agent"><img src="docs/_static/img/rdagent_logo.png" alt="RD_Agent" style="height: 2em"></a>: LLM-Based Autonomous Evolving Agents for Industrial Data-Driven R&D
 
 We are excited to announce the release of 🔥**RD-Agent**🔥, a powerful tool that supports automated quant factor mining and model implementation for industrial data-driven R&D.
 
