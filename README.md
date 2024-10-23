@@ -132,11 +132,11 @@ Here is a quick **[demo](https://terminalizer.com/view/3f24561a4470)** shows how
 ## Installation
 
 This table demonstrates the supported Python version of `Qlib`:
-|               | install with pip           | install from source  | plot |
-| ------------- |:---------------------:|:--------------------:|:----:|
+|               | install with pip      | install from source  |        plot        |
+| ------------- |:---------------------:|:--------------------:|:------------------:|
 | Python 3.7    | :heavy_check_mark:    | :heavy_check_mark:   | :heavy_check_mark: |
 | Python 3.8    | :heavy_check_mark:    | :heavy_check_mark:   | :heavy_check_mark: |
-| Python 3.9    | :x:                   | :heavy_check_mark:   | :x: |
+| Python 3.9    | :x:                   | :heavy_check_mark:   | :x:                |
 
 **Note**: 
 1. **Conda** is suggested for managing your Python environment.
