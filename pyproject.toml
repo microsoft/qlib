@@ -1,2 +1,15 @@
 [build-system]
 requires = ["setuptools", "numpy", "Cython"]
+
+# configuration for black -l 120
+line-length = 120
+
+# configuration for lint flake8 implementing
+# on ruff lint
+# W503 == W504
+[tool.ruff.lint]
+ignore = ["E501","F541","E266","E402","E731","E203"]
+
+[tool.ruff.format]
+# automatically detecting appropriate line ending
+line-ending = "auto"
