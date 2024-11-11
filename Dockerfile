@@ -7,9 +7,9 @@ COPY . .
 RUN apt-get update && \
     apt-get install -y build-essential
 
-RUN conda create --name qlib_source python=3.8
-RUN echo "conda activate qlib_source" >> ~/.bashrc
-ENV PATH /opt/conda/envs/qlib_source/bin:$PATH
+RUN conda create --name qlib_env python=3.8 -y
+RUN echo "conda activate qlib_env" >> ~/.bashrc
+ENV PATH /opt/conda/envs/qlib_env/bin:$PATH
 
 RUN python -m pip install --upgrade pip
 
@@ -20,5 +20,12 @@ RUN python -m pip install "cloudpickle<3"
 RUN python -m pip install scikit-learn==1.3.2
 
 RUN python -m pip install cython packaging tables matplotlib statsmodels
+RUN python -m pip install pybind11 cvxpy
 
-RUN python -m pip install pyqlib
+ARG INSTALL_OPTION="yes"
+
+RUN if [ "$INSTALL_OPTION" = "yes" ]; then \
+        python -m pip install pyqlib; \
+    else \
+        python setup.py install; \
+    fi
