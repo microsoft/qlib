@@ -304,6 +304,7 @@ We recommend users to prepare their own data if they have a high-quality dataset
     ```bash
     docker rm <container name>
     ```
+9. If you want to know more, please refer to the [documentation](https://qlib.readthedocs.io/en/latest/developer/how_to_build_image.html).
 
 ## Auto Quant Research Workflow
 Qlib provides a tool named `qrun` to run the whole workflow automatically (including building dataset, training models, backtest and evaluation). You can start an auto quant research workflow and have a graphical reports analysis according to the following steps: 
