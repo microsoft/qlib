@@ -170,6 +170,9 @@ setup(
             "lxml",
             "baostock",
             "yahooquery",
+            # 2024-05-30 scs has released a new version: 3.2.4.post2,
+            # this version, causes qlib installation to fail, so we've limited the scs version a bit for now.
+            "scs<=3.2.4",
             "beautifulsoup4",
             # In version 0.4.11 of tianshou, the code:
             # logits, hidden = self.actor(batch.obs, state=state, info=batch.info)

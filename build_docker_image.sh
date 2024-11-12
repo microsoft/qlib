@@ -7,7 +7,7 @@ answer=$(echo "$answer" | tr '[:upper:]' '[:lower:]')
 
 if [ "$answer" = "yes" ]; then
     # Build the nightly version of the qlib image
-    docker build --build-arg INSTALL_OPTION=no -t qlib_image -f ./Dockerfile .
+    docker build --build-arg IS_STABLE=no -t qlib_image -f ./Dockerfile .
     image_tag="nightly"
 else
     # Build the stable version of the qlib image

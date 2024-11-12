@@ -14,7 +14,7 @@ When executing the build command, use the ``--build-arg`` parameter to control t
 
 .. code-block:: bash
 
-    docker build --build-arg INSTALL_OPTION=yes -t <image name> -f ./Dockerfile .
+    docker build --build-arg IS_STABLE=yes -t <image name> -f ./Dockerfile .
 
 .. code-block:: bash
 
@@ -24,7 +24,7 @@ When executing the build command, use the ``--build-arg`` parameter to control t
 
 .. code-block:: bash
 
-    docker build --build-arg INSTALL_OPTION=no -t <image name> -f ./Dockerfile .
+    docker build --build-arg IS_STABLE=no -t <image name> -f ./Dockerfile .
 
 Auto build of qlib images
 =========================

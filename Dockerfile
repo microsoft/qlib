@@ -22,9 +22,9 @@ RUN python -m pip install scikit-learn==1.3.2
 RUN python -m pip install cython packaging tables matplotlib statsmodels
 RUN python -m pip install pybind11 cvxpy
 
-ARG INSTALL_OPTION="yes"
+ARG IS_STABLE="yes"
 
-RUN if [ "$INSTALL_OPTION" = "yes" ]; then \
+RUN if [ "$IS_STABLE" = "yes" ]; then \
         python -m pip install pyqlib; \
     else \
         python setup.py install; \
