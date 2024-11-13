@@ -28,7 +28,7 @@ termcolor==1.1.0
 tqdm==4.63.0
 trio==0.20.0
 trio-websocket==0.9.2
-urllib3==1.26.8
+urllib3==1.26.19
 wget==3.2
 wsproto==1.1.0
 yahooquery==2.2.15
