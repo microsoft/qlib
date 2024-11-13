@@ -292,6 +292,38 @@ We recommend users to prepare their own data if they have a high-quality dataset
   ```
  -->
 
+## Docker images
+1. Pulling a docker image from a docker hub repository
+    ```bash
+    docker pull pyqlib/qlib_image_stable:stable
+    ```
+2. Start a new Docker container
+    ```bash
+    docker run -it --name <container name> -v <Mounted local directory>:/app qlib_image_stable
+    ```
+3. At this point you are in the docker environment and can run the qlib scripts. An example:
+    ```bash
+    >>> python scripts/get_data.py qlib_data --name qlib_data_simple --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
+    >>> python qlib/workflow/cli.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
+    ```
+4. Exit the container
+    ```bash
+    >>> exit
+    ```
+5. Restart the container
+    ```bash
+    docker start -i -a <container name>
+    ```
+6. Stop the container
+    ```bash
+    docker stop <container name>
+    ```
+7. Delete the container
+    ```bash
+    docker rm <container name>
+    ```
+8. If you want to know more information, please refer to the [documentation](https://qlib.readthedocs.io/en/latest/developer/how_to_build_image.html).
+
 ## Auto Quant Research Workflow
 Qlib provides a tool named `qrun` to run the whole workflow automatically (including building dataset, training models, backtest and evaluation). You can start an auto quant research workflow and have a graphical reports analysis according to the following steps: 
 
