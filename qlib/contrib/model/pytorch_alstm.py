@@ -52,6 +52,7 @@ class ALSTM(Model):
         optimizer="adam",
         GPU=0,
         seed=None,
+        rnn_type="GRU",
         **kwargs
     ):
         # Set logger.
@@ -103,6 +104,7 @@ class ALSTM(Model):
                 self.device,
                 self.use_gpu,
                 seed,
+                self.rnn_type = rnn_type 
             )
         )
 
@@ -115,6 +117,7 @@ class ALSTM(Model):
             hidden_size=self.hidden_size,
             num_layers=self.num_layers,
             dropout=self.dropout,
+            rnn_type=self.rnn_type,
         )
         self.logger.info("model:\n{:}".format(self.ALSTM_model))
         self.logger.info("model size: {:.4f} MB".format(count_parameters(self.ALSTM_model)))
