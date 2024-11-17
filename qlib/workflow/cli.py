@@ -19,6 +19,16 @@ from qlib.utils.data import update_config
 set_log_with_config(C.logging_config)
 logger = get_module_logger("qrun", logging.INFO)
 
+import torch
+print("=== CLI Entry Point ===")
+print(f"Python executable: {sys.executable}")
+print(f"PYTHONPATH: {os.environ.get('PYTHONPATH')}")
+print(f"CUDA_VISIBLE_DEVICES: {os.environ.get('CUDA_VISIBLE_DEVICES')}")
+
+print(f"PyTorch version: {torch.__version__}")
+print(f"CUDA available: {torch.cuda.is_available()}")
+print(f"CUDA version: {torch.version.cuda if torch.cuda.is_available() else 'N/A'}")
+print("=====================")
 
 def get_path_list(path):
     if isinstance(path, str):
