@@ -230,7 +230,7 @@ class ModelRunner:
         dataset="Alpha360",
         universe="",
         exclude=False,
-        qlib_uri: str = "git+https://github.com/microsoft/qlib#egg=pyqlib",
+        qlib_uri: str = "git+https://github.com/Joshuajxy/qlib#egg=pyqlib",
         exp_folder_name: str = "run_all_model_records",
         wait_before_rm_env: bool = False,
         wait_when_err: bool = False,
