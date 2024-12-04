@@ -12,7 +12,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest, macos-11]
+        os: [windows-latest, macos-13]
         # FIXME:  macos-latest will raise error now.
         # not supporting 3.6 due to annotations is not supported https://stackoverflow.com/a/52890129
         python-version: [3.7, 3.8]
