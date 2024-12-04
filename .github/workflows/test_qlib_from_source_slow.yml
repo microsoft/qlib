@@ -17,7 +17,7 @@ jobs:
         # Since macos-latest changed from 12.7.4 to 14.4.1,
         # the minimum python version that matches a 14.4.1 version of macos is 3.10,
         # so we limit the macos version to macos-12.
-        os: [windows-latest, ubuntu-20.04, ubuntu-22.04, macos-13]
+        os: [macos-13]
         # not supporting 3.6 due to annotations is not supported https://stackoverflow.com/a/52890129
         python-version: [3.7, 3.8]
 
@@ -51,7 +51,7 @@ jobs:
         python scripts/get_data.py qlib_data --name qlib_data_simple --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
 
     - name: Install Lightgbm for MacOS
-      if: ${{ matrix.os == 'macos-11' || matrix.os == 'macos-latest' }}
+      if: ${{ matrix.os == 'macos-13' || matrix.os == 'macos-latest' }}
       run: |
         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Microsoft/qlib/main/.github/brew_install.sh)"
         HOMEBREW_NO_AUTO_UPDATE=1 brew install lightgbm
@@ -60,6 +60,11 @@ jobs:
         wget https://raw.githubusercontent.com/Homebrew/homebrew-core/fb8323f2b170bd4ae97e1bac9bf3e2983af3fdb0/Formula/libomp.rb
         brew unlink libomp
         brew install libomp.rb
+        # brew install libomp
+        # export PATH="/usr/local/opt/libomp/bin:$PATH"
+        # export LDFLAGS="-L/usr/local/opt/libomp/lib"
+        # export CPPFLAGS="-I/usr/local/opt/libomp/include"
+        # export PKG_CONFIG_PATH="/usr/local/opt/libomp/lib/pkgconfig"
 
     - name: Unit tests with Pytest
       uses: nick-fields/retry@v2
