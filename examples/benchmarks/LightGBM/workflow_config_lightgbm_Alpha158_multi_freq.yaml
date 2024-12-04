@@ -18,7 +18,7 @@ data_handler_config: &data_handler_config
         label: day
         feature: 1min
     # with label as reference
-    inst_processor:
+    inst_processors:
         feature:
             - class: Resample1minProcessor
               module_path: features_sample.py
@@ -33,9 +33,7 @@ port_analysis_config: &port_analysis_config
         kwargs:
             topk: 50
             n_drop: 5
-            signal:
-                - <MODEL> 
-                - <DATASET>
+            signal: <PRED>
     backtest:
         verbose: False
         limit_threshold: 0.095

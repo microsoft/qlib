@@ -162,13 +162,15 @@ def create_account_instance(
         init_cash=init_cash,
         position_dict=position_dict,
         pos_type=pos_type,
-        benchmark_config={}
-        if benchmark is None
-        else {
-            "benchmark": benchmark,
-            "start_time": start_time,
-            "end_time": end_time,
-        },
+        benchmark_config=(
+            {}
+            if benchmark is None
+            else {
+                "benchmark": benchmark,
+                "start_time": start_time,
+                "end_time": end_time,
+            }
+        ),
     )
 
 
@@ -182,7 +184,6 @@ def get_strategy_executor(
     exchange_kwargs: dict = {},
     pos_type: str = "Position",
 ) -> Tuple[BaseStrategy, BaseExecutor]:
-
     # NOTE:
     # - for avoiding recursive import
     # - typing annotations is not reliable

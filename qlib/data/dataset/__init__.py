@@ -403,7 +403,7 @@ class TSDataSampler:
             np.full((1, self.data_arr.shape[1]), np.nan, dtype=self.data_arr.dtype),
             axis=0,
         )
-        self.nan_idx = -1  # The last line is all NaN
+        self.nan_idx = len(self.data_arr) - 1  # The last line is all NaN; setting it to -1 can cause bug #1716
 
         # the data type will be changed
         # The index of usable data is between start_idx and end_idx
@@ -417,7 +417,7 @@ class TSDataSampler:
             # NOTE: bool(np.nan) is True !!!!!!!!
             # make sure reindex comes first. Otherwise extra NaN may appear.
             flt_data = flt_data.swaplevel()
-            flt_data = flt_data.reindex(self.data_index).fillna(False).astype(np.bool)
+            flt_data = flt_data.reindex(self.data_index).fillna(False).astype(bool)
             self.flt_data = flt_data.values
             self.idx_map = self.flt_idx_map(self.flt_data, self.idx_map)
             self.data_index = self.data_index[np.where(self.flt_data)[0]]

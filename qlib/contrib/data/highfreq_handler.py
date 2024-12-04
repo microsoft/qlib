@@ -17,7 +17,6 @@ class HighFreqHandler(DataHandlerLP):
         fit_end_time=None,
         drop_raw=True,
     ):
-
         infer_processors = check_transform_proc(infer_processors, fit_start_time, fit_end_time)
         learn_processors = check_transform_proc(learn_processors, fit_start_time, fit_end_time)
 
@@ -44,7 +43,7 @@ class HighFreqHandler(DataHandlerLP):
         names = []
 
         template_if = "If(IsNull({1}), {0}, {1})"
-        template_paused = "Select(Gt($hx_paused_num, 1.001), {0})"
+        template_paused = "Select(Gt($paused_num, 1.001), {0})"
 
         def get_normalized_price_feature(price_field, shift=0):
             # norm with the close price of 237th minute of yesterday.
@@ -115,6 +114,7 @@ class HighFreqGeneralHandler(DataHandlerLP):
         day_length=240,
         freq="1min",
         columns=["$open", "$high", "$low", "$close", "$vwap"],
+        inst_processors=None,
     ):
         self.day_length = day_length
         self.columns = columns
@@ -128,6 +128,7 @@ class HighFreqGeneralHandler(DataHandlerLP):
                 "config": self.get_feature_config(),
                 "swap_level": False,
                 "freq": freq,
+                "inst_processors": inst_processors,
             },
         }
         super().__init__(
@@ -257,6 +258,7 @@ class HighFreqGeneralBacktestHandler(DataHandler):
         day_length=240,
         freq="1min",
         columns=["$close", "$vwap", "$volume"],
+        inst_processors=None,
     ):
         self.day_length = day_length
         self.columns = set(columns)
@@ -266,6 +268,7 @@ class HighFreqGeneralBacktestHandler(DataHandler):
                 "config": self.get_feature_config(),
                 "swap_level": False,
                 "freq": freq,
+                "inst_processors": inst_processors,
             },
         }
         super().__init__(
@@ -311,9 +314,9 @@ class HighFreqOrderHandler(DataHandlerLP):
         learn_processors=[],
         fit_start_time=None,
         fit_end_time=None,
+        inst_processors=None,
         drop_raw=True,
     ):
-
         infer_processors = check_transform_proc(infer_processors, fit_start_time, fit_end_time)
         learn_processors = check_transform_proc(learn_processors, fit_start_time, fit_end_time)
 
@@ -323,6 +326,7 @@ class HighFreqOrderHandler(DataHandlerLP):
                 "config": self.get_feature_config(),
                 "swap_level": False,
                 "freq": "1min",
+                "inst_processors": inst_processors,
             },
         }
         super().__init__(
@@ -482,7 +486,7 @@ class HighFreqBacktestOrderHandler(DataHandler):
         names = []
 
         template_if = "If(IsNull({1}), {0}, {1})"
-        template_paused = "Select(Gt($hx_paused_num, 1.001), {0})"
+        template_paused = "Select(Gt($paused_num, 1.001), {0})"
         template_fillnan = "FFillNan({0})"
         fields += [
             template_fillnan.format(template_paused.format("$close")),

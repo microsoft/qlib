@@ -156,19 +156,21 @@ class ALSTM(Model):
         raise ValueError("unknown loss `%s`" % self.loss)
 
     def metric_fn(self, pred, label):
-
         mask = torch.isfinite(label)
 
         if self.metric in ("", "loss"):
             return -self.loss_fn(pred[mask], label[mask])
+        elif self.metric == "mse":
+            mask = ~torch.isnan(label)
+            weight = torch.ones_like(label)
+            return -self.mse(pred[mask], label[mask], weight[mask])
 
         raise ValueError("unknown metric `%s`" % self.metric)
 
     def train_epoch(self, data_loader):
-
         self.ALSTM_model.train()
 
-        for (data, weight) in data_loader:
+        for data, weight in data_loader:
             feature = data[:, :, 0:-1].to(self.device)
             label = data[:, -1, -1].to(self.device)
 
@@ -181,14 +183,12 @@ class ALSTM(Model):
             self.train_optimizer.step()
 
     def test_epoch(self, data_loader):
-
         self.ALSTM_model.eval()
 
         scores = []
         losses = []
 
-        for (data, weight) in data_loader:
-
+        for data, weight in data_loader:
             feature = data[:, :, 0:-1].to(self.device)
             # feature[torch.isnan(feature)] = 0
             label = data[:, -1, -1].to(self.device)
@@ -295,7 +295,6 @@ class ALSTM(Model):
         preds = []
 
         for data in test_loader:
-
             feature = data[:, :, 0:-1].to(self.device)
 
             with torch.no_grad():

@@ -1,0 +1,66 @@
+simulator:
+  data_granularity: 5
+  time_per_step: 30
+  vol_limit: null
+env:
+  concurrency: 32
+  parallel_mode: dummy
+action_interpreter:
+  class: CategoricalActionInterpreter
+  kwargs:
+    values: 4
+    max_step: 8
+  module_path: qlib.rl.order_execution.interpreter
+state_interpreter:
+  class: FullHistoryStateInterpreter
+  kwargs:
+    data_dim: 5
+    data_ticks: 48  # 48 = 240 min / 5 min
+    max_step: 8
+    processed_data_provider:
+      class: HandlerProcessedDataProvider
+      kwargs:
+        data_dir: ./data/pickle/
+        feature_columns_today: ["$high", "$low", "$open", "$close", "$volume"]
+        feature_columns_yesterday: ["$high_1", "$low_1", "$open_1", "$close_1", "$volume_1"]
+        backtest: false
+      module_path: qlib.rl.data.native
+  module_path: qlib.rl.order_execution.interpreter
+reward:
+  class: PAPenaltyReward
+  kwargs:
+    penalty: 4.0
+    scale: 0.01
+  module_path: qlib.rl.order_execution.reward
+data:
+  source:
+    order_dir: ./data/orders
+    feature_root_dir: ./data/pickle/
+    feature_columns_today: ["$close0", "$volume0"]
+    feature_columns_yesterday: []
+    total_time: 240
+    default_start_time_index: 0
+    default_end_time_index: 235
+    proc_data_dim: 5
+  num_workers: 0
+  queue_size: 20
+network:
+  class: Recurrent
+  module_path: qlib.rl.order_execution.network
+policy:
+  class: PPO  # PPO, DQN
+  kwargs:
+    lr: 0.0001
+  module_path: qlib.rl.order_execution.policy
+runtime:
+  seed: 42
+  use_cuda: false
+trainer:
+  max_epoch: 500
+  repeat_per_collect: 25
+  earlystop_patience: 50
+  episode_per_collect: 10000
+  batch_size: 1024
+  val_every_n_epoch: 4
+  checkpoint_path: ./outputs/opds
+  checkpoint_every_n_iters: 1

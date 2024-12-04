@@ -107,7 +107,7 @@ class FundCollector(BaseCollector):
             url = INDEX_BENCH_URL.format(
                 index_code=symbol, numberOfHistoricalDaysToCrawl=10000, startDate=start, endDate=end
             )
-            resp = requests.get(url, headers={"referer": "http://fund.eastmoney.com/110022.html"})
+            resp = requests.get(url, headers={"referer": "http://fund.eastmoney.com/110022.html"}, timeout=None)
 
             if resp.status_code != 200:
                 raise ValueError("request error")
@@ -116,8 +116,8 @@ class FundCollector(BaseCollector):
 
             # Some funds don't show the net value, example: http://fundf10.eastmoney.com/jjjz_010288.html
             SYType = data["Data"]["SYType"]
-            if (SYType == "每万份收益") or (SYType == "每百份收益") or (SYType == "每百万份收益"):
-                raise Exception("The fund contains 每*份收益")
+            if SYType in {"每万份收益", "每百份收益", "每百万份收益"}:
+                raise ValueError("The fund contains 每*份收益")
 
             # TODO: should we sort the value by datetime?
             _resp = pd.DataFrame(data["Data"]["LSJZList"])

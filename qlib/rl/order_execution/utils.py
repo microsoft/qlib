@@ -10,18 +10,7 @@ import pandas as pd
 
 from qlib.backtest.decision import OrderDir
 from qlib.backtest.executor import BaseExecutor, NestedExecutor, SimulatorExecutor
-from qlib.constant import EPS_T, float_or_ndarray
-
-
-def get_ticks_slice(
-    ticks_index: pd.DatetimeIndex,
-    start: pd.Timestamp,
-    end: pd.Timestamp,
-    include_end: bool = False,
-) -> pd.DatetimeIndex:
-    if not include_end:
-        end = end - EPS_T
-    return ticks_index[ticks_index.slice_indexer(start, end)]
+from qlib.constant import float_or_ndarray
 
 
 def dataframe_append(df: pd.DataFrame, other: Any) -> pd.DataFrame:

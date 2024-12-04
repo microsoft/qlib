@@ -15,7 +15,6 @@ from plotly.figure_factory import create_distplot
 
 
 class BaseGraph:
-
     _name = None
 
     def __init__(

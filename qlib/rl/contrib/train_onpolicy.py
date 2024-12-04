@@ -1,21 +1,23 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+from __future__ import annotations
+
 import argparse
 import os
 import random
+import sys
 import warnings
 from pathlib import Path
 from typing import cast, List, Optional
 
 import numpy as np
 import pandas as pd
-import qlib
 import torch
 import yaml
 from qlib.backtest import Order
 from qlib.backtest.decision import OrderDir
 from qlib.constant import ONE_MIN
-from qlib.rl.data.pickle_styled import load_simple_intraday_backtest_data
+from qlib.rl.data.native import load_handler_intraday_processed_data
 from qlib.rl.interpreter import ActionInterpreter, StateInterpreter
 from qlib.rl.order_execution import SingleAssetOrderExecutionSimple
 from qlib.rl.reward import Reward
@@ -49,19 +51,17 @@ def _read_orders(order_dir: Path) -> pd.DataFrame:
 class LazyLoadDataset(Dataset):
     def __init__(
         self,
+        data_dir: str,
         order_file_path: Path,
-        data_dir: Path,
         default_start_time_index: int,
         default_end_time_index: int,
     ) -> None:
         self._default_start_time_index = default_start_time_index
         self._default_end_time_index = default_end_time_index
 
-        self._order_file_path = order_file_path
         self._order_df = _read_orders(order_file_path).reset_index()
-
-        self._data_dir = data_dir
         self._ticks_index: Optional[pd.DatetimeIndex] = None
+        self._data_dir = Path(data_dir)
 
     def __len__(self) -> int:
         return len(self._order_df)
@@ -74,12 +74,17 @@ class LazyLoadDataset(Dataset):
             # TODO: We only load ticks index once based on the assumption that ticks index of different dates
             # TODO: in one experiment are all the same. If that assumption is not hold, we need to load ticks index
             # TODO: of all dates.
-            backtest_data = load_simple_intraday_backtest_data(
+
+            data = load_handler_intraday_processed_data(
                 data_dir=self._data_dir,
                 stock_id=row["instrument"],
                 date=date,
+                feature_columns_today=[],
+                feature_columns_yesterday=[],
+                backtest=True,
+                index_only=True,
             )
-            self._ticks_index = [t - date for t in backtest_data.get_time_index()]
+            self._ticks_index = [t - date for t in data.today.index]
 
         order = Order(
             stock_id=row["instrument"],
@@ -104,8 +109,6 @@ def train_and_test(
     run_training: bool,
     run_backtest: bool,
 ) -> None:
-    qlib.init()
-
     order_root_path = Path(data_config["source"]["order_dir"])
 
     data_granularity = simulator_config.get("data_granularity", 1)
@@ -113,10 +116,11 @@ def train_and_test(
     def _simulator_factory_simple(order: Order) -> SingleAssetOrderExecutionSimple:
         return SingleAssetOrderExecutionSimple(
             order=order,
-            data_dir=Path(data_config["source"]["data_dir"]),
-            ticks_per_step=simulator_config["time_per_step"],
+            data_dir=data_config["source"]["feature_root_dir"],
+            feature_columns_today=data_config["source"]["feature_columns_today"],
+            feature_columns_yesterday=data_config["source"]["feature_columns_yesterday"],
             data_granularity=data_granularity,
-            deal_price_type=data_config["source"].get("deal_price_column", "close"),
+            ticks_per_step=simulator_config["time_per_step"],
             vol_threshold=simulator_config["vol_limit"],
         )
 
@@ -126,8 +130,8 @@ def train_and_test(
     if run_training:
         train_dataset, valid_dataset = [
             LazyLoadDataset(
+                data_dir=data_config["source"]["feature_root_dir"],
                 order_file_path=order_root_path / tag,
-                data_dir=Path(data_config["source"]["data_dir"]),
                 default_start_time_index=data_config["source"]["default_start_time_index"] // data_granularity,
                 default_end_time_index=data_config["source"]["default_end_time_index"] // data_granularity,
             )
@@ -178,8 +182,8 @@ def train_and_test(
 
     if run_backtest:
         test_dataset = LazyLoadDataset(
+            data_dir=data_config["source"]["feature_root_dir"],
             order_file_path=order_root_path / "test",
-            data_dir=Path(data_config["source"]["data_dir"]),
             default_start_time_index=data_config["source"]["default_start_time_index"] // data_granularity,
             default_end_time_index=data_config["source"]["default_end_time_index"] // data_granularity,
         )
@@ -204,6 +208,9 @@ def main(config: dict, run_training: bool, run_backtest: bool) -> None:
 
     if "seed" in config["runtime"]:
         seed_everything(config["runtime"]["seed"])
+
+    for extra_module_path in config["env"].get("extra_module_paths", []):
+        sys.path.append(extra_module_path)
 
     state_interpreter: StateInterpreter = init_instance_by_config(config["state_interpreter"])
     action_interpreter: ActionInterpreter = init_instance_by_config(config["action_interpreter"])

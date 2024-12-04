@@ -10,7 +10,6 @@ _build
 build/
 dist/
 
-
 *.pkl
 *.hd5
 *.csv
@@ -27,6 +26,8 @@ examples/estimator/estimator_example/
 examples/rl/data/
 examples/rl/checkpoints/
 examples/rl/outputs/
+examples/rl_order_execution/data/
+examples/rl_order_execution/outputs/
 
 *.egg-info/
 

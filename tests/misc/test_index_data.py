@@ -76,7 +76,7 @@ class IndexDataTest(unittest.TestCase):
         self.assertTrue(np.isnan(sd.loc["bar", "g"]))
 
         # support slicing
-        print(sd.loc[~sd.loc[:, "g"].isna().data.astype(np.bool)])
+        print(sd.loc[~sd.loc[:, "g"].isna().data.astype(bool)])
 
         print(self.assertTrue(idd.SingleData().index == idd.SingleData().index))
 
@@ -93,6 +93,24 @@ class IndexDataTest(unittest.TestCase):
         sd = sd.replace(dict(zip(range(1, 5), range(2, 6))))
         print(sd)
         self.assertTrue(sd.iloc[0] == 2)
+
+        # test different precisions of time data
+        timeindex = [
+            np.datetime64("2024-06-22T00:00:00.000000000"),
+            np.datetime64("2024-06-21T00:00:00.000000000"),
+            np.datetime64("2024-06-20T00:00:00.000000000"),
+        ]
+        sd = idd.SingleData([1, 2, 3], index=timeindex)
+        self.assertTrue(
+            sd.index.index(np.datetime64("2024-06-21T00:00:00.000000000"))
+            == sd.index.index(np.datetime64("2024-06-21T00:00:00"))
+        )
+        self.assertTrue(sd.index.index(pd.Timestamp("2024-06-21 00:00")) == 1)
+
+        # Bad case: the input is not aligned
+        timeindex[1] = (np.datetime64("2024-06-21T00:00:00.00"),)
+        with self.assertRaises(TypeError):
+            sd = idd.SingleData([1, 2, 3], index=timeindex)
 
     def test_ops(self):
         sd1 = idd.SingleData([1, 2, 3, 4], index=["foo", "bar", "f", "g"])

@@ -19,7 +19,7 @@ data_handler_config: &data_handler_config
         feature_15min: 1min
         feature_day: day
     # with label as reference
-    inst_processor:
+    inst_processors:
         feature_15min:
             - class: ResampleNProcessor
               module_path: features_resample_N.py
@@ -31,9 +31,7 @@ port_analysis_config: &port_analysis_config
         class: TopkDropoutStrategy
         module_path: qlib.contrib.strategy
         kwargs:
-            signal:
-                - <MODEL> 
-                - <DATASET>
+            signal: <PRED>
             topk: 50
             n_drop: 5
     backtest:

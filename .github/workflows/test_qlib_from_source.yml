@@ -14,16 +14,29 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-18.04, ubuntu-20.04, macos-11, macos-latest]
+        # Since macos-latest changed from 12.7.4 to 14.4.1,
+        # the minimum python version that matches a 14.4.1 version of macos is 3.10,
+        # so we limit the macos version to macos-12.
+        os: [windows-latest, ubuntu-20.04, ubuntu-22.04, macos-12]
         # not supporting 3.6 due to annotations is not supported https://stackoverflow.com/a/52890129
         python-version: [3.7, 3.8]
 
     steps:
     - name: Test qlib from source
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
+
+    # Since version 3.7 of python for MacOS is installed in CI, version 3.7.17, this version causes "_bz not found error".
+    # So we make the version number of python 3.7 for MacOS more specific.
+    # refs: https://github.com/actions/setup-python/issues/682
+    - name: Set up Python ${{ matrix.python-version }}
+      if: (matrix.os == 'macos-latest' && matrix.python-version == '3.7') || (matrix.os == 'macos-11' && matrix.python-version == '3.7')
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.7.16"
 
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      if: (matrix.os != 'macos-latest' || matrix.python-version != '3.7') && (matrix.os != 'macos-11' || matrix.python-version != '3.7')
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -37,15 +50,13 @@ jobs:
         python -m pip install torch torchvision torchaudio
 
     - name: Installing pytorch for ubuntu
-      if: ${{ matrix.os == 'ubuntu-18.04' || matrix.os == 'ubuntu-20.04' }}
+      if: ${{ matrix.os == 'ubuntu-20.04' || matrix.os == 'ubuntu-22.04' }}
       run: |
-        python -m pip install --upgrade pip
         python -m pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cpu
 
     - name: Installing pytorch for windows
       if: ${{ matrix.os == 'windows-latest' }}
       run: |
-        python -m pip install --upgrade pip
         python -m pip install torch torchvision torchaudio
 
     - name: Set up Python tools
@@ -54,12 +65,17 @@ jobs:
         python -m pip install -e .[dev]
 
     - name: Lint with Black
+      # Python 3.7 will use a black with low level. So we use python with higher version for black check
+      if: (matrix.python-version != '3.7')
       run: |
+        pip install -U black  # follow the latest version of black, previous Qlib dependency will downgrade black
         black . -l 120 --check --diff
 
     - name: Make html with sphinx
+      # Since read the docs builds on ubuntu 22.04, we only need to test that the build passes on ubuntu 22.04.
+      if: ${{ matrix.os == 'ubuntu-22.04' }}
       run: |
-        cd docs 
+        cd docs
         sphinx-build -W --keep-going -b html . _build
         cd ..
 
@@ -86,12 +102,12 @@ jobs:
       # W1309: f-string-without-interpolation
       # E1102: not-callable
       # E1136: unsubscriptable-object
-      # FIXME: Due to the version change of Pylint, some code will cause W0719 error after PR 1417. W0719 is temporarily disabled in PR 1417 and should be fixed.
     # References for parameters: https://github.com/PyCQA/pylint/issues/4577#issuecomment-1000245962
     # We use sys.setrecursionlimit(2000) to make the recursion depth larger to ensure that pylint works properly (the default recursion depth is 1000).
     - name: Check Qlib with pylint
       run: |
-        pylint --disable=C0104,C0114,C0115,C0116,C0301,C0302,C0411,C0413,C1802,R0401,R0801,R0902,R0903,R0911,R0912,R0913,R0914,R0915,R1720,W0105,W0123,W0201,W0511,W0613,W1113,W1514,E0401,E1121,C0103,C0209,R0402,R1705,R1710,R1725,R1735,W0102,W0212,W0221,W0223,W0231,W0237,W0612,W0621,W0622,W0703,W1309,E1102,E1136,W0719 --const-rgx='[a-z_][a-z0-9_]{2,30}$' qlib --init-hook "import astroid; astroid.context.InferenceContext.max_inferred = 500; import sys; sys.setrecursionlimit(2000)"
+        pylint --disable=C0104,C0114,C0115,C0116,C0301,C0302,C0411,C0413,C1802,R0401,R0801,R0902,R0903,R0911,R0912,R0913,R0914,R0915,R1720,W0105,W0123,W0201,W0511,W0613,W1113,W1514,E0401,E1121,C0103,C0209,R0402,R1705,R1710,R1725,R1735,W0102,W0212,W0221,W0223,W0231,W0237,W0612,W0621,W0622,W0703,W1309,E1102,E1136 --const-rgx='[a-z_][a-z0-9_]{2,30}$' qlib --init-hook "import astroid; astroid.context.InferenceContext.max_inferred = 500; import sys; sys.setrecursionlimit(2000)"
+        pylint --disable=C0104,C0114,C0115,C0116,C0301,C0302,C0411,C0413,C1802,R0401,R0801,R0902,R0903,R0911,R0912,R0913,R0914,R0915,R1720,W0105,W0123,W0201,W0511,W0613,W1113,W1514,E0401,E1121,C0103,C0209,R0402,R1705,R1710,R1725,R1735,W0102,W0212,W0221,W0223,W0231,W0237,W0246,W0612,W0621,W0622,W0703,W1309,E1102,E1136 --const-rgx='[a-z_][a-z0-9_]{2,30}$' scripts --init-hook "import astroid; astroid.context.InferenceContext.max_inferred = 500; import sys; sys.setrecursionlimit(2000)"
 
     # The following flake8 error codes were ignored:
       # E501 line too long
@@ -130,8 +146,7 @@ jobs:
     - name: Test data downloads
       run: |
         python scripts/get_data.py qlib_data --name qlib_data_simple --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
-        azcopy copy https://qlibpublic.blob.core.windows.net/data/rl /tmp/qlibpublic/data --recursive
-        mv /tmp/qlibpublic/data tests/.data
+        python scripts/get_data.py download_data --file_name rl_data.zip --target_dir tests/.data/rl
 
     - name: Install Lightgbm for MacOS
       if: ${{ matrix.os == 'macos-11' || matrix.os == 'macos-latest' }}
@@ -146,11 +161,16 @@ jobs:
 
     # Run after data downloads
     - name: Check Qlib ipynb with nbconvert
+      # Running the nbconvert check on a macos-11 system results in a "Kernel died" error, so we've temporarily disabled macos-11 here.
+      if: ${{ matrix.os != 'macos-11' }}
       run: |
         # add more ipynb files in future
         jupyter nbconvert --to notebook --execute examples/workflow_by_code.ipynb
 
     - name: Test workflow by config (install from source)
+      # On macos-11 system, it will lead to "Segmentation fault: 11" error,
+      # which may be caused by the excessive memory overhead of macos-11 system, so we disable macos-11 temporarily here.
+      if: ${{ matrix.os != 'macos-11' }}
       run: |
         python -m pip install numba
         python qlib/workflow/cli.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml

@@ -31,7 +31,6 @@ FEATURE_DATA_DIR = DATA_DIR / "processed"
 ORDER_DIR = DATA_DIR / "order" / "valid_bidir"
 
 CN_DATA_DIR = DATA_ROOT_DIR / "cn"
-CN_BACKTEST_DATA_DIR = CN_DATA_DIR / "backtest"
 CN_FEATURE_DATA_DIR = CN_DATA_DIR / "processed"
 CN_ORDER_DIR = CN_DATA_DIR / "order" / "test"
 CN_POLICY_WEIGHTS_DIR = CN_DATA_DIR / "weights"
@@ -49,7 +48,7 @@ def test_pickle_data_inspect():
 def test_simulator_first_step():
     order = Order("AAL", 30.0, 0, pd.Timestamp("2013-12-11 00:00:00"), pd.Timestamp("2013-12-11 23:59:59"))
 
-    simulator = SingleAssetOrderExecutionSimple(order, BACKTEST_DATA_DIR)
+    simulator = SingleAssetOrderExecutionSimple(order, DATA_DIR)
     state = simulator.get_state()
     assert state.cur_time == pd.Timestamp("2013-12-11 09:30:00")
     assert state.position == 30.0
@@ -83,7 +82,7 @@ def test_simulator_first_step():
 def test_simulator_stop_twap():
     order = Order("AAL", 13.0, 0, pd.Timestamp("2013-12-11 00:00:00"), pd.Timestamp("2013-12-11 23:59:59"))
 
-    simulator = SingleAssetOrderExecutionSimple(order, BACKTEST_DATA_DIR)
+    simulator = SingleAssetOrderExecutionSimple(order, DATA_DIR)
     for _ in range(13):
         simulator.step(1.0)
 
@@ -106,10 +105,10 @@ def test_simulator_stop_early():
     order = Order("AAL", 1.0, 1, pd.Timestamp("2013-12-11 00:00:00"), pd.Timestamp("2013-12-11 23:59:59"))
 
     with pytest.raises(ValueError):
-        simulator = SingleAssetOrderExecutionSimple(order, BACKTEST_DATA_DIR)
+        simulator = SingleAssetOrderExecutionSimple(order, DATA_DIR)
         simulator.step(2.0)
 
-    simulator = SingleAssetOrderExecutionSimple(order, BACKTEST_DATA_DIR)
+    simulator = SingleAssetOrderExecutionSimple(order, DATA_DIR)
     simulator.step(1.0)
 
     with pytest.raises(AssertionError):
@@ -119,7 +118,7 @@ def test_simulator_stop_early():
 def test_simulator_start_middle():
     order = Order("AAL", 15.0, 1, pd.Timestamp("2013-12-11 10:15:00"), pd.Timestamp("2013-12-11 15:44:59"))
 
-    simulator = SingleAssetOrderExecutionSimple(order, BACKTEST_DATA_DIR)
+    simulator = SingleAssetOrderExecutionSimple(order, DATA_DIR)
     assert len(simulator.ticks_for_order) == 330
     assert simulator.cur_time == pd.Timestamp("2013-12-11 10:15:00")
     simulator.step(2.0)
@@ -138,7 +137,7 @@ def test_simulator_start_middle():
 def test_interpreter():
     order = Order("AAL", 15.0, 1, pd.Timestamp("2013-12-11 10:15:00"), pd.Timestamp("2013-12-11 15:44:59"))
 
-    simulator = SingleAssetOrderExecutionSimple(order, BACKTEST_DATA_DIR)
+    simulator = SingleAssetOrderExecutionSimple(order, DATA_DIR)
     assert len(simulator.ticks_for_order) == 330
     assert simulator.cur_time == pd.Timestamp("2013-12-11 10:15:00")
 
@@ -219,7 +218,7 @@ def test_network_sanity():
     # we won't check the correctness of networks here
     order = Order("AAL", 15.0, 1, pd.Timestamp("2013-12-11 9:30:00"), pd.Timestamp("2013-12-11 15:59:59"))
 
-    simulator = SingleAssetOrderExecutionSimple(order, BACKTEST_DATA_DIR)
+    simulator = SingleAssetOrderExecutionSimple(order, DATA_DIR)
     assert len(simulator.ticks_for_order) == 390
 
     class EmulateEnvWrapper(NamedTuple):
@@ -259,7 +258,7 @@ def test_twap_strategy(finite_env_type):
     csv_writer = CsvWriter(Path(__file__).parent / ".output")
 
     backtest(
-        partial(SingleAssetOrderExecutionSimple, data_dir=BACKTEST_DATA_DIR, ticks_per_step=30),
+        partial(SingleAssetOrderExecutionSimple, data_dir=DATA_DIR, ticks_per_step=30),
         state_interp,
         action_interp,
         orders,
@@ -290,7 +289,7 @@ def test_cn_ppo_strategy():
     csv_writer = CsvWriter(Path(__file__).parent / ".output")
 
     backtest(
-        partial(SingleAssetOrderExecutionSimple, data_dir=CN_BACKTEST_DATA_DIR, ticks_per_step=30),
+        partial(SingleAssetOrderExecutionSimple, data_dir=CN_DATA_DIR, ticks_per_step=30),
         state_interp,
         action_interp,
         orders,
@@ -319,7 +318,7 @@ def test_ppo_train():
     policy = PPO(network, state_interp.observation_space, action_interp.action_space, 1e-4)
 
     train(
-        partial(SingleAssetOrderExecutionSimple, data_dir=CN_BACKTEST_DATA_DIR, ticks_per_step=30),
+        partial(SingleAssetOrderExecutionSimple, data_dir=CN_DATA_DIR, ticks_per_step=30),
         state_interp,
         action_interp,
         orders,

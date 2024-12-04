@@ -1,6 +1,10 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-from typing import Union
+"""
+This module covers some utility functions that operate on data or basic object
+"""
+from copy import deepcopy
+from typing import List, Union
 import pandas as pd
 import numpy as np
 
@@ -54,3 +58,48 @@ def deepcopy_basic_type(obj: object) -> object:
         return {k: deepcopy_basic_type(v) for k, v in obj.items()}
     else:
         return obj
+
+
+S_DROP = "__DROP__"  # this is a symbol which indicates drop the value
+
+
+def update_config(base_config: dict, ext_config: Union[dict, List[dict]]):
+    """
+    supporting adding base config based on the ext_config
+
+    >>> bc = {"a": "xixi"}
+    >>> ec = {"b": "haha"}
+    >>> new_bc = update_config(bc, ec)
+    >>> print(new_bc)
+    {'a': 'xixi', 'b': 'haha'}
+    >>> print(bc)  # base config should not be changed
+    {'a': 'xixi'}
+    >>> print(update_config(bc, {"b": S_DROP}))
+    {'a': 'xixi'}
+    >>> print(update_config(new_bc, {"b": S_DROP}))
+    {'a': 'xixi'}
+    """
+
+    base_config = deepcopy(base_config)  # in case of modifying base config
+
+    for ec in ext_config if isinstance(ext_config, (list, tuple)) else [ext_config]:
+        for key in ec:
+            if key not in base_config:
+                # if it is not in the default key, then replace it.
+                # ADD if not drop
+                if ec[key] != S_DROP:
+                    base_config[key] = ec[key]
+
+            else:
+                if isinstance(base_config[key], dict) and isinstance(ec[key], dict):
+                    # Recursive
+                    # Both of them are dict, then update it nested
+                    base_config[key] = update_config(base_config[key], ec[key])
+                elif ec[key] == S_DROP:
+                    # DROP
+                    del base_config[key]
+                else:
+                    # REPLACE
+                    # one of then are not dict. Then replace
+                    base_config[key] = ec[key]
+    return base_config

@@ -30,12 +30,13 @@ def _get_multi_level_executor_config(
     strategy_config: dict,
     cash_limit: float | None = None,
     generate_report: bool = False,
+    data_granularity: str = "1min",
 ) -> dict:
     executor_config = {
         "class": "SimulatorExecutor",
         "module_path": "qlib.backtest.executor",
         "kwargs": {
-            "time_per_step": "5min",  # FIXME: move this into config
+            "time_per_step": data_granularity,
             "verbose": False,
             "trade_type": SimulatorExecutor.TT_PARAL if cash_limit is not None else SimulatorExecutor.TT_SERIAL,
             "generate_report": generate_report,
@@ -154,12 +155,7 @@ def single_with_simulator(
     -------
         If generate_report is True, return execution records and the generated report. Otherwise, return only records.
     """
-    if split == "stock":
-        stock_id = orders.iloc[0].instrument
-        init_qlib(backtest_config["qlib"], part=stock_id)
-    else:
-        day = orders.iloc[0].datetime
-        init_qlib(backtest_config["qlib"], part=day)
+    init_qlib(backtest_config["qlib"])
 
     stocks = orders.instrument.unique().tolist()
 
@@ -181,13 +177,14 @@ def single_with_simulator(
             strategy_config=backtest_config["strategies"],
             cash_limit=cash_limit,
             generate_report=generate_report,
+            data_granularity=backtest_config["data_granularity"],
         )
 
         exchange_config = copy.deepcopy(backtest_config["exchange"])
         exchange_config.update(
             {
                 "codes": stocks,
-                "freq": "5min",  # FIXME: move this into config
+                "freq": backtest_config["data_granularity"],
             }
         )
 
@@ -202,7 +199,7 @@ def single_with_simulator(
         reports.append(simulator.report_dict)
         decisions += simulator.decisions
 
-    indicator_1day_objs = [report["indicator"]["1day"][1] for report in reports]
+    indicator_1day_objs = [report["indicator_dict"]["1day"][1] for report in reports]
     indicator_info = {k: v for obj in indicator_1day_objs for k, v in obj.order_indicator_his.items()}
     records = _convert_indicator_to_dataframe(indicator_info)
     assert records is None or not np.isnan(records["ffr"]).any()
@@ -253,12 +250,7 @@ def single_with_collect_data_loop(
         If generate_report is True, return execution records and the generated report. Otherwise, return only records.
     """
 
-    if split == "stock":
-        stock_id = orders.iloc[0].instrument
-        init_qlib(backtest_config["qlib"], part=stock_id)
-    else:
-        day = orders.iloc[0].datetime
-        init_qlib(backtest_config["qlib"], part=day)
+    init_qlib(backtest_config["qlib"])
 
     trade_start_time = orders["datetime"].min()
     trade_end_time = orders["datetime"].max()
@@ -280,13 +272,14 @@ def single_with_collect_data_loop(
         strategy_config=backtest_config["strategies"],
         cash_limit=cash_limit,
         generate_report=generate_report,
+        data_granularity=backtest_config["data_granularity"],
     )
 
     exchange_config = copy.deepcopy(backtest_config["exchange"])
     exchange_config.update(
         {
             "codes": stocks,
-            "freq": "5min",  # FIXME: move this into config
+            "freq": backtest_config["data_granularity"],
         }
     )
 
@@ -357,7 +350,10 @@ def backtest(backtest_config: dict, with_simulator: bool = False) -> pd.DataFram
 
     if not output_path.exists():
         os.makedirs(output_path)
-    res.to_csv(output_path / "summary.csv")
+
+    if "pa" in res.columns:
+        res["pa"] = res["pa"] * 10000.0  # align with training metrics
+    res.to_csv(output_path / "backtest_result.csv")
     return res
 
 

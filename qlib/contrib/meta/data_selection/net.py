@@ -41,11 +41,18 @@ class TimeWeightMeta(SingleMetaBase):
 
 
 class PredNet(nn.Module):
-    def __init__(self, step, hist_step_n, clip_weight=None, clip_method="tanh"):
+    def __init__(self, step, hist_step_n, clip_weight=None, clip_method="tanh", alpha: float = 0.0):
+        """
+        Parameters
+        ----------
+        alpha : float
+            the regularization for sub model (useful when align meta model with linear submodel)
+        """
         super().__init__()
         self.step = step
         self.twm = TimeWeightMeta(hist_step_n=hist_step_n, clip_weight=clip_weight, clip_method=clip_method)
         self.init_paramters(hist_step_n)
+        self.alpha = alpha
 
     def get_sample_weights(self, X, time_perf, time_belong, ignore_weight=False):
         weights = torch.from_numpy(np.ones(X.shape[0])).float().to(X.device)
@@ -59,7 +66,7 @@ class PredNet(nn.Module):
         """Please refer to the docs of MetaTaskDS for the description of the variables"""
         weights = self.get_sample_weights(X, time_perf, time_belong, ignore_weight=ignore_weight)
         X_w = X.T * weights.view(1, -1)
-        theta = torch.inverse(X_w @ X) @ X_w @ y
+        theta = torch.inverse(X_w @ X + self.alpha * torch.eye(X_w.shape[0])) @ X_w @ y
         return X_test @ theta, weights
 
     def init_paramters(self, hist_step_n):

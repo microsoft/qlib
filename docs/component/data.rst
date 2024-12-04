@@ -52,7 +52,7 @@ Also, ``Qlib`` provides a high-frequency dataset. Users can run a high-frequency
 Qlib Format Dataset
 -------------------
 ``Qlib`` has provided an off-the-shelf dataset in `.bin` format, users could use the script ``scripts/get_data.py`` to download the China-Stock dataset as follows. User can also use numpy to load `.bin` file to validate data.
-The price volume data look different from the actual dealling price because of they are **adjusted** (`adjusted price <https://www.investopedia.com/terms/a/adjusted_closing_price.asp>`_).  And then you may find that the adjusted price may be different from different data sources. This is because different data sources may vary in the way of adjusting prices. Qlib normalize the price on first trading day of each stock to 1 when adjusting them.
+The price volume data look different from the actual dealing price because of they are **adjusted** (`adjusted price <https://www.investopedia.com/terms/a/adjusted_closing_price.asp>`_).  And then you may find that the adjusted price may be different from different data sources. This is because different data sources may vary in the way of adjusting prices. Qlib normalize the price on first trading day of each stock to 1 when adjusting them.
 Users can leverage `$factor` to get the original trading price (e.g. `$close / $factor` to get the original close price).
 
 Here are some discussions about the price adjusting of Qlib. 
@@ -119,7 +119,7 @@ Here are some example:
 for daily data:
   .. code-block:: bash
 
-    python scripts/get_data.py csv_data_cn --target_dir ~/.qlib/csv_data/cn_data
+    python scripts/get_data.py download_data --file_name csv_data_cn.zip --target_dir ~/.qlib/csv_data/cn_data
 
 for 1min data:
   .. code-block:: bash
@@ -140,12 +140,13 @@ Users can also provide their own data in CSV format. However, the CSV data **mus
 
         where the data are in the following format:
 
-        .. code-block::
+            +-----------+-------+
+            | symbol    | close |
+            +===========+=======+
+            | SH600000  | 120   |
+            +-----------+-------+
 
-            symbol,close
-            SH600000,120
-
-- CSV file **must** includes a column for the date, and when dumping the data, user must specify the date column name. Here is an example:
+- CSV file **must** include a column for the date, and when dumping the data, user must specify the date column name. Here is an example:
 
     .. code-block:: bash
 
@@ -153,11 +154,13 @@ Users can also provide their own data in CSV format. However, the CSV data **mus
 
     where the data are in the following format:
 
-    .. code-block::
-
-        symbol,date,close,open,volume
-        SH600000,2020-11-01,120,121,12300000
-        SH600000,2020-11-02,123,120,12300000
+        +---------+------------+-------+------+----------+
+        | symbol  | date       | close | open | volume   |
+        +=========+============+=======+======+==========+
+        | SH600000| 2020-11-01 | 120   | 121  | 12300000 |
+        +---------+------------+-------+------+----------+
+        | SH600000| 2020-11-02 | 123   | 120  | 12300000 |
+        +---------+------------+-------+------+----------+
 
 
 Supposed that users prepare their CSV format data in the directory ``~/.qlib/csv_data/my_data``, they can run the following command to start the conversion.

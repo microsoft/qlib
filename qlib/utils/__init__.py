@@ -1,17 +1,15 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+# TODO: this utils covers too much utilities, please seperat it into sub modules
 
 from __future__ import division
 from __future__ import print_function
 
 import os
-import pickle
 import re
-import sys
 import copy
 import json
-from qlib.typehint import InstConf
 import yaml
 import redis
 import bisect
@@ -21,17 +19,18 @@ import inspect
 import hashlib
 import datetime
 import requests
-import importlib
-import contextlib
 import collections
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from typing import List, Dict, Union, Tuple, Any, Optional, Callable
-from types import ModuleType
-from urllib.parse import urlparse
+from typing import List, Union, Optional, Callable
 from packaging import version
-from .file import get_or_create_path, save_multiple_parts_file, unpack_archive_with_buffer, get_tmp_file_with_buffer
+from .file import (
+    get_or_create_path,
+    save_multiple_parts_file,
+    unpack_archive_with_buffer,
+    get_tmp_file_with_buffer,
+)
 from ..config import C
 from ..log import get_module_logger, set_log_with_config
 
@@ -43,7 +42,12 @@ is_deprecated_lexsorted_pandas = version.parse(pd.__version__) > version.parse("
 #################### Server ####################
 def get_redis_connection():
     """get redis connection instance."""
-    return redis.StrictRedis(host=C.redis_host, port=C.redis_port, db=C.redis_task_db)
+    return redis.StrictRedis(
+        host=C.redis_host,
+        port=C.redis_port,
+        db=C.redis_task_db,
+        password=C.redis_password,
+    )
 
 
 #################### Data ####################
@@ -102,7 +106,14 @@ def get_period_offset(first_year, period, quarterly):
     return offset
 
 
-def read_period_data(index_path, data_path, period, cur_date_int: int, quarterly, last_period_index: int = None):
+def read_period_data(
+    index_path,
+    data_path,
+    period,
+    cur_date_int: int,
+    quarterly,
+    last_period_index: int = None,
+):
     """
     At `cur_date`(e.g. 20190102), read the information at `period`(e.g. 201803).
     Only the updating info before cur_date or at cur_date will be used.
@@ -224,7 +235,7 @@ def requests_with_retry(url, retry=5, **kwargs):
         except Exception as e:
             log.warning("exception encountered {}".format(e))
             continue
-    raise Exception("ERROR: requests failed!")
+    raise TimeoutError("ERROR: requests failed!")
 
 
 #################### Parse ####################
@@ -279,187 +290,15 @@ def parse_field(field):
     # \uff09 -> )
     chinese_punctuation_regex = r"\u3001\uff1a\uff08\uff09"
     for pattern, new in [
-        (rf"\$\$([\w{chinese_punctuation_regex}]+)", r'PFeature("\1")'),  # $$ must be before $
+        (
+            rf"\$\$([\w{chinese_punctuation_regex}]+)",
+            r'PFeature("\1")',
+        ),  # $$ must be before $
         (rf"\$([\w{chinese_punctuation_regex}]+)", r'Feature("\1")'),
         (r"(\w+\s*)\(", r"Operators.\1("),
     ]:  # Features  # Operators
         field = re.sub(pattern, new, field)
     return field
-
-
-def get_module_by_module_path(module_path: Union[str, ModuleType]):
-    """Load module path
-
-    :param module_path:
-    :return:
-    :raises: ModuleNotFoundError
-    """
-    if module_path is None:
-        raise ModuleNotFoundError("None is passed in as parameters as module_path")
-
-    if isinstance(module_path, ModuleType):
-        module = module_path
-    else:
-        if module_path.endswith(".py"):
-            module_name = re.sub("^[^a-zA-Z_]+", "", re.sub("[^0-9a-zA-Z_]", "", module_path[:-3].replace("/", "_")))
-            module_spec = importlib.util.spec_from_file_location(module_name, module_path)
-            module = importlib.util.module_from_spec(module_spec)
-            sys.modules[module_name] = module
-            module_spec.loader.exec_module(module)
-        else:
-            module = importlib.import_module(module_path)
-    return module
-
-
-def split_module_path(module_path: str) -> Tuple[str, str]:
-    """
-
-    Parameters
-    ----------
-    module_path : str
-        e.g. "a.b.c.ClassName"
-
-    Returns
-    -------
-    Tuple[str, str]
-        e.g. ("a.b.c", "ClassName")
-    """
-    *m_path, cls = module_path.split(".")
-    m_path = ".".join(m_path)
-    return m_path, cls
-
-
-def get_callable_kwargs(config: InstConf, default_module: Union[str, ModuleType] = None) -> (type, dict):
-    """
-    extract class/func and kwargs from config info
-
-    Parameters
-    ----------
-    config : [dict, str]
-        similar to config
-        please refer to the doc of init_instance_by_config
-
-    default_module : Python module or str
-        It should be a python module to load the class type
-        This function will load class from the config['module_path'] first.
-        If config['module_path'] doesn't exists, it will load the class from default_module.
-
-    Returns
-    -------
-    (type, dict):
-        the class/func object and it's arguments.
-
-    Raises
-    ------
-        ModuleNotFoundError
-    """
-    if isinstance(config, dict):
-        key = "class" if "class" in config else "func"
-        if isinstance(config[key], str):
-            # 1) get module and class
-            # - case 1): "a.b.c.ClassName"
-            # - case 2): {"class": "ClassName", "module_path": "a.b.c"}
-            m_path, cls = split_module_path(config[key])
-            if m_path == "":
-                m_path = config.get("module_path", default_module)
-            module = get_module_by_module_path(m_path)
-
-            # 2) get callable
-            _callable = getattr(module, cls)  # may raise AttributeError
-        else:
-            _callable = config[key]  # the class type itself is passed in
-        kwargs = config.get("kwargs", {})
-    elif isinstance(config, str):
-        # a.b.c.ClassName
-        m_path, cls = split_module_path(config)
-        module = get_module_by_module_path(default_module if m_path == "" else m_path)
-
-        _callable = getattr(module, cls)
-        kwargs = {}
-    else:
-        raise NotImplementedError(f"This type of input is not supported")
-    return _callable, kwargs
-
-
-get_cls_kwargs = get_callable_kwargs  # NOTE: this is for compatibility for the previous version
-
-
-def init_instance_by_config(
-    config: InstConf,
-    default_module=None,
-    accept_types: Union[type, Tuple[type]] = (),
-    try_kwargs: Dict = {},
-    **kwargs,
-) -> Any:
-    """
-    get initialized instance with config
-
-    Parameters
-    ----------
-    config : InstConf
-
-    default_module : Python module
-        Optional. It should be a python module.
-        NOTE: the "module_path" will be override by `module` arguments
-
-        This function will load class from the config['module_path'] first.
-        If config['module_path'] doesn't exists, it will load the class from default_module.
-
-    accept_types: Union[type, Tuple[type]]
-        Optional. If the config is a instance of specific type, return the config directly.
-        This will be passed into the second parameter of isinstance.
-
-    try_kwargs: Dict
-        Try to pass in kwargs in `try_kwargs` when initialized the instance
-        If error occurred, it will fail back to initialization without try_kwargs.
-
-    Returns
-    -------
-    object:
-        An initialized object based on the config info
-    """
-    if isinstance(config, accept_types):
-        return config
-
-    if isinstance(config, (str, Path)):
-        if isinstance(config, str):
-            # path like 'file:///<path to pickle file>/obj.pkl'
-            pr = urlparse(config)
-            if pr.scheme == "file":
-                with open(os.path.join(pr.netloc, pr.path), "rb") as f:
-                    return pickle.load(f)
-        else:
-            with config.open("rb") as f:
-                return pickle.load(f)
-
-    klass, cls_kwargs = get_callable_kwargs(config, default_module=default_module)
-
-    try:
-        return klass(**cls_kwargs, **try_kwargs, **kwargs)
-    except (TypeError,):
-        # TypeError for handling errors like
-        # 1: `XXX() got multiple values for keyword argument 'YYY'`
-        # 2: `XXX() got an unexpected keyword argument 'YYY'
-        return klass(**cls_kwargs, **kwargs)
-
-
-@contextlib.contextmanager
-def class_casting(obj: object, cls: type):
-    """
-    Python doesn't provide the downcasting mechanism.
-    We use the trick here to downcast the class
-
-    Parameters
-    ----------
-    obj : object
-        the object to be cast
-    cls : type
-        the target class type
-    """
-    orig_cls = obj.__class__
-    obj.__class__ = cls
-    yield
-    obj.__class__ = orig_cls
 
 
 def compare_dict_value(src_data: dict, dst_data: dict):
@@ -564,7 +403,14 @@ def get_date_range(trading_date, left_shift=0, right_shift=0, future=False):
     return calendar
 
 
-def get_date_by_shift(trading_date, shift, future=False, clip_shift=True, freq="day", align: Optional[str] = None):
+def get_date_by_shift(
+    trading_date,
+    shift,
+    future=False,
+    clip_shift=True,
+    freq="day",
+    align: Optional[str] = None,
+):
     """get trading date with shift bias will cur_date
         e.g. : shift == 1,  return next trading date
                shift == -1, return previous trading date
@@ -742,7 +588,6 @@ def exists_qlib_data(qlib_dir):
             return False
     # check calendar bin
     for _calendar in calendars_dir.iterdir():
-
         if ("_future" not in _calendar.name) and (
             not list(features_dir.rglob(f"*.{_calendar.name.split('.')[0]}.bin"))
         ):
@@ -751,7 +596,38 @@ def exists_qlib_data(qlib_dir):
     # check instruments
     code_names = set(map(lambda x: fname_to_code(x.name.lower()), features_dir.iterdir()))
     _instrument = instruments_dir.joinpath("all.txt")
-    miss_code = set(pd.read_csv(_instrument, sep="\t", header=None).loc[:, 0].apply(str.lower)) - set(code_names)
+    # Removed two possible ticker names "NA" and "NULL" from the default na_values list for column 0
+    miss_code = set(
+        pd.read_csv(
+            _instrument,
+            sep="\t",
+            header=None,
+            keep_default_na=False,
+            na_values={
+                0: [
+                    " ",
+                    "#N/A",
+                    "#N/A N/A",
+                    "#NA",
+                    "-1.#IND",
+                    "-1.#QNAN",
+                    "-NaN",
+                    "-nan",
+                    "1.#IND",
+                    "1.#QNAN",
+                    "<NA>",
+                    "N/A",
+                    "NaN",
+                    "None",
+                    "n/a",
+                    "nan",
+                    "null ",
+                ]
+            },
+        )
+        .loc[:, 0]
+        .apply(str.lower)
+    ) - set(code_names)
     if miss_code and any(map(lambda x: "sht" not in x, miss_code)):
         return False
 
@@ -870,9 +746,9 @@ def get_item_from_obj(config: dict, name_path: str) -> object:
     cur_cfg = config
     for k in name_path.split("."):
         if isinstance(cur_cfg, dict):
-            cur_cfg = cur_cfg[k]
+            cur_cfg = cur_cfg[k]  # may raise KeyError
         elif k.isdigit():
-            cur_cfg = cur_cfg[int(k)]
+            cur_cfg = cur_cfg[int(k)]  # may raise IndexError
         else:
             raise ValueError(f"Error when getting {k} from cur_cfg")
     return cur_cfg
@@ -908,6 +784,21 @@ def fill_placeholder(config: dict, config_extend: dict):
     top = 0
     tail = 1
     item_queue = [config]
+
+    def try_replace_placeholder(value):
+        if value in config_extend.keys():
+            value = config_extend[value]
+        else:
+            m = re.match(r"<(?P<name_path>[^<>]+)>", value)
+            if m is not None:
+                try:
+                    value = get_item_from_obj(config, m.groupdict()["name_path"])
+                except (KeyError, ValueError, IndexError):
+                    get_module_logger("fill_placeholder").info(
+                        f"{value} lookes like a placeholder, but it can't match to any given values"
+                    )
+        return value
+
     while top < tail:
         now_item = item_queue[top]
         top += 1
@@ -915,17 +806,13 @@ def fill_placeholder(config: dict, config_extend: dict):
             item_keys = range(len(now_item))
         elif isinstance(now_item, dict):
             item_keys = now_item.keys()
-        for key in item_keys:
+        for key in item_keys:  # noqa
             if isinstance(now_item[key], (list, dict)):
                 item_queue.append(now_item[key])
                 tail += 1
             elif isinstance(now_item[key], str):
-                if now_item[key] in config_extend.keys():
-                    now_item[key] = config_extend[now_item[key]]
-                else:
-                    m = re.match(r"<(?P<name_path>[^<>]+)>", now_item[key])
-                    if m is not None:
-                        now_item[key] = get_item_from_obj(config, m.groupdict()["name_path"])
+                # If it is a string, try to replace it with placeholder
+                now_item[key] = try_replace_placeholder(now_item[key])
     return config
 
 
@@ -1047,6 +934,15 @@ def fname_to_code(fname: str):
     return fname
 
 
+from .mod import (
+    get_module_by_module_path,
+    split_module_path,
+    get_callable_kwargs,
+    get_cls_kwargs,
+    init_instance_by_config,
+    class_casting,
+)
+
 __all__ = [
     "get_or_create_path",
     "save_multiple_parts_file",
@@ -1054,4 +950,10 @@ __all__ = [
     "get_tmp_file_with_buffer",
     "set_log_with_config",
     "init_instance_by_config",
+    "get_module_by_module_path",
+    "split_module_path",
+    "get_callable_kwargs",
+    "get_cls_kwargs",
+    "init_instance_by_config",
+    "class_casting",
 ]

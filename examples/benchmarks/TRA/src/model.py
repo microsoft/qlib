@@ -45,7 +45,6 @@ class TRAModel(Model):
         avg_params=True,
         **kwargs,
     ):
-
         np.random.seed(seed)
         torch.manual_seed(seed)
 
@@ -93,7 +92,6 @@ class TRAModel(Model):
         self.global_step = -1
 
     def train_epoch(self, data_set):
-
         self.model.train()
         self.tra.train()
 
@@ -146,7 +144,6 @@ class TRAModel(Model):
         return total_loss
 
     def test_epoch(self, data_set, return_pred=False):
-
         self.model.eval()
         self.tra.eval()
         data_set.eval()
@@ -204,7 +201,6 @@ class TRAModel(Model):
         return metrics, preds
 
     def fit(self, dataset, evals_result=dict()):
-
         train_set, valid_set, test_set = dataset.prepare(["train", "valid", "test"])
 
         best_score = -1
@@ -328,7 +324,6 @@ class TRAModel(Model):
 
 
 class LSTM(nn.Module):
-
     """LSTM Model
 
     Args:
@@ -380,7 +375,6 @@ class LSTM(nn.Module):
             self.output_size = hidden_size
 
     def forward(self, x):
-
         x = self.input_drop(x)
 
         if self.training and self.noise_level > 0:
@@ -419,7 +413,6 @@ class PositionalEncoding(nn.Module):
 
 
 class Transformer(nn.Module):
-
     """Transformer Model
 
     Args:
@@ -464,7 +457,6 @@ class Transformer(nn.Module):
         self.output_size = hidden_size
 
     def forward(self, x):
-
         x = self.input_drop(x)
 
         if self.training and self.noise_level > 0:
@@ -481,7 +473,6 @@ class Transformer(nn.Module):
 
 
 class TRA(nn.Module):
-
     """Temporal Routing Adaptor (TRA)
 
     TRA takes historical prediction errors & latent representation as inputs,
@@ -514,7 +505,6 @@ class TRA(nn.Module):
         self.predictors = nn.Linear(input_size, num_states)
 
     def forward(self, hidden, hist_loss):
-
         preds = self.predictors(hidden)
 
         if self.num_states == 1:

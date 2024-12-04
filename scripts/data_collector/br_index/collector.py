@@ -3,7 +3,6 @@
 from functools import partial
 import sys
 from pathlib import Path
-import importlib
 import datetime
 
 import fire
@@ -21,7 +20,6 @@ quarter_dict = {"1Q": "01-03", "2Q": "05-01", "3Q": "09-01"}
 
 
 class IBOVIndex(IndexBase):
-
     ibov_index_composition = "https://raw.githubusercontent.com/igor17400/IBOV-HCI/main/historic_composition/{}.csv"
     years_4_month_periods = []
 
@@ -99,7 +97,7 @@ class IBOVIndex(IndexBase):
         now = datetime.datetime.now()
         current_year = now.year
         current_month = now.month
-        for year in [item for item in range(init_year, current_year)]:
+        for year in [item for item in range(init_year, current_year)]:  # pylint: disable=R1721
             for el in four_months_period:
                 self.years_4_month_periods.append(str(year) + "_" + el)
         # For current year the logic must be a little different

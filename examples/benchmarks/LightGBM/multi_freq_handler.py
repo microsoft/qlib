@@ -29,13 +29,13 @@ class Avg15minHandler(DataHandlerLP):
         fit_end_time=None,
         process_type=DataHandlerLP.PTYPE_A,
         filter_pipe=None,
-        inst_processor=None,
+        inst_processors=None,
         **kwargs,
     ):
         infer_processors = check_transform_proc(infer_processors, fit_start_time, fit_end_time)
         learn_processors = check_transform_proc(learn_processors, fit_start_time, fit_end_time)
         data_loader = Avg15minLoader(
-            config=self.loader_config(), filter_pipe=filter_pipe, freq=freq, inst_processor=inst_processor
+            config=self.loader_config(), filter_pipe=filter_pipe, freq=freq, inst_processors=inst_processors
         )
         super().__init__(
             instruments=instruments,
@@ -48,7 +48,6 @@ class Avg15minHandler(DataHandlerLP):
         )
 
     def loader_config(self):
-
         # Results for dataset: df: pd.DataFrame
         #   len(df.columns) == 6 + 6 * 16, len(df.index.get_level_values(level="datetime").unique()) == T
         #   df.columns: close0, close1, ..., close16, open0, ..., open16, ..., vwap16

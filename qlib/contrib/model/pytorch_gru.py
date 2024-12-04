@@ -1,25 +1,25 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-
 from __future__ import division
 from __future__ import print_function
+import copy
+from typing import Text, Union
 
 import numpy as np
 import pandas as pd
-from typing import Text, Union
-import copy
-from ...utils import get_or_create_path
-from ...log import get_module_logger
-
 import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from .pytorch_utils import count_parameters
-from ...model.base import Model
+from qlib.workflow import R
+
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
+from ...log import get_module_logger
+from ...model.base import Model
+from ...utils import get_or_create_path
+from .pytorch_utils import count_parameters
 
 
 class GRU(Model):
@@ -146,7 +146,6 @@ class GRU(Model):
         raise ValueError("unknown loss `%s`" % self.loss)
 
     def metric_fn(self, pred, label):
-
         mask = torch.isfinite(label)
 
         if self.metric in ("", "loss"):
@@ -155,7 +154,6 @@ class GRU(Model):
         raise ValueError("unknown metric `%s`" % self.metric)
 
     def train_epoch(self, x_train, y_train):
-
         x_train_values = x_train.values
         y_train_values = np.squeeze(y_train.values)
 
@@ -165,7 +163,6 @@ class GRU(Model):
         np.random.shuffle(indices)
 
         for i in range(len(indices))[:: self.batch_size]:
-
             if len(indices) - i < self.batch_size:
                 break
 
@@ -181,7 +178,6 @@ class GRU(Model):
             self.train_optimizer.step()
 
     def test_epoch(self, data_x, data_y):
-
         # prepare training data
         x_values = data_x.values
         y_values = np.squeeze(data_y.values)
@@ -194,7 +190,6 @@ class GRU(Model):
         indices = np.arange(len(x_values))
 
         for i in range(len(indices))[:: self.batch_size]:
-
             if len(indices) - i < self.batch_size:
                 break
 
@@ -217,17 +212,31 @@ class GRU(Model):
         evals_result=dict(),
         save_path=None,
     ):
+        # prepare training and validation data
+        dfs = {
+            k: dataset.prepare(
+                k,
+                col_set=["feature", "label"],
+                data_key=DataHandlerLP.DK_L,
+            )
+            for k in ["train", "valid"]
+            if k in dataset.segments
+        }
+        df_train, df_valid = dfs.get("train", pd.DataFrame()), dfs.get("valid", pd.DataFrame())
 
-        df_train, df_valid, df_test = dataset.prepare(
-            ["train", "valid", "test"],
-            col_set=["feature", "label"],
-            data_key=DataHandlerLP.DK_L,
-        )
-        if df_train.empty or df_valid.empty:
-            raise ValueError("Empty data from dataset, please check your dataset config.")
+        # check if training data is empty
+        if df_train.empty:
+            raise ValueError("Empty training data from dataset, please check your dataset config.")
 
+        df_train = df_train.dropna()
         x_train, y_train = df_train["feature"], df_train["label"]
-        x_valid, y_valid = df_valid["feature"], df_valid["label"]
+
+        # check if validation data is provided
+        if not df_valid.empty:
+            df_valid = df_valid.dropna()
+            x_valid, y_valid = df_valid["feature"], df_valid["label"]
+        else:
+            x_valid, y_valid = None, None
 
         save_path = get_or_create_path(save_path)
         stop_steps = 0
@@ -241,31 +250,41 @@ class GRU(Model):
         self.logger.info("training...")
         self.fitted = True
 
+        best_param = copy.deepcopy(self.gru_model.state_dict())
         for step in range(self.n_epochs):
             self.logger.info("Epoch%d:", step)
             self.logger.info("training...")
             self.train_epoch(x_train, y_train)
             self.logger.info("evaluating...")
             train_loss, train_score = self.test_epoch(x_train, y_train)
-            val_loss, val_score = self.test_epoch(x_valid, y_valid)
-            self.logger.info("train %.6f, valid %.6f" % (train_score, val_score))
             evals_result["train"].append(train_score)
-            evals_result["valid"].append(val_score)
 
-            if val_score > best_score:
-                best_score = val_score
-                stop_steps = 0
-                best_epoch = step
-                best_param = copy.deepcopy(self.gru_model.state_dict())
-            else:
-                stop_steps += 1
-                if stop_steps >= self.early_stop:
-                    self.logger.info("early stop")
-                    break
+            # evaluate on validation data if provided
+            if x_valid is not None and y_valid is not None:
+                val_loss, val_score = self.test_epoch(x_valid, y_valid)
+                self.logger.info("train %.6f, valid %.6f" % (train_score, val_score))
+                evals_result["valid"].append(val_score)
+
+                if val_score > best_score:
+                    best_score = val_score
+                    stop_steps = 0
+                    best_epoch = step
+                    best_param = copy.deepcopy(self.gru_model.state_dict())
+                else:
+                    stop_steps += 1
+                    if stop_steps >= self.early_stop:
+                        self.logger.info("early stop")
+                        break
 
         self.logger.info("best score: %.6lf @ %d" % (best_score, best_epoch))
         self.gru_model.load_state_dict(best_param)
         torch.save(best_param, save_path)
+
+        # Logging
+        rec = R.get_recorder()
+        for k, v_l in evals_result.items():
+            for i, v in enumerate(v_l):
+                rec.log_metrics(step=i, **{k: v})
 
         if self.use_gpu:
             torch.cuda.empty_cache()
@@ -282,7 +301,6 @@ class GRU(Model):
         preds = []
 
         for begin in range(sample_num)[:: self.batch_size]:
-
             if sample_num - begin < self.batch_size:
                 end = sample_num
             else:
