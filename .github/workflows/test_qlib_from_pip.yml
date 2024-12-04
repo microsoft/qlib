@@ -16,7 +16,7 @@ jobs:
         # Since macos-latest changed from 12.7.4 to 14.4.1,
         # the minimum python version that matches a 14.4.1 version of macos is 3.10,
         # so we limit the macos version to macos-12.
-        os: [windows-latest, ubuntu-20.04, ubuntu-22.04, macos-12]
+        os: [windows-latest, ubuntu-20.04, ubuntu-22.04, macos-13]
         # not supporting 3.6 due to annotations is not supported https://stackoverflow.com/a/52890129
         python-version: [3.7, 3.8]
 
