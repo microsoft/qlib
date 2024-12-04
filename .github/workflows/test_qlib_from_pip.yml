@@ -53,7 +53,7 @@ jobs:
         python -m pip install pyqlib
 
     - name: Install Lightgbm for MacOS
-      if: ${{ matrix.os == 'macos-14' || matrix.os == 'macos-latest' }}
+      if: ${{ matrix.os == 'macos-13' || matrix.os == 'macos-latest' }}
       run: |
         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Microsoft/qlib/main/.github/brew_install.sh)"
         HOMEBREW_NO_AUTO_UPDATE=1 brew install lightgbm
