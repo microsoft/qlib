@@ -23,6 +23,7 @@
   1. download data to csv: `python scripts/data_collector/baostock_5min/collector.py download_data`
      
      This will download the raw data such as date, symbol, open, high, low, close, volume, amount, adjustflag from baostock to a local directory. One file per symbol.
+     
      - parameters:
           - `source_dir`: save the directory
           - `interval`: `5min`
@@ -39,6 +40,7 @@
      This will:
      1. Normalize high, low, close, open price using adjclose.
      2. Normalize the high, low, close, open price so that the first valid trading date's close price is 1. 
+
      - parameters:
           - `source_dir`: csv directory
           - `normalize_dir`: result directory
@@ -62,7 +64,7 @@
   3. dump data: `python scripts/dump_bin.py dump_all`
     
      This will convert the normalized csv in `feature` directory as numpy array and store the normalized data one file per column and one symbol per directory. 
-    
+     
      - parameters:
        - `csv_path`: stock data path or directory, **normalize result(normalize_dir)**
        - `qlib_dir`: qlib(dump) data director
@@ -79,3 +81,4 @@
        # dump 5min cn
        python dump_bin.py dump_all --csv_path ~/.qlib/stock_data/source/hs300_5min_nor --qlib_dir ~/.qlib/qlib_data/hs300_5min_bin --freq 5min --exclude_fields date,symbol
        ```
+       > **Note**: Ensure to run `normalize_data` before using `dump_bin.py` to avoid conversion errors.
