@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 from random import randint, choice
 from pathlib import Path
+import logging
 
 import re
 from typing import Any, Tuple
@@ -68,9 +69,10 @@ class AnyPolicy(BasePolicy):
 
 def test_simple_env_logger(caplog):
     set_log_with_config(C.logging_config)
-    writer = ConsoleWriter()
-    writer.console_logger.parent_propagate = True
+    C.logging_config["loggers"]["qlib"]["propagate"] = True
+    logging.config.dictConfig(C.logging_config)
     for venv_cls_name in ["dummy", "shmem", "subproc"]:
+        writer = ConsoleWriter()
         csv_writer = CsvWriter(Path(__file__).parent / ".output")
         venv = vectorize_env(lambda: SimpleEnv(), venv_cls_name, 4, [writer, csv_writer])
         with venv.collector_guard():
