@@ -1,3 +1,4 @@
 pandas==1.1.2
 numpy==1.21.0
 catboost==0.24.3
+torch==1.7.0

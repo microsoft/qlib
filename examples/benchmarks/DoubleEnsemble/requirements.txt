@@ -1,3 +1,4 @@
 pandas==1.1.2
 numpy==1.21.0
 lightgbm==3.1.0
+torch==1.7.0
