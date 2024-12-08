@@ -1,3 +1,4 @@
 numpy>=1.17.4
 pandas>=1.0.1
 scikit-learn>=0.23.1
+torch==1.7.0
