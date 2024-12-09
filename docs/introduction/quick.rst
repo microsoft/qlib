@@ -16,7 +16,7 @@ This ``Quick Start`` guide tries to demonstrate
 Installation
 ============
 
-Users can easily intsall ``Qlib`` according to the following steps:
+Users can easily install ``Qlib`` according to the following steps:
 
 - Before installing ``Qlib`` from source, users need to install some dependencies:
 

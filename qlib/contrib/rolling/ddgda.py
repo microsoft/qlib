@@ -80,6 +80,11 @@ class DDGDA(Rolling):
         sim_task_model: UTIL_MODEL_TYPE = "gbdt",
         meta_1st_train_end: Optional[str] = None,
         alpha: float = 0.01,
+        loss_skip_thresh: int = 50,
+        fea_imp_n: Optional[int] = 30,
+        meta_data_proc: Optional[str] = "V01",
+        segments: Union[float, str] = 0.62,
+        hist_step_n: int = 30,
         working_dir: Optional[Union[str, Path]] = None,
         **kwargs,
     ):
@@ -94,6 +99,15 @@ class DDGDA(Rolling):
         alpha: float
             Setting the L2 regularization for ridge
             The `alpha` is only passed to MetaModelDS (it is not passed to sim_task_model currently..)
+        loss_skip_thresh: int
+            The thresh to skip the loss calculation for each day. If the number of item is less than it, it will skip the loss on that day.
+        meta_data_proc : Optional[str]
+            How we process the meta dataset for learning meta model.
+        segments : Union[float, str]
+            if segments is a float:
+                The ratio of training data in the meta task dataset
+            if segments is a string:
+                it will try its best to put its data in training and ensure that the date `segments` is in the test set
         """
         # NOTE:
         # the horizon must match the meaning in the base task template
@@ -104,14 +118,22 @@ class DDGDA(Rolling):
         super().__init__(**kwargs)
         self.working_dir = self.conf_path.parent if working_dir is None else Path(working_dir)
         self.proxy_hd = self.working_dir / "handler_proxy.pkl"
+        self.fea_imp_n = fea_imp_n
+        self.meta_data_proc = meta_data_proc
+        self.loss_skip_thresh = loss_skip_thresh
+        self.segments = segments
+        self.hist_step_n = hist_step_n
 
     def _adjust_task(self, task: dict, astype: UTIL_MODEL_TYPE):
         """
-        some task are use for special purpose.
+        Base on the original task, we need to do some extra things.
+
         For example:
         - GBDT for calculating feature importance
         - Linear or GBDT for calculating similarity
         - Datset (well processed) that aligned to Linear that for meta learning
+
+        So we may need to change the dataset and model for the special purpose and other settings remains the same.
         """
         # NOTE: here is just for aligning with previous implementation
         # It is not necessary for the current implementation
@@ -119,12 +141,16 @@ class DDGDA(Rolling):
         if astype == "gbdt":
             task["model"] = LGBM_MODEL
             if isinstance(handler, dict):
+                # We don't need preprocessing when using GBDT model
                 for k in ["infer_processors", "learn_processors"]:
                     if k in handler.setdefault("kwargs", {}):
                         handler["kwargs"].pop(k)
         elif astype == "linear":
             task["model"] = LINEAR_MODEL
-            handler["kwargs"].update(PROC_ARGS)
+            if isinstance(handler, dict):
+                handler["kwargs"].update(PROC_ARGS)
+            else:
+                self.logger.warning("The handler can't be adjusted.")
         else:
             raise ValueError(f"astype not supported: {astype}")
         return task
@@ -155,12 +181,15 @@ class DDGDA(Rolling):
         The meta model will be trained upon the proxy forecasting model.
         This dataset is for the proxy forecasting model.
         """
-        topk = 30
-        fi = self._get_feature_importance()
-        col_selected = fi.nlargest(topk)
+
         # NOTE: adjusting to `self.sim_task_model` just for aligning with previous implementation.
+        # In previous version. The data for proxy model is using sim_task_model's way for processing
         task = self._adjust_task(self.basic_task(enable_handler_cache=False), self.sim_task_model)
         task = replace_task_handler_with_cache(task, self.working_dir)
+        # if self.meta_data_proc is not None:
+        # else:
+        #     # Otherwise, we don't need futher processing
+        #     task = self.basic_task()
 
         dataset = init_instance_by_config(task["dataset"])
         prep_ds = dataset.prepare(slice(None), col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
@@ -168,12 +197,18 @@ class DDGDA(Rolling):
         feature_df = prep_ds["feature"]
         label_df = prep_ds["label"]
 
-        feature_selected = feature_df.loc[:, col_selected.index]
+        if self.fea_imp_n is not None:
+            fi = self._get_feature_importance()
+            col_selected = fi.nlargest(self.fea_imp_n)
+            feature_selected = feature_df.loc[:, col_selected.index]
+        else:
+            feature_selected = feature_df
 
-        feature_selected = feature_selected.groupby("datetime", group_keys=False).apply(
-            lambda df: (df - df.mean()).div(df.std())
-        )
-        feature_selected = feature_selected.fillna(0.0)
+        if self.meta_data_proc == "V01":
+            feature_selected = feature_selected.groupby("datetime", group_keys=False).apply(
+                lambda df: (df - df.mean()).div(df.std())
+            )
+            feature_selected = feature_selected.fillna(0.0)
 
         df_all = {
             "label": label_df.reindex(feature_selected.index),
@@ -223,7 +258,10 @@ class DDGDA(Rolling):
         # 1) leverage the simplified proxy forecasting model to train meta model.
         # - Only the dataset part is important, in current version of meta model will integrate the
 
-        # the train_start for training meta model does not necessarily align with final rolling
+        # NOTE:
+        # - The train_start for training meta model does not necessarily align with final rolling
+        #   But please select a right time to make sure the finnal rolling tasks are not leaked in the training data.
+        # - The test_start is automatically aligned to the next day of test_end.  Validation is ignored.
         train_start = "2008-01-01" if self.train_start is None else self.train_start
         train_end = "2010-12-31" if self.meta_1st_train_end is None else self.meta_1st_train_end
         test_start = (pd.Timestamp(train_end) + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
@@ -249,9 +287,9 @@ class DDGDA(Rolling):
         kwargs = dict(
             task_tpl=proxy_forecast_model_task,
             step=self.step,
-            segments=0.62,  # keep test period consistent with the dataset yaml
+            segments=self.segments,  # keep test period consistent with the dataset yaml
             trunc_days=1 + self.horizon,
-            hist_step_n=30,
+            hist_step_n=self.hist_step_n,
             fill_method=fill_method,
             rolling_ext_days=0,
         )
@@ -268,7 +306,13 @@ class DDGDA(Rolling):
         with R.start(experiment_name=self.meta_exp_name):
             R.log_params(**kwargs)
             mm = MetaModelDS(
-                step=self.step, hist_step_n=kwargs["hist_step_n"], lr=0.001, max_epoch=30, seed=43, alpha=self.alpha
+                step=self.step,
+                hist_step_n=kwargs["hist_step_n"],
+                lr=0.001,
+                max_epoch=30,
+                seed=43,
+                alpha=self.alpha,
+                loss_skip_thresh=self.loss_skip_thresh,
             )
             mm.fit(md)
             R.save_objects(model=mm)

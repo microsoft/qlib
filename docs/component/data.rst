@@ -52,7 +52,7 @@ Also, ``Qlib`` provides a high-frequency dataset. Users can run a high-frequency
 Qlib Format Dataset
 -------------------
 ``Qlib`` has provided an off-the-shelf dataset in `.bin` format, users could use the script ``scripts/get_data.py`` to download the China-Stock dataset as follows. User can also use numpy to load `.bin` file to validate data.
-The price volume data look different from the actual dealling price because of they are **adjusted** (`adjusted price <https://www.investopedia.com/terms/a/adjusted_closing_price.asp>`_).  And then you may find that the adjusted price may be different from different data sources. This is because different data sources may vary in the way of adjusting prices. Qlib normalize the price on first trading day of each stock to 1 when adjusting them.
+The price volume data look different from the actual dealing price because of they are **adjusted** (`adjusted price <https://www.investopedia.com/terms/a/adjusted_closing_price.asp>`_).  And then you may find that the adjusted price may be different from different data sources. This is because different data sources may vary in the way of adjusting prices. Qlib normalize the price on first trading day of each stock to 1 when adjusting them.
 Users can leverage `$factor` to get the original trading price (e.g. `$close / $factor` to get the original close price).
 
 Here are some discussions about the price adjusting of Qlib. 
@@ -146,7 +146,7 @@ Users can also provide their own data in CSV format. However, the CSV data **mus
             | SH600000  | 120   |
             +-----------+-------+
 
-- CSV file **must** includes a column for the date, and when dumping the data, user must specify the date column name. Here is an example:
+- CSV file **must** include a column for the date, and when dumping the data, user must specify the date column name. Here is an example:
 
     .. code-block:: bash
 

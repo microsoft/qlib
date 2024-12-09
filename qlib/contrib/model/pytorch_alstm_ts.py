@@ -160,6 +160,10 @@ class ALSTM(Model):
 
         if self.metric in ("", "loss"):
             return -self.loss_fn(pred[mask], label[mask])
+        elif self.metric == "mse":
+            mask = ~torch.isnan(label)
+            weight = torch.ones_like(label)
+            return -self.mse(pred[mask], label[mask], weight[mask])
 
         raise ValueError("unknown metric `%s`" % self.metric)
 

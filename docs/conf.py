@@ -123,7 +123,6 @@ html_logo = "_static/img/logo/1.png"
 html_theme_options = {
     "logo_only": True,
     "collapse_navigation": False,
-    "display_version": False,
     "navigation_depth": 4,
 }
 

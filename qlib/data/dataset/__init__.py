@@ -403,7 +403,7 @@ class TSDataSampler:
             np.full((1, self.data_arr.shape[1]), np.nan, dtype=self.data_arr.dtype),
             axis=0,
         )
-        self.nan_idx = -1  # The last line is all NaN
+        self.nan_idx = len(self.data_arr) - 1  # The last line is all NaN; setting it to -1 can cause bug #1716
 
         # the data type will be changed
         # The index of usable data is between start_idx and end_idx
