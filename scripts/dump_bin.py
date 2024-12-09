@@ -47,7 +47,7 @@ class DumpDataBase:
         limit_nums: int = None,
     ):
         """
-
+        
         Parameters
         ----------
         csv_path: str
@@ -223,6 +223,8 @@ class DumpDataBase:
         # used when creating a bin file
         date_index = self.get_datetime_index(_df, calendar_list)
         for field in self.get_dump_fields(_df.columns):
+            if field == self.symbol_field_name:
+                continue
             bin_path = features_dir.joinpath(f"{field.lower()}.{self.freq}{self.DUMP_FILE_SUFFIX}")
             if field not in _df.columns:
                 continue
