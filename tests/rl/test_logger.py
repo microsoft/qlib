@@ -69,6 +69,8 @@ class AnyPolicy(BasePolicy):
 
 def test_simple_env_logger(caplog):
     set_log_with_config(C.logging_config)
+    # In order for caplog to capture log messages, we configure it here:
+    # allow logs from the qlib logger to be passed to the parent logger.
     C.logging_config["loggers"]["qlib"]["propagate"] = True
     logging.config.dictConfig(C.logging_config)
     for venv_cls_name in ["dummy", "shmem", "subproc"]:
