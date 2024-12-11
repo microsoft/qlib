@@ -53,7 +53,7 @@ dev = []
 rl = []
 
 [tool.setuptools]
-# packages = [{find = "find:packages", exclude = ["tests"]}]
+# packages = [{find = "find:qlib", exclude = ["numpy_include"]}]
 packages = ["qlib"]
 
 [project.scripts]
@@ -61,17 +61,7 @@ qrun = "qlib.workflow.cli:run"
 
 [tool.cythonize]
 extensions = [
-    {
-        "name": "qlib.data._libs.rolling",
-        "sources": ["qlib/data/_libs/rolling.pyx"],
-        "language": "c++",
-        "include_dirs": ["./numpy_include"],
-    },
-    {
-        "name": "qlib.data._libs.expanding",
-        "sources": ["qlib/data/_libs/expanding.pyx"],
-        "language": "c++",
-        "include_dirs": ["./numpy_include"],
-    },
+  {"name"="qlib.data._libs.rolling", "sources"=["qlib/data/_libs/rolling.pyx"], "language"="c++", "include_dirs"=["scripts/numpy_include"]},
+  {"name"="qlib.data._libs.expanding", "sources"=["qlib/data/_libs/expanding.pyx"], "language"="c++", "include_dirs"=["scripts/numpy_include"]}
 ]
 language_level = "3"
