@@ -7,7 +7,7 @@ import sys
 
 import fire
 from jinja2 import Template, meta
-import ruamel.yaml as yaml
+from ruamel.yaml import YAML
 
 import qlib
 from qlib.config import C
@@ -104,7 +104,8 @@ def workflow(config_path, experiment_name="workflow", uri_folder="mlruns"):
     """
     # Render the template
     rendered_yaml = render_template(config_path)
-    config = yaml.safe_load(rendered_yaml)
+    yaml = YAML(typ='safe', pure=True)
+    config = yaml.load(rendered_yaml)
 
     base_config_path = config.get("BASE_CONFIG_PATH", None)
     if base_config_path:
@@ -126,7 +127,8 @@ def workflow(config_path, experiment_name="workflow", uri_folder="mlruns"):
                 raise FileNotFoundError(f"Can't find the BASE_CONFIG file: {base_config_path}")
 
         with open(path) as fp:
-            base_config = yaml.safe_load(fp)
+            yaml = YAML(typ='safe', pure=True)
+            base_config = yaml.load(fp)
         logger.info(f"Load BASE_CONFIG_PATH succeed: {path.resolve()}")
         config = update_config(base_config, config)
 

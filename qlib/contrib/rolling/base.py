@@ -2,11 +2,11 @@
 # Licensed under the MIT License.
 from copy import deepcopy
 from pathlib import Path
+from ruamel.yaml import YAML
 from typing import List, Optional, Union
 
 import fire
 import pandas as pd
-import yaml
 
 from qlib import auto_init
 from qlib.log import get_module_logger
@@ -117,7 +117,8 @@ class Rolling:
 
     def _raw_conf(self) -> dict:
         with self.conf_path.open("r") as f:
-            return yaml.safe_load(f)
+            yaml = YAML(typ='safe', pure=True)
+            return yaml.load(f)
 
     def _replace_handler_with_cache(self, task: dict):
         """

@@ -1,2 +1,60 @@
 [build-system]
-requires = ["setuptools", "numpy", "Cython"]
+requires = ["setuptools", "cython", "numpy"]
+build-backend = "setuptools.build_meta"
+
+[project]
+classifiers = [
+  "Operating System :: POSIX :: Linux",
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: MacOS",
+  "License :: OSI Approved :: MIT License",
+  "Development Status :: 3 - Alpha",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.7",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+]
+name = "pyqlib"
+dynamic = ["version"]
+description = "A Quantitative-research Platform"
+requires-python = ">=3.7.0"
+# include_package_data = true
+
+dependencies = [
+  "pyyaml",
+  "numpy",
+  "pandas",
+  "mlflow",
+  "filelock",
+  "redis",
+  "dill",
+  "fire",
+  "ruamel.yaml",
+  "python-redis-lock",
+  "tqdm",
+  "pymongo",
+  "loguru",
+  "tianshou<=0.4.10",
+  "lightgbm",
+  "gym",
+  "cvxpy",
+  "torch",
+  "pytest",
+  "baostock",
+  "tianshou",
+  "yahooquery",
+]
+
+[project.optional-dependencies]
+dev = []
+rl = []
+
+[tool.setuptools]
+# packages = [{find = "find:packages", exclude = ["tests"]}]
+packages = ["qlib"]
+
+[project.scripts]
+qrun = "qlib.workflow.cli:run"
