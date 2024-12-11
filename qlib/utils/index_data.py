@@ -615,7 +615,7 @@ class SingleData(IndexData):
         return pd.Series(self.data, index=self.index)
 
     def __repr__(self) -> str:
-        return str(pd.Series(self.data, index=self.index))
+        return str(pd.Series(self.data, index=self.index.tolist()))
 
 
 class MultiData(IndexData):
@@ -651,4 +651,4 @@ class MultiData(IndexData):
             )
 
     def __repr__(self) -> str:
-        return str(pd.DataFrame(self.data, index=self.index, columns=self.columns))
+        return str(pd.DataFrame(self.data, index=self.index.tolist(), columns=self.columns.tolist()))
