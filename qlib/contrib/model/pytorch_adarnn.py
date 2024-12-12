@@ -154,9 +154,7 @@ class ADARNN(Model):
         self.model.train()
         criterion = nn.MSELoss()
         dist_mat = torch.zeros(self.num_layers, self.len_seq).to(self.device)
-        len_loader = np.inf
         out_weight_list = None
-        len_loader = min(len(loader) for loader in train_loader_list)
         for data_all in zip(*train_loader_list):
             #  for data_all in zip(*train_loader_list):
             self.train_optimizer.zero_grad()

@@ -56,7 +56,7 @@ rl = [
 lint = [
   "black",
   "pylint",
-  "mypy",
+  "mypy<1.5.0",
   "flake8",
   "nbqa",
   "jupyter",
