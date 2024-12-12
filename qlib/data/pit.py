@@ -39,7 +39,7 @@ class P(ElemOperator):
                 s = self._load_feature(instrument, -start_ws, 0, cur_time)
                 resample_data[cur_index - start_index] = s.iloc[-1] if len(s) > 0 else np.nan
             except FileNotFoundError:
-                get_module_logger("base").warning(f"WARN: period data not found for {str(self)}")
+                get_module_logger("base").warning(f"WARN: period data not found for {instrument} {str(self)} ({freq})")
                 return pd.Series(dtype="float32", name=str(self))
 
         resample_series = pd.Series(

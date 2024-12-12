@@ -80,6 +80,7 @@ class FileCalendarStorage(FileStorageMixin, CalendarStorage):
         self._provider_uri = None if provider_uri is None else C.DataPathManager.format_provider_uri(provider_uri)
         self.enable_read_cache = True  # TODO: make it configurable
         self.region = C["region"]
+        self.uri.parent.mkdir(parents=True, exist_ok=True)
 
     @property
     def file_name(self) -> str:
@@ -90,7 +91,7 @@ class FileCalendarStorage(FileStorageMixin, CalendarStorage):
         """the freq to read from file"""
         if not hasattr(self, "_freq_file_cache"):
             freq = Freq(self.freq)
-            if freq not in self.support_freq:
+            if self.support_freq and freq not in self.support_freq:
                 # NOTE: uri
                 #   1. If `uri` does not exist
                 #       - Get the `min_uri` of the closest `freq` under the same "directory" as the `uri`
@@ -199,6 +200,7 @@ class FileInstrumentStorage(FileStorageMixin, InstrumentStorage):
         super(FileInstrumentStorage, self).__init__(market, freq, **kwargs)
         self._provider_uri = None if provider_uri is None else C.DataPathManager.format_provider_uri(provider_uri)
         self.file_name = f"{market.lower()}.txt"
+        self.uri.parent.mkdir(parents=True, exist_ok=True)
 
     def _read_instrument(self) -> Dict[InstKT, InstVT]:
         if not self.uri.exists():
@@ -233,7 +235,6 @@ class FileInstrumentStorage(FileStorageMixin, InstrumentStorage):
         df.loc[:, [self.SYMBOL_FIELD_NAME, self.INSTRUMENT_START_FIELD, self.INSTRUMENT_END_FIELD]].to_csv(
             self.uri, header=False, sep=self.INSTRUMENT_SEP, index=False
         )
-        df.to_csv(self.uri, sep="\t", encoding="utf-8", header=False, index=False)
 
     def clear(self) -> None:
         self._write_instrument(data={})
@@ -287,6 +288,7 @@ class FileFeatureStorage(FileStorageMixin, FeatureStorage):
         super(FileFeatureStorage, self).__init__(instrument, field, freq, **kwargs)
         self._provider_uri = None if provider_uri is None else C.DataPathManager.format_provider_uri(provider_uri)
         self.file_name = f"{instrument.lower()}/{field.lower()}.{freq.lower()}.bin"
+        self.uri.parent.mkdir(parents=True, exist_ok=True)
 
     def clear(self):
         with self.uri.open("wb") as _:
@@ -318,7 +320,7 @@ class FileFeatureStorage(FileStorageMixin, FeatureStorage):
                 # rewrite
                 with self.uri.open("rb+") as fp:
                     _old_data = np.fromfile(fp, dtype="<f")
-                    _old_index = _old_data[0]
+                    _old_index = int(_old_data[0])
                     _old_df = pd.DataFrame(
                         _old_data[1:], index=range(_old_index, _old_index + len(_old_data) - 1), columns=["old"]
                     )
@@ -326,7 +328,7 @@ class FileFeatureStorage(FileStorageMixin, FeatureStorage):
                     _new_df = pd.DataFrame(data_array, index=range(index, index + len(data_array)), columns=["new"])
                     _df = pd.concat([_old_df, _new_df], sort=False, axis=1)
                     _df = _df.reindex(range(_df.index.min(), _df.index.max() + 1))
-                    _df["new"].fillna(_df["old"]).values.astype("<f").tofile(fp)
+                    np.hstack([_old_index, _df["new"].fillna(_df["old"]).values]).astype("<f").tofile(fp)
 
     @property
     def start_index(self) -> Union[int, None]:
