@@ -63,7 +63,8 @@ jobs:
 
     - name: Set up Python tools
       run: |
-        pip install scs --only-binary :all:
+        python -m pip install scs --only-binary :all:
+        python -m pip install mlflow pylint
         make dev
 
     - name: Lint with Black
