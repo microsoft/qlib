@@ -45,7 +45,6 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-  
   "pytest",
   "baostock",
   "tianshou",
