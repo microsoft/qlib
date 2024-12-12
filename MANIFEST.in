@@ -1,1 +1,5 @@
-include qlib/VERSION.txt
+exclude tests/*
+include qlib/*
+include qlib/*/*
+include qlib/*/*/*
+include qlib/*/*/*/*

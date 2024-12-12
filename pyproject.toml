@@ -21,7 +21,6 @@ name = "pyqlib"
 dynamic = ["version"]
 description = "A Quantitative-research Platform"
 requires-python = ">=3.7.0"
-# include_package_data = true
 
 dependencies = [
   "pyyaml",
@@ -36,14 +35,15 @@ dependencies = [
   "python-redis-lock",
   "tqdm",
   "pymongo",
-]
-
-[project.optional-dependencies]
-dev = [
   "loguru",
   "lightgbm",
   "gym",
   "cvxpy",
+]
+
+[project.optional-dependencies]
+dev = [
+  
   "pytest",
   "baostock",
   "tianshou",
@@ -69,10 +69,15 @@ docs = [
   "sphinx_rtd_theme",
   "readthedocs_sphinx_ext",
 ]
+package = [
+  "twine",
+  "build",
+]
 
 [tool.setuptools]
-# packages = [{find = "find:qlib", exclude = ["numpy_include"]}]
-packages = ["qlib"]
+packages = [
+  "qlib",
+]
 
 [project.scripts]
 qrun = "qlib.workflow.cli:run"
