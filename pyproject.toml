@@ -48,6 +48,8 @@ dev = [
   "baostock",
   "tianshou",
   "yahooquery",
+  "plotly",
+  "statsmodels",
 ]
 rl = [
   "tianshou<=0.4.10",
