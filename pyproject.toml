@@ -36,21 +36,37 @@ dependencies = [
   "python-redis-lock",
   "tqdm",
   "pymongo",
+]
+
+[project.optional-dependencies]
+dev = [
   "loguru",
-  "tianshou<=0.4.10",
   "lightgbm",
   "gym",
   "cvxpy",
-  "torch",
   "pytest",
   "baostock",
   "tianshou",
   "yahooquery",
 ]
-
-[project.optional-dependencies]
-dev = []
-rl = []
+rl = [
+  "tianshou<=0.4.10",
+  "torch",
+]
+lint = [
+  "black",
+  "pylint",
+  "mypy",
+  "flake8",
+  "nbqa",
+  "jupyter",
+  "nbconvert",
+]
+docs = [
+  "sphinx",
+  "sphinx_rtd_theme",
+  "readthedocs_sphinx_ext",
+]
 
 [tool.setuptools]
 # packages = [{find = "find:qlib", exclude = ["numpy_include"]}]
@@ -58,10 +74,3 @@ packages = ["qlib"]
 
 [project.scripts]
 qrun = "qlib.workflow.cli:run"
-
-[tool.cythonize]
-extensions = [
-  {"name"="qlib.data._libs.rolling", "sources"=["qlib/data/_libs/rolling.pyx"], "language"="c++", "include_dirs"=["scripts/numpy_include"]},
-  {"name"="qlib.data._libs.expanding", "sources"=["qlib/data/_libs/expanding.pyx"], "language"="c++", "include_dirs"=["scripts/numpy_include"]}
-]
-language_level = "3"

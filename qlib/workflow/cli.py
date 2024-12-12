@@ -104,7 +104,7 @@ def workflow(config_path, experiment_name="workflow", uri_folder="mlruns"):
     """
     # Render the template
     rendered_yaml = render_template(config_path)
-    yaml = YAML(typ='safe', pure=True)
+    yaml = YAML(typ="safe", pure=True)
     config = yaml.load(rendered_yaml)
 
     base_config_path = config.get("BASE_CONFIG_PATH", None)
@@ -127,7 +127,7 @@ def workflow(config_path, experiment_name="workflow", uri_folder="mlruns"):
                 raise FileNotFoundError(f"Can't find the BASE_CONFIG file: {base_config_path}")
 
         with open(path) as fp:
-            yaml = YAML(typ='safe', pure=True)
+            yaml = YAML(typ="safe", pure=True)
             base_config = yaml.load(fp)
         logger.info(f"Load BASE_CONFIG_PATH succeed: {path.resolve()}")
         config = update_config(base_config, config)

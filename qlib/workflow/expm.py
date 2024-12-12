@@ -421,7 +421,7 @@ class MLflowExpManager(ExpManager):
 
     def list_experiments(self):
         # retrieve all the existing experiments
-        exps = self.client.list_experiments(view_type=ViewType.ACTIVE_ONLY)
+        exps = self.client.search_experiments(view_type=ViewType.ACTIVE_ONLY)
         experiments = dict()
         for exp in exps:
             experiment = MLflowExperiment(exp.experiment_id, exp.name, self.uri)

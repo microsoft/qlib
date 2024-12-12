@@ -117,7 +117,7 @@ class Rolling:
 
     def _raw_conf(self) -> dict:
         with self.conf_path.open("r") as f:
-            yaml = YAML(typ='safe', pure=True)
+            yaml = YAML(typ="safe", pure=True)
             return yaml.load(f)
 
     def _replace_handler_with_cache(self, task: dict):

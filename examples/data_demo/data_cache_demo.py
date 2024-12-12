@@ -30,7 +30,7 @@ if __name__ == "__main__":
         subprocess.run(f"qrun {config_path}", shell=True)
 
     # 2) dump handler
-    yaml = YAML(typ='safe', pure=True)
+    yaml = YAML(typ="safe", pure=True)
     task_config = yaml.load(config_path.open())
     hd_conf = task_config["task"]["dataset"]["kwargs"]["handler"]
     pprint(hd_conf)

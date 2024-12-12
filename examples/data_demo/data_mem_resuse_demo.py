@@ -28,7 +28,7 @@ if __name__ == "__main__":
     exp_name = "data_mem_reuse_demo"
 
     config_path = DIRNAME.parent / "benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml"
-    yaml = YAML(typ='safe', pure=True)
+    yaml = YAML(typ="safe", pure=True)
     task_config = yaml.load(config_path.open())
 
     # 1) without using processed data in memory

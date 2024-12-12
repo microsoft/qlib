@@ -16,7 +16,7 @@ class TunerConfigManager:
         self.config_path = config_path
 
         with open(config_path) as fp:
-            yaml = YAML(typ='safe', pure=True)
+            yaml = YAML(typ="safe", pure=True)
             config = yaml.load(fp)
         self.config = copy.deepcopy(config)
 

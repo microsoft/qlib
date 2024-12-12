@@ -263,7 +263,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     with open(args.config_path, "r") as input_stream:
-        yaml = YAML(typ='safe', pure=True)
+        yaml = YAML(typ="safe", pure=True)
         config = yaml.load(input_stream)
 
     main(config, run_training=not args.no_training, run_backtest=args.run_backtest)

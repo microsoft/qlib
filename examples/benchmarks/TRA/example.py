@@ -8,7 +8,7 @@ from qlib.utils import init_instance_by_config
 def main(seed, config_file="configs/config_alstm.yaml"):
     # set random seed
     with open(config_file) as f:
-        yaml = YAML(typ='safe', pure=True)
+        yaml = YAML(typ="safe", pure=True)
         config = yaml.load(f)
 
     # seed_suffix = "/seed1000" if "init" in config_file else f"/seed{seed}"

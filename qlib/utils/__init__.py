@@ -244,7 +244,7 @@ def parse_config(config):
     if not isinstance(config, str):
         return config
     # Check whether config is file
-    yaml = YAML(typ='safe', pure=True)
+    yaml = YAML(typ="safe", pure=True)
     if os.path.exists(config):
         with open(config, "r") as f:
             return yaml.load(f)
@@ -800,6 +800,7 @@ def fill_placeholder(config: dict, config_extend: dict):
                     )
         return value
 
+    item_keys = None
     while top < tail:
         now_item = item_queue[top]
         top += 1

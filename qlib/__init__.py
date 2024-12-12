@@ -176,7 +176,7 @@ def init_from_yaml_conf(conf_path, **kwargs):
         config = {}
     else:
         with open(conf_path) as f:
-            yaml = YAML(typ='safe', pure=True)
+            yaml = YAML(typ="safe", pure=True)
             config = yaml.load(f)
     config.update(kwargs)
     default_conf = config.pop("default_conf", "client")
@@ -273,7 +273,7 @@ def auto_init(**kwargs):
         logger = get_module_logger("Initialization")
         conf_pp = pp / "config.yaml"
         with conf_pp.open() as f:
-            yaml = YAML(typ='safe', pure=True)
+            yaml = YAML(typ="safe", pure=True)
             conf = yaml.load(f)
 
         conf_type = conf.get("conf_type", "origin")

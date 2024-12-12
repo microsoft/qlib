@@ -91,7 +91,7 @@ def prepare(um, today, user_id, exchange_config=None):
     dates.append(get_next_trading_date(dates[-1], future=True))
     if exchange_config:
         with pathlib.Path(exchange_config).open("r") as fp:
-            yaml = YAML(typ='safe', pure=True)
+            yaml = YAML(typ="safe", pure=True)
             exchange_paras = yaml.load(fp)
     else:
         exchange_paras = {}

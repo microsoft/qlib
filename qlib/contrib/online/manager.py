@@ -110,7 +110,7 @@ class UserManager:
             raise ValueError("User data for {} already exists".format(user_id))
 
         with config_file.open("r") as fp:
-            yaml = YAML(typ='safe', pure=True)
+            yaml = YAML(typ="safe", pure=True)
             config = yaml.load(fp)
         # load model
         model = init_instance_by_config(config["model"])
