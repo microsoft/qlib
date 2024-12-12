@@ -63,8 +63,7 @@ jobs:
 
     - name: Set up Python tools
       run: |
-        python -m pip install scs --only-binary :all:
-        python -m pip install mlflow pylint
+        python -m pip install pytest-timeout
         make dev
 
     - name: Lint with Black
@@ -180,4 +179,4 @@ jobs:
         max_attempts: 3
         command: |
           cd tests
-          python -m pytest . -m "not slow" --durations=0
+          python -m pytest . -m "not slow" --durations=0 --timeout=600
