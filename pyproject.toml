@@ -40,6 +40,7 @@ dependencies = [
   "gym",
   "cvxpy",
   "joblib",
+  "matplotlib",
 ]
 
 [project.optional-dependencies]
