@@ -113,13 +113,13 @@ class HashingStockStorage(BaseHandlerStorage):
                 stock_selector = selector[self.stock_level]
                 time_selector = selector[1 - self.stock_level]
             elif isinstance(selector, (list, str)) and self.stock_level == 0:
-                # only stock selector 
+                # only stock selector
                 stock_selector = selector
         elif level in ("instrument", self.stock_level):
             if isinstance(selector, tuple):
                 # NOTE: How could the stock level selector be a tuple?
                 stock_selector = selector[0]
-                raise Exception("I forget why would this case appear. But I think it does not make sense. So we raise a error for that case.")
+                raise TypeError("I forget why would this case appear. But I think it does not make sense. So we raise a error for that case.")
             elif isinstance(selector, (list, str)):
                 stock_selector = selector
 
