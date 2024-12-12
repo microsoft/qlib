@@ -56,7 +56,7 @@ class ADARNN(Model):
         n_splits=2,
         GPU=0,
         seed=None,
-        **_
+        **_,
     ):
         # Set logger.
         self.logger = get_module_logger("ADARNN")

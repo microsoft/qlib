@@ -31,7 +31,7 @@ class DEnsembleModel(Model, FeatureInt):
         sub_weights=None,
         epochs=100,
         early_stopping_rounds=None,
-        **kwargs
+        **kwargs,
     ):
         self.base_model = base_model  # "gbm" or "mlp", specifically, we use lgbm for "gbm"
         self.num_models = num_models  # the number of sub-models

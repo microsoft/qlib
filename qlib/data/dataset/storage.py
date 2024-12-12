@@ -119,7 +119,9 @@ class HashingStockStorage(BaseHandlerStorage):
             if isinstance(selector, tuple):
                 # NOTE: How could the stock level selector be a tuple?
                 stock_selector = selector[0]
-                raise TypeError("I forget why would this case appear. But I think it does not make sense. So we raise a error for that case.")
+                raise TypeError(
+                    "I forget why would this case appear. But I think it does not make sense. So we raise a error for that case."
+                )
             elif isinstance(selector, (list, str)):
                 stock_selector = selector
 
@@ -149,7 +151,9 @@ class HashingStockStorage(BaseHandlerStorage):
         fetch_stock_df_list = list(fetch_stock_df_list.values())
         for _index, stock_df in enumerate(fetch_stock_df_list):
             fetch_col_df = fetch_df_by_col(df=stock_df, col_set=col_set)
-            fetch_index_df = fetch_df_by_index(df=fetch_col_df, selector=time_selector, level="datetime", fetch_orig=fetch_orig)
+            fetch_index_df = fetch_df_by_index(
+                df=fetch_col_df, selector=time_selector, level="datetime", fetch_orig=fetch_orig
+            )
             fetch_stock_df_list[_index] = fetch_index_df
         if len(fetch_stock_df_list) == 0:
             index_names = ("instrument", "datetime") if self.stock_level == 0 else ("datetime", "instrument")

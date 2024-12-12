@@ -58,7 +58,7 @@ class TCTS(Model):
         mode="soft",
         seed=None,
         lowest_valid_performance=0.993,
-        **kwargs
+        **kwargs,
     ):
         # Set logger.
         self.logger = get_module_logger("TCTS")
