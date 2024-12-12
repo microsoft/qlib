@@ -45,8 +45,7 @@ jobs:
     - name: Set up Python tools
       run: |
         python -m pip install --upgrade pip
-        pip install --upgrade cython numpy
-        pip install -e .[dev]
+        make dev
 
     - name: Downloads dependencies data
       run: |

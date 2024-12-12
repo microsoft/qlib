@@ -74,9 +74,12 @@ docs:
 package:
 	python -m pip install -e .[package]
 
+all:
+	python -m pip install -e .[rl,dev,lint,docs,package]
+
 install: prerequisite dependencies
 
-dev: prerequisite lightgbm rl develop lint docs package
+dev: prerequisite all
 
 ########################################################################################
 # Lint and pre-commit
@@ -108,6 +111,8 @@ nbqa:
 # Check ipynb with nbconvert.
 nbconvert:
 	jupyter nbconvert --to notebook --execute examples/workflow_by_code.ipynb
+
+lint: black pylint flake8 mypy nbqa
 
 ########################################################################################
 # Package
