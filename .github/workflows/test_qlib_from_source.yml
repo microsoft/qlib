@@ -55,7 +55,6 @@ jobs:
       if: ${{ matrix.os == 'ubuntu-20.04' || matrix.os == 'ubuntu-22.04' }}
       run: |
         python -m pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cpu
-        python -m pip install "scs<=3.2.4"
 
     - name: Installing pytorch for windows
       if: ${{ matrix.os == 'windows-latest' }}
@@ -64,6 +63,7 @@ jobs:
 
     - name: Set up Python tools
       run: |
+        python -m pip install "scs<=3.2.4"
         make dev
 
     - name: Lint with Black
