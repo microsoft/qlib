@@ -39,6 +39,7 @@ dependencies = [
   "lightgbm",
   "gym",
   "cvxpy",
+  "joblib",
 ]
 
 [project.optional-dependencies]
