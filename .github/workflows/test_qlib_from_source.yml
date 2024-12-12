@@ -55,8 +55,6 @@ jobs:
       if: ${{ matrix.os == 'ubuntu-20.04' || matrix.os == 'ubuntu-22.04' }}
       run: |
         python -m pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cpu
-        sudo apt-get install -y build-essential cmake pkg-config
-        sudo apt-get install -y libopenblas-dev liblapack-dev
 
     - name: Installing pytorch for windows
       if: ${{ matrix.os == 'windows-latest' }}
@@ -65,6 +63,7 @@ jobs:
 
     - name: Set up Python tools
       run: |
+        pip install scs --only-binary :all:
         make dev
 
     - name: Lint with Black
