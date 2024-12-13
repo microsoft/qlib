@@ -422,7 +422,7 @@ class MLflowExpManager(ExpManager):
 
     def list_experiments(self):
         # retrieve all the existing experiments
-        mlflow_version = int(mlflow.__version__.split('.', maxsplit=1)[0])
+        mlflow_version = int(mlflow.__version__.split(".", maxsplit=1)[0])
         if mlflow_version >= 2:
             exps = self.client.search_experiments(view_type=ViewType.ACTIVE_ONLY)
         else:
