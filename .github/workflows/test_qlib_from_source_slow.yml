@@ -44,7 +44,6 @@ jobs:
 
     - name: Set up Python tools
       run: |
-        python -m pip install --upgrade pip
         make dev
 
     - name: Downloads dependencies data
