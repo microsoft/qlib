@@ -19,7 +19,6 @@ logging.basicConfig(level=logging.INFO)
 class TestDataLoader(unittest.TestCase):
 
     def test_nested_data_loader(self):
-        print("debug info\n")
         qlib.init(kernels=1)
         nd = NestedDataLoader(
             dataloader_l=[

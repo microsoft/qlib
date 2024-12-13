@@ -8,7 +8,6 @@ import shutil
 import unittest
 import pytest
 import pandas as pd
-import baostock as bs
 from pathlib import Path
 
 from qlib.data import D

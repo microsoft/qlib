@@ -19,8 +19,10 @@ SO_FILES := $(wildcard $(SO_DIR)/*.so)
 clean:
 	-rm -rf \
 		$(PUBLIC_DIR) \
-		qlib/data/_libs \
+		qlib/data/_libs/*.cpp \
+		qlib/data/_libs/*.so \
 		mlruns \
+		public \
 		build \
 		.coverage \
 		.mypy_cache \
@@ -43,12 +45,16 @@ deepclean: clean
 	if command -v pipenv >/dev/null 2>&1 && pipenv --venv >/dev/null 2>&1; then pipenv --rm; fi
 
 # Prerequisite section
+# What this code does is compile two Cython modules, rolling and expanding, using setuptools and Cython,
+# and builds them as binary expansion modules that can be imported directly into Python.
+# Since pyproject.toml can't do that, we compile it here.
 prerequisite:
 	@if [ -n "$(SO_FILES)" ]; then \
 		echo "Shared library files exist, skipping build."; \
 	else \
 		echo "No shared library files found, building..."; \
-		python -m pip install cython numpy; \
+		python -m pip install cython; \
+		python -m pip install "numpy>=2.0.0"; \
 		python -c "from setuptools import setup, Extension; from Cython.Build import cythonize; import numpy; extensions = [Extension('qlib.data._libs.rolling', ['qlib/data/_libs/rolling.pyx'], language='c++', include_dirs=[numpy.get_include()]), Extension('qlib.data._libs.expanding', ['qlib/data/_libs/expanding.pyx'], language='c++', include_dirs=[numpy.get_include()])]; setup(ext_modules=cythonize(extensions, language_level='3'), script_args=['build_ext', '--inplace'])"; \
 	fi
 
@@ -74,8 +80,14 @@ docs:
 package:
 	python -m pip install -e .[package]
 
+test:
+	python -m pip install -e .[test]
+
+analysis:
+	python -m pip install -e .[analysis]
+
 all:
-	python -m pip install -e .[rl,dev,lint,docs,package]
+	python -m pip install -e .[rl,dev,lint,docs,package,test,analysis]
 
 install: prerequisite dependencies
 

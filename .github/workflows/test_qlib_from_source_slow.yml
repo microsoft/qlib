@@ -69,4 +69,4 @@ jobs:
         max_attempts: 3
         command: |
           cd tests
-          python -m pytest -s . -m "slow" --durations=0
+          python -m pytest . -m "slow" --durations=0

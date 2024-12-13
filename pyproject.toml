@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools", "cython", "numpy"]
+requires = ["setuptools", "cython", "numpy>=2.0.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -26,12 +26,12 @@ dependencies = [
   "pyyaml",
   "numpy",
   "pandas",
-  "mlflow",
+  "mlflow>=2.0.0",
   "filelock",
   "redis",
   "dill",
   "fire",
-  "ruamel.yaml",
+  "ruamel.yaml>=0.17.38",
   "python-redis-lock",
   "tqdm",
   "pymongo",
@@ -41,15 +41,13 @@ dependencies = [
   "cvxpy",
   "joblib",
   "matplotlib",
+  "jupyter",
+  "nbconvert",
 ]
 
 [project.optional-dependencies]
 dev = [
   "pytest",
-  "baostock",
-  "tianshou",
-  "yahooquery",
-  "plotly",
   "statsmodels",
 ]
 rl = [
@@ -62,8 +60,6 @@ lint = [
   "mypy<1.5.0",
   "flake8",
   "nbqa",
-  "jupyter",
-  "nbconvert",
 ]
 docs = [
   "sphinx",
@@ -73,6 +69,13 @@ docs = [
 package = [
   "twine",
   "build",
+]
+# test_pit dependency packages
+test = [
+  "yahooquery",
+]
+analysis = [
+  "plotly",
 ]
 
 [tool.setuptools]
