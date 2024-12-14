@@ -233,7 +233,15 @@ class GeneralPTNN(Model):
         evals_result=dict(),
         save_path=None,
         reweighter=None,
+        batch_size=None,
+        n_jobs=None,
     ):
+        if batch_size is None:
+            batch_size = self.batch_size
+
+        if n_jobs is None:
+            n_jobs = self.n_jobs
+
         ists = isinstance(dataset, TSDatasetH)  # is this time series dataset
 
         dl_train = dataset.prepare("train", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
@@ -261,16 +269,16 @@ class GeneralPTNN(Model):
 
         train_loader = DataLoader(
             ConcatDataset(dl_train, wl_train),
-            batch_size=self.batch_size,
+            batch_size=batch_size,
             shuffle=True,
-            num_workers=self.n_jobs,
+            num_workers=n_jobs,
             drop_last=True,
         )
         valid_loader = DataLoader(
             ConcatDataset(dl_valid, wl_valid),
-            batch_size=self.batch_size,
+            batch_size=batch_size,
             shuffle=False,
-            num_workers=self.n_jobs,
+            num_workers=n_jobs,
             drop_last=True,
         )
         del dl_train, dl_valid, wl_train, wl_valid
@@ -319,7 +327,18 @@ class GeneralPTNN(Model):
         if self.use_gpu:
             torch.cuda.empty_cache()
 
-    def predict(self, dataset: Union[DatasetH, TSDatasetH]):
+    def predict(
+        self,
+        dataset: Union[DatasetH, TSDatasetH],
+        batch_size=None,
+        n_jobs=None,
+    ):
+        if batch_size is None:
+            batch_size = self.batch_size
+
+        if n_jobs is None:
+            n_jobs = self.n_jobs
+
         if not self.fitted:
             raise ValueError("model is not fitted yet!")
 
@@ -333,7 +352,7 @@ class GeneralPTNN(Model):
             index = dl_test.index
             dl_test = dl_test.values
 
-        test_loader = DataLoader(dl_test, batch_size=self.batch_size, num_workers=self.n_jobs)
+        test_loader = DataLoader(dl_test, batch_size=batch_size, num_workers=n_jobs)
         self.dnn_model.eval()
         preds = []
 

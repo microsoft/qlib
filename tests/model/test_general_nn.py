@@ -68,8 +68,8 @@ class TestNN(TestAutoData):
         ]
 
         for ds, model in list(zip((tsds, tbds), model_l)):
-            model.fit(ds)  # It works
-            model.predict(ds)  # It works
+            model.fit(ds, batch_size=32, n_jobs=0)  # It works
+            model.predict(ds, batch_size=32, n_jobs=0)  # It works
 
 
 if __name__ == "__main__":
