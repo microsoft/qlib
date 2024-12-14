@@ -21,7 +21,7 @@ jobs:
         # so we limit the macos version to macos-13.
         os: [windows-latest, ubuntu-20.04, ubuntu-22.04, macos-13]
         # not supporting 3.6 due to annotations is not supported https://stackoverflow.com/a/52890129
-        python-version: ["3.8", "3.10"]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
 
     steps:
     - name: Test qlib from source
