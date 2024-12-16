@@ -11,9 +11,6 @@ from qlib.data.dataset.loader import NestedDataLoader, QlibDataLoader
 from qlib.data.dataset.handler import DataHandlerLP
 from qlib.contrib.data.loader import Alpha158DL, Alpha360DL
 from qlib.data import D
-import logging
-
-logging.basicConfig(level=logging.INFO)
 
 
 class TestDataLoader(unittest.TestCase):

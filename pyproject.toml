@@ -50,6 +50,9 @@ dev = [
   "pytest",
   "statsmodels",
 ]
+# On macos-13 system, when using python version greater than or equal to 3.10,
+# pytorch can't fully support Numpy version above 2.0, so, when you want to install torch,
+# it will limit the version of Numpy less than 2.0.
 rl = [
   "tianshou<=0.4.10",
   "torch",
