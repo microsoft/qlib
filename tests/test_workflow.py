@@ -20,11 +20,11 @@ class WorkflowTest(TestAutoData):
     def test_get_local_dir(self):
         """ """
         self.TMP_PATH.mkdir(parents=True, exist_ok=True)
-        uri = str(self.TMP_PATH.resolve().as_uri()).replace("\\", "/")
-        with R.start(uri=uri):
+
+        with R.start(uri=str(self.TMP_PATH)):
             pass
 
-        with R.uri_context(uri=uri):
+        with R.uri_context(uri=str(self.TMP_PATH)):
             resume_recorder = R.get_recorder()
             resume_recorder.get_local_dir()
 

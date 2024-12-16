@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools", "cython", "numpy<2.0.0"]
+requires = ["setuptools", "cython", "numpy>=1.24.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -26,8 +26,8 @@ dependencies = [
   "pyyaml",
   "numpy",
   "pandas",
-  "mlflow>=2.0.0",
-  "filelock",
+  "mlflow",
+  "filelock>=3.16.0",
   "redis",
   "dill",
   "fire",
@@ -53,6 +53,7 @@ dev = [
 rl = [
   "tianshou<=0.4.10",
   "torch",
+  "numpy<2.0.0",
 ]
 lint = [
   "black",

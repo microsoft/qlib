@@ -66,83 +66,30 @@ jobs:
         make dev
 
     - name: Lint with Black
-      # Python 3.7 will use a black with low level. So we use python with higher version for black check
-      if: (matrix.python-version != '3.7')
       run: |
-        pip install -U black  # follow the latest version of black, previous Qlib dependency will downgrade black
-        black . -l 120 --check --diff
+        make black
 
     - name: Make html with sphinx
       # Since read the docs builds on ubuntu 22.04, we only need to test that the build passes on ubuntu 22.04.
       if: ${{ matrix.os == 'ubuntu-22.04' }}
       run: |
-        cd docs
-        sphinx-build -W --keep-going -b html . _build
-        cd ..
+        make docs-gen
 
-    # Check Qlib with pylint
-    # TODO: These problems we will solve in the future. Important among them are: W0221, W0223, W0237, E1102
-      # C0103: invalid-name
-      # C0209: consider-using-f-string
-      # R0402: consider-using-from-import
-      # R1705: no-else-return
-      # R1710: inconsistent-return-statements
-      # R1725: super-with-arguments
-      # R1735: use-dict-literal
-      # W0102: dangerous-default-value
-      # W0212: protected-access
-      # W0221: arguments-differ
-      # W0223: abstract-method
-      # W0231: super-init-not-called
-      # W0237: arguments-renamed
-      # W0612: unused-variable
-      # W0621: redefined-outer-name
-      # W0622: redefined-builtin
-      # FIXME: specify exception type
-      # W0703: broad-except
-      # W1309: f-string-without-interpolation
-      # E1102: not-callable
-      # E1136: unsubscriptable-object
-    # References for parameters: https://github.com/PyCQA/pylint/issues/4577#issuecomment-1000245962
-    # We use sys.setrecursionlimit(2000) to make the recursion depth larger to ensure that pylint works properly (the default recursion depth is 1000).
     - name: Check Qlib with pylint
       run: |
-        pylint --disable=C0104,C0114,C0115,C0116,C0301,C0302,C0411,C0413,C1802,R0401,R0801,R0902,R0903,R0911,R0912,R0913,R0914,R0915,R0917,R1720,W0105,W0123,W0201,W0511,W0613,W1113,W4904,W1514,E0401,E1121,C0103,C0209,R0402,R1705,R1710,R1725,R1735,W0102,W0212,W0221,W0223,W0231,W0237,W0612,W0621,W0622,W0703,W1309,E1102,E1136 --const-rgx='[a-z_][a-z0-9_]{2,30}$' qlib --init-hook "import astroid; astroid.context.InferenceContext.max_inferred = 500; import sys; sys.setrecursionlimit(2000)"
-        pylint --disable=C0104,C0114,C0115,C0116,C0301,C0302,C0411,C0413,C1802,R0401,R0801,R0902,R0903,R0911,R0912,R0913,R0914,R0915,R0917,R1720,W0105,W0123,W0201,W0511,W0613,W1113,W1514,E0401,E1121,E1123,C0103,C0209,R0402,R1705,R1710,R1725,R1735,W0102,W0212,W0221,W0223,W0231,W0237,W0246,W0612,W0621,W0622,W0703,W1309,E1102,E1136 --const-rgx='[a-z_][a-z0-9_]{2,30}$' scripts --init-hook "import astroid; astroid.context.InferenceContext.max_inferred = 500; import sys; sys.setrecursionlimit(2000)"
+        make pylint
 
-    # The following flake8 error codes were ignored:
-      # E501 line too long
-        # Description: We have used black to limit the length of each line to 120.
-      # F541 f-string is missing placeholders
-        # Description: The same thing is done when using pylint for detection.
-      # E266 too many leading '#' for block comment
-        # Description: To make the code more readable, a lot of "#" is used.
-        # This error code appears centrally in:
-          # qlib/backtest/executor.py
-          # qlib/data/ops.py
-          # qlib/utils/__init__.py
-      # E402 module level import not at top of file
-        # Description: There are times when module level import is not available at the top of the file.
-      # W503 line break before binary operator
-        # Description: Since black formats the length of each line of code, it has to perform a line break when a line of arithmetic is too long.
-      # E731 do not assign a lambda expression, use a def
-        # Description: Restricts the use of lambda expressions, but at some point lambda expressions are required.
-      # E203 whitespace before ':'
-        # Description: If there is whitespace before ":", it cannot pass the black check.
     - name: Check Qlib with flake8
       run: |
-        flake8 --ignore=E501,F541,E266,E402,W503,E731,E203 --per-file-ignores="__init__.py:F401,F403" qlib
+        make flake8
 
-    # https://github.com/python/mypy/issues/10600
     - name: Check Qlib with mypy
       run: |
-        mypy qlib --install-types --non-interactive || true
-        mypy qlib --verbose
+        make mypy
     
     - name: Check Qlib ipynb with nbqa
       run: |
-        nbqa black . -l 120 --check --diff
-        nbqa pylint . --disable=C0104,C0114,C0115,C0116,C0301,C0302,C0411,C0413,C1802,R0401,R0801,R0902,R0903,R0911,R0912,R0913,R0914,R0915,R1720,W0105,W0123,W0201,W0511,W0613,W1113,W1514,E0401,E1121,C0103,C0209,R0402,R1705,R1710,R1725,R1735,W0102,W0212,W0221,W0223,W0231,W0237,W0612,W0621,W0622,W0703,W1309,E1102,E1136,W0719,W0104,W0404,C0412,W0611,C0410 --const-rgx='[a-z_][a-z0-9_]{2,30}$'
+        make nbqa
 
     - name: Test data downloads
       run: |
@@ -160,11 +107,9 @@ jobs:
         brew unlink libomp
         brew install libomp.rb
 
-    # Run after data downloads
     - name: Check Qlib ipynb with nbconvert
       run: |
-        # add more ipynb files in future
-        jupyter nbconvert --to notebook --execute examples/workflow_by_code.ipynb
+        make nbconvert
 
     - name: Test workflow by config (install from source)
       run: |
