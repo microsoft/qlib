@@ -164,6 +164,7 @@ class SeriesDFilter(BaseDFilter):
         timestamp = []
         _lbool = None
         _ltime = None
+        _cur_start = None
         for _ts, _bool in timestamp_series.items():
             # there is likely to be NAN when the filter series don't have the
             # bool value, so we just change the NAN into False

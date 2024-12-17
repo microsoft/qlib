@@ -10,7 +10,6 @@ import os
 import re
 import copy
 import json
-import yaml
 import redis
 import bisect
 import struct
@@ -25,6 +24,7 @@ import pandas as pd
 from pathlib import Path
 from typing import List, Union, Optional, Callable
 from packaging import version
+from ruamel.yaml import YAML
 from .file import (
     get_or_create_path,
     save_multiple_parts_file,
@@ -244,12 +244,13 @@ def parse_config(config):
     if not isinstance(config, str):
         return config
     # Check whether config is file
+    yaml = YAML(typ="safe", pure=True)
     if os.path.exists(config):
         with open(config, "r") as f:
-            return yaml.safe_load(f)
+            return yaml.load(f)
     # Check whether the str can be parsed
     try:
-        return yaml.safe_load(config)
+        return yaml.load(config)
     except BaseException as base_exp:
         raise ValueError("cannot parse config!") from base_exp
 
@@ -799,6 +800,7 @@ def fill_placeholder(config: dict, config_extend: dict):
                     )
         return value
 
+    item_keys = None
     while top < tail:
         now_item = item_queue[top]
         top += 1

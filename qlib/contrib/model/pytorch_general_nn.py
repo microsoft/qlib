@@ -319,7 +319,12 @@ class GeneralPTNN(Model):
         if self.use_gpu:
             torch.cuda.empty_cache()
 
-    def predict(self, dataset: Union[DatasetH, TSDatasetH]):
+    def predict(
+        self,
+        dataset: Union[DatasetH, TSDatasetH],
+        batch_size=None,
+        n_jobs=None,
+    ):
         if not self.fitted:
             raise ValueError("model is not fitted yet!")
 

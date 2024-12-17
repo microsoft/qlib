@@ -44,7 +44,7 @@ def concat(data_list: Union[SingleData], axis=0) -> MultiData:
         all_index_map = dict(zip(all_index, range(len(all_index))))
 
         # concat all
-        tmp_data = np.full((len(all_index), len(data_list)), np.NaN)
+        tmp_data = np.full((len(all_index), len(data_list)), np.nan)
         for data_id, index_data in enumerate(data_list):
             assert isinstance(index_data, SingleData)
             now_data_map = [all_index_map[index] for index in index_data.index]
@@ -64,7 +64,7 @@ def sum_by_index(data_list: Union[SingleData], new_index: list, fill_value=0) ->
     new_index : list
         the new_index of new SingleData.
     fill_value : float
-        fill the missing values or replace np.NaN.
+        fill the missing values or replace np.nan.
 
     Returns
     -------
@@ -444,7 +444,7 @@ class IndexData(metaclass=index_data_ops_creator):
         return self.__class__(~self.data.astype(bool), *self.indices)
 
     def abs(self):
-        """get the abs of data except np.NaN."""
+        """get the abs of data except np.nan."""
         tmp_data = np.absolute(self.data)
         return self.__class__(tmp_data, *self.indices)
 
@@ -566,8 +566,8 @@ class SingleData(IndexData):
                 f"The indexes of self and other do not meet the requirements of the four arithmetic operations"
             )
 
-    def reindex(self, index: Index, fill_value=np.NaN) -> SingleData:
-        """reindex data and fill the missing value with np.NaN.
+    def reindex(self, index: Index, fill_value=np.nan) -> SingleData:
+        """reindex data and fill the missing value with np.nan.
 
         Parameters
         ----------
@@ -615,7 +615,7 @@ class SingleData(IndexData):
         return pd.Series(self.data, index=self.index)
 
     def __repr__(self) -> str:
-        return str(pd.Series(self.data, index=self.index))
+        return str(pd.Series(self.data, index=self.index.tolist()))
 
 
 class MultiData(IndexData):
@@ -651,4 +651,4 @@ class MultiData(IndexData):
             )
 
     def __repr__(self) -> str:
-        return str(pd.DataFrame(self.data, index=self.index, columns=self.columns))
+        return str(pd.DataFrame(self.data, index=self.index.tolist(), columns=self.columns.tolist()))

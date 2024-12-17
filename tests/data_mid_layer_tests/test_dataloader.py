@@ -16,7 +16,7 @@ from qlib.data import D
 class TestDataLoader(unittest.TestCase):
 
     def test_nested_data_loader(self):
-        qlib.init()
+        qlib.init(kernels=1)
         nd = NestedDataLoader(
             dataloader_l=[
                 {
@@ -30,7 +30,7 @@ class TestDataLoader(unittest.TestCase):
         )
         # Of course you can use StaticDataLoader
 
-        dataset = nd.load()
+        dataset = nd.load(start_time="2020-01-01", end_time="2020-01-31")
 
         assert dataset is not None
 

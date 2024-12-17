@@ -9,9 +9,8 @@ from copy import deepcopy
 from pathlib import Path
 import pickle
 from pprint import pprint
+from ruamel.yaml import YAML
 import subprocess
-
-import yaml
 
 from qlib import init
 from qlib.data.dataset.handler import DataHandlerLP
@@ -29,7 +28,8 @@ if __name__ == "__main__":
     exp_name = "data_mem_reuse_demo"
 
     config_path = DIRNAME.parent / "benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml"
-    task_config = yaml.safe_load(config_path.open())
+    yaml = YAML(typ="safe", pure=True)
+    task_config = yaml.load(config_path.open())
 
     # 1) without using processed data in memory
     with TimeInspector.logt("The original time without reusing processed data in memory:"):

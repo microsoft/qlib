@@ -35,7 +35,7 @@ class SandwichModel(nn.Module):
         rnn_layers,
         dropout,
         device,
-        **params
+        **params,
     ):
         """Build a Sandwich model
 
@@ -129,7 +129,7 @@ class Sandwich(Model):
         optimizer="adam",
         GPU=0,
         seed=None,
-        **kwargs
+        **kwargs,
     ):
         # Set logger.
         self.logger = get_module_logger("Sandwich")
