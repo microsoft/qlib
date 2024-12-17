@@ -49,10 +49,10 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
-    - name: update gcc
-      run: |
-        yum install -y centos-release-scl
-        yum install -y devtoolset-8-gcc devtoolset-8-gcc-c++
+    # - name: update gcc
+    #   run: |
+    #     yum install -y centos-release-scl
+    #     yum install -y devtoolset-8-gcc devtoolset-8-gcc-c++
     - name: Install dependencies
       run: |
         pip install twine
