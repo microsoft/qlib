@@ -90,6 +90,3 @@ packages = [
 
 [project.scripts]
 qrun = "qlib.workflow.cli:run"
-
-[tool.distutils.bdist_wheel]
-universal = False
