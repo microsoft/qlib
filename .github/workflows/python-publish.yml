@@ -43,7 +43,7 @@ jobs:
       uses: RalfG/python-wheels-manylinux-build@v0.3.1-manylinux2010_x86_64
       with:
         # not supporting 3.6 due to annotations is not supported https://stackoverflow.com/a/52890129
-        python-versions: 'cp38-cp38 cp39-cp39m cp310-cp310m cp311-cp311m cp312-cp312m'
+        python-versions: 'cp38-cp38 cp39-cp39 cp310-cp310 cp311-cp311 cp312-cp312'
         build-requirements: 'numpy cython'
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
