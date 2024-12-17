@@ -40,7 +40,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Build wheel on Linux
-      uses: RalfG/python-wheels-manylinux-build@v0.7.1-manylinux2014_aarch64
+      uses: RalfG/python-wheels-manylinux-build@v0.7.1-manylinux2014_x86_64
       with:
         # not supporting 3.6 due to annotations is not supported https://stackoverflow.com/a/52890129
         python-versions: 'cp38-cp38 cp39-cp39 cp310-cp310 cp311-cp311 cp312-cp312'
