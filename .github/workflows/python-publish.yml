@@ -102,7 +102,7 @@ jobs:
     - name: Build wheel
       uses: pypa/cibuildwheel@v2.22.0
       with:
-        package-dir: qlib
+        package-dir: .
         output-dir: dist
         config-file: "pyproject.toml"
 
