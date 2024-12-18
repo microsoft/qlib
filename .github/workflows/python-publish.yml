@@ -10,42 +10,42 @@ on:
     branches: [ main ]
 
 jobs:
-  deploy_with_bdist_wheel:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [windows-latest, macos-13, macos-latest]
-        python-version: ["3.8", "3.9", "3.10"]
-        include:
-          - os: windows-latest
-            python-version: "3.11"
-          - os: windows-latest
-            python-version: "3.12"
-          - os: macos-latest
-            python-version: "3.11"
-          - os: macos-latest
-            python-version: "3.12"
+  # deploy_with_bdist_wheel:
+  #   runs-on: ${{ matrix.os }}
+  #   strategy:
+  #     matrix:
+  #       os: [windows-latest, macos-13, macos-latest]
+  #       python-version: ["3.8", "3.9", "3.10"]
+  #       include:
+  #         - os: windows-latest
+  #           python-version: "3.11"
+  #         - os: windows-latest
+  #           python-version: "3.12"
+  #         - os: macos-latest
+  #           python-version: "3.11"
+  #         - os: macos-latest
+  #           python-version: "3.12"
 
-    steps:
-    - uses: actions/checkout@v3
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-        make dev
-    - name: Build wheel on ${{ matrix.os }}
-      run: |
-        make build
-    - name: Build and publish
-      env:
-        TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}
-      run: |
-        ls dist
-        twine check dist/*.whl
-        twine upload --repository-url https://test.pypi.org/legacy/ dist/*.whl
+  #   steps:
+  #   - uses: actions/checkout@v3
+  #   - name: Set up Python ${{ matrix.python-version }}
+  #     uses: actions/setup-python@v4
+  #     with:
+  #       python-version: ${{ matrix.python-version }}
+  #   - name: Install dependencies
+  #     run: |
+  #       make dev
+  #   - name: Build wheel on ${{ matrix.os }}
+  #     run: |
+  #       make build
+  #   - name: Build and publish
+  #     env:
+  #       TWINE_USERNAME: __token__
+  #       TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}
+  #     run: |
+  #       ls dist
+  #       twine check dist/*.whl
+  #       twine upload --repository-url https://test.pypi.org/legacy/ dist/*.whl
 
   deploy_with_manylinux:
     runs-on: ubuntu-latest
@@ -57,6 +57,8 @@ jobs:
         # not supporting 3.6 due to annotations is not supported https://stackoverflow.com/a/52890129
         python-versions: 'cp38-cp38 cp39-cp39 cp310-cp310 cp311-cp311 cp312-cp312'
         build-requirements: 'numpy cython'
+        package-path: 'qlib'
+        pre-build-command: 'make dev && make build'
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
