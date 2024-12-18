@@ -61,7 +61,7 @@ jobs:
         # not supporting 3.6 due to annotations is not supported https://stackoverflow.com/a/52890129
         python-versions: 'cp38-cp38 cp39-cp39 cp310-cp310 cp311-cp311 cp312-cp312'
         build-requirements: 'numpy cython'
-        system-packages: 'python'
+        system-packages: 'python pip'
         package-path: 'qlib'
         pre-build-command: |
           which python
