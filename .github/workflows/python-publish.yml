@@ -15,10 +15,14 @@ jobs:
     strategy:
       matrix:
         os: [windows-latest, macos-13, macos-latest]
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
-        exclude:
+        python-version: []
+        include:
+          - os: windows-latest
+            python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+          - os: macos-latest
+            python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
           - os: macos-13
-            python-version: ["3.11", "3.12"]
+            python-version: ["3.8", "3.9", "3.10"]
 
     steps:
     - uses: actions/checkout@v3
@@ -66,4 +70,4 @@ jobs:
       run: |
         ls dist
         twine check dist/*.whl
-        twine upload --repository-url https://test.pypi.org/legacy/ dist/pyqlib-*-linux*.whl
+        twine upload --repository-url https://test.pypi.org/legacy/ dist/pyqlib-*-manylinux*.whl
