@@ -14,20 +14,12 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-20.04, ubuntu-22.04, macos-13, macos-latest]
-        python-version: ["3.8", "3.9", "3.10"]
-        include:
-          - os: windows-latest
+        os: [windows-latest, ubuntu-22.04, macos-13, macos-latest]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        exclude:
+          - os: macos-13
             python-version: "3.11"
-          - os: windows-latest
-            python-version: "3.12"
-          - os: macos-latest
-            python-version: "3.11"
-          - os: macos-latest
-            python-version: "3.12"
-          - os: ubuntu-20.04
-            python-version: "3.11"
-          - os: ubuntu-22.04
+          - os: macos-13
             python-version: "3.12"
 
     steps:
