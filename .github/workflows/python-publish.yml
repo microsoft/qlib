@@ -82,31 +82,31 @@ jobs:
         os: [windows-latest, ubuntu-latest, macos-13, macos-latest]
 
     steps:
-    - name: Checkout repo
-      uses: actions/checkout@v4
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-    # - name: Set up Python ${{ matrix.python-version }}
-    #   uses: actions/setup-python@v5
-    #   with:
-    #     python-version: ${{ matrix.python-version }}
-    
-    # - name: Install cibuildwheel
-    #   run: |
-    #     python -m pip install --upgrade pip
-    #     python -m pip install cibuildwheel
+      # - name: Set up Python ${{ matrix.python-version }}
+      #   uses: actions/setup-python@v5
+      #   with:
+      #     python-version: ${{ matrix.python-version }}
+      
+      # - name: Install cibuildwheel
+      #   run: |
+      #     python -m pip install --upgrade pip
+      #     python -m pip install cibuildwheel
 
-    # - name: Build wheel
-    #   run: |
-    #     python -m cibuildwheel --output-dir dist
+      # - name: Build wheel
+      #   run: |
+      #     python -m cibuildwheel --output-dir dist
 
-    - name: Build wheel
-      uses: pypa/cibuildwheel@v0.22.0
+      - name: Build wheel
+        uses: pypa/cibuildwheel@v0.22.0
 
-    - name: Upload wheel
-      env:
-        TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}
-      run: |
-        ls dist
-        twine check dist/*.whl
-        twine upload --repository-url https://test.pypi.org/legacy/ dist/*.whl
+      - name: Upload wheel
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}
+        run: |
+          ls dist
+          twine check dist/*.whl
+          twine upload --repository-url https://test.pypi.org/legacy/ dist/*.whl
