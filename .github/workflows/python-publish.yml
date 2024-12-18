@@ -58,7 +58,7 @@ jobs:
         python-versions: 'cp38-cp38 cp39-cp39 cp310-cp310 cp311-cp311 cp312-cp312'
         build-requirements: 'numpy cython'
         package-path: 'qlib'
-        pre-build-command: 'make dev && make build'
+        pre-build-command: 'python -m pip install -e . && python -m build --wheel'
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
