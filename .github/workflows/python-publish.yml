@@ -10,38 +10,38 @@ on:
     branches: [ main ]
 
 jobs:
-  # deploy_with_bdist_wheel:
-  #   runs-on: ${{ matrix.os }}
-  #   strategy:
-  #     matrix:
-  #       os: [windows-latest, ubuntu-22.04, macos-13, macos-latest]
-  #       python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
-  #       exclude:
-  #         - os: macos-13
-  #           python-version: "3.11"
-  #         - os: macos-13
-  #           python-version: "3.12"
+  deploy_with_bdist_wheel:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-22.04, macos-13, macos-latest]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        exclude:
+          - os: macos-13
+            python-version: "3.11"
+          - os: macos-13
+            python-version: "3.12"
 
-  #   steps:
-  #   - uses: actions/checkout@v3
-  #   - name: Set up Python ${{ matrix.python-version }}
-  #     uses: actions/setup-python@v4
-  #     with:
-  #       python-version: ${{ matrix.python-version }}
-  #   - name: Install dependencies
-  #     run: |
-  #       make dev
-  #   - name: Build wheel on ${{ matrix.os }}
-  #     run: |
-  #       make build
-  #   - name: Build and publish
-  #     env:
-  #       TWINE_USERNAME: __token__
-  #       TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}
-  #     run: |
-  #       ls dist
-  #       twine check dist/*.whl
-  #       twine upload --repository-url https://test.pypi.org/legacy/ dist/*.whl --verbose
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        make dev
+    - name: Build wheel on ${{ matrix.os }}
+      run: |
+        make build
+    - name: Build and publish
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}
+      run: |
+        ls dist
+        twine check dist/*.whl
+        twine upload --repository-url https://test.pypi.org/legacy/ dist/*.whl --verbose
 
   deploy_with_manylinux:
     runs-on: ubuntu-latest
