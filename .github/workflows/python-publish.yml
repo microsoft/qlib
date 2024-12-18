@@ -56,19 +56,11 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Build wheel on Linux
-      uses: RalfG/python-wheels-manylinux-build@v0.7.1-manylinux2014_x86_64
+      uses: RalfG/python-wheels-manylinux-build@v0.7.0-manylinux2010_x86_64
       with:
         # not supporting 3.6 due to annotations is not supported https://stackoverflow.com/a/52890129
         python-versions: 'cp38-cp38 cp39-cp39 cp310-cp310 cp311-cp311 cp312-cp312'
         build-requirements: 'numpy cython'
-        system-packages: 'python pip'
-        package-path: 'qlib'
-        pre-build-command: |
-          which python
-          which pip
-          python -m pip install --upgrade pip
-          python -m pip install -e .
-          python -m build --wheel
     - name: Install dependencies
       run: |
         python -m pip install twine
