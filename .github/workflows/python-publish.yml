@@ -51,6 +51,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
     - name: Build wheel on Linux
       uses: RalfG/python-wheels-manylinux-build@v0.7.1-manylinux2014_x86_64
       with:
@@ -58,11 +62,11 @@ jobs:
         python-versions: 'cp38-cp38 cp39-cp39 cp310-cp310 cp311-cp311 cp312-cp312'
         build-requirements: 'numpy cython'
         package-path: 'qlib'
-        pre-build-command: 'python -m pip install -e . && python -m build --wheel'
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
+        pre-build-command: |
+          python -m ensurepip --upgrade
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+          python -m build --wheel
     - name: Install dependencies
       run: |
         python -m pip install twine
