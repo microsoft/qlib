@@ -75,11 +75,11 @@ jobs:
   #       twine check dist/*.whl
   #       twine upload --repository-url https://test.pypi.org/legacy/ dist/pyqlib-*-manylinux*.whl
 
-  deploy_with_manylinux:
-    runs-on: ubuntu-latest
+  build_wheels:
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        os: [windows-latest, ubuntu-latest, macos-13, macos-latest]
 
     steps:
     - name: Checkout repo
