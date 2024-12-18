@@ -63,7 +63,6 @@ jobs:
         build-requirements: 'numpy cython'
         package-path: 'qlib'
         pre-build-command: |
-          python -m ensurepip --upgrade
           python -m pip install --upgrade pip
           python -m pip install -e .
           python -m build --wheel
