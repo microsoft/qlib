@@ -100,7 +100,7 @@ jobs:
     #     python -m cibuildwheel --output-dir dist
 
     - name: Build wheel
-      uses: pypa/cibuildwheel@v0.22.0
+      uses: pypa/cibuildwheel@v2.22.0
       with:
         package-dir: qlib
         output-dir: dist
