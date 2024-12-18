@@ -18,9 +18,13 @@ jobs:
         python-version: ["3.8", "3.9", "3.10"]
         include:
           - os: windows-latest
-            python-version: ["3.11", "3.12"]
+            python-version: "3.11"
+          - os: windows-latest
+            python-version: "3.12"
           - os: macos-latest
-            python-version: ["3.11", "3.12"]
+            python-version: "3.11"
+          - os: macos-latest
+            python-version: "3.12"
 
     steps:
     - uses: actions/checkout@v3
