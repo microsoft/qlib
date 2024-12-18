@@ -10,42 +10,46 @@ on:
     branches: [ main ]
 
 jobs:
-  # deploy_with_bdist_wheel:
-  #   runs-on: ${{ matrix.os }}
-  #   strategy:
-  #     matrix:
-  #       os: [windows-latest, macos-13, macos-latest]
-  #       python-version: ["3.8", "3.9", "3.10"]
-  #       include:
-  #         - os: windows-latest
-  #           python-version: "3.11"
-  #         - os: windows-latest
-  #           python-version: "3.12"
-  #         - os: macos-latest
-  #           python-version: "3.11"
-  #         - os: macos-latest
-  #           python-version: "3.12"
+  deploy_with_bdist_wheel:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-20.04, ubuntu-22.04, macos-13, macos-latest]
+        python-version: ["3.8", "3.9", "3.10"]
+        include:
+          - os: windows-latest
+            python-version: "3.11"
+          - os: windows-latest
+            python-version: "3.12"
+          - os: macos-latest
+            python-version: "3.11"
+          - os: macos-latest
+            python-version: "3.12"
+          - os: ubuntu-20.04
+            python-version: "3.11"
+          - os: ubuntu-22.04
+            python-version: "3.12"
 
-  #   steps:
-  #   - uses: actions/checkout@v3
-  #   - name: Set up Python ${{ matrix.python-version }}
-  #     uses: actions/setup-python@v4
-  #     with:
-  #       python-version: ${{ matrix.python-version }}
-  #   - name: Install dependencies
-  #     run: |
-  #       make dev
-  #   - name: Build wheel on ${{ matrix.os }}
-  #     run: |
-  #       make build
-  #   - name: Build and publish
-  #     env:
-  #       TWINE_USERNAME: __token__
-  #       TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}
-  #     run: |
-  #       ls dist
-  #       twine check dist/*.whl
-  #       twine upload --repository-url https://test.pypi.org/legacy/ dist/*.whl
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        make dev
+    - name: Build wheel on ${{ matrix.os }}
+      run: |
+        make build
+    - name: Build and publish
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}
+      run: |
+        ls dist
+        twine check dist/*.whl
+        twine upload --repository-url https://test.pypi.org/legacy/ dist/*.whl
 
   # deploy_with_manylinux:
   #   runs-on: ubuntu-latest
@@ -75,42 +79,42 @@ jobs:
   #       twine check dist/*.whl
   #       twine upload --repository-url https://test.pypi.org/legacy/ dist/pyqlib-*-manylinux*.whl
 
-  build_wheels:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [windows-latest, ubuntu-latest, macos-13, macos-latest]
+  # build_wheels:
+  #   runs-on: ${{ matrix.os }}
+  #   strategy:
+  #     matrix:
+  #       os: [windows-latest, ubuntu-latest, macos-13, macos-latest]
 
-    steps:
-    - name: Checkout repo
-      uses: actions/checkout@v4
+  #   steps:
+  #   - name: Checkout repo
+  #     uses: actions/checkout@v4
 
-    # - name: Set up Python ${{ matrix.python-version }}
-    #   uses: actions/setup-python@v5
-    #   with:
-    #     python-version: ${{ matrix.python-version }}
+  #   # - name: Set up Python ${{ matrix.python-version }}
+  #   #   uses: actions/setup-python@v5
+  #   #   with:
+  #   #     python-version: ${{ matrix.python-version }}
     
-    # - name: Install cibuildwheel
-    #   run: |
-    #     python -m pip install --upgrade pip
-    #     python -m pip install cibuildwheel
+  #   # - name: Install cibuildwheel
+  #   #   run: |
+  #   #     python -m pip install --upgrade pip
+  #   #     python -m pip install cibuildwheel
 
-    # - name: Build wheel
-    #   run: |
-    #     python -m cibuildwheel --output-dir dist
+  #   # - name: Build wheel
+  #   #   run: |
+  #   #     python -m cibuildwheel --output-dir dist
 
-    - name: Build wheel
-      uses: pypa/cibuildwheel@v2.22.0
-      with:
-        package-dir: .
-        output-dir: dist
-        config-file: "pyproject.toml"
+  #   - name: Build wheel
+  #     uses: pypa/cibuildwheel@v2.22.0
+  #     with:
+  #       package-dir: .
+  #       output-dir: dist
+  #       config-file: "pyproject.toml"
 
-    - name: Upload wheel
-      env:
-        TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}
-      run: |
-        ls dist
-        twine check dist/*.whl
-        twine upload --repository-url https://test.pypi.org/legacy/ dist/*.whl
+  #   - name: Upload wheel
+  #     env:
+  #       TWINE_USERNAME: __token__
+  #       TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}
+  #     run: |
+  #       ls dist
+  #       twine check dist/*.whl
+  #       twine upload --repository-url https://test.pypi.org/legacy/ dist/*.whl
