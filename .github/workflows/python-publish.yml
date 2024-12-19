@@ -41,7 +41,7 @@ jobs:
         import subprocess
         replaced = subprocess.run(['sw_vers', '-productVersion'], capture_output=True, text=True).stdout.strip().split('.', 1)[0] + '_0_arm64'
         for whl_file in Path('./dist').glob('*.whl'):
-          if "universal2" in whl_file.stem:
+          if 'universal2' in whl_file.stem:
             parts = whl_file.stem.split('_')
             be_replaced = '_'.join(parts[1:])
             new_name = whl_file.name.replace(be_replaced, replaced)
@@ -58,7 +58,7 @@ jobs:
         import subprocess
         replaced = subprocess.run(['sw_vers', '-productVersion'], capture_output=True, text=True).stdout.strip().split('.', 1)[0] + '_0_x86_64'
         for whl_file in Path('./dist').glob('*.whl'):
-          if "universal2" in whl_file.stem:
+          if 'universal2' in whl_file.stem:
             parts = whl_file.stem.split('_')
             be_replaced = '_'.join(parts[1:])
             new_name = whl_file.name.replace(be_replaced, replaced)
@@ -73,8 +73,8 @@ jobs:
         python -c "
         from pathlib import Path
         for whl_file in Path('./dist').glob('*.whl'):
-          if "universal2" in whl_file.stem:
-            new_name = whl_file.name.replace("universal2", "arm64")
+          if 'universal2' in whl_file.stem:
+            new_name = whl_file.name.replace('universal2', 'arm64')
             new_whl_file = whl_file.with_name(new_name)
             whl_file.rename(new_whl_file)
             print(f'Renamed: {whl_file} -> {new_whl_file}')
@@ -86,8 +86,8 @@ jobs:
         python -c "
         from pathlib import Path
         for whl_file in Path('./dist').glob('*.whl'):
-          if "universal2" in whl_file.stem:
-            new_name = whl_file.name.replace("universal2", "x86_64")
+          if 'universal2' in whl_file.stem:
+            new_name = whl_file.name.replace('universal2', 'x86_64')
             new_whl_file = whl_file.with_name(new_name)
             whl_file.rename(new_whl_file)
             print(f'Renamed: {whl_file} -> {new_whl_file}')
