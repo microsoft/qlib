@@ -18,25 +18,15 @@ jobs:
         # If you want to use python 3.7 in github action, then the latest macos system version is macos-13,
         # after macos-13 python 3.7 is no longer supported.
         # so we limit the macos version to macos-13.
-        os: [windows-latest, ubuntu-20.04, ubuntu-22.04, macos-13]
+        os: [macos-13, macos-latest]
         # not supporting 3.6 due to annotations is not supported https://stackoverflow.com/a/52890129
-        python-version: [3.7, 3.8]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
 
     steps:
     - name: Test qlib from pip
       uses: actions/checkout@v3
 
-    # Since version 3.7 of python for MacOS is installed in CI, version 3.7.17, this version causes "_bz not found error".
-    # So we make the version number of python 3.7 for MacOS more specific.
-    # refs: https://github.com/actions/setup-python/issues/682
     - name: Set up Python ${{ matrix.python-version }}
-      if: (matrix.os == 'macos-latest' && matrix.python-version == '3.7') || (matrix.os == 'macos-13' && matrix.python-version == '3.7')
-      uses: actions/setup-python@v4
-      with:
-        python-version: "3.7.16"
-
-    - name: Set up Python ${{ matrix.python-version }}
-      if: (matrix.os != 'macos-latest' || matrix.python-version != '3.7') && (matrix.os != 'macos-13' || matrix.python-version != '3.7')
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
@@ -47,10 +37,7 @@ jobs:
 
     - name: Qlib installation test
       run: |
-        # 2024-05-30 scs has released a new version: 3.2.4.post2,
-        # This will cause the CI to fail, so we have limited the version of scs for now.
-        python -m pip install "scs<=3.2.4"
-        python -m pip install pyqlib
+        python -m pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ pyqlib
 
     - name: Install Lightgbm for MacOS
       if: ${{ matrix.os == 'macos-13' || matrix.os == 'macos-latest' }}
