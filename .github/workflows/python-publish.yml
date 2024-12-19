@@ -124,6 +124,7 @@ jobs:
       #   run: |
       #     make build
       - name: Build 1
+        if: ${{ (matrix.os != 'macos-13' || matrix['python-version'] != '3.11') && (matrix.os != 'macos-13' || matrix['python-version'] != '3.12') }}
         run: |
           python setup.py bdist_wheel
       # - name: Rename 1
