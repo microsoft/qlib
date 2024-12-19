@@ -26,27 +26,31 @@ jobs:
     - name: Install dependencies
       run: |
         make dev
-    - name: Set MACOSX_DEPLOYMENT_TARGET
-      run: |
-        if [[ ${{ matrix.os }} == "macos-13" ]]; then
-          export MACOSX_DEPLOYMENT_TARGET=13.0
-        elif [[ ${{ matrix.os }} == "macos-14" ]]; then
-          export MACOSX_DEPLOYMENT_TARGET=14.0
-        else
-          export MACOSX_DEPLOYMENT_TARGET=15.0  # Default for macos-latest
-        fi
-        echo "MACOSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET"
     - name: Build wheel on ${{ matrix.os }}
       run: |
         make build
+    - name: Rename macos filename
+      if: ${{ matrix.os == 'macos-13' || matrix.os == 'macos-14' || matrix.os == 'macos-latest' }}
+      run: |
+        python -c "
+        from pathlib import Path
+        import subprocess
+        replaced = subprocess.run(['sw_vers', '-productVersion'], capture_output=True, text=True).stdout.strip().split('.', 1)[0] + '_0'
+        for whl_file in Path('./dist').glob('*.whl'):
+            parts = whl_file.name.split('_')
+            be_replaced = '_'.join(parts[1:3])
+            new_name = whl_file.name.replace(be_replaced, replaced)
+            new_whl_file = whl_file.with_name(new_name)
+            whl_file.rename(new_whl_file)
+            print(f'Renamed: {whl_file} -> {new_whl_file}')
+        "
     - name: Build and publish
       env:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}
       run: |
-        ls dist
         twine check dist/*.whl
-        twine upload --repository-url https://test.pypi.org/legacy/ dist/*.whl --verbose
+  #       twine upload --repository-url https://test.pypi.org/legacy/ dist/*.whl --verbose
 
   # deploy_with_manylinux:
   #   runs-on: ubuntu-latest
