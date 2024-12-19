@@ -131,7 +131,7 @@ jobs:
           make build
           python -c "
           from pathlib import Path
-          plat_info = '${{ matrix.buildplat[1] }}'.split('_')[-1]
+          plat_info = '${{ matrix.buildplat[1] }}'.split('_', 1)[-1]
           sys_ver_info = '${{ matrix.buildplat[0] }}'.split('-')[-1]
           replaced = f'{sys_ver_info}_0_{plat_info}'
           for whl_file in Path('./dist').glob('*.whl'):
@@ -149,10 +149,10 @@ jobs:
           make build
           python -c "
           from pathlib import Path
-          plat_info = '${{ matrix.buildplat[1] }}'.split('_')[-1]
+          plat_info = '${{ matrix.buildplat[1] }}'.split('_', 1)[-1]
           for whl_file in Path('./dist').glob('*.whl'):
             if 'universal2' in whl_file.stem:
-              new_name = whl_file.name.replace('universal2', 'plat_info')
+              new_name = whl_file.name.replace('universal2', plat_info)
               new_whl_file = whl_file.with_name(new_name)
               whl_file.rename(new_whl_file)
               print(f'Renamed: {whl_file} -> {new_whl_file}')
