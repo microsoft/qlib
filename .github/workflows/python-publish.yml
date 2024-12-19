@@ -138,17 +138,16 @@ jobs:
           replaced = f'{sys_ver_info}_0_{plat_info}'
           print(replaced)
           for whl_file in Path('./dist').glob('*.whl'):
-            if 'universal2' in whl_file.stem:
-              parts = whl_file.stem.split('_')
-              print(parts)
-              be_replaced = '_'.join(parts[1:])
-              print(be_replaced)
-              new_name = whl_file.name.replace(be_replaced, replaced)
-              print(new_name)
-              new_whl_file = whl_file.with_name(new_name)
-              print(new_whl_file)
-              whl_file.rename(new_whl_file)
-              print(f'Renamed: {whl_file} -> {new_whl_file}')
+            parts = whl_file.stem.split('_')
+            print(parts)
+            be_replaced = '_'.join(parts[1:])
+            print(be_replaced)
+            new_name = whl_file.name.replace(be_replaced, replaced)
+            print(new_name)
+            new_whl_file = whl_file.with_name(new_name)
+            print(new_whl_file)
+            whl_file.rename(new_whl_file)
+            print(f'Renamed: {whl_file} -> {new_whl_file}')
           "
       - name: Build 2
         if: ${{ (matrix.buildplat[0] != 'macos-13' || matrix['python-version'] != '3.11') && (matrix.buildplat[0] != 'macos-13' || matrix['python-version'] != '3.12') }}
