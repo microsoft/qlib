@@ -32,7 +32,7 @@ jobs:
 
     - name: Qlib installation test
       run: |
-        python -m pip install --index-url https://test.pypi.org/simple/ pyqlib==0.9.5.92
+        python -m pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ pyqlib[dev]==0.9.5.92
 
     - name: Install Lightgbm for MacOS
       if: ${{ matrix.os == 'macos-13' || matrix.os == 'macos-14' || matrix.os == 'macos-latest' }}
