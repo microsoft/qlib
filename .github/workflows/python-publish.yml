@@ -129,8 +129,11 @@ jobs:
       - name: Run python scripts
         run: |
           python -c "
-          a = '${{ matrix.buildplat[1] }}'
-          print(f'Value of a: {a}')
+          plat_info = '${{ matrix.buildplat[1] }}'.split('_')[-1]
+          sys_ver_info = '${{ matrix.buildplat[1] }}'.split('-')[-1]
+
+          print(f'Value of plat_info: {plat_info}')
+          print(f'Value of sys_ver_info: {sys_ver_info}')
           "
       # - name: Build and publish
       #   env:
