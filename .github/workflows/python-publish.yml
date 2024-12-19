@@ -3,15 +3,15 @@
 
 name: Upload Python Package
 
-# on:
-#   release:
-#     types: [published]
-
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  release:
+    types: [published]
+
+# on:
+#   push:
+#     branches: [ main ]
+#   pull_request:
+#     branches: [ main ]
 
 jobs:
   # deploy_with_windows:
@@ -169,6 +169,7 @@ jobs:
       #   run: |
       #     make build
       - name: Build and publish
+        if: ${{ (matrix.os != 'macos-13' || matrix['python-version'] != '3.11') && (matrix.os != 'macos-13' || matrix['python-version'] != '3.12') }}
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}
