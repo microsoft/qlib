@@ -173,7 +173,6 @@ jobs:
           TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}
         run: |
           twine check dist/*.whl
-          twine upload --repository-url https://test.pypi.org/legacy/ dist/*.whl --verbose
       
 
   # deploy_with_manylinux:
