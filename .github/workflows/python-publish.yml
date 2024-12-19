@@ -129,6 +129,9 @@ jobs:
       - name: Build 1
         run: |
           make build
+      - name: Rename 1
+        run: |
+          make build
           python -c "
           from pathlib import Path
           plat_info = '${{ matrix.buildplat[1] }}'.split('_', 1)[-1]
@@ -147,6 +150,9 @@ jobs:
         if: ${{ (matrix.buildplat[0] != 'macos-13' || matrix['python-version'] != '3.11') && (matrix.buildplat[0] != 'macos-13' || matrix['python-version'] != '3.12') }}
         run: |
           make build
+      - name: Rename 2
+        if: ${{ (matrix.buildplat[0] != 'macos-13' || matrix['python-version'] != '3.11') && (matrix.buildplat[0] != 'macos-13' || matrix['python-version'] != '3.12') }}
+        run: |
           python -c "
           from pathlib import Path
           plat_info = '${{ matrix.buildplat[1] }}'.split('_', 1)[-1]
@@ -157,7 +163,7 @@ jobs:
               whl_file.rename(new_whl_file)
               print(f'Renamed: {whl_file} -> {new_whl_file}')
           "
-      - name: Build 2
+      - name: Build 3
         if: ${{ (matrix.buildplat[0] != 'macos-13' || matrix['python-version'] != '3.11') && (matrix.buildplat[0] != 'macos-13' || matrix['python-version'] != '3.12') }}
         run: |
           make build
@@ -167,6 +173,7 @@ jobs:
           TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}
         run: |
           twine check dist/*.whl
+          twine upload --repository-url https://test.pypi.org/legacy/ dist/*.whl --verbose
       
 
   # deploy_with_manylinux:
