@@ -3,15 +3,15 @@
 
 name: Upload Python Package
 
-on:
-  release:
-    types: [published]
-
 # on:
-#   push:
-#     branches: [ main ]
-#   pull_request:
-#     branches: [ main ]
+#   release:
+#     types: [published]
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
   deploy_with_bdist_wheel:
