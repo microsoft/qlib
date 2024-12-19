@@ -126,21 +126,43 @@ jobs:
       # - name: Build wheel on ${{ matrix.os }}
       #   run: |
       #     make build
-      - name: Run python scripts
+      - name: Build 1
         run: |
+          make build
           python -c "
           plat_info = '${{ matrix.buildplat[1] }}'.split('_')[-1]
-          sys_ver_info = '${{ matrix.buildplat[1] }}'.split('-')[-1]
-
-          print(f'Value of plat_info: {plat_info}')
-          print(f'Value of sys_ver_info: {sys_ver_info}')
+          sys_ver_info = '${{ matrix.buildplat[0] }}'.split('-')[-1]
+          replaced = f'{sys_ver_info}_0_{plat_info}'
+          for whl_file in Path('./dist').glob('*.whl'):
+          if 'universal2' in whl_file.stem:
+            new_name = whl_file.name.replace(be_replaced, replaced)
+            new_whl_file = whl_file.with_name(new_name)
+            whl_file.rename(new_whl_file)
+            print(f'Renamed: {whl_file} -> {new_whl_file}')
           "
-      # - name: Build and publish
-      #   env:
-      #     TWINE_USERNAME: __token__
-      #     TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}
-      #   run: |
-      #     twine check dist/*.whl
+      - name: Build 2
+        if: ${{ (matrix.buildplat[0] != 'macos-13' || matrix['python-version'] != '3.11') && (matrix.buildplat[0] != 'macos-13' || matrix['python-version'] != '3.12') }}
+        run: |
+          make build
+          python -c "
+          plat_info = '${{ matrix.buildplat[1] }}'.split('_')[-1]
+          for whl_file in Path('./dist').glob('*.whl'):
+          if 'universal2' in whl_file.stem:
+            new_name = whl_file.name.replace('universal2', 'plat_info')
+            new_whl_file = whl_file.with_name(new_name)
+            whl_file.rename(new_whl_file)
+            print(f'Renamed: {whl_file} -> {new_whl_file}')
+          "
+      - name: Build 2
+        if: ${{ (matrix.buildplat[0] != 'macos-13' || matrix['python-version'] != '3.11') && (matrix.buildplat[0] != 'macos-13' || matrix['python-version'] != '3.12') }}
+        run: |
+          make build
+      - name: Build and publish
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}
+        run: |
+          twine check dist/*.whl
       
 
   # deploy_with_manylinux:
