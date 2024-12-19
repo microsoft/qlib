@@ -105,7 +105,7 @@ jobs:
   #       twine upload --repository-url https://test.pypi.org/legacy/ dist/*.whl --verbose
 
   deploy_with_macos:
-    runs-on: ${{ matrix.buildplat[0] }}
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [macos-13, macos-latest]
