@@ -150,9 +150,11 @@ jobs:
             print(f'Renamed: {whl_file} -> {new_whl_file}')
           "
       - name: Build 2
+        if: ${{ (matrix.buildplat[0] != 'macos-13' || matrix['python-version'] != '3.11') && (matrix.buildplat[0] != 'macos-13' || matrix['python-version'] != '3.12') }}
         run: |
           make build
       - name: Rename 2
+        if: ${{ (matrix.buildplat[0] != 'macos-13' || matrix['python-version'] != '3.11') && (matrix.buildplat[0] != 'macos-13' || matrix['python-version'] != '3.12') }}
         run: |
           python -c "
           from pathlib import Path
