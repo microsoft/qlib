@@ -14,7 +14,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest, macos-13, macos-14, macos-latest]
+        os: [windows-latest, macos-13, macos-latest]
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
 
     steps:
@@ -35,13 +35,14 @@ jobs:
         python -c "
         from pathlib import Path
         import subprocess
+        import shutil
         replaced = subprocess.run(['sw_vers', '-productVersion'], capture_output=True, text=True).stdout.strip().split('.', 1)[0] + '_0'
         for whl_file in Path('./dist').glob('*.whl'):
             parts = whl_file.name.split('_')
             be_replaced = '_'.join(parts[1:3])
             new_name = whl_file.name.replace(be_replaced, replaced)
-            new_whl_file = whl_file.with_name(new_name)
-            whl_file.rename(new_whl_file)
+            new_whl_file = whl_file.resolve().parent.joinpath(whl_file.with_name(new_name))
+            shutil.copy(whl_file.resolve(), new_whl_file)
             print(f'Renamed: {whl_file} -> {new_whl_file}')
         "
     - name: Build and publish
