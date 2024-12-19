@@ -3,106 +3,123 @@
 
 name: Upload Python Package
 
-on:
-  release:
-    types: [published]
-
 # on:
-#   push:
-#     branches: [ main ]
-#   pull_request:
-#     branches: [ main ]
+#   release:
+#     types: [published]
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
-  deploy_with_bdist_wheel:
-    runs-on: ${{ matrix.os }}
+  # deploy_with_windows:
+  #   runs-on: ${{ matrix.os }}
+  #   strategy:
+  #     matrix:
+  #       os: [windows-latest, macos-13, macos-latest]
+  #       python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+
+  #   steps:
+  #   - uses: actions/checkout@v3
+  #   - name: Set up Python ${{ matrix.python-version }}
+  #     uses: actions/setup-python@v4
+  #     with:
+  #       python-version: ${{ matrix.python-version }}
+  #   - name: Install dependencies
+  #     run: |
+  #       make dev
+  #   - name: Build wheel on ${{ matrix.os }}
+  #     run: |
+  #       make build
+  #   - name: change macos version and arm64
+  #     if: ${{ matrix.os == 'macos-13' || matrix.os == 'macos-latest' }}
+  #     run: |
+  #       python -c "
+  #       from pathlib import Path
+  #       import subprocess
+  #       replaced = subprocess.run(['sw_vers', '-productVersion'], capture_output=True, text=True).stdout.strip().split('.', 1)[0] + '_0_arm64'
+  #       for whl_file in Path('./dist').glob('*.whl'):
+  #         if 'universal2' in whl_file.stem:
+  #           parts = whl_file.stem.split('_')
+  #           be_replaced = '_'.join(parts[1:])
+  #           new_name = whl_file.name.replace(be_replaced, replaced)
+  #           new_whl_file = whl_file.with_name(new_name)
+  #           whl_file.rename(new_whl_file)
+  #           print(f'Renamed: {whl_file} -> {new_whl_file}')
+  #       "
+  #   - name: change macos version and x86_64
+  #     if: ${{ matrix.os == 'macos-13' || matrix.os == 'macos-latest' }}
+  #     run: |
+  #       make build
+  #       python -c "
+  #       from pathlib import Path
+  #       import subprocess
+  #       replaced = subprocess.run(['sw_vers', '-productVersion'], capture_output=True, text=True).stdout.strip().split('.', 1)[0] + '_0_x86_64'
+  #       for whl_file in Path('./dist').glob('*.whl'):
+  #         if 'universal2' in whl_file.stem:
+  #           parts = whl_file.stem.split('_')
+  #           be_replaced = '_'.join(parts[1:])
+  #           new_name = whl_file.name.replace(be_replaced, replaced)
+  #           new_whl_file = whl_file.with_name(new_name)
+  #           whl_file.rename(new_whl_file)
+  #           print(f'Renamed: {whl_file} -> {new_whl_file}')
+  #       "
+  #   - name: change macos version and arm64
+  #     if: ${{ (matrix.os != 'macos-13' || matrix['python-version'] != '3.11') && (matrix.os != 'macos-13' || matrix['python-version'] != '3.12') }}
+  #     run: |
+  #       make build
+  #       python -c "
+  #       from pathlib import Path
+  #       for whl_file in Path('./dist').glob('*.whl'):
+  #         if 'universal2' in whl_file.stem:
+  #           new_name = whl_file.name.replace('universal2', 'arm64')
+  #           new_whl_file = whl_file.with_name(new_name)
+  #           whl_file.rename(new_whl_file)
+  #           print(f'Renamed: {whl_file} -> {new_whl_file}')
+  #       "
+  #   - name: change macos version and x86_64
+  #     if: ${{ (matrix.os != 'macos-13' || matrix['python-version'] != '3.11') && (matrix.os != 'macos-13' || matrix['python-version'] != '3.12') }}
+  #     run: |
+  #       make build
+  #       python -c "
+  #       from pathlib import Path
+  #       for whl_file in Path('./dist').glob('*.whl'):
+  #         if 'universal2' in whl_file.stem:
+  #           new_name = whl_file.name.replace('universal2', 'x86_64')
+  #           new_whl_file = whl_file.with_name(new_name)
+  #           whl_file.rename(new_whl_file)
+  #           print(f'Renamed: {whl_file} -> {new_whl_file}')
+  #       "
+  #   - name: Build the project
+  #     if: ${{ (matrix.os != 'macos-13' || matrix['python-version'] != '3.11') && (matrix.os != 'macos-13' || matrix['python-version'] != '3.12') }}
+  #     run: |
+  #       make build
+  #   - name: Build and publish
+  #     env:
+  #       TWINE_USERNAME: __token__
+  #       TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}
+  #     run: |
+  #       twine check dist/*.whl
+  #       twine upload --repository-url https://test.pypi.org/legacy/ dist/*.whl --verbose
+
+  deploy_with_macos:
+    runs-on: ${{ matrix.buildplat[0] }}
     strategy:
       matrix:
-        os: [macos-13, macos-latest]
+        buildplat:
+          - [macos-13, macosx_arm64, ""]
+          - [macos-13, macosx_x86_64, ""]
+          - [macos-14, macosx_arm64, ""]
+          - [macos-14, macosx_x86_64, ""]
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
-
     steps:
-    - uses: actions/checkout@v3
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-        make dev
-    - name: Build wheel on ${{ matrix.os }}
-      run: |
-        make build
-    - name: change macos version and arm64
-      if: ${{ matrix.os == 'macos-13' || matrix.os == 'macos-latest' }}
-      run: |
-        python -c "
-        from pathlib import Path
-        import subprocess
-        replaced = subprocess.run(['sw_vers', '-productVersion'], capture_output=True, text=True).stdout.strip().split('.', 1)[0] + '_0_arm64'
-        for whl_file in Path('./dist').glob('*.whl'):
-          if 'universal2' in whl_file.stem:
-            parts = whl_file.stem.split('_')
-            be_replaced = '_'.join(parts[1:])
-            new_name = whl_file.name.replace(be_replaced, replaced)
-            new_whl_file = whl_file.with_name(new_name)
-            whl_file.rename(new_whl_file)
-            print(f'Renamed: {whl_file} -> {new_whl_file}')
-        "
-    - name: change macos version and x86_64
-      if: ${{ matrix.os == 'macos-13' || matrix.os == 'macos-latest' }}
-      run: |
-        make build
-        python -c "
-        from pathlib import Path
-        import subprocess
-        replaced = subprocess.run(['sw_vers', '-productVersion'], capture_output=True, text=True).stdout.strip().split('.', 1)[0] + '_0_x86_64'
-        for whl_file in Path('./dist').glob('*.whl'):
-          if 'universal2' in whl_file.stem:
-            parts = whl_file.stem.split('_')
-            be_replaced = '_'.join(parts[1:])
-            new_name = whl_file.name.replace(be_replaced, replaced)
-            new_whl_file = whl_file.with_name(new_name)
-            whl_file.rename(new_whl_file)
-            print(f'Renamed: {whl_file} -> {new_whl_file}')
-        "
-    - name: change macos version and arm64
-      if: ${{ (matrix.os != 'macos-13' || matrix['python-version'] != '3.11') && (matrix.os != 'macos-13' || matrix['python-version'] != '3.12') }}
-      run: |
-        make build
-        python -c "
-        from pathlib import Path
-        for whl_file in Path('./dist').glob('*.whl'):
-          if 'universal2' in whl_file.stem:
-            new_name = whl_file.name.replace('universal2', 'arm64')
-            new_whl_file = whl_file.with_name(new_name)
-            whl_file.rename(new_whl_file)
-            print(f'Renamed: {whl_file} -> {new_whl_file}')
-        "
-    - name: change macos version and x86_64
-      if: ${{ (matrix.os != 'macos-13' || matrix['python-version'] != '3.11') && (matrix.os != 'macos-13' || matrix['python-version'] != '3.12') }}
-      run: |
-        make build
-        python -c "
-        from pathlib import Path
-        for whl_file in Path('./dist').glob('*.whl'):
-          if 'universal2' in whl_file.stem:
-            new_name = whl_file.name.replace('universal2', 'x86_64')
-            new_whl_file = whl_file.with_name(new_name)
-            whl_file.rename(new_whl_file)
-            print(f'Renamed: {whl_file} -> {new_whl_file}')
-        "
-    - name: Build the project
-      if: ${{ (matrix.os != 'macos-13' || matrix['python-version'] != '3.11') && (matrix.os != 'macos-13' || matrix['python-version'] != '3.12') }}
-      run: |
-        make build
-    - name: Build and publish
-      env:
-        TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}
-      run: |
-        twine check dist/*.whl
-        twine upload --repository-url https://test.pypi.org/legacy/ dist/*.whl --verbose
+      - uses: actions/checkout@v3
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
 
   # deploy_with_manylinux:
   #   runs-on: ubuntu-latest
