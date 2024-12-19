@@ -18,7 +18,7 @@ jobs:
         # If you want to use python 3.7 in github action, then the latest macos system version is macos-13,
         # after macos-13 python 3.7 is no longer supported.
         # so we limit the macos version to macos-13.
-        os: [macos-13, macos-latest]
+        os: [windows-latest, ubuntu-20.04, ubuntu-22.04]
         # not supporting 3.6 due to annotations is not supported https://stackoverflow.com/a/52890129
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
 
@@ -32,7 +32,7 @@ jobs:
 
     - name: Qlib installation test
       run: |
-        python -m pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ pyqlib
+        python -m pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ pyqlib==0.9.5.89
 
     - name: Install Lightgbm for MacOS
       if: ${{ matrix.os == 'macos-13' || matrix.os == 'macos-latest' }}
