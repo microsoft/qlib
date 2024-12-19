@@ -120,9 +120,9 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
-      # - name: Install dependencies
-      #   run: |
-      #     make dev
+      - name: Install dependencies
+        run: |
+          make dev
       # - name: Build wheel on ${{ matrix.os }}
       #   run: |
       #     make build
