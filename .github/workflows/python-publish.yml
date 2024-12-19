@@ -109,10 +109,10 @@ jobs:
     strategy:
       matrix:
         buildplat:
-          - [macos-13, macosx_arm64, ""]
-          - [macos-13, macosx_x86_64, ""]
-          - [macos-14, macosx_arm64, ""]
-          - [macos-14, macosx_x86_64, ""]
+          - [macos-13, macosx_arm64]
+          - [macos-13, macosx_x86_64]
+          - [macos-14, macosx_arm64]
+          - [macos-14, macosx_x86_64]
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v3
@@ -120,6 +120,19 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          make dev
+      - name: Build wheel on ${{ matrix.os }}
+        run: |
+          make build
+      - name: Build and publish
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}
+        run: |
+          twine check dist/*.whl
+      
 
   # deploy_with_manylinux:
   #   runs-on: ubuntu-latest
