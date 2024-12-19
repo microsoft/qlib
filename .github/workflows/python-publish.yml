@@ -108,12 +108,14 @@ jobs:
     runs-on: ${{ matrix.buildplat[0] }}
     strategy:
       matrix:
-        buildplat:
-          - [macos-13, macosx_arm64]
-          - [macos-13, macosx_x86_64]
-          - [macos-14, macosx_arm64]
-          - [macos-14, macosx_x86_64]
+        os: [macos-13, macos-latest]
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        # buildplat:
+        #   - [macos-13, macosx_arm64]
+        #   - [macos-13, macosx_x86_64]
+        #   - [macos-14, macosx_arm64]
+        #   - [macos-14, macosx_x86_64]
+        # python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.python-version }}
