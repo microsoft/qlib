@@ -134,11 +134,11 @@ jobs:
           sys_ver_info = '${{ matrix.buildplat[0] }}'.split('-')[-1]
           replaced = f'{sys_ver_info}_0_{plat_info}'
           for whl_file in Path('./dist').glob('*.whl'):
-          if 'universal2' in whl_file.stem:
-            new_name = whl_file.name.replace(be_replaced, replaced)
-            new_whl_file = whl_file.with_name(new_name)
-            whl_file.rename(new_whl_file)
-            print(f'Renamed: {whl_file} -> {new_whl_file}')
+            if 'universal2' in whl_file.stem:
+              new_name = whl_file.name.replace(be_replaced, replaced)
+              new_whl_file = whl_file.with_name(new_name)
+              whl_file.rename(new_whl_file)
+              print(f'Renamed: {whl_file} -> {new_whl_file}')
           "
       - name: Build 2
         if: ${{ (matrix.buildplat[0] != 'macos-13' || matrix['python-version'] != '3.11') && (matrix.buildplat[0] != 'macos-13' || matrix['python-version'] != '3.12') }}
@@ -147,11 +147,11 @@ jobs:
           python -c "
           plat_info = '${{ matrix.buildplat[1] }}'.split('_')[-1]
           for whl_file in Path('./dist').glob('*.whl'):
-          if 'universal2' in whl_file.stem:
-            new_name = whl_file.name.replace('universal2', 'plat_info')
-            new_whl_file = whl_file.with_name(new_name)
-            whl_file.rename(new_whl_file)
-            print(f'Renamed: {whl_file} -> {new_whl_file}')
+            if 'universal2' in whl_file.stem:
+              new_name = whl_file.name.replace('universal2', 'plat_info')
+              new_whl_file = whl_file.with_name(new_name)
+              whl_file.rename(new_whl_file)
+              print(f'Renamed: {whl_file} -> {new_whl_file}')
           "
       - name: Build 2
         if: ${{ (matrix.buildplat[0] != 'macos-13' || matrix['python-version'] != '3.11') && (matrix.buildplat[0] != 'macos-13' || matrix['python-version'] != '3.12') }}
