@@ -136,6 +136,8 @@ jobs:
           replaced = f'{sys_ver_info}_0_{plat_info}'
           for whl_file in Path('./dist').glob('*.whl'):
             if 'universal2' in whl_file.stem:
+              parts = whl_file.stem.split('_')
+              be_replaced = '_'.join(parts[1:])
               new_name = whl_file.name.replace(be_replaced, replaced)
               new_whl_file = whl_file.with_name(new_name)
               whl_file.rename(new_whl_file)
