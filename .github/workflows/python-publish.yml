@@ -120,18 +120,24 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install dependencies
+      # - name: Install dependencies
+      #   run: |
+      #     make dev
+      # - name: Build wheel on ${{ matrix.os }}
+      #   run: |
+      #     make build
+      - name: Run python scripts
         run: |
-          make dev
-      - name: Build wheel on ${{ matrix.os }}
-        run: |
-          make build
-      - name: Build and publish
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}
-        run: |
-          twine check dist/*.whl
+          python -c "
+          a = '${{ matrix.buildplat[1] }}'
+          print(f'Value of a: {a}')
+          "
+      # - name: Build and publish
+      #   env:
+      #     TWINE_USERNAME: __token__
+      #     TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}
+      #   run: |
+      #     twine check dist/*.whl
       
 
   # deploy_with_manylinux:
