@@ -158,7 +158,9 @@ jobs:
           from pathlib import Path
           plat_info = '${{ matrix.buildplat[1] }}'.split('_', 1)[-1]
           for whl_file in Path('./dist').glob('*.whl'):
-            new_name = whl_file.name.replace('universal2', plat_info)
+            parts = whl_file.stem.split('_', 3)
+            be_replaced = parts[-1]
+            new_name = whl_file.name.replace(be_replaced, plat_info)
             new_whl_file = whl_file.with_name(new_name)
             whl_file.rename(new_whl_file)
             print(f'Renamed: {whl_file} -> {new_whl_file}')
