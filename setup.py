@@ -37,5 +37,5 @@ setup(
             language="c++",
             include_dirs=[NUMPY_INCLUDE],
         ),
-    ]
+    ],
 )
