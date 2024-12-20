@@ -3,16 +3,22 @@
 
 name: Upload Python Package
 
+# on:
+#   release:
+#     types: [published]
+
 on:
-  release:
-    types: [published]
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
   deploy_with_bdist_wheel:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest, macos-13, macos-latest]
+        os: [windows-latest, macos-13, macos-latest, macos-15]
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
         exclude:
           - os: macos-13
@@ -39,7 +45,6 @@ jobs:
       run: |
         ls dist
         twine check dist/*.whl
-        twine upload --repository-url https://test.pypi.org/legacy/ dist/*.whl --verbose
 
   deploy_with_manylinux:
     runs-on: ubuntu-latest
@@ -66,5 +71,5 @@ jobs:
       run: |
         ls dist
         twine check dist/*.whl
-        twine upload --repository-url https://test.pypi.org/legacy/ dist/pyqlib-*-manylinux*.whl --verbose
+        
 
