@@ -4,10 +4,8 @@
 name: Upload Python Package
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  release:
+    types: [published]
 
 jobs:
   deploy_with_bdist_wheel:
