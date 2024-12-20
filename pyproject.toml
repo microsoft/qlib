@@ -21,6 +21,7 @@ name = "pyqlib"
 dynamic = ["version"]
 description = "A Quantitative-research Platform"
 requires-python = ">=3.8.0"
+readme = {file = "README.md", content-type = "text/markdown"}
 
 dependencies = [
   "pyyaml",
