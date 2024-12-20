@@ -4,203 +4,69 @@
 name: Upload Python Package
 
 on:
-  release:
-    types: [published]
-
-# on:
-#   push:
-#     branches: [ main ]
-#   pull_request:
-#     branches: [ main ]
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
-  # deploy_with_windows:
-  #   runs-on: ${{ matrix.os }}
-  #   strategy:
-  #     matrix:
-  #       os: [windows-latest, macos-13, macos-latest]
-  #       python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
-
-  #   steps:
-  #   - uses: actions/checkout@v3
-  #   - name: Set up Python ${{ matrix.python-version }}
-  #     uses: actions/setup-python@v4
-  #     with:
-  #       python-version: ${{ matrix.python-version }}
-  #   - name: Install dependencies
-  #     run: |
-  #       make dev
-  #   - name: Build wheel on ${{ matrix.os }}
-  #     run: |
-  #       make build
-  #   - name: change macos version and arm64
-  #     if: ${{ matrix.os == 'macos-13' || matrix.os == 'macos-latest' }}
-  #     run: |
-  #       python -c "
-  #       from pathlib import Path
-  #       import subprocess
-  #       replaced = subprocess.run(['sw_vers', '-productVersion'], capture_output=True, text=True).stdout.strip().split('.', 1)[0] + '_0_arm64'
-  #       for whl_file in Path('./dist').glob('*.whl'):
-  #         if 'universal2' in whl_file.stem:
-  #           parts = whl_file.stem.split('_')
-  #           be_replaced = '_'.join(parts[1:])
-  #           new_name = whl_file.name.replace(be_replaced, replaced)
-  #           new_whl_file = whl_file.with_name(new_name)
-  #           whl_file.rename(new_whl_file)
-  #           print(f'Renamed: {whl_file} -> {new_whl_file}')
-  #       "
-  #   - name: change macos version and x86_64
-  #     if: ${{ matrix.os == 'macos-13' || matrix.os == 'macos-latest' }}
-  #     run: |
-  #       make build
-  #       python -c "
-  #       from pathlib import Path
-  #       import subprocess
-  #       replaced = subprocess.run(['sw_vers', '-productVersion'], capture_output=True, text=True).stdout.strip().split('.', 1)[0] + '_0_x86_64'
-  #       for whl_file in Path('./dist').glob('*.whl'):
-  #         if 'universal2' in whl_file.stem:
-  #           parts = whl_file.stem.split('_')
-  #           be_replaced = '_'.join(parts[1:])
-  #           new_name = whl_file.name.replace(be_replaced, replaced)
-  #           new_whl_file = whl_file.with_name(new_name)
-  #           whl_file.rename(new_whl_file)
-  #           print(f'Renamed: {whl_file} -> {new_whl_file}')
-  #       "
-  #   - name: change macos version and arm64
-  #     if: ${{ (matrix.os != 'macos-13' || matrix['python-version'] != '3.11') && (matrix.os != 'macos-13' || matrix['python-version'] != '3.12') }}
-  #     run: |
-  #       make build
-  #       python -c "
-  #       from pathlib import Path
-  #       for whl_file in Path('./dist').glob('*.whl'):
-  #         if 'universal2' in whl_file.stem:
-  #           new_name = whl_file.name.replace('universal2', 'arm64')
-  #           new_whl_file = whl_file.with_name(new_name)
-  #           whl_file.rename(new_whl_file)
-  #           print(f'Renamed: {whl_file} -> {new_whl_file}')
-  #       "
-  #   - name: change macos version and x86_64
-  #     if: ${{ (matrix.os != 'macos-13' || matrix['python-version'] != '3.11') && (matrix.os != 'macos-13' || matrix['python-version'] != '3.12') }}
-  #     run: |
-  #       make build
-  #       python -c "
-  #       from pathlib import Path
-  #       for whl_file in Path('./dist').glob('*.whl'):
-  #         if 'universal2' in whl_file.stem:
-  #           new_name = whl_file.name.replace('universal2', 'x86_64')
-  #           new_whl_file = whl_file.with_name(new_name)
-  #           whl_file.rename(new_whl_file)
-  #           print(f'Renamed: {whl_file} -> {new_whl_file}')
-  #       "
-  #   - name: Build the project
-  #     if: ${{ (matrix.os != 'macos-13' || matrix['python-version'] != '3.11') && (matrix.os != 'macos-13' || matrix['python-version'] != '3.12') }}
-  #     run: |
-  #       make build
-  #   - name: Build and publish
-  #     env:
-  #       TWINE_USERNAME: __token__
-  #       TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}
-  #     run: |
-  #       twine check dist/*.whl
-  #       twine upload --repository-url https://test.pypi.org/legacy/ dist/*.whl --verbose
-
-  deploy_with_macos:
+  deploy_with_bdist_wheel:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-13, macos-latest]
+        os: [windows-latest, macos-13, macos-latest]
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        exclude:
+          - os: macos-13
+            python-version: "3.11"
+          - os: macos-13
+            python-version: "3.12"
 
     steps:
-      - uses: actions/checkout@v3
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Install dependencies
-        run: |
-          make dev
-      # - name: Build wheel on ${{ matrix.os }}
-      #   run: |
-      #     make build
-      - name: Build 1
-        if: ${{ (matrix.os != 'macos-13' || matrix['python-version'] != '3.11') && (matrix.os != 'macos-13' || matrix['python-version'] != '3.12') }}
-        run: |
-          python setup.py bdist_wheel
-      # - name: Rename 1
-      #   run: |
-      #     python -c "
-      #     from pathlib import Path
-      #     plat_info = '${{ matrix.buildplat[1] }}'.split('_', 1)[-1]
-      #     sys_ver_info = '${{ matrix.buildplat[0] }}'.split('-')[-1]
-      #     replaced = f'{sys_ver_info}_0_{plat_info}'
-      #     print(replaced)
-      #     for whl_file in Path('./dist').glob('*.whl'):
-      #       parts = whl_file.stem.split('_')
-      #       print(parts)
-      #       be_replaced = '_'.join(parts[1:])
-      #       print(be_replaced)
-      #       new_name = whl_file.name.replace(be_replaced, replaced)
-      #       print(new_name)
-      #       new_whl_file = whl_file.with_name(new_name)
-      #       print(new_whl_file)
-      #       whl_file.rename(new_whl_file)
-      #       print(f'Renamed: {whl_file} -> {new_whl_file}')
-      #     "
-      # - name: Build 2
-      #   if: ${{ (matrix.buildplat[0] != 'macos-13' || matrix['python-version'] != '3.11') && (matrix.buildplat[0] != 'macos-13' || matrix['python-version'] != '3.12') }}
-      #   run: |
-      #     make build
-      # - name: Rename 2
-      #   if: ${{ (matrix.buildplat[0] != 'macos-13' || matrix['python-version'] != '3.11') && (matrix.buildplat[0] != 'macos-13' || matrix['python-version'] != '3.12') }}
-      #   run: |
-      #     python -c "
-      #     from pathlib import Path
-      #     plat_info = '${{ matrix.buildplat[1] }}'.split('_', 1)[-1]
-      #     for whl_file in Path('./dist').glob('*.whl'):
-      #       parts = whl_file.stem.split('_', 3)
-      #       be_replaced = parts[-1]
-      #       new_name = whl_file.name.replace(be_replaced, plat_info)
-      #       new_whl_file = whl_file.with_name(new_name)
-      #       whl_file.rename(new_whl_file)
-      #       print(f'Renamed: {whl_file} -> {new_whl_file}')
-      #     "
-      # - name: Build 3
-      #   run: |
-      #     make build
-      - name: Build and publish
-        if: ${{ (matrix.os != 'macos-13' || matrix['python-version'] != '3.11') && (matrix.os != 'macos-13' || matrix['python-version'] != '3.12') }}
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}
-        run: |
-          twine check dist/*.whl
-          twine upload --repository-url https://test.pypi.org/legacy/ dist/*.whl --verbose
-      
+    - uses: actions/checkout@v3
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        make dev
+    - name: Build wheel on ${{ matrix.os }}
+      run: |
+        make build
+    - name: Build and publish
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}
+      run: |
+        ls dist
+        twine check dist/*.whl
+        twine upload --repository-url https://test.pypi.org/legacy/ dist/*.whl --verbose
 
-  # deploy_with_manylinux:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #   - uses: actions/checkout@v3
-  #   - name: Set up Python ${{ matrix.python-version }}
-  #     uses: actions/setup-python@v4
-  #     with:
-  #       python-version: ${{ matrix.python-version }}
-  #   - name: Build wheel on Linux
-  #     uses: RalfG/python-wheels-manylinux-build@v0.7.1-manylinux2014_x86_64
-  #     with:
-  #       # not supporting 3.6 due to annotations is not supported https://stackoverflow.com/a/52890129
-  #       python-versions: 'cp38-cp38 cp39-cp39 cp310-cp310 cp311-cp311 cp312-cp312'
-  #       build-requirements: 'numpy cython'
-  #   - name: Install dependencies
-  #     run: |
-  #       python -m pip install twine
-  #       python -m pip list
-  #   - name: Build and publish
-  #     env:
-  #       TWINE_USERNAME: __token__
-  #       TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}
-  #     run: |
-  #       ls dist
-  #       twine check dist/*.whl
-  #       twine upload --repository-url https://test.pypi.org/legacy/ dist/pyqlib-*-manylinux*.whl --verbose
+  deploy_with_manylinux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Build wheel on Linux
+      uses: RalfG/python-wheels-manylinux-build@v0.7.1-manylinux2014_x86_64
+      with:
+        # not supporting 3.6 due to annotations is not supported https://stackoverflow.com/a/52890129
+        python-versions: 'cp38-cp38 cp39-cp39 cp310-cp310 cp311-cp311 cp312-cp312'
+        build-requirements: 'numpy cython'
+    - name: Install dependencies
+      run: |
+        python -m pip install twine
+        python -m pip list
+    - name: Build and publish
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}
+      run: |
+        ls dist
+        twine check dist/*.whl
+        twine upload --repository-url https://test.pypi.org/legacy/ dist/pyqlib-*-manylinux*.whl --verbose
+

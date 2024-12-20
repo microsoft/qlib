@@ -18,7 +18,6 @@ classifiers = [
   "Programming Language :: Python :: 3.12",
 ]
 name = "pyqlib"
-license = {text = "MIT License"}
 dynamic = ["version"]
 description = "A Quantitative-research Platform"
 requires-python = ">=3.8.0"
