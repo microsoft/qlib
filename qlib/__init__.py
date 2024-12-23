@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 from pathlib import Path
 
-__version__ = "0.9.5.99"
+__version__ = "0.9.6"
 __version__bak = __version__  # This version is backup for QlibConfig.reset_qlib_version
 import os
 from typing import Union
