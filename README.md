@@ -155,15 +155,16 @@ Here is a quick **[demo](https://terminalizer.com/view/3f24561a4470)** shows how
 This table demonstrates the supported Python version of `Qlib`:
 |               | install with pip      | install from source  |        plot        |
 | ------------- |:---------------------:|:--------------------:|:------------------:|
-| Python 3.7    | :heavy_check_mark:    | :heavy_check_mark:   | :heavy_check_mark: |
 | Python 3.8    | :heavy_check_mark:    | :heavy_check_mark:   | :heavy_check_mark: |
-| Python 3.9    | :x:                   | :heavy_check_mark:   | :x:                |
+| Python 3.9    | :heavy_check_mark:    | :heavy_check_mark:   | :heavy_check_mark: |
+| Python 3.10   | :heavy_check_mark:    | :heavy_check_mark:   | :heavy_check_mark: |
+| Python 3.11   | :heavy_check_mark:    | :heavy_check_mark:   | :heavy_check_mark: |
+| Python 3.12   | :heavy_check_mark:    | :heavy_check_mark:   | :heavy_check_mark: |
 
 **Note**: 
 1. **Conda** is suggested for managing your Python environment. In some cases, using Python outside of a `conda` environment may result in missing header files, causing the installation failure of certain packages.
-1. Please pay attention that installing cython in Python 3.6 will raise some error when installing ``Qlib`` from source. If users use Python 3.6 on their machines, it is recommended to *upgrade* Python to version 3.7 or use `conda`'s Python to install ``Qlib`` from source.
-1. For Python 3.9, `Qlib` supports running workflows such as training models, doing backtest and plot most of the related figures (those included in [notebook](examples/workflow_by_code.ipynb)). However, plotting for the *model performance* is not supported for now and we will fix this when the dependent packages are upgraded in the future.
-1. `Qlib`Requires `tables` package, `hdf5` in tables does not support python3.9. 
+2. Please pay attention that installing cython in Python 3.6 will raise some error when installing ``Qlib`` from source. If users use Python 3.6 on their machines, it is recommended to *upgrade* Python to version 3.8 or higher, or use `conda`'s Python to install ``Qlib`` from source.
+3. For Python 3.9, `Qlib` supports running workflows such as training models, doing backtest and plot most of the related figures (those included in [notebook](examples/workflow_by_code.ipynb)). However, plotting for the *model performance* is not supported for now and we will fix this when the dependent packages are upgraded in the future.
 
 ### Install with pip
 Users can easily install ``Qlib`` by pip according to the following command.
@@ -181,7 +182,7 @@ Also, users can install the latest dev version ``Qlib`` by the source code accor
 
   ```bash
   pip install numpy
-  pip install --upgrade  cython
+  pip install --upgrade cython
   ```
 
 * Clone the repository and install ``Qlib`` as follows.
@@ -189,7 +190,6 @@ Also, users can install the latest dev version ``Qlib`` by the source code accor
     git clone https://github.com/microsoft/qlib.git && cd qlib
     pip install .  # `pip install -e .[dev]` is recommended for development. check details in docs/developer/code_standard_and_dev_guide.rst
     ```
-  **Note**:  You can install Qlib with `python setup.py install` as well. But it is not the recommended approach. It will skip `pip` and cause obscure problems. For example, **only** the command ``pip install .`` **can** overwrite the stable version installed by ``pip install pyqlib``, while the command ``python setup.py install`` **can't**.
 
 **Tips**: If you fail to install `Qlib` or run the examples in your environment,  comparing your steps and the [CI workflow](.github/workflows/test_qlib_from_source.yml) may help you find the problem.
 

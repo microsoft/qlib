@@ -34,7 +34,7 @@ jobs:
 
     - name: Qlib installation test
       run: |
-        python -m pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ pyqlib==0.9.5.80
+        python -m pip install pyqlib
 
     - name: Install Lightgbm for MacOS
       if: ${{ matrix.os == 'macos-13' || matrix.os == 'macos-14' || matrix.os == 'macos-15' }}
