@@ -328,7 +328,7 @@ class SBBStrategyEMA(SBBStrategyBase):
             self.instruments = "all"
         if isinstance(instruments, str):
             self.instruments = D.instruments(instruments)
-        if isinstance(instruments, List):
+        elif isinstance(instruments, List):
             self.instruments = instruments
         self.freq = freq
         super(SBBStrategyEMA, self).__init__(
