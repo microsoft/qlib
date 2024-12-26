@@ -326,7 +326,7 @@ class SBBStrategyEMA(SBBStrategyBase):
         if instruments is None:
             warnings.warn("`instruments` is not set, will load all stocks")
             self.instruments = "all"
-        if isinstance(instruments, str):
+        elif isinstance(instruments, str):
             self.instruments = D.instruments(instruments)
         elif isinstance(instruments, List):
             self.instruments = instruments
