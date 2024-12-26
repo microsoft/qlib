@@ -12,6 +12,12 @@ PUBLIC_DIR := $(shell [ "$$READTHEDOCS" = "True" ] && echo "$$READTHEDOCS_OUTPUT
 SO_DIR := qlib/data/_libs
 SO_FILES := $(wildcard $(SO_DIR)/*.so)
 
+ifeq ($(OS),Windows_NT)
+    IS_WINDOWS = true
+else
+    IS_WINDOWS = false
+endif
+
 ########################################################################################
 # Development Environment Management
 ########################################################################################
@@ -48,6 +54,10 @@ deepclean: clean
 # What this code does is compile two Cython modules, rolling and expanding, using setuptools and Cython,
 # and builds them as binary expansion modules that can be imported directly into Python.
 # Since pyproject.toml can't do that, we compile it here.
+
+# pywinpty as a dependency of jupyter on windows, if you use pip install pywinpty installation,
+# will first download the tar.gz file, and then locally compiled and installed,
+# this will lead to some unnecessary trouble, so we choose to install the compiled whl file, to avoid trouble.
 prerequisite:
 	@if [ -n "$(SO_FILES)" ]; then \
 		echo "Shared library files exist, skipping build."; \
@@ -56,6 +66,10 @@ prerequisite:
 		pip install --upgrade setuptools wheel; \
 		python -m pip install cython numpy; \
 		python -c "from setuptools import setup, Extension; from Cython.Build import cythonize; import numpy; extensions = [Extension('qlib.data._libs.rolling', ['qlib/data/_libs/rolling.pyx'], language='c++', include_dirs=[numpy.get_include()]), Extension('qlib.data._libs.expanding', ['qlib/data/_libs/expanding.pyx'], language='c++', include_dirs=[numpy.get_include()])]; setup(ext_modules=cythonize(extensions, language_level='3'), script_args=['build_ext', '--inplace'])"; \
+	fi
+
+	@if [ "$(IS_WINDOWS)" = "true" ]; then \
+		python -m pip install pywinpty --only-binary=:all:; \
 	fi
 
 # Install the package in editable mode.
@@ -87,7 +101,7 @@ analysis:
 	python -m pip install -e .[analysis]
 
 all:
-	python -m pip install -e .[dev,lint,docs,package,test,analysis,rl]
+	python -m pip install -e .[pywinpty,dev,lint,docs,package,test,analysis,rl]
 
 install: prerequisite dependencies
 
