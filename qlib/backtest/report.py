@@ -427,6 +427,10 @@ class Indicator:
         # NOTE ~(price_s < 1e-08) is different from price_s >= 1e-8
         #   ~(np.nan < 1e-8) -> ~(False)  -> True
 
+        # if price_s is empty
+        if price_s.empty:
+            return None, None
+
         assert isinstance(price_s, idd.SingleData)
         if agg == "vwap":
             volume_s = trade_exchange.get_volume(inst, trade_start_time, trade_end_time, method=None)
