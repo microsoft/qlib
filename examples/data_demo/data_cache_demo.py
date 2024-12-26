@@ -9,8 +9,8 @@ from copy import deepcopy
 from pathlib import Path
 import pickle
 from pprint import pprint
+from ruamel.yaml import YAML
 import subprocess
-import yaml
 from qlib.log import TimeInspector
 
 from qlib import init
@@ -30,7 +30,8 @@ if __name__ == "__main__":
         subprocess.run(f"qrun {config_path}", shell=True)
 
     # 2) dump handler
-    task_config = yaml.safe_load(config_path.open())
+    yaml = YAML(typ="safe", pure=True)
+    task_config = yaml.load(config_path.open())
     hd_conf = task_config["task"]["dataset"]["kwargs"]["handler"]
     pprint(hd_conf)
     hd: DataHandlerLP = init_instance_by_config(hd_conf)

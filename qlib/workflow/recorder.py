@@ -9,6 +9,7 @@ import shutil
 import pickle
 import tempfile
 import subprocess
+import platform
 from pathlib import Path
 from datetime import datetime
 
@@ -316,7 +317,10 @@ class MLflowRecorder(Recorder):
         This function will return the directory path of this recorder.
         """
         if self.artifact_uri is not None:
-            local_dir_path = Path(self.artifact_uri.lstrip("file:")) / ".."
+            if platform.system() == "Windows":
+                local_dir_path = Path(self.artifact_uri.lstrip("file:").lstrip("/")).parent
+            else:
+                local_dir_path = Path(self.artifact_uri.lstrip("file:")).parent
             local_dir_path = str(local_dir_path.resolve())
             if os.path.isdir(local_dir_path):
                 return local_dir_path

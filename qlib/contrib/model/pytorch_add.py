@@ -63,7 +63,7 @@ class ADD(Model):
         mu=0.05,
         GPU=0,
         seed=None,
-        **kwargs
+        **kwargs,
     ):
         # Set logger.
         self.logger = get_module_logger("ADD")

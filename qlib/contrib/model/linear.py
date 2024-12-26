@@ -63,6 +63,7 @@ class LinearModel(Model):
                 df_train = pd.concat([df_train, df_valid])
             except KeyError:
                 get_module_logger("LinearModel").info("include_valid=True, but valid does not exist")
+        df_train = df_train.dropna()
         if df_train.empty:
             raise ValueError("Empty data from dataset, please check your dataset config.")
         if reweighter is not None:

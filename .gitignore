@@ -49,3 +49,4 @@ tags
 
 ./pretrain
 .idea/
+.aider*

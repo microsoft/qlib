@@ -61,6 +61,7 @@ Document Structure
    :caption: FOR DEVELOPERS:
 
    Code Standard & Development Guidance <developer/code_standard_and_dev_guide.rst>
+   How to build image <developer/how_to_build_image.rst>
 
 .. toctree::
    :maxdepth: 3

@@ -1,18 +1,20 @@
 #  Copyright (c) Microsoft Corporation.
 #  Licensed under the MIT License.
 import logging
-import sys
 import os
 from pathlib import Path
+import sys
+
+import fire
+from jinja2 import Template, meta
+from ruamel.yaml import YAML
 
 import qlib
-import fire
-import ruamel.yaml as yaml
 from qlib.config import C
-from qlib.model.trainer import task_train
-from qlib.utils.data import update_config
 from qlib.log import get_module_logger
+from qlib.model.trainer import task_train
 from qlib.utils import set_log_with_config
+from qlib.utils.data import update_config
 
 set_log_with_config(C.logging_config)
 logger = get_module_logger("qrun", logging.INFO)
@@ -47,6 +49,39 @@ def sys_config(config, config_path):
         sys.path.append(str(Path(config_path).parent.resolve().absolute() / p))
 
 
+def render_template(config_path: str) -> str:
+    """
+    render the template based on the environment
+
+    Parameters
+    ----------
+    config_path : str
+        configuration path
+
+    Returns
+    -------
+    str
+        the rendered content
+    """
+    with open(config_path, "r") as f:
+        config = f.read()
+    # Set up the Jinja2 environment
+    template = Template(config)
+
+    # Parse the template to find undeclared variables
+    env = template.environment
+    parsed_content = env.parse(config)
+    variables = meta.find_undeclared_variables(parsed_content)
+
+    # Get context from os.environ according to the variables
+    context = {var: os.getenv(var, "") for var in variables if var in os.environ}
+    logger.info(f"Render the template with the context: {context}")
+
+    # Render the template with the context
+    rendered_content = template.render(context)
+    return rendered_content
+
+
 # workflow handler function
 def workflow(config_path, experiment_name="workflow", uri_folder="mlruns"):
     """
@@ -67,8 +102,10 @@ def workflow(config_path, experiment_name="workflow", uri_folder="mlruns"):
         market: csi300
 
     """
-    with open(config_path) as fp:
-        config = yaml.safe_load(fp)
+    # Render the template
+    rendered_yaml = render_template(config_path)
+    yaml = YAML(typ="safe", pure=True)
+    config = yaml.load(rendered_yaml)
 
     base_config_path = config.get("BASE_CONFIG_PATH", None)
     if base_config_path:
@@ -90,7 +127,8 @@ def workflow(config_path, experiment_name="workflow", uri_folder="mlruns"):
                 raise FileNotFoundError(f"Can't find the BASE_CONFIG file: {base_config_path}")
 
         with open(path) as fp:
-            base_config = yaml.safe_load(fp)
+            yaml = YAML(typ="safe", pure=True)
+            base_config = yaml.load(fp)
         logger.info(f"Load BASE_CONFIG_PATH succeed: {path.resolve()}")
         config = update_config(base_config, config)
 

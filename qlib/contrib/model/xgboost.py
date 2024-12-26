@@ -28,7 +28,7 @@ class XGBModel(Model, FeatureInt):
         verbose_eval=20,
         evals_result=dict(),
         reweighter=None,
-        **kwargs
+        **kwargs,
     ):
         df_train, df_valid = dataset.prepare(
             ["train", "valid"],
@@ -63,7 +63,7 @@ class XGBModel(Model, FeatureInt):
             early_stopping_rounds=early_stopping_rounds,
             verbose_eval=verbose_eval,
             evals_result=evals_result,
-            **kwargs
+            **kwargs,
         )
         evals_result["train"] = list(evals_result["train"].values())[0]
         evals_result["valid"] = list(evals_result["valid"].values())[0]
