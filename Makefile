@@ -12,6 +12,12 @@ PUBLIC_DIR := $(shell [ "$$READTHEDOCS" = "True" ] && echo "$$READTHEDOCS_OUTPUT
 SO_DIR := qlib/data/_libs
 SO_FILES := $(wildcard $(SO_DIR)/*.so)
 
+ifeq ($(OS),Windows_NT)
+    IS_WINDOWS = true
+else
+    IS_WINDOWS = false
+endif
+
 ########################################################################################
 # Development Environment Management
 ########################################################################################
@@ -61,6 +67,14 @@ prerequisite:
 # Install the package in editable mode.
 dependencies:
 	python -m pip install -e .
+
+# pywinpty as a dependency of jupyter on windows, if you use pip install pywinpty installation,
+# will first download the tar.gz file, and then locally compiled and installed,
+# this will lead to some unnecessary trouble, so we choose to install the compiled whl file, to avoid trouble.
+pywinpt:
+	ifeq ($(IS_WINDOWS),true)
+		python -m pip install pywinpty --only-binary=:all:
+	endif
 
 lightgbm:
 	python -m pip install lightgbm --prefer-binary

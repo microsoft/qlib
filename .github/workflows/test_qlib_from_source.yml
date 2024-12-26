@@ -47,7 +47,6 @@ jobs:
       if: ${{ matrix.os == 'windows-latest' }}
       run: |
         python -m pip install torch torchvision torchaudio
-        python -m pip install pywinpty --only-binary=:all:
 
     - name: Set up Python tools
       run: |
