@@ -196,7 +196,7 @@ Also, users can install the latest dev version ``Qlib`` by the source code accor
 
 ## Data Preparation
 ❗ Due to more restrict data security policy. The offical dataset is disabled temporarily. You can try [this data source](https://github.com/chenditc/investment_data/releases) contributed by the community.
-Here is an example to download the data updated on 20240809.
+Here is an example to download the latest data.
 ```bash
 wget https://github.com/chenditc/investment_data/releases/latest/download/qlib_bin.tar.gz
 mkdir -p ~/.qlib/qlib_data/cn_data
