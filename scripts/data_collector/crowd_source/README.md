@@ -16,7 +16,7 @@ The packaged docker runtime is hosted on dockerhub: https://hub.docker.com/repos
 
 ## How to use it in qlib
 ### Option 1: Download release bin data
-User can download data in qlib bin format and use it directly: https://github.com/chenditc/investment_data/releases/tag/20220720
+User can download data in qlib bin format and use it directly: https://github.com/chenditc/investment_data/releases/latest
 ```bash
 wget https://github.com/chenditc/investment_data/releases/latest/download/qlib_bin.tar.gz
 tar -zxvf qlib_bin.tar.gz -C ~/.qlib/qlib_data/cn_data --strip-components=2
