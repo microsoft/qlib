@@ -25,7 +25,7 @@ The design of the framework is shown in the yellow part in the middle of the fig
 
 The frequency of the trading algorithm, decision content and execution environment can be customized by users (e.g. intraday trading, daily-frequency trading, weekly-frequency trading), and the execution environment can be nested with finer-grained trading algorithm and execution environment inside (i.e. sub-workflow in the figure, e.g. daily-frequency orders can be turned into finer-grained decisions by splitting orders within the day). The flexibility of the nested decision execution framework makes it easy for users to explore the effects of combining different levels of trading strategies and break down the optimization barriers between different levels of the trading algorithm.
 
-The optimization for the nested decision execution framework can be implemented with the support of `QlibRL <../rl/overall.html>`_. To know more about how to use the QlibRL, go to API Reference: `RL API <../reference/api.html#rl>`_. 
+The optimization for the nested decision execution framework can be implemented with the support of `QlibRL <./rl/overall.html>`_. To know more about how to use the QlibRL, go to API Reference: `RL API <../reference/api.html#rl>`_. 
 
 Example
 =======
