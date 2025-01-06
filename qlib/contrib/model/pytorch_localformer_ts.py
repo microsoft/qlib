@@ -42,7 +42,7 @@ class LocalformerModel(Model):
         n_jobs=10,
         GPU=0,
         seed=None,
-        **kwargs
+        **kwargs,
     ):
         # set hyper-parameters.
         self.d_model = d_model

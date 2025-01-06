@@ -36,7 +36,7 @@ Name                         Description
                              the training process of models which enable algorithms controlling the
                              training process.
 
-`Learning Framework` layer   The `Forecast Model` and `Trading Agent` are learnable. They are learned
+`Learning Framework` layer   The `Forecast Model` and `Trading Agent` are trainable. They are trained
                              based on the `Learning Framework` layer and then applied to multiple scenarios
                              in `Workflow` layer. The supported learning paradigms can be categorized into
                              reinforcement learning and supervised learning.  The learning framework
@@ -51,7 +51,7 @@ Name                         Description
                              modules.  With these signals `Decision Generator` will generate the target
                              trading decisions(i.e. portfolio, orders)
                              If RL-based Strategies are adopted, the `Policy` is learned in a end-to-end way,
-                             the trading deicsions are generated directly.
+                             the trading decisions are generated directly.
                              Decisions will be executed by `Execution Env`
                              (i.e. the trading market).  There may be multiple levels of `Strategy`
                              and `Executor` (e.g. an *order executor trading strategy and intraday order executor*

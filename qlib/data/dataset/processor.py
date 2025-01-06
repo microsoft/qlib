@@ -318,9 +318,13 @@ class CSZScoreNorm(Processor):
         # try not modify original dataframe
         if not isinstance(self.fields_group, list):
             self.fields_group = [self.fields_group]
-        for g in self.fields_group:
-            cols = get_group_columns(df, g)
-            df[cols] = df[cols].groupby("datetime", group_keys=False).apply(self.zscore_func)
+        # depress warning by references:
+        # https://stackoverflow.com/questions/20625582/how-to-deal-with-settingwithcopywarning-in-pandas
+        # https://pandas.pydata.org/pandas-docs/stable/user_guide/options.html#getting-and-setting-options
+        with pd.option_context("mode.chained_assignment", None):
+            for g in self.fields_group:
+                cols = get_group_columns(df, g)
+                df[cols] = df[cols].groupby("datetime", group_keys=False).apply(self.zscore_func)
         return df
 
 

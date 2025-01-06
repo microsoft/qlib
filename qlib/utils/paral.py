@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+import threading
 from functools import partial
 from threading import Thread
 from typing import Callable, Text, Union
@@ -9,7 +10,7 @@ from joblib import Parallel, delayed
 from joblib._parallel_backends import MultiprocessingBackend
 import pandas as pd
 
-from queue import Queue
+from queue import Empty, Queue
 import concurrent
 
 from qlib.config import C, QlibConfig
@@ -85,7 +86,17 @@ class AsyncCaller:
 
     def run(self):
         while True:
-            data = self._q.get()
+            # NOTE:
+            # atexit will only trigger when all the threads ended. So it may results in deadlock.
+            # So the child-threading should actively watch the status of main threading to stop itself.
+            main_thread = threading.main_thread()
+            if not main_thread.is_alive():
+                break
+            try:
+                data = self._q.get(timeout=1)
+            except Empty:
+                # NOTE: avoid deadlock. make checking main thread possible
+                continue
             if data == self.STOP_MARK:
                 break
             data()

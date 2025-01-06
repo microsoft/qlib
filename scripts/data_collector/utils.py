@@ -2,6 +2,7 @@
 #  Licensed under the MIT License.
 
 import re
+import copy
 import importlib
 import time
 import bisect
@@ -14,7 +15,6 @@ from typing import Iterable, Tuple, List
 
 import numpy as np
 import pandas as pd
-from lxml import etree
 from loguru import logger
 from yahooquery import Ticker
 from tqdm import tqdm
@@ -68,7 +68,7 @@ def get_calendar_list(bench_code="CSI300") -> List[pd.Timestamp]:
     logger.info(f"get calendar list: {bench_code}......")
 
     def _get_calendar(url):
-        _value_list = requests.get(url).json()["data"]["klines"]
+        _value_list = requests.get(url, timeout=None).json()["data"]["klines"]
         return sorted(map(lambda x: pd.Timestamp(x.split(",")[0]), _value_list))
 
     calendar = _CALENDAR_MAP.get(bench_code, None)
@@ -85,12 +85,14 @@ def get_calendar_list(bench_code="CSI300") -> List[pd.Timestamp]:
                 def _get_calendar(month):
                     _cal = []
                     try:
-                        resp = requests.get(SZSE_CALENDAR_URL.format(month=month, random=random.random)).json()
+                        resp = requests.get(
+                            SZSE_CALENDAR_URL.format(month=month, random=random.random), timeout=None
+                        ).json()
                         for _r in resp["data"]:
                             if int(_r["jybz"]):
                                 _cal.append(pd.Timestamp(_r["jyrq"]))
                     except Exception as e:
-                        raise ValueError(f"{month}-->{e}")
+                        raise ValueError(f"{month}-->{e}") from e
                     return _cal
 
                 month_range = pd.date_range(start="2000-01", end=pd.Timestamp.now() + pd.Timedelta(days=31), freq="M")
@@ -109,7 +111,7 @@ def get_calendar_list(bench_code="CSI300") -> List[pd.Timestamp]:
 
 def return_date_list(date_field_name: str, file_path: Path):
     date_list = pd.read_csv(file_path, sep=",", index_col=0)[date_field_name].to_list()
-    return sorted(map(lambda x: pd.Timestamp(x), date_list))
+    return sorted([pd.Timestamp(x) for x in date_list])
 
 
 def get_calendar_list_by_ratio(
@@ -155,7 +157,7 @@ def get_calendar_list_by_ratio(
                 if date_list:
                     all_oldest_list.append(date_list[0])
                 for date in date_list:
-                    if date not in _dict_count_trade.keys():
+                    if date not in _dict_count_trade:
                         _dict_count_trade[date] = 0
 
                     _dict_count_trade[date] += 1
@@ -163,7 +165,7 @@ def get_calendar_list_by_ratio(
                 p_bar.update()
 
     logger.info(f"count how many funds have founded in this day......")
-    _dict_count_founding = {date: _number_all_funds for date in _dict_count_trade.keys()}  # dict{date:count}
+    _dict_count_founding = {date: _number_all_funds for date in _dict_count_trade}  # dict{date:count}
     with tqdm(total=_number_all_funds) as p_bar:
         for oldest_date in all_oldest_list:
             for date in _dict_count_founding.keys():
@@ -171,9 +173,7 @@ def get_calendar_list_by_ratio(
                     _dict_count_founding[date] -= 1
 
     calendar = [
-        date
-        for date in _dict_count_trade
-        if _dict_count_trade[date] >= max(int(_dict_count_founding[date] * threshold), minimum_count)
+        date for date, count in _dict_count_trade.items() if count >= max(int(count * threshold), minimum_count)
     ]
 
     return calendar
@@ -186,20 +186,46 @@ def get_hs_stock_symbols() -> list:
     -------
         stock symbols
     """
-    global _HS_SYMBOLS
+    global _HS_SYMBOLS  # pylint: disable=W0603
 
     def _get_symbol():
-        _res = set()
-        for _k, _v in (("ha", "ss"), ("sa", "sz"), ("gem", "sz")):
-            resp = requests.get(HS_SYMBOLS_URL.format(s_type=_k))
-            _res |= set(
-                map(
-                    lambda x: "{}.{}".format(re.findall(r"\d+", x)[0], _v),
-                    etree.HTML(resp.text).xpath("//div[@class='result']/ul//li/a/text()"),
-                )
-            )
-            time.sleep(3)
-        return _res
+        """
+        Get the stock pool from a web page and process it into the format required by yahooquery.
+        Format of data retrieved from the web page: 600519, 000001
+        The data format required by yahooquery: 600519.ss, 000001.sz
+
+        Returns
+        -------
+            set: Returns the set of symbol codes.
+
+        Examples:
+        -------
+            {600000.ss, 600001.ss, 600002.ss, 600003.ss, ...}
+        """
+        url = "http://99.push2.eastmoney.com/api/qt/clist/get?pn=1&pz=10000&po=1&np=1&fs=m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23,m:0+t:81+s:2048&fields=f12"
+        try:
+            resp = requests.get(url, timeout=None)
+            resp.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise requests.exceptions.HTTPError(f"Request to {url} failed with status code {resp.status_code}") from e
+
+        try:
+            _symbols = [_v["f12"] for _v in resp.json()["data"]["diff"]]
+        except Exception as e:
+            logger.warning("An error occurred while extracting data from the response.")
+            raise
+
+        if len(_symbols) < 3900:
+            raise ValueError("The complete list of stocks is not available.")
+
+        # Add suffix after the stock code to conform to yahooquery standard, otherwise the data will not be fetched.
+        _symbols = [
+            _symbol + ".ss" if _symbol.startswith("6") else _symbol + ".sz" if _symbol.startswith(("0", "3")) else None
+            for _symbol in _symbols
+        ]
+        _symbols = [_symbol for _symbol in _symbols if _symbol is not None]
+
+        return set(_symbols)
 
     if _HS_SYMBOLS is None:
         symbols = set()
@@ -230,12 +256,12 @@ def get_us_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
     -------
         stock symbols
     """
-    global _US_SYMBOLS
+    global _US_SYMBOLS  # pylint: disable=W0603
 
     @deco_retry
     def _get_eastmoney():
         url = "http://4.push2.eastmoney.com/api/qt/clist/get?pn=1&pz=10000&fs=m:105,m:106,m:107&fields=f12"
-        resp = requests.get(url)
+        resp = requests.get(url, timeout=None)
         if resp.status_code != 200:
             raise ValueError("request error")
 
@@ -277,7 +303,7 @@ def get_us_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
             "maxResultsPerPage": 10000,
             "filterToken": "",
         }
-        resp = requests.post(url, json=_parms)
+        resp = requests.post(url, json=_parms, timeout=None)
         if resp.status_code != 200:
             raise ValueError("request error")
 
@@ -317,7 +343,7 @@ def get_in_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
     -------
         stock symbols
     """
-    global _IN_SYMBOLS
+    global _IN_SYMBOLS  # pylint: disable=W0603
 
     @deco_retry
     def _get_nifty():
@@ -358,7 +384,7 @@ def get_br_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
     -------
         B3 stock symbols
     """
-    global _BR_SYMBOLS
+    global _BR_SYMBOLS  # pylint: disable=W0603
 
     @deco_retry
     def _get_ibovespa():
@@ -367,7 +393,7 @@ def get_br_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
 
         # Request
         agent = {"User-Agent": "Mozilla/5.0"}
-        page = requests.get(url, headers=agent)
+        page = requests.get(url, headers=agent, timeout=None)
 
         # BeautifulSoup
         soup = BeautifulSoup(page.content, "html.parser")
@@ -375,7 +401,7 @@ def get_br_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
 
         children = tbody.findChildren("a", recursive=True)
         for child in children:
-            _symbols.append(str(child).split('"')[-1].split(">")[1].split("<")[0])
+            _symbols.append(str(child).rsplit('"', maxsplit=1)[-1].split(">")[1].split("<")[0])
 
         return _symbols
 
@@ -409,12 +435,12 @@ def get_en_fund_symbols(qlib_data_path: [str, Path] = None) -> list:
     -------
         fund symbols in China
     """
-    global _EN_FUND_SYMBOLS
+    global _EN_FUND_SYMBOLS  # pylint: disable=W0603
 
     @deco_retry
     def _get_eastmoney():
         url = "http://fund.eastmoney.com/js/fundcode_search.js"
-        resp = requests.get(url)
+        resp = requests.get(url, timeout=None)
         if resp.status_code != 200:
             raise ValueError("request error")
         try:
@@ -603,6 +629,178 @@ def get_instruments(
         qlib_dir=qlib_dir, index_name=index_name, freq=freq, request_retry=request_retry, retry_sleep=retry_sleep
     )
     getattr(obj, method)()
+
+
+def _get_all_1d_data(_date_field_name: str, _symbol_field_name: str, _1d_data_all: pd.DataFrame):
+    df = copy.deepcopy(_1d_data_all)
+    df.reset_index(inplace=True)
+    df.rename(columns={"datetime": _date_field_name, "instrument": _symbol_field_name}, inplace=True)
+    df.columns = list(map(lambda x: x[1:] if x.startswith("$") else x, df.columns))
+    return df
+
+
+def get_1d_data(
+    _date_field_name: str,
+    _symbol_field_name: str,
+    symbol: str,
+    start: str,
+    end: str,
+    _1d_data_all: pd.DataFrame,
+) -> pd.DataFrame:
+    """get 1d data
+
+    Returns
+    ------
+        data_1d: pd.DataFrame
+            data_1d.columns = [_date_field_name, _symbol_field_name, "paused", "volume", "factor", "close"]
+
+    """
+    _all_1d_data = _get_all_1d_data(_date_field_name, _symbol_field_name, _1d_data_all)
+    return _all_1d_data[
+        (_all_1d_data[_symbol_field_name] == symbol.upper())
+        & (_all_1d_data[_date_field_name] >= pd.Timestamp(start))
+        & (_all_1d_data[_date_field_name] < pd.Timestamp(end))
+    ]
+
+
+def calc_adjusted_price(
+    df: pd.DataFrame,
+    _1d_data_all: pd.DataFrame,
+    _date_field_name: str,
+    _symbol_field_name: str,
+    frequence: str,
+    consistent_1d: bool = True,
+    calc_paused: bool = True,
+) -> pd.DataFrame:
+    """calc adjusted price
+    This method does 4 things.
+    1. Adds the `paused` field.
+        - The added paused field comes from the paused field of the 1d data.
+    2. Aligns the time of the 1d data.
+    3. The data is reweighted.
+        - The reweighting method:
+            - volume / factor
+            - open * factor
+            - high * factor
+            - low * factor
+            - close * factor
+    4. Called `calc_paused_num` method to add the `paused_num` field.
+        - The `paused_num` is the number of consecutive days of trading suspension.
+    """
+    # TODO: using daily data factor
+    if df.empty:
+        return df
+    df = df.copy()
+    df.drop_duplicates(subset=_date_field_name, inplace=True)
+    df.sort_values(_date_field_name, inplace=True)
+    symbol = df.iloc[0][_symbol_field_name]
+    df[_date_field_name] = pd.to_datetime(df[_date_field_name])
+    # get 1d data from qlib
+    _start = pd.Timestamp(df[_date_field_name].min()).strftime("%Y-%m-%d")
+    _end = (pd.Timestamp(df[_date_field_name].max()) + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
+    data_1d: pd.DataFrame = get_1d_data(_date_field_name, _symbol_field_name, symbol, _start, _end, _1d_data_all)
+    data_1d = data_1d.copy()
+    if data_1d is None or data_1d.empty:
+        df["factor"] = 1 / df.loc[df["close"].first_valid_index()]["close"]
+        # TODO: np.nan or 1 or 0
+        df["paused"] = np.nan
+    else:
+        # NOTE: volume is np.nan or volume <= 0, paused = 1
+        # FIXME: find a more accurate data source
+        data_1d["paused"] = 0
+        data_1d.loc[(data_1d["volume"].isna()) | (data_1d["volume"] <= 0), "paused"] = 1
+        data_1d = data_1d.set_index(_date_field_name)
+
+        # add factor from 1d data
+        # NOTE: 1d data info:
+        #   - Close price adjusted for splits. Adjusted close price adjusted for both dividends and splits.
+        #   - data_1d.adjclose: Adjusted close price adjusted for both dividends and splits.
+        #   - data_1d.close: `data_1d.adjclose / (close for the first trading day that is not np.nan)`
+        def _calc_factor(df_1d: pd.DataFrame):
+            try:
+                _date = pd.Timestamp(pd.Timestamp(df_1d[_date_field_name].iloc[0]).date())
+                df_1d["factor"] = data_1d.loc[_date]["close"] / df_1d.loc[df_1d["close"].last_valid_index()]["close"]
+                df_1d["paused"] = data_1d.loc[_date]["paused"]
+            except Exception:
+                df_1d["factor"] = np.nan
+                df_1d["paused"] = np.nan
+            return df_1d
+
+        df = df.groupby([df[_date_field_name].dt.date], group_keys=False).apply(_calc_factor)
+        if consistent_1d:
+            # the date sequence is consistent with 1d
+            df.set_index(_date_field_name, inplace=True)
+            df = df.reindex(
+                generate_minutes_calendar_from_daily(
+                    calendars=pd.to_datetime(data_1d.reset_index()[_date_field_name].drop_duplicates()),
+                    freq=frequence,
+                    am_range=("09:30:00", "11:29:00"),
+                    pm_range=("13:00:00", "14:59:00"),
+                )
+            )
+            df[_symbol_field_name] = df.loc[df[_symbol_field_name].first_valid_index()][_symbol_field_name]
+            df.index.names = [_date_field_name]
+            df.reset_index(inplace=True)
+    for _col in ["open", "close", "high", "low", "volume"]:
+        if _col not in df.columns:
+            continue
+        if _col == "volume":
+            df[_col] = df[_col] / df["factor"]
+        else:
+            df[_col] = df[_col] * df["factor"]
+    if calc_paused:
+        df = calc_paused_num(df, _date_field_name, _symbol_field_name)
+    return df
+
+
+def calc_paused_num(df: pd.DataFrame, _date_field_name, _symbol_field_name):
+    """calc paused num
+    This method adds the paused_num field
+        - The `paused_num` is the number of consecutive days of trading suspension.
+    """
+    _symbol = df.iloc[0][_symbol_field_name]
+    df = df.copy()
+    df["_tmp_date"] = df[_date_field_name].apply(lambda x: pd.Timestamp(x).date())
+    # remove data that starts and ends with `np.nan` all day
+    all_data = []
+    # Record the number of consecutive trading days where the whole day is nan, to remove the last trading day where the whole day is nan
+    all_nan_nums = 0
+    # Record the number of consecutive occurrences of trading days that are not nan throughout the day
+    not_nan_nums = 0
+    for _date, _df in df.groupby("_tmp_date"):
+        _df["paused"] = 0
+        if not _df.loc[_df["volume"] < 0].empty:
+            logger.warning(f"volume < 0, will fill np.nan: {_date} {_symbol}")
+            _df.loc[_df["volume"] < 0, "volume"] = np.nan
+
+        check_fields = set(_df.columns) - {
+            "_tmp_date",
+            "paused",
+            "factor",
+            _date_field_name,
+            _symbol_field_name,
+        }
+        if _df.loc[:, list(check_fields)].isna().values.all() or (_df["volume"] == 0).all():
+            all_nan_nums += 1
+            not_nan_nums = 0
+            _df["paused"] = 1
+            if all_data:
+                _df["paused_num"] = not_nan_nums
+                all_data.append(_df)
+        else:
+            all_nan_nums = 0
+            not_nan_nums += 1
+            _df["paused_num"] = not_nan_nums
+            all_data.append(_df)
+    all_data = all_data[: len(all_data) - all_nan_nums]
+    if all_data:
+        df = pd.concat(all_data, sort=False)
+    else:
+        logger.warning(f"data is empty: {_symbol}")
+        df = pd.DataFrame()
+        return df
+    del df["_tmp_date"]
+    return df
 
 
 if __name__ == "__main__":

@@ -56,7 +56,7 @@ class ALSTM(Model):
         n_jobs=10,
         GPU=0,
         seed=None,
-        **kwargs
+        **kwargs,
     ):
         # Set logger.
         self.logger = get_module_logger("ALSTM")
@@ -160,6 +160,10 @@ class ALSTM(Model):
 
         if self.metric in ("", "loss"):
             return -self.loss_fn(pred[mask], label[mask])
+        elif self.metric == "mse":
+            mask = ~torch.isnan(label)
+            weight = torch.ones_like(label)
+            return -self.mse(pred[mask], label[mask], weight[mask])
 
         raise ValueError("unknown metric `%s`" % self.metric)
 

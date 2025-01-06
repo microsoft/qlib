@@ -9,7 +9,9 @@ from qlib.tests import TestAutoData
 
 
 class WorkflowTest(TestAutoData):
-    TMP_PATH = Path("./.mlruns_tmp/")
+    # Creating the directory manually doesn't work with mlflow,
+    # so we add a subfolder named .trash when we create the directory.
+    TMP_PATH = Path("./.mlruns_tmp/.trash")
 
     def tearDown(self) -> None:
         if self.TMP_PATH.exists():
@@ -17,6 +19,8 @@ class WorkflowTest(TestAutoData):
 
     def test_get_local_dir(self):
         """ """
+        self.TMP_PATH.mkdir(parents=True, exist_ok=True)
+
         with R.start(uri=str(self.TMP_PATH)):
             pass
 

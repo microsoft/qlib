@@ -1,6 +1,6 @@
 async-generator==1.10
 attrs==21.4.0
-certifi==2021.10.8
+certifi==2022.12.7
 cffi==1.15.0
 charset-normalizer==2.0.12
 cryptography==36.0.1
@@ -8,7 +8,7 @@ fire==0.4.0
 h11==0.13.0
 idna==3.3
 loguru==0.6.0
-lxml==4.8.0
+lxml==4.9.1
 multitasking==0.0.10
 numpy==1.22.2
 outcome==1.1.0
@@ -28,7 +28,7 @@ termcolor==1.1.0
 tqdm==4.63.0
 trio==0.20.0
 trio-websocket==0.9.2
-urllib3==1.26.8
+urllib3==1.26.19
 wget==3.2
 wsproto==1.1.0
 yahooquery==2.2.15

@@ -5,7 +5,6 @@ from abc import ABC
 from pathlib import Path
 
 import fire
-import requests
 import pandas as pd
 from loguru import logger
 from dateutil.tz import tzlocal
@@ -31,15 +30,15 @@ def get_cg_crypto_symbols(qlib_data_path: [str, Path] = None) -> list:
     -------
         crypto symbols in given exchanges list of coingecko
     """
-    global _CG_CRYPTO_SYMBOLS
+    global _CG_CRYPTO_SYMBOLS  # pylint: disable=W0603
 
     @deco_retry
     def _get_coingecko():
         try:
             cg = CoinGeckoAPI()
             resp = pd.DataFrame(cg.get_coins_markets(vs_currency="usd"))
-        except:
-            raise ValueError("request error")
+        except Exception as e:
+            raise ValueError("request error") from e
         try:
             _symbols = resp["id"].to_list()
         except Exception as e:
