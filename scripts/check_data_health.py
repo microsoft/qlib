@@ -34,9 +34,7 @@ class DataHealthChecker:
         missing_data_num=0,
     ):
         assert csv_path or qlib_dir, "One of csv_path or qlib_dir should be provided."
-        assert not (
-            csv_path and qlib_dir
-        ), "Only one of csv_path or qlib_dir should be provided."
+        assert not (csv_path and qlib_dir), "Only one of csv_path or qlib_dir should be provided."
 
         self.data = {}
         self.problems = {}
@@ -63,12 +61,12 @@ class DataHealthChecker:
             df = D.features([instrument], required_fields, freq="day")
             df.rename(
                 columns={
-                    '$open': 'open',
-                    '$close': 'close',
-                    '$low': 'low',
-                    '$high': 'high',
-                    '$volume': 'volume',
-                    '$factor': 'factor',
+                    "$open": "open",
+                    "$close": "close",
+                    "$low": "low",
+                    "$high": "high",
+                    "$volume": "volume",
+                    "$factor": "factor",
                 },
                 inplace=True,
             )
@@ -85,9 +83,7 @@ class DataHealthChecker:
             "volume": [],
         }
         for filename, df in self.data.items():
-            missing_data_columns = (
-                df.isnull().sum()[df.isnull().sum() > self.missing_data_num].index.tolist()
-            )
+            missing_data_columns = df.isnull().sum()[df.isnull().sum() > self.missing_data_num].index.tolist()
             if len(missing_data_columns) > 0:
                 result_dict["instruments"].append(filename)
                 result_dict["open"].append(df.isnull().sum()["open"])
@@ -115,11 +111,7 @@ class DataHealthChecker:
             for col in ["open", "high", "low", "close", "volume"]:
                 if col in df.columns:
                     pct_change = df[col].pct_change(fill_method=None).abs()
-                    threshold = (
-                        self.large_step_threshold_volume
-                        if col == "volume"
-                        else self.large_step_threshold_price
-                    )
+                    threshold = self.large_step_threshold_volume if col == "volume" else self.large_step_threshold_price
                     if pct_change.max() > threshold:
                         large_steps = pct_change[pct_change > threshold]
                         result_dict["instruments"].append(filename)
@@ -143,9 +135,7 @@ class DataHealthChecker:
         }
         for filename, df in self.data.items():
             if not all(column in df.columns for column in required_columns):
-                missing_required_columns = [
-                    column for column in required_columns if column not in df.columns
-                ]
+                missing_required_columns = [column for column in required_columns if column not in df.columns]
                 result_dict["instruments"].append(filename)
                 result_dict["missing_col"] += missing_required_columns
 
@@ -181,24 +171,24 @@ class DataHealthChecker:
             logger.info(f"✅ The `factor` column already exists and is not empty.")
 
     def check_data(self):
-            check_missing_data_result = self.check_missing_data()
-            check_large_step_changes_result = self.check_large_step_changes()
-            check_required_columns_result = self.check_required_columns()
-            check_missing_factor_result = self.check_missing_factor()
-            print(f"\nSummary of data health check ({len(self.data)} files checked):")
-            print("-------------------------------------------------")
-            if isinstance(check_missing_data_result, pd.DataFrame):
-                logger.warning(f"There is missing data.")
-                print(check_missing_data_result)
-            if isinstance(check_large_step_changes_result, pd.DataFrame):
-                logger.warning(f"The OHLCV column has large step changes.")
-                print(check_large_step_changes_result)
-            if isinstance(check_required_columns_result, pd.DataFrame):
-                logger.warning(f"Columns (OLHCV) are missing.")
-                print(check_required_columns_result)
-            if isinstance(check_missing_factor_result, pd.DataFrame):
-                logger.warning(f"The factor column does not exist or is empty")
-                print(check_missing_factor_result)
+        check_missing_data_result = self.check_missing_data()
+        check_large_step_changes_result = self.check_large_step_changes()
+        check_required_columns_result = self.check_required_columns()
+        check_missing_factor_result = self.check_missing_factor()
+        print(f"\nSummary of data health check ({len(self.data)} files checked):")
+        print("-------------------------------------------------")
+        if isinstance(check_missing_data_result, pd.DataFrame):
+            logger.warning(f"There is missing data.")
+            print(check_missing_data_result)
+        if isinstance(check_large_step_changes_result, pd.DataFrame):
+            logger.warning(f"The OHLCV column has large step changes.")
+            print(check_large_step_changes_result)
+        if isinstance(check_required_columns_result, pd.DataFrame):
+            logger.warning(f"Columns (OLHCV) are missing.")
+            print(check_required_columns_result)
+        if isinstance(check_missing_factor_result, pd.DataFrame):
+            logger.warning(f"The factor column does not exist or is empty")
+            print(check_missing_factor_result)
 
 
 if __name__ == "__main__":
