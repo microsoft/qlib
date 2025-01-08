@@ -1,7 +1,7 @@
 import enum
 from loguru import logger
 import os
-from typing import List, Optional, Dict, Tuple
+from typing import List, Optional, Tuple
 
 import fire
 import pandas as pd
