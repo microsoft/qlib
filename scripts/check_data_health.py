@@ -29,6 +29,7 @@ class DataHealthChecker:
         self,
         csv_path=None,
         qlib_dir=None,
+        freq="day",
         large_step_threshold_price=0.5,
         large_step_threshold_volume=3,
         missing_data_num=0,
@@ -38,6 +39,7 @@ class DataHealthChecker:
 
         self.data = {}
         self.problems = {}
+        self.freq = freq
         self.large_step_threshold_price = large_step_threshold_price
         self.large_step_threshold_volume = large_step_threshold_volume
         self.missing_data_num = missing_data_num
@@ -58,7 +60,7 @@ class DataHealthChecker:
         instrument_list = D.list_instruments(instruments=instruments, as_list=True)
         required_fields = ["$open", "$close", "$low", "$high", "$volume", "$factor"]
         for instrument in instrument_list:
-            df = D.features([instrument], required_fields, freq="day")
+            df = D.features([instrument], required_fields, freq=self.freq)
             df.rename(
                 columns={
                     "$open": "open",

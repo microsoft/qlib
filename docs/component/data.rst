@@ -197,6 +197,53 @@ After conversion, users can find their Qlib format data in the directory `~/.qli
     In the convention of `Qlib` data processing, `open, close, high, low, volume, money and factor` will be set to NaN if the stock is suspended.
     If you want to use your own alpha-factor which can't be calculate by OCHLV, like PE, EPS and so on, you could add it to the CSV files with OHCLV together and then dump it to the Qlib format data.
 
+Checking the health of the data
+-------------------------------
+
+``Qlib`` provides a script to check the health of the data.
+
+- The main points to check are as follows
+
+    - Check if any data is missing in the DataFrame.
+
+    - Check if there are any large step changes above the threshold in the OHLCV columns.
+
+    - Check if any of the required columns (OLHCV) are missing in the DataFrame.
+
+    - Check if the 'factor' column is missing in the DataFrame.
+
+- You can run the following commands to check whether the data is healthy or not.
+
+    for daily data:
+        .. code-block:: bash
+            python scripts/check_data_health.py check_data --qlib_dir ~/.qlib/qlib_data/cn_data
+
+    for 1min data:
+        .. code-block:: bash
+            python scripts/check_data_health.py check_data --qlib_dir ~/.qlib/qlib_data/cn_data_1min --freq 1min
+
+- Of course, you can also add some parameters to adjust the test results.
+
+    - The available parameters are these.
+
+        - freq: Frequency of data.
+
+        - large_step_threshold_price: Maximum permitted price change
+
+        - large_step_threshold_volume: Maximum permitted volume change.
+
+        - missing_data_num: Maximum value for which data is allowed to be null.
+
+- You can run the following commands to check whether the data is healthy or not.
+
+    for daily data:
+        .. code-block:: bash
+            python scripts/check_data_health.py check_data --qlib_dir ~/.qlib/qlib_data/cn_data --missing_data_num 30055 --large_step_threshold_volume 94485 --large_step_threshold_price 20
+
+    for 1min data:
+        .. code-block:: bash
+            python scripts/check_data_health.py check_data --qlib_dir ~/.qlib/qlib_data/cn_data_1min --freq 1min --missing_data_num 30055 --large_step_threshold_volume 94485 --large_step_threshold_price 20
+
 Stock Pool (Market)
 -------------------
 
