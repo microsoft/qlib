@@ -216,10 +216,12 @@ Checking the health of the data
 
     for daily data:
         .. code-block:: bash
+
             python scripts/check_data_health.py check_data --qlib_dir ~/.qlib/qlib_data/cn_data
 
     for 1min data:
         .. code-block:: bash
+
             python scripts/check_data_health.py check_data --qlib_dir ~/.qlib/qlib_data/cn_data_1min --freq 1min
 
 - Of course, you can also add some parameters to adjust the test results.
@@ -238,10 +240,12 @@ Checking the health of the data
 
     for daily data:
         .. code-block:: bash
+
             python scripts/check_data_health.py check_data --qlib_dir ~/.qlib/qlib_data/cn_data --missing_data_num 30055 --large_step_threshold_volume 94485 --large_step_threshold_price 20
 
     for 1min data:
         .. code-block:: bash
+
             python scripts/check_data_health.py check_data --qlib_dir ~/.qlib/qlib_data/cn_data_1min --freq 1min --missing_data_num 30055 --large_step_threshold_volume 94485 --large_step_threshold_price 20
 
 Stock Pool (Market)
