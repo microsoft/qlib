@@ -246,7 +246,7 @@ Checking the health of the data
     for 1min data:
         .. code-block:: bash
 
-            python scripts/check_data_health.py check_data --qlib_dir ~/.qlib/qlib_data/cn_data_1min --freq 1min --missing_data_num 30055 --large_step_threshold_volume 94485 --large_step_threshold_price 20
+            python scripts/check_data_health.py check_data --qlib_dir ~/.qlib/qlib_data/cn_data --freq 1min --missing_data_num 35806 --large_step_threshold_volume 3205452000000 --large_step_threshold_price 0.91
 
 Stock Pool (Market)
 -------------------

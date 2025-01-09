@@ -1,7 +1,7 @@
 import enum
 from loguru import logger
 import os
-from typing import List, Optional, Tuple
+from typing import Optional
 
 import fire
 import pandas as pd
@@ -18,12 +18,6 @@ class DataHealthChecker:
     - any step change in the OHLCV columns is above a threshold (default: 0.5 for price, 3 for volume)
     - any factor is missing
     """
-
-    class DataProblem(enum.Enum):
-        MISSING_REQUIRED_COLUMN = 1
-        MISSING_DATA = 2
-        LARGE_STEP_CHANGE = 3
-        MISSING_FACTOR = 4
 
     def __init__(
         self,
@@ -57,7 +51,7 @@ class DataHealthChecker:
 
     def load_qlib_data(self):
         instruments = D.instruments(market="all")
-        instrument_list = D.list_instruments(instruments=instruments, as_list=True)
+        instrument_list = D.list_instruments(instruments=instruments, as_list=True, freq=self.freq)
         required_fields = ["$open", "$close", "$low", "$high", "$volume", "$factor"]
         for instrument in instrument_list:
             df = D.features([instrument], required_fields, freq=self.freq)
@@ -73,8 +67,9 @@ class DataHealthChecker:
                 inplace=True,
             )
             self.data[instrument] = df
+        print(df)
 
-    def check_missing_data(self) -> Optional[Tuple[DataProblem, List[str]]]:
+    def check_missing_data(self) -> Optional[pd.DataFrame]:
         """Check if any data is missing in the DataFrame."""
         result_dict = {
             "instruments": [],
@@ -99,8 +94,9 @@ class DataHealthChecker:
             return result_df
         else:
             logger.info(f"✅ There are no missing data.")
+            return None
 
-    def check_large_step_changes(self) -> Optional[Tuple[DataProblem, List[str]]]:
+    def check_large_step_changes(self) -> Optional[pd.DataFrame]:
         """Check if there are any large step changes above the threshold in the OHLCV columns."""
         result_dict = {
             "instruments": [],
@@ -127,8 +123,9 @@ class DataHealthChecker:
             return result_df
         else:
             logger.info(f"✅ There are no large step changes in the OHLCV column above the threshold.")
+            return None
 
-    def check_required_columns(self) -> Optional[Tuple[DataProblem, List[str]]]:
+    def check_required_columns(self) -> Optional[pd.DataFrame]:
         """Check if any of the required columns (OLHCV) are missing in the DataFrame."""
         required_columns = ["open", "high", "low", "close", "volume"]
         result_dict = {
@@ -146,8 +143,9 @@ class DataHealthChecker:
             return result_df
         else:
             logger.info(f"✅ The columns (OLHCV) are complete and not missing.")
+            return None
 
-    def check_missing_factor(self) -> Optional[Tuple[DataProblem, List[str]]]:
+    def check_missing_factor(self) -> Optional[pd.DataFrame]:
         """Check if the 'factor' column is missing in the DataFrame."""
         result_dict = {
             "instruments": [],
@@ -155,6 +153,8 @@ class DataHealthChecker:
             "missing_factor_data": [],
         }
         for filename, df in self.data.items():
+            if "000300" in filename or "000903" in filename or "000905" in filename:
+                continue
             if "factor" not in df.columns:
                 result_dict["instruments"].append(filename)
                 result_dict["missing_factor_col"].append(True)
@@ -171,26 +171,28 @@ class DataHealthChecker:
             return result_df
         else:
             logger.info(f"✅ The `factor` column already exists and is not empty.")
+            return None
 
     def check_data(self):
         check_missing_data_result = self.check_missing_data()
         check_large_step_changes_result = self.check_large_step_changes()
         check_required_columns_result = self.check_required_columns()
         check_missing_factor_result = self.check_missing_factor()
-        print(f"\nSummary of data health check ({len(self.data)} files checked):")
-        print("-------------------------------------------------")
-        if isinstance(check_missing_data_result, pd.DataFrame):
-            logger.warning(f"There is missing data.")
-            print(check_missing_data_result)
-        if isinstance(check_large_step_changes_result, pd.DataFrame):
-            logger.warning(f"The OHLCV column has large step changes.")
-            print(check_large_step_changes_result)
-        if isinstance(check_required_columns_result, pd.DataFrame):
-            logger.warning(f"Columns (OLHCV) are missing.")
-            print(check_required_columns_result)
-        if isinstance(check_missing_factor_result, pd.DataFrame):
-            logger.warning(f"The factor column does not exist or is empty")
-            print(check_missing_factor_result)
+        if check_large_step_changes_result is not None or check_large_step_changes_result is not None or check_required_columns_result is not None or check_missing_factor_result is not None:
+            print(f"\nSummary of data health check ({len(self.data)} files checked):")
+            print("-------------------------------------------------")
+            if isinstance(check_missing_data_result, pd.DataFrame):
+                logger.warning(f"There is missing data.")
+                print(check_missing_data_result)
+            if isinstance(check_large_step_changes_result, pd.DataFrame):
+                logger.warning(f"The OHLCV column has large step changes.")
+                print(check_large_step_changes_result)
+            if isinstance(check_required_columns_result, pd.DataFrame):
+                logger.warning(f"Columns (OLHCV) are missing.")
+                print(check_required_columns_result)
+            if isinstance(check_missing_factor_result, pd.DataFrame):
+                logger.warning(f"The factor column does not exist or is empty")
+                print(check_missing_factor_result)
 
 
 if __name__ == "__main__":
