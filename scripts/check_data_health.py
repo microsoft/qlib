@@ -178,7 +178,12 @@ class DataHealthChecker:
         check_large_step_changes_result = self.check_large_step_changes()
         check_required_columns_result = self.check_required_columns()
         check_missing_factor_result = self.check_missing_factor()
-        if check_large_step_changes_result is not None or check_large_step_changes_result is not None or check_required_columns_result is not None or check_missing_factor_result is not None:
+        if (
+            check_large_step_changes_result is not None
+            or check_large_step_changes_result is not None
+            or check_required_columns_result is not None
+            or check_missing_factor_result is not None
+        ):
             print(f"\nSummary of data health check ({len(self.data)} files checked):")
             print("-------------------------------------------------")
             if isinstance(check_missing_data_result, pd.DataFrame):
