@@ -264,6 +264,16 @@ We recommend users to prepare their own data if they have a high-quality dataset
       * *trading_date*: start of trading day
       * *end_date*: end of trading day(not included)
 
+### Checking the health of the data
+  * We provide a script to check the health of the data, you can run the following commands to check whether the data is healthy or not.
+    ```
+    python scripts/check_data_health.py check_data --qlib_dir ~/.qlib/qlib_data/cn_data
+    ```
+  * Of course, you can also add some parameters to adjust the test results, such as this.
+    ```
+    python scripts/check_data_health.py check_data --qlib_dir ~/.qlib/qlib_data/cn_data --missing_data_num 30055 --large_step_threshold_volume 94485 --large_step_threshold_price 20
+    ```
+  * If you want more information about `check_data_health`, please refer to the [documentation](https://qlib.readthedocs.io/en/latest/component/data.html#checking-the-health-of-the-data).
 
 <!-- 
 - Run the initialization code and get stock data:
