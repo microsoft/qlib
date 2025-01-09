@@ -1,4 +1,3 @@
-import enum
 from loguru import logger
 import os
 from typing import Optional
