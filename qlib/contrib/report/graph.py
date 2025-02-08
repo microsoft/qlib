@@ -176,7 +176,7 @@ class HeatmapGraph(BaseGraph):
                 x=self._df.columns,
                 y=self._df.index,
                 z=self._df.values.tolist(),
-                **self._graph_kwargs
+                **self._graph_kwargs,
             )
         ]
         return _data
@@ -213,7 +213,7 @@ class SubplotsGraph:
         sub_graph_layout: dict = None,
         sub_graph_data: list = None,
         subplots_kwargs: dict = None,
-        **kwargs
+        **kwargs,
     ):
         """
 
@@ -355,7 +355,7 @@ class SubplotsGraph:
                         df=self._df.loc[:, [column_name]],
                         name_dict={column_name: temp_name},
                         graph_kwargs=_graph_kwargs,
-                    )
+                    ),
                 )
             else:
                 raise TypeError()

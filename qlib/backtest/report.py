@@ -325,9 +325,9 @@ class Indicator:
 
     def _update_order_fulfill_rate(self) -> None:
         def func(deal_amount, amount):
-            # deal_amount is np.NaN or None when there is no inner decision. So full fill rate is 0.
+            # deal_amount is np.nan or None when there is no inner decision. So full fill rate is 0.
             tmp_deal_amount = deal_amount.reindex(amount.index, 0)
-            tmp_deal_amount = tmp_deal_amount.replace({np.NaN: 0})
+            tmp_deal_amount = tmp_deal_amount.replace({np.nan: 0})
             return tmp_deal_amount / amount
 
         self.order_indicator.transfer(func, "ffr")
@@ -354,8 +354,8 @@ class Indicator:
         )
 
         def func(trade_price, deal_amount):
-            # trade_price is np.NaN instead of inf when deal_amount is zero.
-            tmp_deal_amount = deal_amount.replace({0: np.NaN})
+            # trade_price is np.nan instead of inf when deal_amount is zero.
+            tmp_deal_amount = deal_amount.replace({0: np.nan})
             return trade_price / tmp_deal_amount
 
         self.order_indicator.transfer(func, "trade_price")
@@ -425,7 +425,11 @@ class Indicator:
         assert isinstance(price_s, idd.SingleData)
         price_s = price_s.loc[(price_s > 1e-08).data.astype(bool)]
         # NOTE ~(price_s < 1e-08) is different from price_s >= 1e-8
-        #   ~(np.NaN < 1e-8) -> ~(False)  -> True
+        #   ~(np.nan < 1e-8) -> ~(False)  -> True
+
+        # if price_s is empty
+        if price_s.empty:
+            return None, None
 
         assert isinstance(price_s, idd.SingleData)
         if agg == "vwap":

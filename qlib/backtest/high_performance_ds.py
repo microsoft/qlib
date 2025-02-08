@@ -278,7 +278,7 @@ class BaseSingleMetric:
         raise NotImplementedError(f"Please implement the `empty` method")
 
     def add(self, other: BaseSingleMetric, fill_value: float = None) -> BaseSingleMetric:
-        """Replace np.NaN with fill_value in two metrics and add them."""
+        """Replace np.nan with fill_value in two metrics and add them."""
 
         raise NotImplementedError(f"Please implement the `add` method")
 
@@ -412,7 +412,7 @@ class BaseOrderIndicator:
         metrics : Union[str, List[str]]
             all metrics needs to be sumed.
         fill_value : float, optional
-            fill np.NaN with value. By default None.
+            fill np.nan with value. By default None.
         """
 
         raise NotImplementedError(f"Please implement the 'sum_all_indicators' method")

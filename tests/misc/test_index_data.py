@@ -70,7 +70,7 @@ class IndexDataTest(unittest.TestCase):
         print(sd.loc[:"c"])
 
     def test_corner_cases(self):
-        sd = idd.MultiData([[1, 2], [3, np.NaN]], index=["foo", "bar"], columns=["f", "g"])
+        sd = idd.MultiData([[1, 2], [3, np.nan]], index=["foo", "bar"], columns=["f", "g"])
         print(sd)
 
         self.assertTrue(np.isnan(sd.loc["bar", "g"]))

@@ -14,44 +14,31 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        # Since macos-latest changed from 12.7.4 to 14.4.1,
-        # the minimum python version that matches a 14.4.1 version of macos is 3.10,
-        # so we limit the macos version to macos-12.
-        os: [windows-latest, ubuntu-20.04, ubuntu-22.04, macos-12]
-        # not supporting 3.6 due to annotations is not supported https://stackoverflow.com/a/52890129
-        python-version: [3.7, 3.8]
+        os: [windows-latest, ubuntu-20.04, ubuntu-22.04, macos-13, macos-14, macos-15]
+        # In github action, using python 3.7, pip install will not match the latest version of the package.
+        # Also, python 3.7 is no longer supported from macos-14, and will be phased out from macos-13 in the near future.
+        # All things considered, we have removed python 3.7.
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
 
     steps:
     - name: Test qlib from source slow
       uses: actions/checkout@v3
 
-    # Since version 3.7 of python for MacOS is installed in CI, version 3.7.17, this version causes "_bz not found error".
-    # So we make the version number of python 3.7 for MacOS more specific.
-    # refs: https://github.com/actions/setup-python/issues/682
     - name: Set up Python ${{ matrix.python-version }}
-      if: (matrix.os == 'macos-latest' && matrix.python-version == '3.7') || (matrix.os == 'macos-11' && matrix.python-version == '3.7')
-      uses: actions/setup-python@v4
-      with:
-        python-version: "3.7.16"
-
-    - name: Set up Python ${{ matrix.python-version }}
-      if: (matrix.os != 'macos-latest' || matrix.python-version != '3.7') && (matrix.os != 'macos-11' || matrix.python-version != '3.7')
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
 
     - name: Set up Python tools
       run: |
-        python -m pip install --upgrade pip
-        pip install --upgrade cython numpy
-        pip install -e .[dev]
+        make dev
 
     - name: Downloads dependencies data
       run: |
         python scripts/get_data.py qlib_data --name qlib_data_simple --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
 
     - name: Install Lightgbm for MacOS
-      if: ${{ matrix.os == 'macos-11' || matrix.os == 'macos-latest' }}
+      if: ${{ matrix.os == 'macos-13' || matrix.os == 'macos-14' || matrix.os == 'macos-15' }}
       run: |
         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Microsoft/qlib/main/.github/brew_install.sh)"
         HOMEBREW_NO_AUTO_UPDATE=1 brew install lightgbm

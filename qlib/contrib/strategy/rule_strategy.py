@@ -326,8 +326,10 @@ class SBBStrategyEMA(SBBStrategyBase):
         if instruments is None:
             warnings.warn("`instruments` is not set, will load all stocks")
             self.instruments = "all"
-        if isinstance(instruments, str):
+        elif isinstance(instruments, str):
             self.instruments = D.instruments(instruments)
+        elif isinstance(instruments, List):
+            self.instruments = instruments
         self.freq = freq
         super(SBBStrategyEMA, self).__init__(
             outer_trade_decision, level_infra, common_infra, trade_exchange=trade_exchange, **kwargs

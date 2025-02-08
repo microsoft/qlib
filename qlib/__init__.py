@@ -2,11 +2,11 @@
 # Licensed under the MIT License.
 from pathlib import Path
 
-__version__ = "0.9.5.99"
+__version__ = "0.9.6.99"
 __version__bak = __version__  # This version is backup for QlibConfig.reset_qlib_version
 import os
 from typing import Union
-import yaml
+from ruamel.yaml import YAML
 import logging
 import platform
 import subprocess
@@ -176,7 +176,8 @@ def init_from_yaml_conf(conf_path, **kwargs):
         config = {}
     else:
         with open(conf_path) as f:
-            config = yaml.safe_load(f)
+            yaml = YAML(typ="safe", pure=True)
+            config = yaml.load(f)
     config.update(kwargs)
     default_conf = config.pop("default_conf", "client")
     init(default_conf, **config)
@@ -272,7 +273,8 @@ def auto_init(**kwargs):
         logger = get_module_logger("Initialization")
         conf_pp = pp / "config.yaml"
         with conf_pp.open() as f:
-            conf = yaml.safe_load(f)
+            yaml = YAML(typ="safe", pure=True)
+            conf = yaml.load(f)
 
         conf_type = conf.get("conf_type", "origin")
         if conf_type == "origin":
