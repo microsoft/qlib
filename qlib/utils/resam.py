@@ -109,7 +109,7 @@ def resam_ts_data(
     """
     Resample value from time-series data
 
-        - If `feature` has MultiIndex[instrument, datetime], apply the `method` to each instruemnt data with datetime in [start_time, end_time]
+        - If `feature` has MultiIndex[instrument, datetime], apply the `method` to each instrument data with datetime in [start_time, end_time]
             Example:
 
             .. code-block::
