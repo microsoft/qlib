@@ -73,7 +73,7 @@ class GATs(Model):
         GPU=0,
         n_jobs=10,
         seed=None,
-        **kwargs
+        **kwargs,
     ):
         # Set logger.
         self.logger = get_module_logger("GATs")

@@ -9,7 +9,7 @@ pip install -r requirements.txt
 ```
 
 ## Usage of the dataset
-> *Crypto dateset only support Data retrieval function but not support backtest function due to the lack of OHLC data.*
+> *Crypto dataset only support Data retrieval function but not support backtest function due to the lack of OHLC data.*
 
 ## Collector Data
 

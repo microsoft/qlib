@@ -33,7 +33,7 @@ class CatBoostModel(Model, FeatureInt):
         verbose_eval=20,
         evals_result=dict(),
         reweighter=None,
-        **kwargs
+        **kwargs,
     ):
         df_train, df_valid = dataset.prepare(
             ["train", "valid"],

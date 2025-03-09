@@ -23,7 +23,9 @@ from data_collector.utils import get_calendar_list, get_trading_date_by_shift, d
 from data_collector.utils import get_instruments
 
 
-NEW_COMPANIES_URL = "https://csi-web-dev.oss-cn-shanghai-finance-1-pub.aliyuncs.com/static/html/csindex/public/uploads/file/autofile/cons/{index_code}cons.xls"
+NEW_COMPANIES_URL = (
+    "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/file/autofile/cons/{index_code}cons.xls"
+)
 
 
 INDEX_CHANGES_URL = "https://www.csindex.com.cn/csindex-home/search/search-content?lang=cn&searchInput=%E5%85%B3%E4%BA%8E%E8%B0%83%E6%95%B4%E6%B2%AA%E6%B7%B1300%E5%92%8C%E4%B8%AD%E8%AF%81%E9%A6%99%E6%B8%AF100%E7%AD%89%E6%8C%87%E6%95%B0%E6%A0%B7%E6%9C%AC&pageNum={page_num}&pageSize={page_size}&sortField=date&dateRange=all&contentType=announcement"
@@ -396,14 +398,7 @@ class CSI500Index(CSIIndex):
         today = pd.Timestamp.now()
         date_range = pd.DataFrame(pd.date_range(start="2007-01-15", end=today, freq="7D"))[0].dt.date
         ret_list = []
-        col = ["date", "symbol", "code_name"]
         for date in tqdm(date_range, desc="Download CSI500"):
-            rs = bs.query_zz500_stocks(date=str(date))
-            zz500_stocks = []
-            while (rs.error_code == "0") & rs.next():
-                zz500_stocks.append(rs.get_row_data())
-            result = pd.DataFrame(zz500_stocks, columns=col)
-            result["symbol"] = result["symbol"].apply(lambda x: x.replace(".", "").upper())
             result = self.get_data_from_baostock(date)
             ret_list.append(result[["date", "symbol"]])
         bs.logout()

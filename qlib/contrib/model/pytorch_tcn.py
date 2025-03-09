@@ -56,7 +56,7 @@ class TCN(Model):
         optimizer="adam",
         GPU=0,
         seed=None,
-        **kwargs
+        **kwargs,
     ):
         # Set logger.
         self.logger = get_module_logger("TCN")
