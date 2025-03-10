@@ -13,6 +13,7 @@ import functools
 from pathlib import Path
 from typing import Iterable, Tuple, List
 
+import akshare as ak
 import numpy as np
 import pandas as pd
 from loguru import logger
@@ -202,18 +203,9 @@ def get_hs_stock_symbols() -> list:
         -------
             {600000.ss, 600001.ss, 600002.ss, 600003.ss, ...}
         """
-        url = "http://99.push2.eastmoney.com/api/qt/clist/get?pn=1&pz=10000&po=1&np=1&fs=m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23,m:0+t:81+s:2048&fields=f12"
-        try:
-            resp = requests.get(url, timeout=None)
-            resp.raise_for_status()
-        except requests.exceptions.HTTPError as e:
-            raise requests.exceptions.HTTPError(f"Request to {url} failed with status code {resp.status_code}") from e
-
-        try:
-            _symbols = [_v["f12"] for _v in resp.json()["data"]["diff"]]
-        except Exception as e:
-            logger.warning("An error occurred while extracting data from the response.")
-            raise
+        stock_info_a_code_name_df = ak.stock_info_a_code_name()
+        stock_codes = stock_info_a_code_name_df['code'].tolist()
+        _symbols = [code for code in stock_codes if code and code.strip()]
 
         if len(_symbols) < 3900:
             raise ValueError("The complete list of stocks is not available.")
