@@ -204,7 +204,7 @@ def get_hs_stock_symbols() -> list:
             {600000.ss, 600001.ss, 600002.ss, 600003.ss, ...}
         """
         stock_info_a_code_name_df = ak.stock_info_a_code_name()
-        stock_codes = stock_info_a_code_name_df['code'].tolist()
+        stock_codes = stock_info_a_code_name_df["code"].tolist()
         _symbols = [code for code in stock_codes if code and code.strip()]
 
         if len(_symbols) < 3900:
