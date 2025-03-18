@@ -279,8 +279,8 @@ class StaticDataLoader(DataLoader, Serializable):
             )
             self._data.sort_index(inplace=True)
         elif isinstance(self._config, (str, Path)):
-            if str(self._config).strip().endswith(".h5"):
-                self._data = pd.read_parquet(self._config, engine="parquet")
+            if str(self._config).strip().endswith(".parquet"):
+                self._data = pd.read_parquet(self._config, engine="pyarrow")
             else:
                 with Path(self._config).open("rb") as f:
                     self._data = pickle.load(f)
