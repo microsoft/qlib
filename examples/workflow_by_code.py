@@ -1,7 +1,7 @@
 #  Copyright (c) Microsoft Corporation.
 #  Licensed under the MIT License.
 """
-Qlib provides two kinds of interfaces. 
+Qlib provides two kinds of interfaces.
 (1) Users could define the Quant research workflow by a simple configuration.
 (2) Qlib is designed in a modularized way and supports creating research workflow by code just like building blocks.
 
