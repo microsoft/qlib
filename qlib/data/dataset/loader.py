@@ -280,10 +280,7 @@ class StaticDataLoader(DataLoader, Serializable):
             self._data.sort_index(inplace=True)
         elif isinstance(self._config, (str, Path)):
             if str(self._config).strip().endswith(".h5"):
-                df = pd.read_hdf(Path(self._config), key="data")
-                df = df.set_index(["datetime", "instrument"])
-                df.index = df.index.set_levels([pd.to_datetime(df.index.levels[0]), df.index.levels[1]])
-                self._data = df
+                self._data = pd.read_parquet(self._config, engine="parquet")
             else:
                 with Path(self._config).open("rb") as f:
                     self._data = pickle.load(f)
