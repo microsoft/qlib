@@ -45,6 +45,7 @@ dependencies = [
   "jupyter",
   "nbconvert",
   "pyarrow",
+  "tables",
 ]
 
 [project.optional-dependencies]
