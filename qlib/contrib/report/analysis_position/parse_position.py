@@ -132,7 +132,7 @@ def _calculate_label_rank(df: pd.DataFrame) -> pd.DataFrame:
         g_df["excess_return"] = g_df[_label_name] - g_df[_label_name].mean()
         return g_df
 
-    return df.groupby(level="datetime").apply(_calculate_day_value)
+    return df.groupby(level="datetime", group_keys=False).apply(_calculate_day_value)
 
 
 def get_position_data(
