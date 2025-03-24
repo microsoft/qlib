@@ -7,7 +7,7 @@ from __future__ import print_function
 import numpy as np
 import pandas as pd
 import warnings
-from typing import Union
+from typing import Union, Literal
 
 from ..log import get_module_logger
 from ..utils import get_date_range
@@ -24,15 +24,13 @@ from ..data.dataset.utils import get_level_index
 logger = get_module_logger("Evaluate")
 
 
-def risk_analysis(r, N: int = None, freq: str = "day"):
+def risk_analysis(r, N: int = None, freq: str = "day", mode: Literal["sum", "product"] = "sum"):
     """Risk Analysis
     NOTE:
-    The calculation of annulaized return is different from the definition of annualized return.
+    The calculation of annualized return is different from the definition of annualized return.
     It is implemented by design.
-    Qlib tries to cumulated returns by summation instead of production to avoid the cumulated curve being skewed exponentially.
+    Qlib tries to cumulate returns by summation instead of production to avoid the cumulated curve being skewed exponentially.
     All the calculation of annualized returns follows this principle in Qlib.
-
-    TODO: add a parameter to enable calculating metrics with production accumulation of return.
 
     Parameters
     ----------
@@ -42,11 +40,14 @@ def risk_analysis(r, N: int = None, freq: str = "day"):
         scaler for annualizing information_ratio (day: 252, week: 50, month: 12), at least one of `N` and `freq` should exist
     freq: str
         analysis frequency used for calculating the scaler, at least one of `N` and `freq` should exist
+    mode: Literal["sum", "product"]
+        the method by which returns are accumulated:
+        - "sum": Arithmetic accumulation (linear returns).
+        - "product": Geometric accumulation (compounded returns).
     """
 
     def cal_risk_analysis_scaler(freq):
         _count, _freq = Freq.parse(freq)
-        # len(D.calendar(start_time='2010-01-01', end_time='2019-12-31', freq='day')) = 2384
         _freq_scaler = {
             Freq.NORM_FREQ_MINUTE: 240 * 238,
             Freq.NORM_FREQ_DAY: 238,
@@ -62,11 +63,26 @@ def risk_analysis(r, N: int = None, freq: str = "day"):
     if N is None:
         N = cal_risk_analysis_scaler(freq)
 
-    mean = r.mean()
-    std = r.std(ddof=1)
-    annualized_return = mean * N
+    if mode == "sum":
+        mean = r.mean()
+        std = r.std(ddof=1)
+        annualized_return = mean * N
+        max_drawdown = (r.cumsum() - r.cumsum().cummax()).min()
+    elif mode == "product":
+        cumulative_curve = (1 + r).cumprod()
+        # geometric mean (compound annual growth rate)
+        mean = cumulative_curve.iloc[-1] ** (1 / len(r)) - 1
+        # volatility of log returns
+        std = np.log(1 + r).std(ddof=1)
+
+        cumulative_return = cumulative_curve.iloc[-1] - 1
+        annualized_return = (1 + cumulative_return) ** (N / len(r)) - 1
+        # max percentage drawdown from peak cumulative product
+        max_drawdown = (cumulative_curve / cumulative_curve.cummax() - 1).min()
+    else:
+        raise ValueError(f"risk_analysis accumulation mode {mode} is not supported. Expected `sum` or `product`.")
+
     information_ratio = mean / std * np.sqrt(N)
-    max_drawdown = (r.cumsum() - r.cumsum().cummax()).min()
     data = {
         "mean": mean,
         "std": std,
