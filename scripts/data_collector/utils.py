@@ -203,21 +203,11 @@ def get_hs_stock_symbols() -> list:
             {600000.ss, 600001.ss, 600002.ss, 600003.ss, ...}
         """
         # url = "http://99.push2.eastmoney.com/api/qt/clist/get?pn=1&pz=10000&po=1&np=1&fs=m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23,m:0+t:81+s:2048&fields=f12"
-        # try:
-        #     resp = requests.get(url, timeout=None)
-        #     resp.raise_for_status()
-        # except requests.exceptions.HTTPError as e:
-        #     raise requests.exceptions.HTTPError(f"Request to {url} failed with status code {resp.status_code}") from e
-
-        # try:
-        #     _symbols = [_v["f12"] for _v in resp.json()["data"]["diff"]]
-        # except Exception as e:
-        #     logger.warning("An error occurred while extracting data from the response.")
-        #     raise
 
         base_url = "http://99.push2.eastmoney.com/api/qt/clist/get"
         params = {
-            "pz": 80,  # 每页返回200条数据
+            "pn": 1,  # page number
+            "pz": 100,  # page size, default to 100
             "po": 1,
             "np": 1,
             "fs": "m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23,m:0+t:81+s:2048",
