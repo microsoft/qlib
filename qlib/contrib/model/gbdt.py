@@ -34,10 +34,10 @@ class LGBModel(ModelFT, LightGBMFInt):
         assert "train" in dataset.segments
         for key in ["train", "valid"]:
             if key in dataset.segments:
-                df = dataset.prepare(key, col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
+                df = dataset.prepare(key, col_set=["feature_x", "label"], data_key=DataHandlerLP.DK_L)
                 if df.empty:
                     raise ValueError("Empty data from dataset, please check your dataset config.")
-                x, y = df["feature"], df["label"]
+                x, y = df["feature_x"], df["label"]
 
                 # Lightgbm need 1D array as its label
                 if y.values.ndim == 2 and y.values.shape[1] == 1:
@@ -92,7 +92,7 @@ class LGBModel(ModelFT, LightGBMFInt):
     def predict(self, dataset: DatasetH, segment: Union[Text, slice] = "test"):
         if self.model is None:
             raise ValueError("model is not fitted yet!")
-        x_test = dataset.prepare(segment, col_set="feature", data_key=DataHandlerLP.DK_I)
+        x_test = dataset.prepare(segment, col_set="feature_x", data_key=DataHandlerLP.DK_I)
         return pd.Series(self.model.predict(x_test.values), index=x_test.index)
 
     def finetune(self, dataset: DatasetH, num_boost_round=10, verbose_eval=20, reweighter=None):
