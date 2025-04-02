@@ -339,6 +339,10 @@ class NestedDataLoader(DataLoader):
             if df_full is None:
                 df_full = df_current
             else:
+                current_columns = df_current.columns.tolist()
+                full_columns = df_full.columns.tolist()
+                columns_to_drop = [col for col in current_columns if col in full_columns]
+                df_full.drop(columns=columns_to_drop, inplace=True)
                 df_full = pd.merge(df_full, df_current, left_index=True, right_index=True, how=self.join)
         return df_full.sort_index(axis=1)
 
