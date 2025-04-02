@@ -79,6 +79,12 @@ dependencies:
 lightgbm:
 	python -m pip install lightgbm --prefer-binary
 
+# On 2025-04-02 osqp released version 1.0.2, osqp is used as a dependency for qlib. 
+# It would lead to errors installing qlib, so we limited the version of osqp.
+# refs: https://github.com/osqp/osqp/issues/728
+osqp:
+	python -m pip install osqp==1.0.1
+
 rl:
 	python -m pip install -e .[rl]
 
@@ -105,7 +111,7 @@ all:
 
 install: prerequisite dependencies
 
-dev: prerequisite all
+dev: prerequisite osqp all
 
 ########################################################################################
 # Lint and pre-commit
