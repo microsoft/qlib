@@ -105,7 +105,7 @@ all:
 
 install: prerequisite dependencies
 
-dev: prerequisite osqp all
+dev: prerequisite all
 
 ########################################################################################
 # Lint and pre-commit
