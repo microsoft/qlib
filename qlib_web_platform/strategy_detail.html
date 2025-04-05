@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Qlib Web 平台 - 策略详情</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .sidebar-link.active { background-color: #3b82f6; color: white; }
+        /* Style for tabs */
+        .tab-button.active {
+            border-color: #3b82f6; /* border-blue-500 */
+            color: #3b82f6; /* text-blue-600 */
+            border-bottom-width: 2px;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+    </style>
+    <link rel="preconnect" href="https://rsms.me/">
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+</head>
+<body class="bg-gray-100">
+    <div class="flex h-screen bg-gray-200">
+        <!-- 侧边栏 -->
+        <div class="w-64 bg-gray-800 text-white flex flex-col fixed h-full">
+            <!-- Logo/品牌 -->
+            <div class="h-16 flex items-center justify-center text-xl font-bold border-b border-gray-700">
+                Qlib 平台
+            </div>
+            <!-- 导航链接 -->
+            <nav class="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
+                 <a href="dashboard.html" class="sidebar-link flex items-center px-4 py-2 rounded hover:bg-gray-700">
+                    <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+                    仪表盘
+                </a>
+                <a href="strategies.html" class="sidebar-link active flex items-center px-4 py-2 rounded hover:bg-gray-700"> <!-- Mark as active -->
+                     <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17.25v-.092M9.75 12.75v-.092m0-4.5v-.092m6 4.684v-.092m0-4.5v-.092m0-4.5v-.092M5.25 17.25v-.092m0-4.5v-.092m6-4.5v-.092m6 4.684v-.092M5.25 12.75v-.092m0-4.5v-.092m6 4.684v-.092m0-4.5v-.092m6-4.5v-.092M3 12a9 9 0 1118 0 9 9 0 01-18 0z"/> </svg>
+                    我的策略
+                </a>
+                 <!-- Removed Backtesting Link -->
+                 <!-- Removed Model Training Link -->
+                <a href="models.html" class="sidebar-link flex items-center px-4 py-2 rounded hover:bg-gray-700">
+                    <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <!-- Placeholder Icon -->
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17.109c.637-.207 1.32-.325 2.041-.325 3.182 0 5.75 1.962 5.75 4.375 0 .355-.04.7-.118 1.033M15 11.25a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM21 11.25a8.956 8.956 0 01-8.956 8.956 8.956 8.956 0 01-8.956-8.956A8.956 8.956 0 0112.044 2.3a8.956 8.956 0 018.956 8.956z"/>
+                    </svg>
+                    模型管理
+                </a>
+                <a href="data_management.html" class="sidebar-link flex items-center px-4 py-2 rounded hover:bg-gray-700">
+                    <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4M4 7l8 5m0 0l8-5m-8 5v10"/> </svg>
+                    数据管理
+                </a>
+                <a href="live_trading.html" class="sidebar-link flex items-center px-4 py-2 rounded hover:bg-gray-700">
+                     <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/> </svg>
+                    实盘交易 (IB)
+                </a>
+            </nav>
+             <!-- 用户区/登出 -->
+             <div class="border-t border-gray-700 p-4">
+                  <a href="settings.html" class="sidebar-link flex items-center px-4 py-2 rounded hover:bg-gray-700">
+                     <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/> </svg>
+                     设置
+                 </a>
+                 <a href="login.html" class="sidebar-link flex items-center px-4 py-2 mt-2 text-red-400 rounded hover:bg-gray-700">
+                      <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/> </svg>
+                     登出
+                 </a>
+             </div>
+        </div>
+
+        <!-- 主内容 -->
+        <div class="flex-1 flex flex-col overflow-hidden ml-64">
+            <!-- 头部 -->
+            <header class="bg-white shadow p-4 flex justify-between items-center">
+                <div>
+                    <a href="strategies.html" class="text-blue-600 hover:underline text-sm">&larr; 返回策略列表</a> <!-- Changed text -->
+                    <h1 class="text-xl font-semibold text-gray-800 mt-1">策略: LSTM Alpha158 TopK</h1> <!-- Changed text, Example Name -->
+                </div>
+                 <div class="flex space-x-2">
+                     <button class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">编辑</button> <!-- Changed text -->
+                     <button class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded">删除</button> <!-- Changed text -->
+                 </div>
+            </header>
+
+            <!-- 内容区域 -->
+            <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
+                <div class="container mx-auto">
+
+                    <!-- Strategy Configuration Summary Card -->
+                    <div class="bg-white p-6 rounded-lg shadow mb-6">
+                        <h2 class="text-lg font-semibold text-gray-700 mb-4 border-b pb-2">策略配置详情</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 text-sm">
+                            <div>
+                                <p><strong>策略名称:</strong></p>
+                                <p class="text-gray-800">LSTM Alpha158 TopK</p> <!-- Example Data -->
+                            </div>
+                            <div class="md:col-span-2">
+                                <p><strong>策略描述:</strong></p>
+                                <p class="text-gray-600">此策略基于 LSTM 模型预测的 Alpha158 因子信号，采用 TopK 排序选股。</p> <!-- Example Data -->
+                            </div>
+                            <div>
+                                <p><strong>关联模型:</strong></p>
+                                <p><a href="edit_model.html?id=1" class="text-blue-600 hover:underline">A股日线预测模型v1 (LightGBM)</a></p> <!-- Example Data - Linked -->
+                                <p class="text-xs text-gray-500 mt-1">训练于: CSI 300 (2018-01-01 - 2022-12-31)</p> <!-- Example Context -->
+                            </div>
+                             <div>
+                                <p><strong>组合策略类型:</strong></p>
+                                <p class="text-gray-800">TopkDropoutStrategy</p> <!-- Example Data -->
+                            </div>
+                             <div>
+                                <p><strong>组合策略参数:</strong></p>
+                                <p class="text-gray-600 font-mono text-xs bg-gray-100 p-1 rounded inline-block">topk: 50, n_drop: 5</p> <!-- Example Data -->
+                                <!-- Or display YAML/JSON if complex -->
+                            </div>
+                             <div>
+                                <p><strong>交易成本:</strong></p>
+                                <p class="text-gray-800">手续费: 0.03%, 滑点: 0.001</p> <!-- Example Data -->
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- Backtest History Card -->
+                    <div class="bg-white p-6 rounded-lg shadow mb-6">
+                        <div class="flex justify-between items-center mb-4 border-b pb-2">
+                             <h2 class="text-lg font-semibold text-gray-700">回测历史记录</h2>
+                             <button onclick="openBacktestModalForCurrentStrategy()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded text-sm">运行新回测</button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200 text-sm">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">运行时间</th>
+                                        <th scope="col" class="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">回测周期</th>
+                                        <th scope="col" class="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">股票池</th>
+                                        <th scope="col" class="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">初始资金</th>
+                                        <th scope="col" class="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">基准</th>
+                                        <th scope="col" class="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">状态</th>
+                                        <th scope="col" class="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">年化</th>
+                                        <th scope="col" class="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">最大回撤</th>
+                                        <th scope="col" class="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Sharpe</th>
+                                        <th scope="col" class="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    <!-- Example Row 1 -->
+                                    <tr>
+                                        <td class="px-4 py-3 whitespace-nowrap">2024-07-22 10:15:30</td>
+                                        <td class="px-4 py-3 whitespace-nowrap">2023-01-01 - 2023-12-31</td>
+                                        <td class="px-4 py-3 whitespace-nowrap">CSI 300</td>
+                                        <td class="px-4 py-3 whitespace-nowrap">1,000,000</td>
+                                        <td class="px-4 py-3 whitespace-nowrap">SH000300</td>
+                                        <td class="px-4 py-3 whitespace-nowrap"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">已完成</span></td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-green-600">15.2%</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-red-600">-12.5%</td>
+                                        <td class="px-4 py-3 whitespace-nowrap">1.20</td>
+                                        <td class="px-4 py-3 whitespace-nowrap font-medium"><a href="#" class="text-indigo-600 hover:text-indigo-900">报告</a></td>
+                                    </tr>
+                                     <!-- Example Row 2 -->
+                                    <tr>
+                                        <td class="px-4 py-3 whitespace-nowrap">2024-07-21 16:05:00</td>
+                                        <td class="px-4 py-3 whitespace-nowrap">2021-01-01 - 2022-12-31</td>
+                                        <td class="px-4 py-3 whitespace-nowrap">CSI 300</td>
+                                        <td class="px-4 py-3 whitespace-nowrap">1,000,000</td>
+                                        <td class="px-4 py-3 whitespace-nowrap">SH000300</td>
+                                        <td class="px-4 py-3 whitespace-nowrap"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">已完成</span></td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-green-600">9.8%</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-red-600">-9.1%</td>
+                                        <td class="px-4 py-3 whitespace-nowrap">0.95</td>
+                                        <td class="px-4 py-3 whitespace-nowrap font-medium"><a href="#" class="text-indigo-600 hover:text-indigo-900">报告</a></td>
+                                    </tr>
+                                     <!-- Example Row 3 - Running -->
+                                    <tr>
+                                        <td class="px-4 py-3 whitespace-nowrap">2024-07-23 09:30:10</td>
+                                        <td class="px-4 py-3 whitespace-nowrap">2023-01-01 - 2024-06-30</td>
+                                        <td class="px-4 py-3 whitespace-nowrap">CSI 500</td> <!-- Example of different universe -->
+                                        <td class="px-4 py-3 whitespace-nowrap">500,000</td>
+                                        <td class="px-4 py-3 whitespace-nowrap">SH000905</td>
+                                        <td class="px-4 py-3 whitespace-nowrap"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">运行中...</span></td>
+                                        <td class="px-4 py-3 whitespace-nowrap">---</td>
+                                        <td class="px-4 py-3 whitespace-nowrap">---</td>
+                                        <td class="px-4 py-3 whitespace-nowrap">---</td>
+                                        <td class="px-4 py-3 whitespace-nowrap font-medium"><a href="#" class="text-gray-500 cursor-not-allowed">报告</a></td>
+                                    </tr>
+                                    <!-- Add more rows dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Backtest Config Modal (Copied from strategies.html) -->
+                    <div id="backtestModal" class="fixed z-10 inset-0 overflow-y-auto hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+                        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+                            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+                            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                                    <div class="sm:flex sm:items-start">
+                                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-green-100 sm:mx-0 sm:h-10 sm:w-10">
+                                            <svg class="h-6 w-6 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                        </div>
+                                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="backtest-modal-title">
+                                                运行回测
+                                            </h3>
+                                            <div class="mt-4">
+                                                <form id="backtestForm">
+                                                    <input type="hidden" id="backtestStrategyId" name="strategy_id">
+                                                    <div class="mb-4">
+                                                        <label for="backtestStartDate" class="block text-sm font-medium text-gray-700">回测开始日期</label>
+                                                        <input type="date" name="start_date" id="backtestStartDate" required class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+                                                    </div>
+                                                    <div class="mb-4">
+                                                        <label for="backtestEndDate" class="block text-sm font-medium text-gray-700">回测结束日期</label>
+                                                        <input type="date" name="end_date" id="backtestEndDate" required class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+                                                    </div>
+                                                    <div class="mb-4">
+                                                        <label for="initialCapital" class="block text-sm font-medium text-gray-700">初始资金</label>
+                                                        <input type="number" name="initial_capital" id="initialCapital" value="1000000" required class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+                                                    </div>
+                                                    <div class="mb-4">
+                                                        <label for="benchmark" class="block text-sm font-medium text-gray-700">基准 (可选)</label>
+                                                        <input type="text" name="benchmark" id="benchmark" placeholder="例如: SH000300" class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+                                                    </div>
+                                                    <div class="mb-4">
+                                                        <label for="backtestUniverse" class="block text-sm font-medium text-gray-700">股票池/Universe <span class="text-red-500">*</span></label>
+                                                        <select id="backtestUniverse" name="universe" required class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                                                            <option value="">-- 请选择 --</option>
+                                                            <option value="csi300">沪深 300</option>
+                                                            <option value="csi500">中证 500</option>
+                                                            <option value="ashare">全市场 A 股</option>
+                                                        </select>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                                    <button type="button" onclick="startBacktest()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:ml-3 sm:w-auto sm:text-sm">
+                                        开始回测
+                                    </button>
+                                    <button type="button" onclick="closeBacktestModal()" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                                        取消
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div> <!-- /.container -->
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // --- Get Strategy ID from URL --- (Basic Implementation)
+        const urlParams = new URLSearchParams(window.location.search);
+        const currentStrategyId = urlParams.get('id') || '1'; // Default to '1' if no ID
+
+        // --- Backtest Config Modal Logic (Copied & Adapted from strategies.html) ---
+        // Hardcoded model contexts (replace with dynamic data later)
+        const modelContexts = {
+            '1': { // Corresponds to strategyId '1' (LSTM Alpha158 TopK)
+                universe: 'csi300',
+                trainingEndDate: '2022-12-31'
+            },
+            '2': { // Corresponds to strategyId '2' (LightGBM Alpha158 TopK)
+                universe: 'csi300', // Assuming this one also trained on csi300 for demo
+                trainingEndDate: '2021-12-31' // Different end date example
+            }
+            // Add more contexts here based on strategyId -> model mapping
+        };
+
+        // Helper function to get the next day in YYYY-MM-DD format
+        function getNextDay(dateString) {
+            if (!dateString) return '';
+            try {
+                const date = new Date(dateString);
+                date.setDate(date.getDate() + 1);
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            } catch (e) {
+                console.error("Error calculating next day:", e);
+                return '';
+            }
+        }
+
+        const backtestModal = document.getElementById('backtestModal');
+        const backtestModalTitle = document.getElementById('backtest-modal-title');
+        const backtestStrategyIdInput = document.getElementById('backtestStrategyId');
+        const backtestUniverseSelect = document.getElementById('backtestUniverse');
+        const backtestStartDateInput = document.getElementById('backtestStartDate');
+        const backtestEndDateInput = document.getElementById('backtestEndDate');
+
+        // Function to open modal specifically for the strategy on this detail page
+        function openBacktestModalForCurrentStrategy() {
+             // Assuming currentStrategyId is available (e.g., from URL param)
+             const strategyName = document.querySelector('.strategy-name-display')?.textContent || `策略 ${currentStrategyId}`; // Get name from page or use ID
+             openBacktestModal(currentStrategyId, strategyName);
+        }
+
+        function openBacktestModal(strategyId, strategyName) {
+            backtestModalTitle.textContent = `运行回测 - ${strategyName}`;
+            backtestStrategyIdInput.value = strategyId; // Set the hidden strategy ID field
+            backtestModal.classList.remove('hidden');
+
+            // Set defaults based on model context
+            const context = modelContexts[strategyId];
+            if (context && context.universe) {
+                backtestUniverseSelect.value = context.universe;
+            } else {
+                backtestUniverseSelect.value = ''; // Reset to default prompt
+            }
+
+            if (context && context.trainingEndDate) {
+                const defaultStartDate = getNextDay(context.trainingEndDate);
+                backtestStartDateInput.value = defaultStartDate;
+            } else {
+                backtestStartDateInput.value = ''; // Clear if no context
+            }
+            backtestEndDateInput.value = ''; // Clear end date
+        }
+
+        function closeBacktestModal() {
+            backtestModal.classList.add('hidden');
+        }
+
+        function startBacktest() {
+            const strategyId = backtestStrategyIdInput.value; // Get strategy ID from hidden input
+            const startDate = document.getElementById('backtestStartDate').value;
+            const endDate = document.getElementById('backtestEndDate').value;
+            const initialCapital = document.getElementById('initialCapital').value;
+            const benchmark = document.getElementById('benchmark').value;
+            const universe = document.getElementById('backtestUniverse').value;
+
+            // --- Universe Mismatch Warning --- START
+            let trainingUniverse = null;
+            const context = modelContexts[strategyId]; // Use the correct strategyId
+            if (context) {
+                trainingUniverse = context.universe;
+            }
+
+            if (trainingUniverse && universe !== trainingUniverse) {
+                 const warningMsg = `警告：此策略关联的模型主要在 '${trainingUniverse}' 上训练，但您选择的回测股票池是 '${universe}'。\n\n这可能导致结果不可靠。确定要继续吗？`;
+                 if (!confirm(warningMsg)) {
+                     return; // Stop if user cancels
+                 }
+            }
+            // --- Universe Mismatch Warning --- END
+
+            if (!startDate || !endDate || !initialCapital || !universe) {
+                alert('请填写所有必填的回测参数！');
+                return;
+            }
+
+            console.log(`Starting backtest for strategy ${strategyId} from ${startDate} to ${endDate} with capital ${initialCapital}, benchmark: ${benchmark}, universe: ${universe}`);
+            closeBacktestModal();
+            alert('回测任务已提交！'); // Placeholder feedback
+        }
+
+        // Add a class to the strategy name display for easier selection in JS
+        document.addEventListener('DOMContentLoaded', () => {
+            const strategyNameElement = document.querySelector('.bg-white h2 + div > div:first-child > p:last-child'); // Find strategy name based on current structure
+            if (strategyNameElement) {
+                strategyNameElement.classList.add('strategy-name-display');
+            }
+        });
+
+    </script>
+</body>
+</html> 

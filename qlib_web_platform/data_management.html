@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Qlib Web 平台 - 数据管理</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .sidebar-link.active { background-color: #3b82f6; color: white; }
+        /* Styling for file input area */
+        .file-upload-area {
+            border: 2px dashed #cbd5e1; /* border-gray-300 */
+            border-radius: 0.375rem; /* rounded-md */
+            padding: 2rem; /* p-8 */
+            text-align: center;
+            cursor: pointer;
+        }
+        .file-upload-area:hover {
+            border-color: #3b82f6; /* border-blue-500 */
+            background-color: #f0f9ff; /* bg-blue-50 */
+        }
+    </style>
+    <link rel="preconnect" href="https://rsms.me/">
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+</head>
+<body class="bg-gray-100">
+    <div class="flex h-screen bg-gray-200">
+        <!-- 侧边栏 -->
+        <div class="w-64 bg-gray-800 text-white flex flex-col fixed h-full">
+            <!-- Logo/品牌 -->
+            <div class="h-16 flex items-center justify-center text-xl font-bold border-b border-gray-700">
+                Qlib 平台
+            </div>
+            <!-- 导航链接 -->
+            <nav class="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
+                <a href="dashboard.html" class="sidebar-link flex items-center px-4 py-2 rounded hover:bg-gray-700">
+                    <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+                    仪表盘
+                </a>
+                <a href="strategies.html" class="sidebar-link flex items-center px-4 py-2 rounded hover:bg-gray-700">
+                     <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17.25v-.092M9.75 12.75v-.092m0-4.5v-.092m6 4.684v-.092m0-4.5v-.092m0-4.5v-.092M5.25 17.25v-.092m0-4.5v-.092m6-4.5v-.092m6 4.684v-.092M5.25 12.75v-.092m0-4.5v-.092m6 4.684v-.092m0-4.5v-.092m6-4.5v-.092M3 12a9 9 0 1118 0 9 9 0 01-18 0z"/> </svg>
+                    我的策略
+                </a>
+                <a href="models.html" class="sidebar-link flex items-center px-4 py-2 rounded hover:bg-gray-700">
+                    <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17.109c.637-.207 1.32-.325 2.041-.325 3.182 0 5.75 1.962 5.75 4.375 0 .355-.04.7-.118 1.033M15 11.25a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM21 11.25a8.956 8.956 0 01-8.956 8.956 8.956 8.956 0 01-8.956-8.956A8.956 8.956 0 0112.044 2.3a8.956 8.956 0 018.956 8.956z"/>
+                    </svg>
+                    模型管理
+                </a>
+                <a href="data_management.html" class="sidebar-link active flex items-center px-4 py-2 rounded hover:bg-gray-700"> <!-- Mark as active -->
+                    <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4M4 7l8 5m0 0l8-5m-8 5v10"/> </svg>
+                    数据管理
+                </a>
+                <a href="live_trading.html" class="sidebar-link flex items-center px-4 py-2 rounded hover:bg-gray-700">
+                     <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/> </svg>
+                    实盘交易 (IB)
+                </a>
+            </nav>
+             <!-- 用户区/登出 -->
+             <div class="border-t border-gray-700 p-4">
+                  <a href="settings.html" class="sidebar-link flex items-center px-4 py-2 rounded hover:bg-gray-700">
+                     <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/> </svg>
+                     设置
+                 </a>
+                 <a href="login.html" class="sidebar-link flex items-center px-4 py-2 mt-2 text-red-400 rounded hover:bg-gray-700">
+                      <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/> </svg>
+                     登出
+                 </a>
+             </div>
+        </div>
+
+        <!-- 主内容 -->
+        <div class="flex-1 flex flex-col overflow-hidden ml-64">
+            <!-- 头部 -->
+            <header class="bg-white shadow p-4">
+                <h1 class="text-xl font-semibold text-gray-800">数据管理</h1>
+            </header>
+
+            <!-- 内容区域 -->
+            <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
+                <div class="container mx-auto">
+
+                    <!-- 内置数据包 -->
+                    <div class="bg-white p-6 rounded-lg shadow mb-6">
+                        <h2 class="text-lg font-semibold text-gray-700 mb-3 border-b pb-2">内置数据包</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                             <div>
+                                <h3 class="font-medium text-gray-900">中国 A 股日线数据 (qlib_data)</h3>
+                                <p class="text-sm text-gray-600">来源: 爬虫/公开数据</p>
+                                <p class="text-sm text-gray-600">覆盖范围: 2007-至今</p>
+                                <p class="text-sm text-gray-600">状态: <span class="text-green-600">可用</span></p>
+                                <button class="text-xs text-blue-500 hover:underline mt-1">更新数据</button>
+                             </div>
+                            <div>
+                                <h3 class="font-medium text-gray-900">Alpha158 因子</h3>
+                                <p class="text-sm text-gray-600">来源: 基于日线数据计算</p>
+                                <p class="text-sm text-gray-600">依赖: 中国 A 股日线数据</p>
+                                <p class="text-sm text-gray-600">状态: <span class="text-green-600">可用</span></p>
+                                <button class="text-xs text-blue-500 hover:underline mt-1">重新计算</button>
+                             </div>
+                             <!-- 可添加更多内置数据 -->
+                        </div>
+                    </div>
+
+                     <!-- 自定义数据包 -->
+                     <div class="bg-white p-6 rounded-lg shadow">
+                         <h2 class="text-lg font-semibold text-gray-700 mb-4 border-b pb-2">自定义数据包</h2>
+
+                         <!-- 文件上传区域 -->
+                        <div class="mb-6">
+                            <label for="customDataUpload" class="block text-sm font-medium text-gray-700 mb-2">导入自定义数据 (CSV)</label>
+                            <div class="file-upload-area" onclick="document.getElementById('customDataUpload').click();">
+                                <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                                <p class="mt-1 text-sm text-gray-600">点击此处选择文件或拖放文件到此区域</p>
+                                <p class="text-xs text-gray-500">仅支持 CSV 文件</p>
+                                <input id="customDataUpload" name="customDataUpload" type="file" class="sr-only" accept=".csv">
+                            </div>
+                            <!-- Add progress bar or status message area here -->
+                         </div>
+
+                         <!-- 自定义数据列表 -->
+                         <h3 class="text-md font-semibold text-gray-700 mb-3">已导入的数据包</h3>
+                         <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">包名称</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">源文件名</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">导入日期</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">大小</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    <!-- Example Row 1 -->
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">港股通日线</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">hk_daily_data_2024.csv</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2024-07-20</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">150 MB</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                                            <a href="#" class="text-indigo-600 hover:text-indigo-900">查看</a>
+                                            <a href="#" class="text-red-600 hover:text-red-900">删除</a>
+                                        </td>
+                                    </tr>
+                                    <!-- Add more rows as needed -->
+                                     <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">美股科技股</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">us_tech_stocks.csv</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2024-07-15</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">85 MB</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                                            <a href="#" class="text-indigo-600 hover:text-indigo-900">查看</a>
+                                            <a href="#" class="text-red-600 hover:text-red-900">删除</a>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                     </div>
+
+                </div>
+            </main>
+        </div>
+    </div>
+    <script>
+        // Optional: Add JS for drag & drop feedback or file upload handling
+        const fileUploadArea = document.querySelector('.file-upload-area');
+        const fileInput = document.getElementById('customDataUpload');
+
+        fileUploadArea.addEventListener('dragover', (event) => {
+            event.preventDefault(); // Prevent default browser behavior
+            fileUploadArea.classList.add('border-blue-500', 'bg-blue-50');
+        });
+
+        fileUploadArea.addEventListener('dragleave', () => {
+             fileUploadArea.classList.remove('border-blue-500', 'bg-blue-50');
+        });
+
+        fileUploadArea.addEventListener('drop', (event) => {
+            event.preventDefault(); // Prevent default browser behavior
+            fileUploadArea.classList.remove('border-blue-500', 'bg-blue-50');
+            if (event.dataTransfer.files.length) {
+                fileInput.files = event.dataTransfer.files;
+                // Optionally, trigger upload or display file info here
+                console.log('Files dropped:', fileInput.files);
+                 alert(`已选择文件: ${fileInput.files[0].name}`); // Simple feedback
+            }
+        });
+
+         fileInput.addEventListener('change', () => {
+            if (fileInput.files.length) {
+                console.log('Files selected:', fileInput.files);
+                 alert(`已选择文件: ${fileInput.files[0].name}`); // Simple feedback
+                 // Trigger actual upload process here
+            }
+        });
+    </script>
+</body>
+</html> 

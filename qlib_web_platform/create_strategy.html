@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Qlib Web 平台 - 新建策略</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .sidebar-link.active { background-color: #3b82f6; color: white; }
+        /* Style for date range pickers (placeholder) */
+        .date-range-picker { display: flex; gap: 0.5rem; align-items: center; }
+        .date-range-picker input[type="date"] {
+            padding: 0.5rem;
+            border: 1px solid #d1d5db; /* border-gray-300 */
+            border-radius: 0.375rem; /* rounded-md */
+            font-size: 0.875rem; /* text-sm */
+        }
+        /* Style for advanced config textarea */
+        .advanced-config-area { display: none; }
+        .advanced-config-area.visible { display: block; }
+    </style>
+    <link rel="preconnect" href="https://rsms.me/">
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+</head>
+<body class="bg-gray-100">
+    <div class="flex h-screen bg-gray-200">
+        <!-- 侧边栏 -->
+        <div class="w-64 bg-gray-800 text-white flex flex-col fixed h-full">
+            <!-- Logo/品牌 -->
+            <div class="h-16 flex items-center justify-center text-xl font-bold border-b border-gray-700">
+                Qlib 平台
+            </div>
+            <!-- 导航链接 -->
+            <nav class="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
+                <a href="dashboard.html" class="sidebar-link flex items-center px-4 py-2 rounded hover:bg-gray-700">
+                    <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+                    仪表盘
+                </a>
+                <a href="strategies.html" class="sidebar-link active flex items-center px-4 py-2 rounded hover:bg-gray-700"> <!-- Mark My Strategies as active -->
+                     <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17.25v-.092M9.75 12.75v-.092m0-4.5v-.092m6 4.684v-.092m0-4.5v-.092m0-4.5v-.092M5.25 17.25v-.092m0-4.5v-.092m6-4.5v-.092m6 4.684v-.092M5.25 12.75v-.092m0-4.5v-.092m6 4.684v-.092m0-4.5v-.092m6-4.5v-.092M3 12a9 9 0 1118 0 9 9 0 01-18 0z"/> </svg>
+                    我的策略
+                </a>
+                <a href="models.html" class="sidebar-link flex items-center px-4 py-2 rounded hover:bg-gray-700">
+                    <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <!-- Placeholder Icon -->
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17.109c.637-.207 1.32-.325 2.041-.325 3.182 0 5.75 1.962 5.75 4.375 0 .355-.04.7-.118 1.033M15 11.25a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM21 11.25a8.956 8.956 0 01-8.956 8.956 8.956 8.956 0 01-8.956-8.956A8.956 8.956 0 0112.044 2.3a8.956 8.956 0 018.956 8.956z"/>
+                    </svg>
+                    模型管理
+                </a>
+                <a href="data_management.html" class="sidebar-link flex items-center px-4 py-2 rounded hover:bg-gray-700">
+                    <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4M4 7l8 5m0 0l8-5m-8 5v10"/> </svg>
+                    数据管理
+                </a>
+                <a href="live_trading.html" class="sidebar-link flex items-center px-4 py-2 rounded hover:bg-gray-700">
+                     <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/> </svg>
+                    实盘交易 (IB)
+                </a>
+            </nav>
+             <!-- 用户区/登出 -->
+             <div class="border-t border-gray-700 p-4">
+                  <a href="settings.html" class="sidebar-link flex items-center px-4 py-2 rounded hover:bg-gray-700">
+                     <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/> </svg>
+                     设置
+                 </a>
+                 <a href="login.html" class="sidebar-link flex items-center px-4 py-2 mt-2 text-red-400 rounded hover:bg-gray-700">
+                      <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/> </svg>
+                     登出
+                 </a>
+             </div>
+        </div>
+
+        <!-- 主内容 -->
+        <div class="flex-1 flex flex-col overflow-hidden ml-64">
+            <!-- 头部 -->
+            <header class="bg-white shadow p-4">
+                <h1 class="text-xl font-semibold text-gray-800">新建策略</h1>
+            </header>
+
+            <!-- 内容区域 -->
+            <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
+                <div class="container mx-auto">
+                    <form action="#" method="POST"> <!-- Needs proper backend endpoint -->
+
+                        <!-- 基本信息 -->
+                        <div class="bg-white p-6 rounded-lg shadow mb-6">
+                            <h2 class="text-lg font-semibold text-gray-700 mb-4 border-b pb-2">基本信息</h2>
+                            <div class="mb-4">
+                                <label for="strategy_name" class="block text-sm font-medium text-gray-700">策略名称 <span class="text-red-500">*</span></label>
+                                <input type="text" name="strategy_name" id="strategy_name" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                            </div>
+                            <div>
+                                <label for="strategy_description" class="block text-sm font-medium text-gray-700">策略描述</label>
+                                <textarea name="strategy_description" id="strategy_description" rows="3" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- 新增：选择模型 -->
+                        <div class="bg-white p-6 rounded-lg shadow mb-6">
+                            <h2 class="text-lg font-semibold text-gray-700 mb-4 border-b pb-2">选择模型</h2>
+                            <div class="mb-4">
+                                <label for="select_model" class="block text-sm font-medium text-gray-700">选择已训练的模型 <span class="text-red-500">*</span></label>
+                                <select id="select_model" name="select_model" required class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                                    <option value="">-- 请选择一个模型 --</option>
+                                    <option value="model_id_1">A股日线预测模型v1 (LightGBM, 已训练)</option>
+                                    <!-- <option value="model_id_2">分钟择时模型-LSTM (LSTM, 训练中...)</option> -->
+                                    <!-- <option value="model_id_3">新因子测试模型 (XGBoost, 草稿)</option> -->
+                                    <!-- Populate this list dynamically from the backend -->
+                                </select>
+                            </div>
+                            <!-- 可以添加一个区域显示选中模型的简要信息 -->
+                            <div id="selected_model_info" class="mt-4 p-4 bg-gray-50 rounded border border-gray-200 text-sm text-gray-700 space-y-1">
+                                <!-- 例如: 模型类型: LightGBM, 最后训练时间: 2024-07-20 -->
+                                <p class="text-gray-500">选择模型后将在此处显示其训练上下文信息。</p>
+                            </div>
+                        </div>
+
+                        <!-- 组合策略配置 -->
+                         <div class="bg-white p-6 rounded-lg shadow mb-6">
+                            <h2 class="text-lg font-semibold text-gray-700 mb-4 border-b pb-2">组合策略配置</h2>
+                            <p class="text-sm text-gray-500 mt-1 mb-3">定义如何根据模型预测信号来构建投资组合、管理仓位和执行交易。</p>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label for="portfolio_strategy_type" class="block text-sm font-medium text-gray-700">组合策略类型 <span class="text-red-500">*</span></label>
+                                    <select id="portfolio_strategy_type" name="portfolio_strategy_type" required class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                                        <option>TopkDropoutStrategy</option>
+                                        <option>WeightStrategy</option>
+                                        <!-- Add other Qlib strategies -->
+                                    </select>
+                                </div>
+                                <div class="md:col-span-2">
+                                     <label class="block text-sm font-medium text-gray-700">策略参数</label>
+                                      <div id="portfolio_params_simple" class="mt-1 space-y-2">
+                                         <!-- Placeholder: Params will be shown dynamically -->
+                                          <p class="text-xs text-gray-500">根据所选策略类型，将在此处显示常用参数输入框。</p>
+                                          <!-- Example for TopkDropoutStrategy (initially hidden) -->
+                                          <div class="portfolio-params-group hidden" data-strategy="TopkDropoutStrategy">
+                                             <label for="topk_k" class="text-xs">topk:</label>
+                                             <input type="number" id="topk_k" name="topk_k" class="text-xs border border-gray-300 rounded p-1">
+                                              <label for="topk_drop" class="text-xs ml-2">n_drop:</label>
+                                             <input type="number" id="topk_drop" name="topk_drop" class="text-xs border border-gray-300 rounded p-1">
+                                         </div>
+                                      </div>
+                                      <button type="button" onclick="toggleAdvancedConfig('portfolio_advanced_config', this)" class="mt-2 text-sm text-blue-600 hover:underline">使用高级/原始配置</button>
+                                      <div id="portfolio_advanced_config" class="advanced-config-area mt-2">
+                                          <textarea name="portfolio_config_raw" rows="6" class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="在此处粘贴组合策略的 YAML 或 JSON 配置..."></textarea>
+                                      </div>
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="block text-sm font-medium text-gray-700">交易成本</label>
+                                    <div class="flex space-x-4 mt-1">
+                                        <div>
+                                            <label for="commission_rate" class="block text-xs font-medium text-gray-700">手续费率 (%)</label>
+                                            <input type="number" step="0.001" name="commission_rate" id="commission_rate" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 sm:text-sm" placeholder="例如: 0.03">
+                                        </div>
+                                         <div>
+                                            <label for="slippage" class="block text-xs font-medium text-gray-700">滑点</label>
+                                            <input type="number" step="0.0001" name="slippage" id="slippage" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 sm:text-sm" placeholder="例如: 0.001">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 操作按钮 -->
+                        <div class="flex justify-end space-x-3 mt-8">
+                            <a href="strategies.html" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded inline-flex items-center">
+                                取消
+                            </a>
+                            <button type="submit" name="action" value="save_draft" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded inline-flex items-center">
+                                保存草稿
+                            </button>
+                        </div>
+
+                    </form>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // Basic JS to toggle advanced config sections
+        function toggleAdvancedConfig(elementId, button) {
+            const area = document.getElementById(elementId);
+            const isVisible = area.classList.toggle('visible');
+            button.textContent = isVisible ? '使用常用参数' : '使用高级/原始配置';
+            // Optionally disable simple input fields when advanced is visible
+            const simpleAreaId = elementId.replace('_advanced_config', '_simple');
+            const simpleArea = document.getElementById(simpleAreaId);
+            if (simpleArea) {
+                 simpleArea.style.display = isVisible ? 'none' : 'block'; // Or use visibility/opacity
+            }
+        }
+
+        // Basic JS to show/hide specific parameter inputs based on dropdown selection (placeholder)
+         document.getElementById('model_type').addEventListener('change', function() {
+             const selectedModel = this.value;
+             document.querySelectorAll('#model_params_simple .model-params-group').forEach(group => {
+                 group.classList.add('hidden');
+             });
+             const activeGroup = document.querySelector(`#model_params_simple .model-params-group[data-model="${selectedModel}"]`);
+             if (activeGroup) {
+                 activeGroup.classList.remove('hidden');
+             }
+         });
+
+        document.getElementById('portfolio_strategy_type').addEventListener('change', function() {
+             const selectedStrategy = this.value;
+             document.querySelectorAll('#portfolio_params_simple .portfolio-params-group').forEach(group => {
+                 group.classList.add('hidden');
+             });
+              const activeGroup = document.querySelector(`#portfolio_params_simple .portfolio-params-group[data-strategy="${selectedStrategy}"]`);
+             if (activeGroup) {
+                 activeGroup.classList.remove('hidden');
+             }
+         });
+
+         // --- Placeholder JS logic for enabling/disabling buttons ---
+         const selectModelDropdown = document.getElementById('select_model');
+
+         function updateButtonStates() {
+             // Enable Backtest button if a model is selected
+             // We'll assume portfolio config is always minimally valid for now
+             const modelSelected = selectModelDropdown && selectModelDropdown.value !== "";
+
+             // Update selected model info display (Placeholder)
+             const selectedModelInfoDiv = document.getElementById('selected_model_info');
+             if (selectedModelInfoDiv && selectModelDropdown) {
+                 const selectedOption = selectModelDropdown.options[selectModelDropdown.selectedIndex];
+                 selectedModelInfoDiv.innerHTML = ''; // Clear previous info
+
+                 if (selectedOption && selectedOption.value !== "") {
+                     // Hardcoded example: Assume model_id_1 was trained on CSI 300
+                     let trainingContext = null;
+                     if (selectedOption.value === "model_id_1") {
+                         trainingContext = {
+                             period: "2018-01-01 - 2022-12-31",
+                             universe: "CSI 300",
+                             features: "Alpha158",
+                             label: "Ref($close, -2) / Ref($close, -1) - 1"
+                         };
+                     }
+
+                     // Display selected model name and its context
+                     let content = `<p><strong>已选模型: ${selectedOption.text}</strong></p>`;
+                     if (trainingContext) {
+                         content += `
+                            <ul class="list-disc list-inside pl-2 mt-2 space-y-1">
+                                <li><strong>训练周期:</strong> ${trainingContext.period}</li>
+                                <li><strong>训练股票池:</strong> ${trainingContext.universe}</li>
+                                <li><strong>特征集:</strong> <span class="truncate" title="${trainingContext.features}">${trainingContext.features}</span></li>
+                                <li><strong>标签:</strong> <span class="truncate" title="${trainingContext.label}">${trainingContext.label}</span></li>
+                            </ul>`;
+                     } else {
+                         content += `<p class="text-gray-500 mt-2">未找到该模型的训练上下文信息。</p>`;
+                     }
+                     selectedModelInfoDiv.innerHTML = content;
+
+                 } else {
+                     selectedModelInfoDiv.innerHTML = `<p class="text-gray-500">选择模型后将在此处显示其训练上下文信息。</p>`;
+                 }
+             }
+         }
+
+         if (selectModelDropdown) { // Add listener for model selection dropdown
+             selectModelDropdown.addEventListener('change', updateButtonStates);
+         }
+
+          // Trigger initial state update on page load
+          document.addEventListener('DOMContentLoaded', () => {
+              document.getElementById('portfolio_strategy_type').dispatchEvent(new Event('change'));
+              updateButtonStates(); // Initial button state check
+          });
+
+    </script>
+</body>
+</html> 
