@@ -85,7 +85,10 @@
 
                         <!-- 基本信息 -->
                         <div class="bg-white p-6 rounded-lg shadow mb-6">
-                            <h2 class="text-lg font-semibold text-gray-700 mb-4 border-b pb-2">基本信息</h2>
+                            <h2 class="text-lg font-semibold text-gray-700 mb-4 border-b pb-2 flex justify-between items-center">
+                                <span>基本信息</span>
+                                <span class="text-sm font-medium text-gray-600">当前状态: <strong id="current_model_status" class="text-blue-600">已训练</strong></span>
+                            </h2>
                             <div class="mb-4">
                                 <label for="model_name" class="block text-sm font-medium text-gray-700">模型名称 <span class="text-red-500">*</span></label>
                                 <!-- Backend should pre-fill value -->
@@ -98,112 +101,126 @@
                             </div>
                         </div>
 
-                        <!-- 模型配置 -->
+                        <!-- 模型定义与训练上下文 -->
                         <div class="bg-white p-6 rounded-lg shadow mb-6">
-                            <h2 class="text-lg font-semibold text-gray-700 mb-4 border-b pb-2">模型配置</h2>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label for="model_type" class="block text-sm font-medium text-gray-700">模型类型 <span class="text-red-500">*</span></label>
-                                    <!-- Backend should pre-select the correct option -->
-                                    <select id="model_type" name="model_type" required class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
-                                        <option selected>LightGBM</option>
-                                        <option>LSTM</option>
-                                        <option>XGBoost</option>
-                                        <option>自定义</option>
-                                    </select>
-                                </div>
-                                <div class="md:col-span-2">
-                                     <label class="block text-sm font-medium text-gray-700">模型参数</label>
-                                     <!-- Backend should pre-fill or select advanced mode based on saved config -->
-                                     <div id="model_params_simple" class="mt-1 space-y-2">
-                                         <p class="text-xs text-gray-500">根据所选模型类型，将在此处显示常用参数输入框。</p>
-                                         <!-- Example for LightGBM (shown because it's selected) -->
-                                         <div class="model-params-group" data-model="LightGBM">
-                                            <label for="lgbm_estimators" class="text-xs">n_estimators:</label>
-                                            <input type="number" id="lgbm_estimators" name="lgbm_estimators" class="text-xs border border-gray-300 rounded p-1" value="100">
-                                             <label for="lgbm_lr" class="text-xs ml-2">learning_rate:</label>
-                                            <input type="number" step="0.01" id="lgbm_lr" name="lgbm_lr" class="text-xs border border-gray-300 rounded p-1" value="0.1">
+                            <h2 class="text-lg font-semibold text-gray-700 mb-4 border-b pb-2">模型定义与训练上下文</h2>
+
+                            <!-- 模型类型与参数 -->
+                            <div class="mb-6 pb-6 border-b">
+                                <h3 class="text-md font-medium text-gray-700 mb-3">模型类型与参数</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label for="model_type" class="block text-sm font-medium text-gray-700">模型类型 <span class="text-red-500">*</span></label>
+                                        <!-- Backend should pre-select the correct option -->
+                                        <select id="model_type" name="model_type" required class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                                            <option selected>LightGBM</option>
+                                            <option>LSTM</option>
+                                            <option>XGBoost</option>
+                                            <option>自定义</option>
+                                        </select>
+                                    </div>
+                                    <div class="md:col-span-2">
+                                        <label class="block text-sm font-medium text-gray-700">模型参数</label>
+                                        <!-- Backend should pre-fill or select advanced mode based on saved config -->
+                                        <div id="model_params_simple" class="mt-1 space-y-2">
+                                            <p class="text-xs text-gray-500">根据所选模型类型，将在此处显示常用参数输入框。</p>
+                                            <!-- Example for LightGBM (shown because it's selected) -->
+                                            <div class="model-params-group" data-model="LightGBM">
+                                               <label for="lgbm_estimators" class="text-xs">n_estimators:</label>
+                                               <input type="number" id="lgbm_estimators" name="lgbm_estimators" class="text-xs border border-gray-300 rounded p-1" value="100">
+                                                <label for="lgbm_lr" class="text-xs ml-2">learning_rate:</label>
+                                               <input type="number" step="0.01" id="lgbm_lr" name="lgbm_lr" class="text-xs border border-gray-300 rounded p-1" value="0.1">
+                                               </div>
+                                               <!-- Example for LSTM (hidden) -->
+                                               <div class="model-params-group hidden" data-model="LSTM">
+                                                   <label for="lstm_hidden" class="text-xs">hidden_size:</label>
+                                                   <input type="number" id="lstm_hidden" name="lstm_hidden" class="text-xs border border-gray-300 rounded p-1">
+                                                <label for="lstm_layers" class="text-xs ml-2">num_layers:</label>
+                                               <input type="number" id="lstm_layers" name="lstm_layers" class="text-xs border border-gray-300 rounded p-1">
                                             </div>
-                                            <!-- Example for LSTM (hidden) -->
-                                            <div class="model-params-group hidden" data-model="LSTM">
-                                                <label for="lstm_hidden" class="text-xs">hidden_size:</label>
-                                                <input type="number" id="lstm_hidden" name="lstm_hidden" class="text-xs border border-gray-300 rounded p-1">
-                                             <label for="lstm_layers" class="text-xs ml-2">num_layers:</label>
-                                            <input type="number" id="lstm_layers" name="lstm_layers" class="text-xs border border-gray-300 rounded p-1">
+                                        </div>
+                                        <button type="button" onclick="toggleAdvancedConfig('model_advanced_config', this)" class="mt-2 text-sm text-blue-600 hover:underline">使用高级/原始配置</button>
+                                        <div id="model_advanced_config" class="advanced-config-area mt-2">
+                                            <textarea name="model_config_raw" rows="6" class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="在此处粘贴模型的 YAML 或 JSON 配置..."></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 数据与训练设定 -->
+                            <div>
+                                <h3 class="text-md font-medium text-gray-700 mb-3">数据与训练设定</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label for="data_source" class="block text-sm font-medium text-gray-700">数据源 <span class="text-red-500">*</span></label>
+                                        <!-- Backend should pre-select -->
+                                        <select id="data_source" name="data_source" required class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                                            <option selected>内置A股日线</option>
+                                            <option>内置Alpha158</option>
+                                            <option>自定义-港股分钟</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label for="data_frequency" class="block text-sm font-medium text-gray-700">数据频率 <span class="text-red-500">*</span></label>
+                                        <!-- Backend should pre-select -->
+                                        <select id="data_frequency" name="data_frequency" required class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                                            <option value="day" selected>日</option>
+                                            <option value="1h">小时</option>
+                                            <option value="1min">分钟</option>
+                                        </select>
+                                    </div>
+                                    <div class="md:col-span-2">
+                                         <label for="training_universe" class="block text-sm font-medium text-gray-700">训练股票池 <span class="text-red-500">*</span></label>
+                                         <!-- Backend should pre-fill -->
+                                         <input type="text" name="training_universe" id="training_universe" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="例如: csi300, 或 ['SH600036', 'SZ000001']" value="csi300">
+                                         <p class="mt-1 text-xs text-gray-500">使用 Qlib 识别的名称或 Python 列表格式。</p>
+                                    </div>
+                                   <div class="md:col-span-2">
+                                        <label for="features_used" class="block text-sm font-medium text-gray-700">所用特征集 (每行一个) <span class="text-red-500">*</span></label>
+                                        <!-- Backend should pre-fill -->
+                                        <textarea name="features_used" id="features_used" rows="4" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="例如: Ref($close, 1), MA($close, 5)">$close/Ref($close, 1)-1
+Rank($open)</textarea>
+                                        <p class="mt-1 text-xs text-gray-500">每行输入一个特征表达式。</p>
+                                    </div>
+                                    <div class="md:col-span-2">
+                                        <label for="label_config" class="block text-sm font-medium text-gray-700">标签/预测目标 <span class="text-red-500">*</span></label>
+                                        <!-- Backend should pre-fill -->
+                                        <input type="text" name="label_config" id="label_config" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="例如: Ref($close, -2)/Ref($close, -1) - 1" value="Ref($close, -2)/Ref($close, -1) - 1">
+                                        <p class="mt-1 text-xs text-gray-500">输入标签表达式。</p>
+                                    </div>
+                                     <!-- 训练/验证/测试 时间段 -->
+                                     <div class="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4 border-t pt-4 mt-4">
+                                          <div>
+                                             <label class="block text-sm font-medium text-gray-700">训练期 <span class="text-red-500">*</span></label>
+                                             <div class="date-range-picker mt-1 flex-col sm:flex-row">
+                                                 <!-- Backend should pre-fill -->
+                                                 <input type="date" name="train_start_date" required value="2010-01-01" class="w-full sm:w-auto">
+                                                 <span class="hidden sm:inline">至</span>
+                                                 <input type="date" name="train_end_date" required value="2017-12-31" class="w-full sm:w-auto">
+                                             </div>
+                                         </div>
+                                          <div>
+                                             <label class="block text-sm font-medium text-gray-700">验证期 <span class="text-red-500">*</span></label>
+                                             <div class="date-range-picker mt-1 flex-col sm:flex-row">
+                                                 <!-- Backend should pre-fill -->
+                                                 <input type="date" name="valid_start_date" required value="2018-01-01" class="w-full sm:w-auto">
+                                                 <span class="hidden sm:inline">至</span>
+                                                 <input type="date" name="valid_end_date" required value="2019-12-31" class="w-full sm:w-auto">
+                                             </div>
+                                         </div>
+                                          <div>
+                                             <label class="block text-sm font-medium text-gray-700">测试期 <span class="text-red-500">*</span></label>
+                                             <div class="date-range-picker mt-1 flex-col sm:flex-row">
+                                                  <!-- Backend should pre-fill -->
+                                                 <input type="date" name="test_start_date" required value="2020-01-01" class="w-full sm:w-auto">
+                                                 <span class="hidden sm:inline">至</span>
+                                                 <input type="date" name="test_end_date" required value="2020-12-31" class="w-full sm:w-auto">
+                                             </div>
                                          </div>
                                      </div>
-                                     <button type="button" onclick="toggleAdvancedConfig('model_advanced_config', this)" class="mt-2 text-sm text-blue-600 hover:underline">使用高级/原始配置</button>
-                                     <div id="model_advanced_config" class="advanced-config-area mt-2">
-                                         <textarea name="model_config_raw" rows="6" class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="在此处粘贴模型的 YAML 或 JSON 配置..."></textarea>
-                                     </div>
                                 </div>
                             </div>
                         </div>
-
-                        <!-- 数据配置 -->
-                        <div class="bg-white p-6 rounded-lg shadow mb-6">
-                            <h2 class="text-lg font-semibold text-gray-700 mb-4 border-b pb-2">数据配置</h2>
-                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label for="data_source" class="block text-sm font-medium text-gray-700">数据源 <span class="text-red-500">*</span></label>
-                                    <!-- Backend should pre-select -->
-                                    <select id="data_source" name="data_source" required class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
-                                        <option selected>内置A股日线</option>
-                                        <option>内置Alpha158</option>
-                                        <option>自定义-港股分钟</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label for="data_frequency" class="block text-sm font-medium text-gray-700">数据频率 <span class="text-red-500">*</span></label>
-                                     <!-- Backend should pre-select -->
-                                    <select id="data_frequency" name="data_frequency" required class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
-                                        <option value="day" selected>日</option>
-                                        <option value="1h">小时</option>
-                                        <option value="1min">分钟</option>
-                                    </select>
-                                </div>
-                                <div class="md:col-span-2">
-                                     <label for="instruments" class="block text-sm font-medium text-gray-700">标的范围 <span class="text-red-500">*</span></label>
-                                     <!-- Backend should pre-fill -->
-                                     <input type="text" name="instruments" id="instruments" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="例如: csi300, 或 ['SH600036', 'SZ000001']" value="csi300">
-                                     <p class="mt-1 text-xs text-gray-500">使用 Qlib 识别的名称或 Python 列表格式。</p>
-                                </div>
-                               <div class="md:col-span-2">
-                                    <label for="features" class="block text-sm font-medium text-gray-700">特征 <span class="text-red-500">*</span></label>
-                                     <!-- Backend should pre-fill -->
-                                    <textarea name="features" id="features" rows="4" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="每行一个 Qlib 表达式, 例如:&#10;$close/Ref($close, 1)-1&#10;Vwap()">$close/Ref($close, 1)-1
-Rank($open)</textarea>
-                                    <p class="mt-1 text-xs text-gray-500">每行输入一个特征表达式。</p>
-                                </div>
-                                <div>
-                                    <label for="label" class="block text-sm font-medium text-gray-700">标签 <span class="text-red-500">*</span></label>
-                                     <!-- Backend should pre-fill -->
-                                    <input type="text" name="label" id="label" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="例如: Ref($close, -2)/Ref($close, -1) - 1" value="Ref($close, -2)/Ref($close, -1) - 1">
-                                    <p class="mt-1 text-xs text-gray-500">输入标签表达式。</p>
-                                </div>
-                                 <div class="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700">训练期 <span class="text-red-500">*</span></label>
-                                        <div class="date-range-picker mt-1">
-                                            <!-- Backend should pre-fill -->
-                                            <input type="date" name="train_start_date" required value="2010-01-01">
-                                            <span>至</span>
-                                            <input type="date" name="train_end_date" required value="2017-12-31">
-                                        </div>
-                                    </div>
-                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700">验证期 <span class="text-red-500">*</span></label>
-                                        <div class="date-range-picker mt-1">
-                                            <!-- Backend should pre-fill -->
-                                            <input type="date" name="valid_start_date" required value="2018-01-01">
-                                             <span>至</span>
-                                            <input type="date" name="valid_end_date" required value="2019-12-31">
-                                        </div>
-                                    </div>
-                                 </div>
-                            </div>
-                        </div>
-
 
                         <!-- 操作按钮 -->
                         <div class="flex justify-end space-x-3 mt-8">

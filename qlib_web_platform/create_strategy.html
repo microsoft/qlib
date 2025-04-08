@@ -107,10 +107,52 @@
                                     <!-- Populate this list dynamically from the backend -->
                                 </select>
                             </div>
-                            <!-- 可以添加一个区域显示选中模型的简要信息 -->
+                            <!-- 修改：显示选中模型的简要信息 -->
                             <div id="selected_model_info" class="mt-4 p-4 bg-gray-50 rounded border border-gray-200 text-sm text-gray-700 space-y-1">
-                                <!-- 例如: 模型类型: LightGBM, 最后训练时间: 2024-07-20 -->
-                                <p class="text-gray-500">选择模型后将在此处显示其训练上下文信息。</p>
+                                <!-- 内容将由 JavaScript 动态填充 -->
+                                <p id="model_info_name" class="font-semibold">请先选择一个模型</p>
+                                <ul class="list-disc list-inside pl-2 mt-2 space-y-1 hidden" id="model_info_details">
+                                    <li><strong>训练数据源:</strong> <span id="model_info_universe"></span></li>
+                                    <li><strong>训练频率:</strong> <span id="model_info_freq"></span></li>
+                                    <li><strong>训练时间段:</strong> <span id="model_info_period"></span></li>
+                                    <li><strong>特征集:</strong> <span id="model_info_features" class="truncate"></span></li>
+                                    <li><strong>标签:</strong> <span id="model_info_label" class="truncate"></span></li>
+                                </ul>
+                                <p id="model_info_placeholder" class="text-gray-500">选择模型后，将在此处显示其关键的训练上下文信息。</p>
+                            </div>
+                        </div>
+
+                        <!-- 新增：回测配置 -->
+                        <div class="bg-white p-6 rounded-lg shadow mb-6">
+                            <h2 class="text-lg font-semibold text-gray-700 mb-4 border-b pb-2">回测配置</h2>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <!-- 回测时段 -->
+                                <div class="md:col-span-2">
+                                     <label class="block text-sm font-medium text-gray-700">回测时段 <span class="text-red-500">*</span></label>
+                                     <div class="date-range-picker mt-1">
+                                         <input type="date" name="backtest_start_date" id="backtest_start_date" required class="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                         <span class="text-gray-500">至</span>
+                                         <input type="date" name="backtest_end_date" id="backtest_end_date" required class="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                     </div>
+                                     <p class="mt-1 text-xs text-gray-500">请指定回测的开始和结束日期。</p>
+                                </div>
+                                <!-- 回测基准 -->
+                                <div>
+                                     <label for="backtest_benchmark" class="block text-sm font-medium text-gray-700">回测基准</label>
+                                     <select id="backtest_benchmark" name="backtest_benchmark" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                                         <option value="SH000300">沪深 300 (SH000300)</option>
+                                         <option value="SH000905">中证 500 (SH000905)</option>
+                                         <option value="">无</option>
+                                         <!-- Add more benchmarks or allow custom input -->
+                                     </select>
+                                     <p class="mt-1 text-xs text-gray-500">选择一个用于比较策略表现的基准指数。</p>
+                                </div>
+                                <!-- 回测股票池 -->
+                                <div>
+                                     <label for="backtest_instruments" class="block text-sm font-medium text-gray-700">回测股票池 (可选)</label>
+                                     <input type="text" name="backtest_instruments" id="backtest_instruments" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="默认为模型训练池, 或输入 'csi500', ['000001.SZ', ...]">
+                                     <p class="mt-1 text-xs text-gray-500">留空则使用所选模型训练时的股票池。</p>
+                                </div>
                             </div>
                         </div>
 
@@ -168,6 +210,13 @@
                             </a>
                             <button type="submit" name="action" value="save_draft" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded inline-flex items-center">
                                 保存草稿
+                            </button>
+                            <button type="submit" name="action" value="start_backtest" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded inline-flex items-center" id="start_backtest_button" disabled>
+                                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden" id="backtest_loading_spinner" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                  </svg>
+                                开始回测
                             </button>
                         </div>
 
