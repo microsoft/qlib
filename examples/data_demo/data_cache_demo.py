@@ -1,8 +1,8 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 """
-    The motivation of this demo
-    - To show the data modules of Qlib is Serializable, users can dump processed data to disk to avoid duplicated data preprocessing
+The motivation of this demo
+- To show the data modules of Qlib is Serializable, users can dump processed data to disk to avoid duplicated data preprocessing
 """
 
 from copy import deepcopy

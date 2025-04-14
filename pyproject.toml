@@ -23,6 +23,9 @@ description = "A Quantitative-research Platform"
 requires-python = ">=3.8.0"
 readme = {file = "README.md", content-type = "text/markdown"}
 
+# On 2025-04-02 osqp released version 1.0.2, osqp is used as a dependency for cvxpy. 
+# It would lead to errors installing qlib, so we limited the version of osqp.
+# refs: https://github.com/osqp/osqp/issues/728
 dependencies = [
   "pyyaml",
   "numpy",
@@ -39,11 +42,13 @@ dependencies = [
   "loguru",
   "lightgbm",
   "gym",
+  "osqp<1.0.2",
   "cvxpy",
   "joblib",
   "matplotlib",
   "jupyter",
   "nbconvert",
+  "pyarrow",
 ]
 
 [project.optional-dependencies]

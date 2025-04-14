@@ -279,8 +279,11 @@ class StaticDataLoader(DataLoader, Serializable):
             )
             self._data.sort_index(inplace=True)
         elif isinstance(self._config, (str, Path)):
-            with Path(self._config).open("rb") as f:
-                self._data = pickle.load(f)
+            if str(self._config).strip().endswith(".parquet"):
+                self._data = pd.read_parquet(self._config, engine="pyarrow")
+            else:
+                with Path(self._config).open("rb") as f:
+                    self._data = pickle.load(f)
         elif isinstance(self._config, pd.DataFrame):
             self._data = self._config
 
@@ -336,6 +339,10 @@ class NestedDataLoader(DataLoader):
             if df_full is None:
                 df_full = df_current
             else:
+                current_columns = df_current.columns.tolist()
+                full_columns = df_full.columns.tolist()
+                columns_to_drop = [col for col in current_columns if col in full_columns]
+                df_full.drop(columns=columns_to_drop, inplace=True)
                 df_full = pd.merge(df_full, df_current, left_index=True, right_index=True, how=self.join)
         return df_full.sort_index(axis=1)
 
