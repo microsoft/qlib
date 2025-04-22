@@ -224,6 +224,12 @@ class QlibDataLoader(DLWParser):
         df.columns = names
         if self.swap_level:
             df = df.swaplevel().sort_index()  # NOTE: if swaplevel, return <datetime, instrument>
+        # Check for NaN values in the dataframe
+        if df.isna().any().any():
+            get_module_logger(self.__class__.__name__).warning(
+                "Found NaN values in the dataframe."
+            )
+        
         return df
 
 
@@ -258,7 +264,26 @@ class StaticDataLoader(DataLoader, Serializable):
         if instruments is None:
             df = self._data
         else:
-            df = self._data.loc(axis=0)[:, instruments]
+            # Try to filter by instruments
+            try:
+                if isinstance(instruments, str):
+                    # If instruments is a market name, try to get the list of instruments
+                    instruments = D.instruments(instruments)
+                    # instruments: {'market': 'csi300', 'filter_pipe': []}
+                    if 'market' in instruments:
+                        market = instruments['market']
+                        filter_pipe = instruments.get('filter_pipe')
+                        instruments = D.list_instruments(instruments={'market': market, 'filter_pipe': filter_pipe})
+                        # Convert dict to list of instrument codes
+                        if isinstance(instruments, dict):
+                            instruments = list(instruments.keys())
+                
+                df = self._data.loc(axis=0)[:, instruments]
+            except KeyError as e:
+                get_module_logger(self.__class__.__name__).warning(
+                    f"The instruments filter {instruments} is not supported, will load all data. Error: {str(e)}"
+                )
+                df = self._data
 
         # 2) Filter by Datetime
         if start_time is None and end_time is None:
@@ -328,18 +353,49 @@ class NestedDataLoader(DataLoader):
 
     def load(self, instruments=None, start_time=None, end_time=None) -> pd.DataFrame:
         df_full = None
-        for dl in self.data_loader_l:
+        for i, dl in enumerate(self.data_loader_l, 1):
             try:
-                df_current = dl.load(instruments, start_time, end_time)
-            except KeyError:
-                warnings.warn(
-                    "If the value of `instruments` cannot be processed, it will set instruments to None to get all the data."
+                get_module_logger(dl.__class__.__name__).info(
+                    f"Loading data from {dl.__class__.__name__} ({i}/{len(self.data_loader_l)}), "
+                    f"instruments: {instruments}, start_time: {start_time}, end_time: {end_time}"
                 )
-                df_current = dl.load(instruments=None, start_time=start_time, end_time=end_time)
+                # If instruments is None, it means no filtering is done
+                if instruments is None:
+                    df_current = dl.load(instruments=None, start_time=start_time, end_time=end_time)
+                else:
+                    try:
+                        df_current = dl.load(instruments, start_time, end_time)
+                    except KeyError:
+                        # If the instruments filter is not supported, try loading all data
+                        warnings.warn(
+                            f"The instruments filter {instruments} is not supported by {dl.__class__.__name__}, will load all data."
+                        )
+                        df_current = dl.load(instruments=None, start_time=start_time, end_time=end_time)
+                
+                # Check for NaN values in current dataframe
+                # nan_mask = df_current.isna()
+                # if nan_mask.any().any():
+                #     nan_cols = nan_mask.any()[nan_mask.any()].index.tolist()
+                #     nan_dates = df_current[nan_mask.any(axis=1)].index.get_level_values('datetime').unique()
+                #     nan_stocks = df_current[nan_mask.any(axis=1)].index.get_level_values('instrument').unique()
+                #     get_module_logger(dl.__class__.__name__).warning(
+                #         f"Found NaN values in {dl.__class__.__name__} ({i}/{len(self.data_loader_l)}):\n"
+                #         f"Columns with NaN: {nan_cols}\n"
+                #         f"Dates with NaN: {nan_dates}\n"
+                #         f"Stocks with NaN: {nan_stocks}"
+                #     )
+                
+            except Exception as e:
+                get_module_logger(dl.__class__.__name__).error(
+                    f"Error loading data from {dl.__class__.__name__} ({i}/{len(self.data_loader_l)}): {str(e)}"
+                )
+                raise
+            
             if df_full is None:
                 df_full = df_current
             else:
                 df_full = pd.merge(df_full, df_current, left_index=True, right_index=True, how=self.join)
+        
         return df_full.sort_index(axis=1)
 
 
