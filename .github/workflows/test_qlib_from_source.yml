@@ -14,7 +14,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-20.04, ubuntu-22.04, macos-13, macos-14, macos-15]
+        os: [windows-latest, ubuntu-24.04, ubuntu-22.04, macos-13, macos-14, macos-15]
         # In github action, using python 3.7, pip install will not match the latest version of the package.
         # Also, python 3.7 is no longer supported from macos-14, and will be phased out from macos-13 in the near future.
         # All things considered, we have removed python 3.7.
@@ -39,7 +39,7 @@ jobs:
         python -m pip install torch torchvision torchaudio
 
     - name: Installing pytorch for ubuntu
-      if: ${{ matrix.os == 'ubuntu-20.04' || matrix.os == 'ubuntu-22.04' }}
+      if: ${{ matrix.os == 'ubuntu-24.04' || matrix.os == 'ubuntu-22.04' }}
       run: |
         python -m pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cpu
 
