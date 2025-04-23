@@ -186,10 +186,37 @@ class GeneralPTNN(Model):
             # it is a time series dataset
             feature = data[:, :, 0:-1].to(self.device)
             label = data[:, -1, -1].to(self.device)
+            
+            # Clean NaN values and normalize
+            # feature = torch.where(torch.isnan(feature), torch.zeros_like(feature), feature)
+            # feature_mean = feature.mean(dim=(0, 1), keepdim=True)
+            # feature_std = feature.std(dim=(0, 1), keepdim=True) + 1e-8
+            # feature = (feature - feature_mean) / feature_std
+            
+            # Add debug prints for time series data
+            print("\nTime Series Data Shape Analysis:")
+            print(f"Input data shape: {data.shape}")
+            print(f"Feature shape: {feature.shape}")
+            print(f"Label shape: {label.shape}")
+            print(f"First sample feature shape: {feature[0].shape}")
+            print(f"First sample values (after cleaning):")
+            print(feature[0])
+            print(f"First sample label: {label[0]}")
+            
+            
         elif data.dim() == 2:
             # it is a tabular dataset
             feature = data[:, 0:-1].to(self.device)
             label = data[:, -1].to(self.device)
+            
+            # Add debug prints for tabular data
+            # print("\nTabular Data Shape Analysis:")
+            # print(f"Input data shape: {data.shape}")
+            # print(f"Feature shape: {feature.shape}")
+            # print(f"Label shape: {label.shape}")
+            # print(f"First sample feature: {feature[0]}")
+            # print(f"First sample label: {label[0]}")
+            
         else:
             raise ValueError("Unsupported data shape.")
         return feature, label
@@ -199,12 +226,30 @@ class GeneralPTNN(Model):
 
         for data, weight in data_loader:
             feature, label = self._get_fl(data)
-
-            pred = self.dnn_model(feature.float())
+       
+            pred = self.dnn_model(feature.float())  
             loss = self.loss_fn(pred, label, weight.to(self.device))
+            
+            # Add debug logging for loss
+            self.logger.debug(f"Loss value: {loss.item()}")
+            
+            if torch.isnan(loss):
+                self.logger.error("NaN loss detected!")
+                self.logger.error(f"Feature contains NaN: {torch.isnan(feature).any()}")
+                self.logger.error(f"Label contains NaN: {torch.isnan(label).any()}")
+                self.logger.error(f"Prediction contains NaN: {torch.isnan(pred).any()}")
+                raise ValueError("NaN loss detected during training")
 
             self.train_optimizer.zero_grad()
             loss.backward()
+            
+            # Add gradient checking
+            for name, param in self.dnn_model.named_parameters():
+                if param.grad is not None:
+                    if torch.isnan(param.grad).any():
+                        self.logger.error(f"NaN gradient detected in {name}")
+                        raise ValueError(f"NaN gradient detected in {name}")
+            
             torch.nn.utils.clip_grad_value_(self.dnn_model.parameters(), 3.0)
             self.train_optimizer.step()
 
