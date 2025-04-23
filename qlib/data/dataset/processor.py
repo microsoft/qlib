@@ -192,9 +192,11 @@ class Fillna(Processor):
             # df.fillna({col: self.fill_value for col in cols}, inplace=True)
 
             # So we use numpy to accelerate filling values
-            nan_select = np.isnan(df.values)
-            nan_select[:, ~df.columns.isin(cols)] = False
-            df.values[nan_select] = self.fill_value
+            # nan_select = np.isnan(df.values)
+            # nan_select[:, ~df.columns.isin(cols)] = False
+            # df.values[nan_select] = self.fill_value
+
+            df[self.fields_group] = df[self.fields_group].fillna(0)
         return df
 
 
