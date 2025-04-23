@@ -147,7 +147,7 @@ class DNNModelPytorch(Model):
 
         if scheduler == "default":
             # Reduce learning rate when loss has stopped decrease
-            self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(  # pylint: disable=E1123
                 self.train_optimizer,
                 mode="min",
                 factor=0.5,
