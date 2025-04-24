@@ -31,7 +31,7 @@ class TestDataLoader(unittest.TestCase):
         )
         # Of course you can use StaticDataLoader
 
-        dataset = nd.load(start_time="2020-01-01", end_time="2020-01-31")
+        dataset = nd.load(instruments="csi300", start_time="2020-01-01", end_time="2020-01-31")
 
         assert dataset is not None
 
