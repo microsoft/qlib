@@ -50,7 +50,7 @@ class TestDataLoader(unittest.TestCase):
 
         fn = Fillna(fields_group="feature", fill_value=0)
         fn_dataset = fn.__call__(dataset)
-        
+
         assert not fn_dataset.isna().any().any()
 
         # Then you can use it wth DataHandler;
