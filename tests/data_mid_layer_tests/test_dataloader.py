@@ -10,6 +10,7 @@ sys.path.append(str(Path(__file__).resolve().parent))
 from qlib.data.dataset.loader import NestedDataLoader, QlibDataLoader
 from qlib.data.dataset.handler import DataHandlerLP
 from qlib.contrib.data.loader import Alpha158DL, Alpha360DL
+from qlib.data.dataset.processor import Fillna
 from qlib.data import D
 
 
@@ -44,6 +45,13 @@ class TestDataLoader(unittest.TestCase):
             assert col in columns_list
 
         assert "LABEL0" in columns_list
+
+        assert dataset.isna().any().any()
+
+        fn = Fillna(fields_group="feature", fill_value=0)
+        fn_dataset = fn.__call__(dataset)
+        
+        assert not fn_dataset.isna().any().any()
 
         # Then you can use it wth DataHandler;
         # NOTE: please note that the data processors are missing!!!  You should add based on your requirements

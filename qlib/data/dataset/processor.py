@@ -196,7 +196,7 @@ class Fillna(Processor):
             # nan_select[:, ~df.columns.isin(cols)] = False
             # df.values[nan_select] = self.fill_value
 
-            df[self.fields_group] = df[self.fields_group].fillna(0)
+            df[self.fields_group] = df[self.fields_group].fillna(self.fill_value)
         return df
 
 
