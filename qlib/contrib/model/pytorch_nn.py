@@ -148,9 +148,9 @@ class DNNModelPytorch(Model):
         if scheduler == "default":
             # In torch version 2.7.0, the verbose parameter has been removed. Reference Link:
             # https://github.com/pytorch/pytorch/pull/147301/files#diff-036a7470d5307f13c9a6a51c3a65dd014f00ca02f476c545488cd856bea9bcf2L1313
-            if str(torch.__version__).split("+")[0] <= "2.6.0":
+            if str(torch.__version__).split('+', maxsplit=1)[0] <= "2.6.0":
                 # Reduce learning rate when loss has stopped decrease
-                self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(  # pylint: disable=E1123
+                self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
                     self.train_optimizer,
                     mode="min",
                     factor=0.5,
@@ -163,7 +163,7 @@ class DNNModelPytorch(Model):
                     eps=1e-08,
                 )
             else:
-                self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(  # pylint: disable=E1123
+                self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
                     self.train_optimizer,
                     mode="min",
                     factor=0.5,
