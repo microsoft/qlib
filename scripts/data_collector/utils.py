@@ -211,19 +211,19 @@ def get_hs_stock_symbols() -> list:
             "po": 1,
             "np": 1,
             "fs": "m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23,m:0+t:81+s:2048",
-            "fields": "f12"
+            "fields": "f12",
         }
-    
+
         _symbols = []
         page = 1
-        
+
         while True:
             params["pn"] = page
             try:
                 resp = requests.get(base_url, params=params, timeout=None)
                 resp.raise_for_status()
                 data = resp.json()
-                
+
                 # Check if response contains valid data
                 if not data or "data" not in data or not data["data"] or "diff" not in data["data"]:
                     logger.warning(f"Invalid response structure on page {page}")
@@ -231,23 +231,27 @@ def get_hs_stock_symbols() -> list:
 
                 # fetch the current page data
                 current_symbols = [_v["f12"] for _v in data["data"]["diff"]]
-                
+
                 if not current_symbols:  # It's the last page if there is no data in current page
                     logger.info(f"Last page reached: {page - 1}")
                     break
-                    
+
                 _symbols.extend(current_symbols)
 
                 # show progress
-                logger.info(f"Page {page}: fetch {len(current_symbols)} stocks:[{current_symbols[0]} ... {current_symbols[-1]}]")
+                logger.info(
+                    f"Page {page}: fetch {len(current_symbols)} stocks:[{current_symbols[0]} ... {current_symbols[-1]}]"
+                )
 
                 page += 1
-                
+
                 # sleep time to avoid overloading the server
                 time.sleep(0.5)
-                
+
             except requests.exceptions.HTTPError as e:
-                raise requests.exceptions.HTTPError(f"Request to {base_url} failed with status code {resp.status_code}") from e
+                raise requests.exceptions.HTTPError(
+                    f"Request to {base_url} failed with status code {resp.status_code}"
+                ) from e
             except Exception as e:
                 logger.warning("An error occurred while extracting data from the response.")
                 raise
