@@ -23,9 +23,9 @@ class ParallelExt(Parallel):
         super(ParallelExt, self).__init__(*args, **kwargs)
         if isinstance(self._backend, MultiprocessingBackend):
             if joblib.__version__ < "1.5.0":
-                self._backend_args["maxtasksperchild"] = maxtasksperchild
+                self._backend_args["maxtasksperchild"] = maxtasksperchild  # pylint: disable=E1101
             else:
-                self._backend_kwargs["maxtasksperchild"] = maxtasksperchild
+                self._backend_kwargs["maxtasksperchild"] = maxtasksperchild  # pylint: disable=E1101
 
 
 def datetime_groupby_apply(
