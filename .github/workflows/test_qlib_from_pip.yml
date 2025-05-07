@@ -38,9 +38,13 @@ jobs:
       run: |
         python -m pip install pywinpty --only-binary=:all:
 
+    # # joblib was released on 2025-05-04 with version 1.5.0, in which _backend_args was removed and replaced by _backend_kwargs.
+    # This change caused the application to fail, so the version of joblib is restricted here. 
+    # This restriction will be removed in the next release. The current qlib version is: 0.9.6
     - name: Qlib installation test
       run: |
         python -m pip install pyqlib
+        python -m pip install "joblib<=1.4.2"
 
     - name: Install Lightgbm for MacOS
       if: ${{ matrix.os == 'macos-13' || matrix.os == 'macos-14' || matrix.os == 'macos-15' }}
