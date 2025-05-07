@@ -41,6 +41,7 @@ jobs:
     - name: Qlib installation test
       run: |
         python -m pip install pyqlib
+        python -m pip install "joblib<=1.4.2"
 
     - name: Install Lightgbm for MacOS
       if: ${{ matrix.os == 'macos-13' || matrix.os == 'macos-14' || matrix.os == 'macos-15' }}

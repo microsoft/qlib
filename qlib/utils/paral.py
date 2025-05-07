@@ -6,6 +6,7 @@ from functools import partial
 from threading import Thread
 from typing import Callable, Text, Union
 
+import joblib
 from joblib import Parallel, delayed
 from joblib._parallel_backends import MultiprocessingBackend
 import pandas as pd
@@ -21,7 +22,10 @@ class ParallelExt(Parallel):
         maxtasksperchild = kwargs.pop("maxtasksperchild", None)
         super(ParallelExt, self).__init__(*args, **kwargs)
         if isinstance(self._backend, MultiprocessingBackend):
-            self._backend_args["maxtasksperchild"] = maxtasksperchild
+            if joblib.__version__ < "1.5.0":
+                self._backend_args["maxtasksperchild"] = maxtasksperchild
+            else:
+                self._backend_kwargs["maxtasksperchild"] = maxtasksperchild
 
 
 def datetime_groupby_apply(
