@@ -63,7 +63,9 @@ def _get_monthly_risk_analysis_with_report(report_normal_df: pd.DataFrame) -> pd
     """
 
     # Group by month
-    report_normal_gp = report_normal_df.groupby([report_normal_df.index.year, report_normal_df.index.month], group_keys=False)
+    report_normal_gp = report_normal_df.groupby(
+        [report_normal_df.index.year, report_normal_df.index.month], group_keys=False
+    )
     # report_long_short_gp = report_long_short_df.groupby(
     #     [report_long_short_df.index.year, report_long_short_df.index.month], group_keys=False
     # )

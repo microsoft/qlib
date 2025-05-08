@@ -137,7 +137,9 @@ def _pred_ic(
 
     ic_df = pd.concat(
         [
-            pred_label.groupby(level="datetime", group_keys=False).apply(partial(_corr_series, method=_methods_mapping[m])).rename(m)
+            pred_label.groupby(level="datetime", group_keys=False)
+            .apply(partial(_corr_series, method=_methods_mapping[m]))
+            .rename(m)
             for m in methods
         ],
         axis=1,
@@ -221,7 +223,9 @@ def _pred_ic(
 def _pred_autocorr(pred_label: pd.DataFrame, lag=1, **kwargs) -> tuple:
     pred = pred_label.copy()
     pred["score_last"] = pred.groupby(level="instrument", group_keys=False)["score"].shift(lag)
-    ac = pred.groupby(level="datetime", group_keys=False).apply(lambda x: x["score"].rank(pct=True).corr(x["score_last"].rank(pct=True)))
+    ac = pred.groupby(level="datetime", group_keys=False).apply(
+        lambda x: x["score"].rank(pct=True).corr(x["score_last"].rank(pct=True))
+    )
     _df = ac.to_frame("value")
     ac_figure = ScatterGraph(
         _df,

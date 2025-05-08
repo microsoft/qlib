@@ -16,7 +16,9 @@ def _get_score_ic(pred_label: pd.DataFrame):
     concat_data = pred_label.copy()
     concat_data.dropna(axis=0, how="any", inplace=True)
     _ic = concat_data.groupby(level="datetime", group_keys=False).apply(lambda x: x["label"].corr(x["score"]))
-    _rank_ic = concat_data.groupby(level="datetime", group_keys=False).apply(lambda x: x["label"].corr(x["score"], method="spearman"))
+    _rank_ic = concat_data.groupby(level="datetime", group_keys=False).apply(
+        lambda x: x["label"].corr(x["score"], method="spearman")
+    )
     return pd.DataFrame({"ic": _ic, "rank_ic": _rank_ic})
 
 

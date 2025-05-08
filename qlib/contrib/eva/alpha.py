@@ -63,7 +63,9 @@ def calc_long_short_prec(
     groups = short.groupby(date_col, group_keys=False)
     s_dom = groups.apply(lambda x: x < 0)
     s_c = groups.count()
-    return (l_dom.groupby(date_col, group_keys=False).sum() / l_c), (s_dom.groupby(date_col, group_keys=False).sum() / s_c)
+    return (l_dom.groupby(date_col, group_keys=False).sum() / l_c), (
+        s_dom.groupby(date_col, group_keys=False).sum() / s_c
+    )
 
 
 def calc_long_short_return(

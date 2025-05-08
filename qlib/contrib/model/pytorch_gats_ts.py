@@ -27,7 +27,9 @@ class DailyBatchSampler(Sampler):
     def __init__(self, data_source):
         self.data_source = data_source
         # calculate number of samples in each batch
-        self.daily_count = pd.Series(index=self.data_source.get_index()).groupby("datetime", group_keys=False).size().values
+        self.daily_count = (
+            pd.Series(index=self.data_source.get_index()).groupby("datetime", group_keys=False).size().values
+        )
         self.daily_index = np.roll(np.cumsum(self.daily_count), 1)  # calculate begin index of each batch
         self.daily_index[0] = 0
 
