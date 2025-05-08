@@ -71,6 +71,7 @@ docs = [
   "sphinx",
   "sphinx_rtd_theme",
   "readthedocs_sphinx_ext",
+  "snowballstemmer",
 ]
 package = [
   "twine",
