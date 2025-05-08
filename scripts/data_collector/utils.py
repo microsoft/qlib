@@ -808,7 +808,7 @@ def calc_paused_num(df: pd.DataFrame, _date_field_name, _symbol_field_name):
     all_nan_nums = 0
     # Record the number of consecutive occurrences of trading days that are not nan throughout the day
     not_nan_nums = 0
-    for _date, _df in df.groupby("_tmp_date"):
+    for _date, _df in df.groupby("_tmp_date", group_keys=False):
         _df["paused"] = 0
         if not _df.loc[_df["volume"] < 0].empty:
             logger.warning(f"volume < 0, will fill np.nan: {_date} {_symbol}")

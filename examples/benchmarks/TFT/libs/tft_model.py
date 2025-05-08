@@ -599,7 +599,7 @@ class TemporalFusionTransformer:
         print("Getting valid sampling locations.")
         valid_sampling_locations = []
         split_data_map = {}
-        for identifier, df in data.groupby(id_col):
+        for identifier, df in data.groupby(id_col, group_key=False):
             print("Getting locations for {}".format(identifier))
             num_entries = len(df)
             if num_entries >= self.time_steps:
@@ -678,7 +678,7 @@ class TemporalFusionTransformer:
         input_cols = [tup[0] for tup in self.column_definition if tup[2] not in {InputTypes.ID, InputTypes.TIME}]
 
         data_map = {}
-        for _, sliced in data.groupby(id_col):
+        for _, sliced in data.groupby(id_col, group_keys=False):
             col_mappings = {"identifier": [id_col], "time": [time_col], "outputs": [target_col], "inputs": input_cols}
 
             for k in col_mappings:

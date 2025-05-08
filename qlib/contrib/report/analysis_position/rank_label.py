@@ -31,7 +31,7 @@ def _get_figure_with_position(
     )
 
     res_dict = dict()
-    _pos_gp = _position_df.groupby(level=1)
+    _pos_gp = _position_df.groupby(level=1, group_keys=False)
     for _item in _pos_gp:
         _date = _item[0]
         _day_df = _item[1]

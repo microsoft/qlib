@@ -32,7 +32,7 @@ def _create_ts_slices(index, seq_len):
     assert index.is_monotonic_increasing, "index should be sorted"
 
     # number of dates for each instrument
-    sample_count_by_insts = index.to_series().groupby(level=0).size().values
+    sample_count_by_insts = index.to_series().groupby(level=0, group_keys=False).size().values
 
     # start index for each instrument
     start_index_of_insts = np.roll(np.cumsum(sample_count_by_insts), 1)

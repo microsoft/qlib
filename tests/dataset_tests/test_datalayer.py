@@ -7,8 +7,8 @@ from qlib.tests import TestAutoData
 class TestDataset(TestAutoData):
     def testCSI300(self):
         close_p = D.features(D.instruments("csi300"), ["$close"])
-        size = close_p.groupby("datetime").size()
-        cnt = close_p.groupby("datetime").count()["$close"]
+        size = close_p.groupby("datetime", group_keys=False).size()
+        cnt = close_p.groupby("datetime", group_keys=False).count()["$close"]
         size_desc = size.describe(percentiles=np.arange(0.1, 1.0, 0.1))
         cnt_desc = cnt.describe(percentiles=np.arange(0.1, 1.0, 0.1))
 

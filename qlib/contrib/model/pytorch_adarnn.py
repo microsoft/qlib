@@ -214,8 +214,10 @@ class ADARNN(Model):
     def calc_all_metrics(pred):
         """pred is a pandas dataframe that has two attributes: score (pred) and label (real)"""
         res = {}
-        ic = pred.groupby(level="datetime").apply(lambda x: x.label.corr(x.score))
-        rank_ic = pred.groupby(level="datetime").apply(lambda x: x.label.corr(x.score, method="spearman"))
+        ic = pred.groupby(level="datetime", group_keys=False).apply(lambda x: x.label.corr(x.score))
+        rank_ic = pred.groupby(level="datetime", group_keys=False).apply(
+            lambda x: x.label.corr(x.score, method="spearman")
+        )
         res["ic"] = ic.mean()
         res["icir"] = ic.mean() / ic.std()
         res["ric"] = rank_ic.mean()

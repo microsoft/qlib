@@ -125,7 +125,11 @@ class MetaModelDS(MetaTaskModel):
         loss_l.setdefault(phase, []).append(running_loss)
 
         pred_y_all = pd.concat(pred_y_all)
-        ic = pred_y_all.groupby("datetime").apply(lambda df: df["pred"].corr(df["label"], method="spearman")).mean()
+        ic = (
+            pred_y_all.groupby("datetime", group_keys=False)
+            .apply(lambda df: df["pred"].corr(df["label"], method="spearman"))
+            .mean()
+        )
 
         R.log_metrics(**{f"loss/{phase}": running_loss, "step": epoch})
         R.log_metrics(**{f"ic/{phase}": ic, "step": epoch})

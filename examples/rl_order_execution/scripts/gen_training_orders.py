@@ -19,9 +19,9 @@ def generate_order(stock: str, start_idx: int, end_idx: int) -> bool:
 
     df["date"] = df["datetime"].dt.date.astype("datetime64")
     df = df.set_index(["instrument", "datetime", "date"])
-    df = df.groupby("date").take(range(start_idx, end_idx)).droplevel(level=0)
+    df = df.groupby("date", group_keys=False).take(range(start_idx, end_idx)).droplevel(level=0)
 
-    order_all = pd.DataFrame(df.groupby(level=(2, 0)).mean().dropna())
+    order_all = pd.DataFrame(df.groupby(level=(2, 0), group_keys=False).mean().dropna())
     order_all["amount"] = np.random.lognormal(-3.28, 1.14) * order_all["$volume0"]
     order_all = order_all[order_all["amount"] > 0.0]
     order_all["order_type"] = 0

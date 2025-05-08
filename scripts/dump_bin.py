@@ -458,7 +458,7 @@ class DumpDataUpdate(DumpDataBase):
         error_code = {}
         with ProcessPoolExecutor(max_workers=self.works) as executor:
             futures = {}
-            for _code, _df in self._all_data.groupby(self.symbol_field_name):
+            for _code, _df in self._all_data.groupby(self.symbol_field_name, group_keys=False):
                 _code = fname_to_code(str(_code).lower()).upper()
                 _start, _end = self._get_date(_df, is_begin_end=True)
                 if not (isinstance(_start, pd.Timestamp) and isinstance(_end, pd.Timestamp)):

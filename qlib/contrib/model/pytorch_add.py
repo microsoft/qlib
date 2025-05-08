@@ -226,7 +226,7 @@ class ADD(Model):
 
     def get_daily_inter(self, df, shuffle=False):
         # organize the train data into daily batches
-        daily_count = df.groupby(level=0).size().values
+        daily_count = df.groupby(level=0, group_keys=False).size().values
         daily_index = np.roll(np.cumsum(daily_count), 1)
         daily_index[0] = 0
         if shuffle:
@@ -349,7 +349,7 @@ class ADD(Model):
         return best_score
 
     def gen_market_label(self, df, raw_label):
-        market_label = raw_label.groupby("datetime").mean().squeeze()
+        market_label = raw_label.groupby("datetime", group_keys=False).mean().squeeze()
         bins = [-np.inf, self.lo, self.hi, np.inf]
         market_label = pd.cut(market_label, bins, labels=False)
         market_label.name = ("market_return", "market_return")
@@ -357,7 +357,7 @@ class ADD(Model):
         return df
 
     def fit_thresh(self, train_label):
-        market_label = train_label.groupby("datetime").mean().squeeze()
+        market_label = train_label.groupby("datetime", group_keys=False).mean().squeeze()
         self.lo, self.hi = market_label.quantile([1 / 3, 2 / 3])
 
     def fit(

@@ -106,7 +106,7 @@ class InternalData:
 
     def _calc_perf(self, pred, label):
         df = pd.DataFrame({"pred": pred, "label": label})
-        df = df.groupby("datetime").corr(method="spearman")
+        df = df.groupby("datetime", group_keys=False).corr(method="spearman")
         corr = df.loc(axis=0)[:, "pred"]["label"].droplevel(axis=0, level=-1)
         return corr
 
@@ -161,7 +161,7 @@ class MetaTaskDS(MetaTask):
                 raise ValueError(f"Most of samples are dropped. Please check this task: {task}")
 
             assert (
-                d_test.groupby("datetime").size().shape[0] >= 5
+                d_test.groupby("datetime", group_keys=False).size().shape[0] >= 5
             ), "In this segment, this trading dates is less than 5, you'd better check the data."
 
             sample_time_belong = np.zeros((d_train.shape[0], time_perf.shape[1]))

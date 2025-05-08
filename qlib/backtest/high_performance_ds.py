@@ -104,7 +104,7 @@ class PandasQuote(BaseQuote):
     def __init__(self, quote_df: pd.DataFrame, freq: str) -> None:
         super().__init__(quote_df=quote_df, freq=freq)
         quote_dict = {}
-        for stock_id, stock_val in quote_df.groupby(level="instrument"):
+        for stock_id, stock_val in quote_df.groupby(level="instrument", group_keys=False):
             quote_dict[stock_id] = stock_val.droplevel(level="instrument")
         self.data = quote_dict
 
@@ -137,7 +137,7 @@ class NumpyQuote(BaseQuote):
         """
         super().__init__(quote_df=quote_df, freq=freq)
         quote_dict = {}
-        for stock_id, stock_val in quote_df.groupby(level="instrument"):
+        for stock_id, stock_val in quote_df.groupby(level="instrument", group_keys=False):
             quote_dict[stock_id] = idd.MultiData(stock_val.droplevel(level="instrument"))
             quote_dict[stock_id].sort_index()  # To support more flexible slicing, we must sort data first
         self.data = quote_dict

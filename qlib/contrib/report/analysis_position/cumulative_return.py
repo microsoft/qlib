@@ -38,7 +38,7 @@ def _get_cum_return_data_with_position(
 
     _cumulative_return_df["label"] = _cumulative_return_df["label"] - _cumulative_return_df["bench"]
     _cumulative_return_df = _cumulative_return_df.dropna()
-    df_gp = _cumulative_return_df.groupby(level="datetime")
+    df_gp = _cumulative_return_df.groupby(level="datetime", group_keys=False)
     result_list = []
     for gp in df_gp:
         date = gp[0]

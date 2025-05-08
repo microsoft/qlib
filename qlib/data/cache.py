@@ -842,7 +842,7 @@ class DiskDatasetCache(DatasetCache):
         def build_index_from_data(data, start_index=0):
             if data.empty:
                 return pd.DataFrame()
-            line_data = data.groupby("datetime").size()
+            line_data = data.groupby("datetime", group_keys=False).size()
             line_data.sort_index(inplace=True)
             index_end = line_data.cumsum()
             index_start = index_end.shift(1, fill_value=0)

@@ -29,7 +29,7 @@ def _create_ts_slices(index, seq_len):
     assert index.is_lexsorted(), "index should be sorted"
 
     # number of dates for each code
-    sample_count_by_codes = pd.Series(0, index=index).groupby(level=0).size().values
+    sample_count_by_codes = pd.Series(0, index=index).groupby(level=0, group_keys=False).size().values
 
     # start_index for each code
     start_index_of_codes = np.roll(np.cumsum(sample_count_by_codes), 1)
