@@ -47,23 +47,23 @@ def calc_long_short_prec(
     if dropna:
         df.dropna(inplace=True)
 
-    group = df.groupby(level=date_col)
+    group = df.groupby(level=date_col, group_keys=False)
 
     def N(x):
         return int(len(x) * quantile)
 
     # find the top/low quantile of prediction and treat them as long and short target
-    long = group.apply(lambda x: x.nlargest(N(x), columns="pred").label).reset_index(level=0, drop=True)
-    short = group.apply(lambda x: x.nsmallest(N(x), columns="pred").label).reset_index(level=0, drop=True)
+    long = group.apply(lambda x: x.nlargest(N(x), columns="pred").label)
+    short = group.apply(lambda x: x.nsmallest(N(x), columns="pred").label)
 
-    groupll = long.groupby(date_col)
+    groupll = long.groupby(date_col, group_keys=False)
     l_dom = groupll.apply(lambda x: x > 0)
     l_c = groupll.count()
 
-    groups = short.groupby(date_col)
+    groups = short.groupby(date_col, group_keys=False)
     s_dom = groups.apply(lambda x: x < 0)
     s_c = groups.count()
-    return (l_dom.groupby(date_col).sum() / l_c), (s_dom.groupby(date_col).sum() / s_c)
+    return (l_dom.groupby(date_col, group_keys=False).sum() / l_c), (s_dom.groupby(date_col, group_keys=False).sum() / s_c)
 
 
 def calc_long_short_return(
@@ -100,7 +100,7 @@ def calc_long_short_return(
     df = pd.DataFrame({"pred": pred, "label": label})
     if dropna:
         df.dropna(inplace=True)
-    group = df.groupby(level=date_col)
+    group = df.groupby(level=date_col, group_keys=False)
 
     def N(x):
         return int(len(x) * quantile)
@@ -173,8 +173,8 @@ def calc_ic(pred: pd.Series, label: pd.Series, date_col="datetime", dropna=False
         ic and rank ic
     """
     df = pd.DataFrame({"pred": pred, "label": label})
-    ic = df.groupby(date_col).apply(lambda df: df["pred"].corr(df["label"]))
-    ric = df.groupby(date_col).apply(lambda df: df["pred"].corr(df["label"], method="spearman"))
+    ic = df.groupby(date_col, group_keys=False).apply(lambda df: df["pred"].corr(df["label"]))
+    ric = df.groupby(date_col, group_keys=False).apply(lambda df: df["pred"].corr(df["label"], method="spearman"))
     if dropna:
         return ic.dropna(), ric.dropna()
     else:

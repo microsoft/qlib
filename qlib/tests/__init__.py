@@ -187,7 +187,7 @@ class MockInstrumentStorage(MockStorageBase, InstrumentStorage):
     def __init__(self, **kwargs):
         super().__init__()
         instruments = {}
-        for symbol, group in self.df.groupby(by="symbol"):
+        for symbol, group in self.df.groupby(by="symbol", group_keys=False):
             start = group["datetime"].iloc[0]
             end = group["datetime"].iloc[-1]
             instruments[symbol] = [(start, end)]

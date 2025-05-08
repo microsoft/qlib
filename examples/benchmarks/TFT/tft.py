@@ -78,13 +78,13 @@ DATASET_SETTING = {
 
 
 def get_shifted_label(data_df, shifts=5, col_shift="LABEL0"):
-    return data_df[[col_shift]].groupby("instrument").apply(lambda df: df.shift(shifts))
+    return data_df[[col_shift]].groupby("instrument", group_keys=False).apply(lambda df: df.shift(shifts))
 
 
 def fill_test_na(test_df):
     test_df_res = test_df.copy()
     feature_cols = ~test_df_res.columns.str.contains("label", case=False)
-    test_feature_fna = test_df_res.loc[:, feature_cols].groupby("datetime").apply(lambda df: df.fillna(df.mean()))
+    test_feature_fna = test_df_res.loc[:, feature_cols].groupby("datetime", group_keys=False).apply(lambda df: df.fillna(df.mean()))
     test_df_res.loc[:, feature_cols] = test_feature_fna
     return test_df_res
 

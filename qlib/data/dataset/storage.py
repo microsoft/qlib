@@ -77,7 +77,7 @@ class HashingStockStorage(BaseHandlerStorage):
     def __init__(self, df):
         self.hash_df = dict()
         self.stock_level = get_level_index(df, "instrument")
-        for k, v in df.groupby(level="instrument"):
+        for k, v in df.groupby(level="instrument", group_keys=False):
             self.hash_df[k] = v
         self.columns = df.columns
 

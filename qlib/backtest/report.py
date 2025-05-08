@@ -114,7 +114,7 @@ class PortfolioMetrics:
             _temp_result, _ = get_higher_eq_freq_feature(_codes, fields, start_time, end_time, freq=freq)
             if len(_temp_result) == 0:
                 raise ValueError(f"The benchmark {_codes} does not exist. Please provide the right benchmark")
-            return _temp_result.groupby(level="datetime")[_temp_result.columns.tolist()[0]].mean().fillna(0)
+            return _temp_result.groupby(level="datetime", group_keys=False)[_temp_result.columns.tolist()[0]].mean().fillna(0)
 
     def _sample_benchmark(
         self,

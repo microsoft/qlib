@@ -126,7 +126,7 @@ class AverageEnsemble(Ensemble):
         # NOTE: this may change the style underlying data!!!!
         # from pd.DataFrame to pd.Series
         results = pd.concat(values, axis=1)
-        results = results.groupby("datetime").apply(lambda df: (df - df.mean()) / df.std())
+        results = results.groupby("datetime", group_keys=False).apply(lambda df: (df - df.mean()) / df.std())
         results = results.mean(axis=1)
         results = results.sort_index()
         return results

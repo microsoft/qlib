@@ -63,9 +63,9 @@ def _get_monthly_risk_analysis_with_report(report_normal_df: pd.DataFrame) -> pd
     """
 
     # Group by month
-    report_normal_gp = report_normal_df.groupby([report_normal_df.index.year, report_normal_df.index.month])
+    report_normal_gp = report_normal_df.groupby([report_normal_df.index.year, report_normal_df.index.month], group_keys=False)
     # report_long_short_gp = report_long_short_df.groupby(
-    #     [report_long_short_df.index.year, report_long_short_df.index.month]
+    #     [report_long_short_df.index.year, report_long_short_df.index.month], group_keys=False
     # )
 
     gp_month = sorted(set(report_normal_gp.size().index))
@@ -97,7 +97,7 @@ def _get_monthly_analysis_with_feature(monthly_df: pd.DataFrame, feature: str = 
     :param feature:
     :return:
     """
-    _monthly_df_gp = monthly_df.reset_index().groupby(["level_1"])
+    _monthly_df_gp = monthly_df.reset_index().groupby(["level_1"], group_keys=False)
 
     _name_df = _monthly_df_gp.get_group(feature).set_index(["level_0", "level_1"])
     _temp_df = _name_df.pivot_table(index="date", values=["risk"], columns=_name_df.index)
