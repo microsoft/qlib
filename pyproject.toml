@@ -26,7 +26,7 @@ readme = {file = "README.md", content-type = "text/markdown"}
 dependencies = [
   "pyyaml",
   "numpy",
-  "pandas",
+  "pandas>=2.0.0",
   "mlflow",
   "filelock>=3.16.0",
   "redis",
