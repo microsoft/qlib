@@ -154,4 +154,13 @@ def run():
 
 
 if __name__ == "__main__":
-    run()
+    # run()
+    # workflow(config_path="C:/Users/v-lvlinlang/Desktop/qlib/1917/qlib/examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha360.yaml")
+    # workflow(config_path="C:/Users/v-lvlinlang/Desktop/qlib/1917/qlib/examples/benchmarks/DoubleEnsemble/workflow_config_doubleensemble_Alpha158.yaml")
+    # workflow(config_path="C:/Users/v-lvlinlang/Desktop/qlib/1917/qlib/examples/benchmarks/ADARNN/workflow_config_adarnn_Alpha360.yaml")
+    workflow(config_path="C:/Users/v-lvlinlang/Desktop/qlib/1917/qlib/examples/benchmarks/ADD/workflow_config_add_Alpha360.yaml")
+    # workflow(config_path="C:/Users/v-lvlinlang/Desktop/qlib/1917/qlib/examples/benchmarks/GATs/workflow_config_gats_Alpha158.yaml")
+    # workflow(config_path="C:/Users/v-lvlinlang/Desktop/qlib/1917/qlib/examples/benchmarks/GATs/workflow_config_gats_Alpha360.yaml")
+    # workflow(config_path="C:/Users/v-lvlinlang/Desktop/qlib/1917/qlib/examples/benchmarks/HIST/workflow_config_hist_Alpha360.yaml")
+    # workflow(config_path="C:/Users/v-lvlinlang/Desktop/qlib/1917/qlib/examples/benchmarks/IGMTF/workflow_config_igmtf_Alpha360.yaml")
+    # workflow(config_path="C:/Users/v-lvlinlang/Desktop/qlib/1917/qlib/examples/benchmarks/KRNN/workflow_config_krnn_Alpha360.yaml")

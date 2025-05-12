@@ -39,7 +39,7 @@ def calc_long_short_prec(
         long precision and short precision in time level
     """
     if is_alpha:
-        label = label - label.mean(level=date_col)
+        label = label - label.groupby(level=date_col, group_keys=False).mean()
     if int(1 / quantile) >= len(label.index.get_level_values(1).unique()):
         raise ValueError("Need more instruments to calculate precision")
 
