@@ -91,10 +91,12 @@ class HFLGBModel(ModelFT, LightGBMFInt):
             l_name = df_train["label"].columns[0]
             # Convert label into alpha
             df_train.loc[:, ("label", l_name)] = (
-                df_train.loc[:, ("label", l_name)] - df_train.loc[:, ("label", l_name)].groupby(level=0, group_keys=False).mean()
+                df_train.loc[:, ("label", l_name)]
+                - df_train.loc[:, ("label", l_name)].groupby(level=0, group_keys=False).mean()
             )
             df_valid.loc[:, ("label", l_name)] = (
-                df_valid.loc[:, ("label", l_name)] - df_valid.loc[:, ("label", l_name)].groupby(level=0, group_keys=False).mean()
+                df_valid.loc[:, ("label", l_name)]
+                - df_valid.loc[:, ("label", l_name)].groupby(level=0, group_keys=False).mean()
             )
 
             def mapping_fn(x):
