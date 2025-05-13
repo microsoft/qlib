@@ -166,7 +166,7 @@ class DEnsembleModel(Model, FeatureInt):
 
         # calculate weights
         h["bins"] = pd.cut(h["h_value"], self.bins_sr)
-        h_avg = h.groupby("bins")["h_value"].mean()
+        h_avg = h.groupby("bins", group_keys=False, observed=False)["h_value"].mean()
         weights = pd.Series(np.zeros(N, dtype=float))
         for b in h_avg.index:
             weights[h["bins"] == b] = 1.0 / (self.decay**k_th * h_avg[b] + 0.1)

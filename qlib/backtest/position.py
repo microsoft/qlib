@@ -311,7 +311,7 @@ class Position(BasePosition):
             freq=freq,
             disk_cache=True,
         ).dropna()
-        price_dict = price_df.groupby(["instrument"]).tail(1).reset_index(level=1, drop=True)["$close"].to_dict()
+        price_dict = price_df.groupby(["instrument"], group_keys=False).tail(1)["$close"].to_dict()
 
         if len(price_dict) < len(stock_list):
             lack_stock = set(stock_list) - set(price_dict)

@@ -462,6 +462,14 @@ python run_all_model.py run 10
 
 It also provides the API to run specific models at once. For more use cases, please refer to the file's [docstrings](examples/run_all_model.py). 
 
+### Break change
+In `pandas`, `group_key` is one of the parameters of the `groupby` method. From version 1.5 to 2.0 of `pandas`, the default value of `group_key` has been changed from `no default` to `True`, which will cause qlib to report an error during operation. So we set `group_key=False`, but it doesn't guarantee that some programmes will run correctly, including:
+* qlib\examples\rl_order_execution\scripts\gen_training_orders.py
+* qlib\examples\benchmarks\TRA\src\dataset.MTSDatasetH.py
+* qlib\examples\benchmarks\TFT\tft.py
+
+
+
 ## [Adapting to Market Dynamics](examples/benchmarks_dynamic)
 
 Due to the non-stationary nature of the environment of the financial market, the data distribution may change in different periods, which makes the performance of models build on training data decays in the future test data.
