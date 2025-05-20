@@ -139,12 +139,7 @@ class GeneralPTNN(Model):
 
         # === ReduceLROnPlateau learning rate scheduler ===
         self.lr_scheduler = ReduceLROnPlateau(
-            self.train_optimizer,
-            mode="min",
-            factor=0.5,
-            patience=5,
-            min_lr=1e-6,
-            threshold=1e-5
+            self.train_optimizer, mode="min", factor=0.5, patience=5, min_lr=1e-6, threshold=1e-5
         )
         self.fitted = False
         self.dnn_model.to(self.device)

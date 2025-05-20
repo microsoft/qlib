@@ -46,11 +46,13 @@ jobs:
         python -m pip install pyqlib
         python -m pip install "joblib<=1.4.2"
 
+    # install.sh file contents from: https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh
+    # brew_install.sh file contents from: https://raw.githubusercontent.com/Microsoft/qlib/main/.github/brew_install.sh
     - name: Install Lightgbm for MacOS
       if: ${{ matrix.os == 'macos-13' || matrix.os == 'macos-14' || matrix.os == 'macos-15' }}
       run: |
-        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Microsoft/qlib/main/.github/brew_install.sh)"
+        /bin/bash -c "$(curl -fsSL https://github.com/SunsetWolf/qlib_dataset/releases/download/maocs_lightgbm/install.sh)"
+        /bin/bash -c "$(curl -fsSL https://github.com/SunsetWolf/qlib_dataset/releases/download/maocs_lightgbm/brew_install.sh)"
         HOMEBREW_NO_AUTO_UPDATE=1 brew install lightgbm
         # FIX MacOS error: Segmentation fault
         # reference: https://github.com/microsoft/LightGBM/issues/4229
