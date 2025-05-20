@@ -13,6 +13,7 @@ import copy
 
 import torch
 import torch.optim as optim
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from qlib.data.dataset.weight import Reweighter
 
@@ -136,6 +137,10 @@ class GeneralPTNN(Model):
         else:
             raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
 
+        # === ReduceLROnPlateau learning rate scheduler ===
+        self.lr_scheduler = ReduceLROnPlateau(
+            self.train_optimizer, mode="min", factor=0.5, patience=5, min_lr=1e-6, threshold=1e-5
+        )
         self.fitted = False
         self.dnn_model.to(self.device)
 
@@ -154,7 +159,7 @@ class GeneralPTNN(Model):
             weight = torch.ones_like(label)
 
         if self.loss == "mse":
-            return self.mse(pred[mask], label[mask], weight[mask])
+            return self.mse(pred[mask], label[mask].view(-1, 1), weight[mask])
 
         raise ValueError("unknown loss `%s`" % self.loss)
 
@@ -162,7 +167,7 @@ class GeneralPTNN(Model):
         mask = torch.isfinite(label)
 
         if self.metric in ("", "loss"):
-            return -self.loss_fn(pred[mask], label[mask])
+            return self.loss_fn(pred[mask], label[mask])
 
         raise ValueError("unknown metric `%s`" % self.metric)
 
@@ -238,6 +243,8 @@ class GeneralPTNN(Model):
 
         dl_train = dataset.prepare("train", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
         dl_valid = dataset.prepare("valid", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
+        self.logger.info(f"Train samples: {len(dl_train)}")
+        self.logger.info(f"Valid samples: {len(dl_valid)}")
         if dl_train.empty or dl_valid.empty:
             raise ValueError("Empty data from dataset, please check your dataset config.")
 
@@ -279,7 +286,7 @@ class GeneralPTNN(Model):
 
         stop_steps = 0
         train_loss = 0
-        best_score = -np.inf
+        best_score = np.inf
         best_epoch = 0
         evals_result["train"] = []
         evals_result["valid"] = []
@@ -295,13 +302,18 @@ class GeneralPTNN(Model):
             self.logger.info("evaluating...")
             train_loss, train_score = self.test_epoch(train_loader)
             val_loss, val_score = self.test_epoch(valid_loader)
-            self.logger.info("train %.6f, valid %.6f" % (train_score, val_score))
+            self.logger.info("Epoch%d: train %.6f, valid %.6f" % (step, train_score, val_score))
             evals_result["train"].append(train_score)
             evals_result["valid"].append(val_score)
 
+            # current_lr = self.train_optimizer.param_groups[0]["lr"]
+            # self.logger.info("Current learning rate: %.6e" % current_lr)
+
+            self.lr_scheduler.step(val_score)
+
             if step == 0:
                 best_param = copy.deepcopy(self.dnn_model.state_dict())
-            if val_score > best_score:
+            if val_score < best_score:
                 best_score = val_score
                 stop_steps = 0
                 best_epoch = step
@@ -312,7 +324,7 @@ class GeneralPTNN(Model):
                     self.logger.info("early stop")
                     break
 
-        self.logger.info("best score: %.6lf @ %d" % (best_score, best_epoch))
+        self.logger.info("best score: %.6lf @ %d epoch" % (best_score, best_epoch))
         self.dnn_model.load_state_dict(best_param)
         torch.save(best_param, save_path)
 
@@ -329,6 +341,7 @@ class GeneralPTNN(Model):
             raise ValueError("model is not fitted yet!")
 
         dl_test = dataset.prepare("test", col_set=["feature", "label"], data_key=DataHandlerLP.DK_I)
+        self.logger.info(f"Test samples: {len(dl_test)}")
 
         if isinstance(dataset, TSDatasetH):
             dl_test.config(fillna_type="ffill+bfill")  # process nan brought by dataloader
