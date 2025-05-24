@@ -9,7 +9,7 @@
 
 ## :newspaper: **What's NEW!** &nbsp;   :sparkling_heart: 
 
-Recent released features
+Recent released features-
 
 ### Introducing <a href="https://github.com/microsoft/RD-Agent"><img src="docs/_static/img/rdagent_logo.png" alt="RD_Agent" style="height: 2em"></a>: LLM-Based Autonomous Evolving Agents for Industrial Data-Driven R&D
 
