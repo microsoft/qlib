@@ -7,8 +7,7 @@ import shutil
 import sys
 import tempfile
 from importlib import import_module
-
-import yaml
+from ruamel.yaml import YAML
 
 
 DELETE_KEY = "_delete_"
@@ -57,7 +56,8 @@ def parse_backtest_config(path: str) -> dict:
                 del sys.modules[tmp_module_name]
             else:
                 with open(tmp_config_file.name) as input_stream:
-                    config = yaml.safe_load(input_stream)
+                    yaml = YAML(typ="safe", pure=True)
+                    config = yaml.load(input_stream)
 
     if "_base_" in config:
         base_file_name = config.pop("_base_")
@@ -100,6 +100,7 @@ def get_backtest_config_fromfile(path: str) -> dict:
         "multiplier": 1.0,
         "output_dir": "outputs_backtest/",
         "generate_report": False,
+        "data_granularity": "1min",
     }
     backtest_config = merge_a_into_b(a=backtest_config, b=backtest_config_default)
 

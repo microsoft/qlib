@@ -8,6 +8,7 @@ from mlflow.exceptions import MlflowException, RESOURCE_ALREADY_EXISTS, ErrorCod
 from mlflow.entities import ViewType
 import os
 from typing import Optional, Text
+from pathlib import Path
 
 from .exp import MLflowExperiment, Experiment
 from ..config import C
@@ -233,7 +234,7 @@ class ExpManager:
             # So we supported it in the interface wrapper
             pr = urlparse(self.uri)
             if pr.scheme == "file":
-                with FileLock(os.path.join(pr.netloc, pr.path, "filelock")):  # pylint: disable=E0110
+                with FileLock(Path(os.path.join(pr.netloc, pr.path.lstrip("/"), "filelock"))):  # pylint: disable=E0110
                     return self.create_exp(experiment_name), True
             # NOTE: for other schemes like http, we double check to avoid create exp conflicts
             try:
@@ -421,7 +422,11 @@ class MLflowExpManager(ExpManager):
 
     def list_experiments(self):
         # retrieve all the existing experiments
-        exps = self.client.list_experiments(view_type=ViewType.ACTIVE_ONLY)
+        mlflow_version = int(mlflow.__version__.split(".", maxsplit=1)[0])
+        if mlflow_version >= 2:
+            exps = self.client.search_experiments(view_type=ViewType.ACTIVE_ONLY)
+        else:
+            exps = self.client.list_experiments(view_type=ViewType.ACTIVE_ONLY)  # pylint: disable=E1101
         experiments = dict()
         for exp in exps:
             experiment = MLflowExperiment(exp.experiment_id, exp.name, self.uri)

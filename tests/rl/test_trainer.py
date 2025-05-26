@@ -194,7 +194,7 @@ def test_trainer_checkpoint():
     assert (output_dir / "002.pth").exists()
     assert os.readlink(output_dir / "latest.pth") == str(output_dir / "002.pth")
 
-    trainer.load_state_dict(torch.load(output_dir / "001.pth"))
+    trainer.load_state_dict(torch.load(output_dir / "001.pth", weights_only=False))
     assert trainer.current_iter == 1
     assert trainer.current_episode == 100
 

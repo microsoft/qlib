@@ -22,7 +22,6 @@ from .data import Cal
 
 class P(ElemOperator):
     def _load_internal(self, instrument, start_index, end_index, freq):
-
         _calendar = Cal.calendar(freq=freq)
         resample_data = np.empty(end_index - start_index + 1, dtype="float32")
 

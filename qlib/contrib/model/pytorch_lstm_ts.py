@@ -53,7 +53,7 @@ class LSTM(Model):
         n_jobs=10,
         GPU=0,
         seed=None,
-        **kwargs
+        **kwargs,
     ):
         # Set logger.
         self.logger = get_module_logger("LSTM")
@@ -150,7 +150,6 @@ class LSTM(Model):
         raise ValueError("unknown loss `%s`" % self.loss)
 
     def metric_fn(self, pred, label):
-
         mask = torch.isfinite(label)
 
         if self.metric in ("", "loss"):
@@ -159,10 +158,9 @@ class LSTM(Model):
         raise ValueError("unknown metric `%s`" % self.metric)
 
     def train_epoch(self, data_loader):
-
         self.LSTM_model.train()
 
-        for (data, weight) in data_loader:
+        for data, weight in data_loader:
             feature = data[:, :, 0:-1].to(self.device)
             label = data[:, -1, -1].to(self.device)
 
@@ -175,14 +173,12 @@ class LSTM(Model):
             self.train_optimizer.step()
 
     def test_epoch(self, data_loader):
-
         self.LSTM_model.eval()
 
         scores = []
         losses = []
 
-        for (data, weight) in data_loader:
-
+        for data, weight in data_loader:
             feature = data[:, :, 0:-1].to(self.device)
             # feature[torch.isnan(feature)] = 0
             label = data[:, -1, -1].to(self.device)
@@ -288,7 +284,6 @@ class LSTM(Model):
         preds = []
 
         for data in test_loader:
-
             feature = data[:, :, 0:-1].to(self.device)
 
             with torch.no_grad():

@@ -53,17 +53,18 @@ Below is a typical config file of ``qrun``.
             kwargs:
                 topk: 50
                 n_drop: 5
-                signal:
-                    - <MODEL>
-                    - <DATASET>
+                signal: <PRED>
         backtest:
-            limit_threshold: 0.095
+            start_time: 2017-01-01
+            end_time: 2020-08-01
             account: 100000000
             benchmark: *benchmark
-            deal_price: close
-            open_cost: 0.0005
-            close_cost: 0.0015
-            min_cost: 5
+            exchange_kwargs:
+                limit_threshold: 0.095
+                deal_price: close
+                open_cost: 0.0005
+                close_cost: 0.0015
+                min_cost: 5
     task:
         model:
             class: LGBModel
@@ -281,9 +282,7 @@ The following script is the configuration of `backtest` and the `strategy` used 
             kwargs:
                 topk: 50
                 n_drop: 5
-                signal:
-                    - <MODEL>
-                    - <DATASET>
+                signal: <PRED>
         backtest:
             limit_threshold: 0.095
             account: 100000000

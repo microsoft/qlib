@@ -55,7 +55,7 @@ class IGMTF(Model):
         optimizer="adam",
         GPU=0,
         seed=None,
-        **kwargs
+        **kwargs,
     ):
         # Set logger.
         self.logger = get_module_logger("IGMTF")
@@ -153,7 +153,6 @@ class IGMTF(Model):
         raise ValueError("unknown loss `%s`" % self.loss)
 
     def metric_fn(self, pred, label):
-
         mask = torch.isfinite(label)
 
         if self.metric == "ic":
@@ -171,7 +170,7 @@ class IGMTF(Model):
 
     def get_daily_inter(self, df, shuffle=False):
         # organize the train data into daily batches
-        daily_count = df.groupby(level=0).size().values
+        daily_count = df.groupby(level=0, group_keys=False).size().values
         daily_index = np.roll(np.cumsum(daily_count), 1)
         daily_index[0] = 0
         if shuffle:
@@ -201,7 +200,6 @@ class IGMTF(Model):
         return train_hidden, train_hidden_day
 
     def train_epoch(self, x_train, y_train, train_hidden, train_hidden_day):
-
         x_train_values = x_train.values
         y_train_values = np.squeeze(y_train.values)
 
@@ -222,7 +220,6 @@ class IGMTF(Model):
             self.train_optimizer.step()
 
     def test_epoch(self, data_x, data_y, train_hidden, train_hidden_day):
-
         # prepare training data
         x_values = data_x.values
         y_values = np.squeeze(data_y.values)
@@ -254,7 +251,6 @@ class IGMTF(Model):
         evals_result=dict(),
         save_path=None,
     ):
-
         df_train, df_valid = dataset.prepare(
             ["train", "valid"],
             col_set=["feature", "label"],

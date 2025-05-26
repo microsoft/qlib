@@ -1,5 +1,17 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+"""
+Here we have a comprehensive set of analysis classes.
+
+Here is an example.
+
+.. code-block:: python
+
+    from qlib.contrib.report.data.ana import FeaMeanStd
+    fa = FeaMeanStd(ret_df)
+    fa.plot_all(wspace=0.3, sub_figsize=(12, 3), col_n=5)
+
+"""
 import pandas as pd
 import numpy as np
 from qlib.contrib.report.data.base import FeaAnalyser
@@ -30,7 +42,6 @@ class CombFeaAna(FeaAnalyser):
         """The statistics of features are finished in the underlying analysers"""
 
     def plot_all(self, *args, **kwargs):
-
         ax_gen = iter(sub_fig_generator(row_n=len(self._fea_ana_l), *args, **kwargs))
 
         for col in self._dataset:
@@ -61,10 +72,10 @@ class ValueCNT(FeaAnalyser):
         self._val_cnt = {}
         for col, item in self._dataset.items():
             if not super().skip(col):
-                self._val_cnt[col] = item.groupby(DT_COL_NAME).apply(lambda s: len(s.unique()))
+                self._val_cnt[col] = item.groupby(DT_COL_NAME, group_keys=False).apply(lambda s: len(s.unique()))
         self._val_cnt = pd.DataFrame(self._val_cnt)
         if self.ratio:
-            self._val_cnt = self._val_cnt.div(self._dataset.groupby(DT_COL_NAME).size(), axis=0)
+            self._val_cnt = self._val_cnt.div(self._dataset.groupby(DT_COL_NAME, group_keys=False).size(), axis=0)
 
         # TODO: transfer this feature to other analysers
         ymin, ymax = self._val_cnt.min().min(), self._val_cnt.max().max()
@@ -87,7 +98,7 @@ class FeaInfAna(NumFeaAnalyser):
         self._inf_cnt = {}
         for col, item in self._dataset.items():
             if not super().skip(col):
-                self._inf_cnt[col] = item.apply(np.isinf).astype(np.int).groupby(DT_COL_NAME).sum()
+                self._inf_cnt[col] = item.apply(np.isinf).astype(np.int).groupby(DT_COL_NAME, group_keys=False).sum()
         self._inf_cnt = pd.DataFrame(self._inf_cnt)
 
     def skip(self, col):
@@ -100,7 +111,7 @@ class FeaInfAna(NumFeaAnalyser):
 
 class FeaNanAna(FeaAnalyser):
     def calc_stat_values(self):
-        self._nan_cnt = self._dataset.isna().groupby(DT_COL_NAME).sum()
+        self._nan_cnt = self._dataset.isna().groupby(DT_COL_NAME, group_keys=False).sum()
 
     def skip(self, col):
         return (col not in self._nan_cnt) or (self._nan_cnt[col].sum() == 0)
@@ -112,8 +123,8 @@ class FeaNanAna(FeaAnalyser):
 
 class FeaNanAnaRatio(FeaAnalyser):
     def calc_stat_values(self):
-        self._nan_cnt = self._dataset.isna().groupby(DT_COL_NAME).sum()
-        self._total_cnt = self._dataset.groupby(DT_COL_NAME).size()
+        self._nan_cnt = self._dataset.isna().groupby(DT_COL_NAME, group_keys=False).sum()
+        self._total_cnt = self._dataset.groupby(DT_COL_NAME, group_keys=False).size()
 
     def skip(self, col):
         return (col not in self._nan_cnt) or (self._nan_cnt[col].sum() == 0)
@@ -153,6 +164,7 @@ class FeaSkewTurt(NumFeaAnalyser):
         self._kurt[col].plot(ax=right_ax, label="kurt", color="green")
         right_ax.set_xlabel("")
         right_ax.set_ylabel("kurt")
+        right_ax.grid(None)  # set the grid to None to avoid two layer of grid
 
         h1, l1 = ax.get_legend_handles_labels()
         h2, l2 = right_ax.get_legend_handles_labels()
@@ -164,20 +176,23 @@ class FeaSkewTurt(NumFeaAnalyser):
 
 class FeaMeanStd(NumFeaAnalyser):
     def calc_stat_values(self):
-        self._std = self._dataset.groupby(DT_COL_NAME).std()
-        self._mean = self._dataset.groupby(DT_COL_NAME).mean()
+        self._std = self._dataset.groupby(DT_COL_NAME, group_keys=False).std()
+        self._mean = self._dataset.groupby(DT_COL_NAME, group_keys=False).mean()
 
     def plot_single(self, col, ax):
         self._mean[col].plot(ax=ax, label="mean")
         ax.set_xlabel("")
         ax.set_ylabel("mean")
         ax.legend()
+        ax.tick_params(axis="x", rotation=90)
 
         right_ax = ax.twinx()
 
         self._std[col].plot(ax=right_ax, label="std", color="green")
         right_ax.set_xlabel("")
         right_ax.set_ylabel("std")
+        right_ax.tick_params(axis="x", rotation=90)
+        right_ax.grid(None)  # set the grid to None to avoid two layer of grid
 
         h1, l1 = ax.get_legend_handles_labels()
         h2, l2 = right_ax.get_legend_handles_labels()

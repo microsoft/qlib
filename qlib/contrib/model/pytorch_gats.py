@@ -56,7 +56,7 @@ class GATs(Model):
         optimizer="adam",
         GPU=0,
         seed=None,
-        **kwargs
+        **kwargs,
     ):
         # Set logger.
         self.logger = get_module_logger("GATs")
@@ -154,7 +154,6 @@ class GATs(Model):
         raise ValueError("unknown loss `%s`" % self.loss)
 
     def metric_fn(self, pred, label):
-
         mask = torch.isfinite(label)
 
         if self.metric in ("", "loss"):
@@ -164,7 +163,7 @@ class GATs(Model):
 
     def get_daily_inter(self, df, shuffle=False):
         # organize the train data into daily batches
-        daily_count = df.groupby(level=0).size().values
+        daily_count = df.groupby(level=0, group_keys=False).size().values
         daily_index = np.roll(np.cumsum(daily_count), 1)
         daily_index[0] = 0
         if shuffle:
@@ -175,7 +174,6 @@ class GATs(Model):
         return daily_index, daily_count
 
     def train_epoch(self, x_train, y_train):
-
         x_train_values = x_train.values
         y_train_values = np.squeeze(y_train.values)
         self.GAT_model.train()
@@ -197,7 +195,6 @@ class GATs(Model):
             self.train_optimizer.step()
 
     def test_epoch(self, data_x, data_y):
-
         # prepare training data
         x_values = data_x.values
         y_values = np.squeeze(data_y.values)
@@ -230,7 +227,6 @@ class GATs(Model):
         evals_result=dict(),
         save_path=None,
     ):
-
         df_train, df_valid, df_test = dataset.prepare(
             ["train", "valid", "test"],
             col_set=["feature", "label"],

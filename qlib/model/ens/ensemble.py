@@ -30,7 +30,6 @@ class Ensemble:
 
 
 class SingleKeyEnsemble(Ensemble):
-
     """
     Extract the object if there is only one key and value in the dict. Make the result more readable.
     {Only key: Only value} -> Only value
@@ -64,7 +63,6 @@ class SingleKeyEnsemble(Ensemble):
 
 
 class RollingEnsemble(Ensemble):
-
     """Merge a dict of rolling dataframe like `prediction` or `IC` into an ensemble.
 
     NOTE: The values of dict must be pd.DataFrame, and have the index "datetime".
@@ -128,7 +126,7 @@ class AverageEnsemble(Ensemble):
         # NOTE: this may change the style underlying data!!!!
         # from pd.DataFrame to pd.Series
         results = pd.concat(values, axis=1)
-        results = results.groupby("datetime").apply(lambda df: (df - df.mean()) / df.std())
+        results = results.groupby("datetime", group_keys=False).apply(lambda df: (df - df.mean()) / df.std())
         results = results.mean(axis=1)
         results = results.sort_index()
         return results

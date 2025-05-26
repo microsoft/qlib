@@ -3,24 +3,21 @@
 """
 TODO:
 - A more well-designed PIT database is required.
-    - seperated insert, delete, update, query operations are required.
+    - separated insert, delete, update, query operations are required.
 """
 
-import abc
 import shutil
 import struct
-import traceback
 from pathlib import Path
-from typing import Iterable, List, Union
+from typing import Iterable
 from functools import partial
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
 
 import fire
-import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from loguru import logger
-from qlib.utils import fname_to_code, code_to_fname, get_period_offset
+from qlib.utils import fname_to_code, get_period_offset
 from qlib.config import C
 
 
@@ -135,9 +132,11 @@ class DumpPitData:
         return (
             set(self._include_fields)
             if self._include_fields
-            else set(df[self.field_column_name]) - set(self._exclude_fields)
-            if self._exclude_fields
-            else set(df[self.field_column_name])
+            else (
+                set(df[self.field_column_name]) - set(self._exclude_fields)
+                if self._exclude_fields
+                else set(df[self.field_column_name])
+            )
         )
 
     def get_filenames(self, symbol, field, interval):
@@ -237,7 +236,6 @@ class DumpPitData:
                     pass
 
             with open(data_file, "rb+") as fd, open(index_file, "rb+") as fi:
-
                 # update index if needed
                 for i, row in df_sub.iterrows():
                     # get index

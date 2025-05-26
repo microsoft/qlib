@@ -42,9 +42,8 @@ class LocalformerModel(Model):
         n_jobs=10,
         GPU=0,
         seed=None,
-        **kwargs
+        **kwargs,
     ):
-
         # set hyper-parameters.
         self.d_model = d_model
         self.dropout = dropout
@@ -96,7 +95,6 @@ class LocalformerModel(Model):
         raise ValueError("unknown loss `%s`" % self.loss)
 
     def metric_fn(self, pred, label):
-
         mask = torch.isfinite(label)
 
         if self.metric in ("", "loss"):
@@ -105,7 +103,6 @@ class LocalformerModel(Model):
         raise ValueError("unknown metric `%s`" % self.metric)
 
     def train_epoch(self, data_loader):
-
         self.model.train()
 
         for data in data_loader:
@@ -121,14 +118,12 @@ class LocalformerModel(Model):
             self.train_optimizer.step()
 
     def test_epoch(self, data_loader):
-
         self.model.eval()
 
         scores = []
         losses = []
 
         for data in data_loader:
-
             feature = data[:, :, 0:-1].to(self.device)
             label = data[:, -1, -1].to(self.device)
 
@@ -148,7 +143,6 @@ class LocalformerModel(Model):
         evals_result=dict(),
         save_path=None,
     ):
-
         dl_train = dataset.prepare("train", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
         dl_valid = dataset.prepare("valid", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
         if dl_train.empty or dl_valid.empty:

@@ -22,7 +22,6 @@ QLIB_DIR.mkdir(exist_ok=True, parents=True)
 
 class TestStorage(TestAutoData):
     def test_calendar_storage(self):
-
         calendar = CalendarStorage(freq="day", future=False, provider_uri=self.provider_uri)
         assert isinstance(calendar[:], Iterable), f"{calendar.__class__.__name__}.__getitem__(s: slice) is not Iterable"
         assert isinstance(calendar.data, Iterable), f"{calendar.__class__.__name__}.data is not Iterable"

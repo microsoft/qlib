@@ -1,0 +1,97 @@
+[build-system]
+requires = ["setuptools", "cython", "numpy>=1.24.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+classifiers = [
+  "Operating System :: POSIX :: Linux",
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: MacOS",
+  "License :: OSI Approved :: MIT License",
+  "Development Status :: 3 - Alpha",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+]
+name = "pyqlib"
+dynamic = ["version"]
+description = "A Quantitative-research Platform"
+requires-python = ">=3.8.0"
+readme = {file = "README.md", content-type = "text/markdown"}
+
+dependencies = [
+  "pyyaml",
+  "numpy",
+  "pandas>=0.24",
+  "mlflow",
+  "filelock>=3.16.0",
+  "redis",
+  "dill",
+  "fire",
+  "ruamel.yaml>=0.17.38",
+  "python-redis-lock",
+  "tqdm",
+  "pymongo",
+  "loguru",
+  "lightgbm",
+  "gym",
+  "cvxpy",
+  "joblib",
+  "matplotlib",
+  "jupyter",
+  "nbconvert",
+  "pyarrow",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest",
+  "statsmodels",
+]
+# On macos-13 system, when using python version greater than or equal to 3.10,
+# pytorch can't fully support Numpy version above 2.0, so, when you want to install torch,
+# it will limit the version of Numpy less than 2.0.
+rl = [
+  "tianshou<=0.4.10",
+  "torch",
+  "numpy<2.0.0",
+]
+lint = [
+  "black",
+  "pylint",
+  "mypy<1.5.0",
+  "flake8",
+  "nbqa",
+]
+# snowballstemmer, a dependency of sphinx, was released on 2025-05-08 with version 3.0.0,
+# which causes errors in the build process. So we've limited the version for now.
+docs = [
+  "sphinx",
+  "sphinx_rtd_theme",
+  "readthedocs_sphinx_ext",
+  "snowballstemmer<3.0",
+]
+package = [
+  "twine",
+  "build",
+]
+# test_pit dependency packages
+test = [
+  "yahooquery",
+  "baostock",
+]
+analysis = [
+  "plotly",
+]
+
+[tool.setuptools]
+packages = [
+  "qlib",
+]
+
+[project.scripts]
+qrun = "qlib.workflow.cli:run"

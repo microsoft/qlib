@@ -5,14 +5,15 @@ from __future__ import annotations
 import argparse
 import os
 import random
+import sys
 import warnings
 from pathlib import Path
+from ruamel.yaml import YAML
 from typing import cast, List, Optional
 
 import numpy as np
 import pandas as pd
 import torch
-import yaml
 from qlib.backtest import Order
 from qlib.backtest.decision import OrderDir
 from qlib.constant import ONE_MIN
@@ -208,6 +209,9 @@ def main(config: dict, run_training: bool, run_backtest: bool) -> None:
     if "seed" in config["runtime"]:
         seed_everything(config["runtime"]["seed"])
 
+    for extra_module_path in config["env"].get("extra_module_paths", []):
+        sys.path.append(extra_module_path)
+
     state_interpreter: StateInterpreter = init_instance_by_config(config["state_interpreter"])
     action_interpreter: ActionInterpreter = init_instance_by_config(config["action_interpreter"])
     reward: Reward = init_instance_by_config(config["reward"])
@@ -259,6 +263,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     with open(args.config_path, "r") as input_stream:
-        config = yaml.safe_load(input_stream)
+        yaml = YAML(typ="safe", pure=True)
+        config = yaml.load(input_stream)
 
     main(config, run_training=not args.no_training, run_backtest=args.run_backtest)

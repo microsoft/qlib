@@ -14,6 +14,24 @@ from qlib.contrib.report.utils import sub_fig_generator
 
 class FeaAnalyser:
     def __init__(self, dataset: pd.DataFrame):
+        """
+
+        Parameters
+        ----------
+        dataset : pd.DataFrame
+
+            We often have multiple columns for dataset. Each column corresponds to one sub figure.
+            There will be a datatime column in the index levels.
+            Aggretation will be used for more summarized metrics overtime.
+            Here is an example of data:
+
+            .. code-block::
+
+                                            return
+                datetime   instrument
+                2007-02-06 equity_tpx     0.010087
+                           equity_spx     0.000786
+        """
         self._dataset = dataset
         with TimeInspector.logt("calc_stat_values"):
             self.calc_stat_values()
@@ -28,7 +46,6 @@ class FeaAnalyser:
         return False
 
     def plot_all(self, *args, **kwargs):
-
         ax_gen = iter(sub_fig_generator(*args, **kwargs))
         for col in self._dataset:
             if not self.skip(col):

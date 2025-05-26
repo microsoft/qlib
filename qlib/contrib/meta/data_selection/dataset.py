@@ -49,6 +49,8 @@ class InternalData:
 
         # 1) prepare the prediction of proxy models
         perf_task_tpl = deepcopy(self.task_tpl)  # this task is supposed to contains no complicated objects
+        # The only thing we want to save is the prediction
+        perf_task_tpl["record"] = ["qlib.workflow.record_temp.SignalRecord"]
 
         trainer = auto_filter_kwargs(trainer)(experiment_name=self.exp_name, **trainer_kwargs)
         # NOTE:
@@ -104,7 +106,7 @@ class InternalData:
 
     def _calc_perf(self, pred, label):
         df = pd.DataFrame({"pred": pred, "label": label})
-        df = df.groupby("datetime").corr(method="spearman")
+        df = df.groupby("datetime", group_keys=False).corr(method="spearman")
         corr = df.loc(axis=0)[:, "pred"]["label"].droplevel(axis=0, level=-1)
         return corr
 
@@ -159,7 +161,7 @@ class MetaTaskDS(MetaTask):
                 raise ValueError(f"Most of samples are dropped. Please check this task: {task}")
 
             assert (
-                d_test.groupby("datetime").size().shape[0] >= 5
+                d_test.groupby("datetime", group_keys=False).size().shape[0] >= 5
             ), "In this segment, this trading dates is less than 5, you'd better check the data."
 
             sample_time_belong = np.zeros((d_train.shape[0], time_perf.shape[1]))
@@ -241,7 +243,7 @@ class MetaDatasetDS(MetaTaskDataset):
         trunc_days: int = None,
         rolling_ext_days: int = 0,
         exp_name: Union[str, InternalData],
-        segments: Union[Dict[Text, Tuple], float],
+        segments: Union[Dict[Text, Tuple], float, str],
         hist_step_n: int = 10,
         task_mode: str = MetaTask.PROC_MODE_FULL,
         fill_method: str = "max",
@@ -269,12 +271,16 @@ class MetaDatasetDS(MetaTaskDataset):
             - str: the name of the experiment to store the performance of data
             - InternalData: a prepared internal data
         segments: Union[Dict[Text, Tuple], float]
-            the segments to divide data
-            both left and right
+            if the segment is a Dict
+                the segments to divide data
+                both left and right are included
             if segments is a float:
                 the float represents the percentage of data for training
+            if segments is a string:
+                it will try its best to put its data in training and ensure that the date `segments` is in the test set
         hist_step_n: int
             length of historical steps for the meta infomation
+            Number of steps of the data similarity information
         task_mode : str
             Please refer to the docs of MetaTask
         """
@@ -381,10 +387,30 @@ class MetaDatasetDS(MetaTaskDataset):
         if isinstance(self.segments, float):
             train_task_n = int(len(self.meta_task_l) * self.segments)
             if segment == "train":
-                return self.meta_task_l[:train_task_n]
+                train_tasks = self.meta_task_l[:train_task_n]
+                get_module_logger("MetaDatasetDS").info(f"The first train meta task: {train_tasks[0]}")
+                return train_tasks
             elif segment == "test":
-                return self.meta_task_l[train_task_n:]
+                test_tasks = self.meta_task_l[train_task_n:]
+                get_module_logger("MetaDatasetDS").info(f"The first test meta task: {test_tasks[0]}")
+                return test_tasks
             else:
                 raise NotImplementedError(f"This type of input is not supported")
+        elif isinstance(self.segments, str):
+            train_tasks = []
+            test_tasks = []
+            for t in self.meta_task_l:
+                test_end = t.task["dataset"]["kwargs"]["segments"]["test"][1]
+                if test_end is None or pd.Timestamp(test_end) < pd.Timestamp(self.segments):
+                    train_tasks.append(t)
+                else:
+                    test_tasks.append(t)
+            get_module_logger("MetaDatasetDS").info(f"The first train meta task: {train_tasks[0]}")
+            get_module_logger("MetaDatasetDS").info(f"The first test meta task: {test_tasks[0]}")
+            if segment == "train":
+                return train_tasks
+            elif segment == "test":
+                return test_tasks
+            raise NotImplementedError(f"This type of input is not supported")
         else:
             raise NotImplementedError(f"This type of input is not supported")

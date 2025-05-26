@@ -44,7 +44,7 @@ def concat(data_list: Union[SingleData], axis=0) -> MultiData:
         all_index_map = dict(zip(all_index, range(len(all_index))))
 
         # concat all
-        tmp_data = np.full((len(all_index), len(data_list)), np.NaN)
+        tmp_data = np.full((len(all_index), len(data_list)), np.nan)
         for data_id, index_data in enumerate(data_list):
             assert isinstance(index_data, SingleData)
             now_data_map = [all_index_map[index] for index in index_data.index]
@@ -64,7 +64,7 @@ def sum_by_index(data_list: Union[SingleData], new_index: list, fill_value=0) ->
     new_index : list
         the new_index of new SingleData.
     fill_value : float
-        fill the missing values or replace np.NaN.
+        fill the missing values or replace np.nan.
 
     Returns
     -------
@@ -108,6 +108,12 @@ class Index:
             self.index_map = self.idx_list = np.arange(idx_list)
             self._is_sorted = True
         else:
+            # Check if all elements in idx_list are of the same type
+            if not all(isinstance(x, type(idx_list[0])) for x in idx_list):
+                raise TypeError("All elements in idx_list must be of the same type")
+            # Check if all elements in idx_list are of the same datetime64 precision
+            if isinstance(idx_list[0], np.datetime64) and not all(x.dtype == idx_list[0].dtype for x in idx_list):
+                raise TypeError("All elements in idx_list must be of the same datetime64 precision")
             self.idx_list = np.array(idx_list)
             # NOTE: only the first appearance is indexed
             self.index_map = dict(zip(self.idx_list, range(len(self))))
@@ -131,7 +137,12 @@ class Index:
         if self.idx_list.dtype.type is np.datetime64:
             if isinstance(item, pd.Timestamp):
                 # This happens often when creating index based on pandas.DatetimeIndex and query with pd.Timestamp
-                return item.to_numpy()
+                return item.to_numpy().astype(self.idx_list.dtype)
+            elif isinstance(item, np.datetime64):
+                # This happens often when creating index based on np.datetime64 and query with another precision
+                return item.astype(self.idx_list.dtype)
+            # NOTE: It is hard to consider every case at first.
+            # We just try to cover part of cases to make it more user-friendly
         return item
 
     def index(self, item) -> int:
@@ -351,7 +362,6 @@ class IndexData(metaclass=index_data_ops_creator):
     loc_idx_cls = LocIndexer
 
     def __init__(self, data: np.ndarray, *indices: Union[List, pd.Index, Index]):
-
         self.data = data
         self.indices = indices
 
@@ -434,7 +444,7 @@ class IndexData(metaclass=index_data_ops_creator):
         return self.__class__(~self.data.astype(bool), *self.indices)
 
     def abs(self):
-        """get the abs of data except np.NaN."""
+        """get the abs of data except np.nan."""
         tmp_data = np.absolute(self.data)
         return self.__class__(tmp_data, *self.indices)
 
@@ -556,8 +566,8 @@ class SingleData(IndexData):
                 f"The indexes of self and other do not meet the requirements of the four arithmetic operations"
             )
 
-    def reindex(self, index: Index, fill_value=np.NaN) -> SingleData:
-        """reindex data and fill the missing value with np.NaN.
+    def reindex(self, index: Index, fill_value=np.nan) -> SingleData:
+        """reindex data and fill the missing value with np.nan.
 
         Parameters
         ----------
@@ -605,7 +615,7 @@ class SingleData(IndexData):
         return pd.Series(self.data, index=self.index)
 
     def __repr__(self) -> str:
-        return str(pd.Series(self.data, index=self.index))
+        return str(pd.Series(self.data, index=self.index.tolist()))
 
 
 class MultiData(IndexData):
@@ -641,4 +651,4 @@ class MultiData(IndexData):
             )
 
     def __repr__(self) -> str:
-        return str(pd.DataFrame(self.data, index=self.index, columns=self.columns))
+        return str(pd.DataFrame(self.data, index=self.index.tolist(), columns=self.columns.tolist()))

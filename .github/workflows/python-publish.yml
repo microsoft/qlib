@@ -12,53 +12,54 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest, macos-11]
-        # FIXME:  macos-latest will raise error now.
-        # not supporting 3.6 due to annotations is not supported https://stackoverflow.com/a/52890129
-        python-version: [3.7, 3.8]
+        os: [windows-latest, macos-13, macos-latest]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        exclude:
+          - os: macos-13
+            python-version: "3.11"
+          - os: macos-13
+            python-version: "3.12"
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python
-      uses: actions/setup-python@v2
+    - uses: actions/checkout@v3
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install setuptools wheel twine
-    - name: Build wheel on Windows
+        make dev
+    - name: Build wheel on ${{ matrix.os }}
       run: |
-        pip install numpy
-        pip install cython
-        python setup.py bdist_wheel
-    - name: Build and publish
+        make build
+    - name: Upload to PyPi
       env:
-        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
       run: |
-        twine upload dist/*
-        
+        twine check dist/*.whl
+        twine upload dist/*.whl --verbose
+
   deploy_with_manylinux:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
     - name: Build wheel on Linux
-      uses: RalfG/python-wheels-manylinux-build@v0.3.1-manylinux2010_x86_64
+      uses: RalfG/python-wheels-manylinux-build@v0.7.1-manylinux2014_x86_64
       with:
-        # not supporting 3.6 due to annotations is not supported https://stackoverflow.com/a/52890129
-        python-versions: 'cp37-cp37m cp38-cp38'
+        python-versions: 'cp38-cp38 cp39-cp39 cp310-cp310 cp311-cp311 cp312-cp312'
         build-requirements: 'numpy cython'
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.7
     - name: Install dependencies
       run: |
-        pip install twine  
-    - name: Build and publish
+        python -m pip install twine
+    - name: Upload to PyPi
       env:
-        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
       run: |
-        twine upload dist/pyqlib-*-manylinux*.whl
+        twine check dist/pyqlib-*-manylinux*.whl
+        twine upload dist/pyqlib-*-manylinux*.whl --verbose

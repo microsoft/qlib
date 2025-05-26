@@ -50,12 +50,6 @@ pip install -r requirements.txt
     python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data_1min --region cn --interval 1min
     # us 1d
     python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/us_data --region us --interval 1d
-    # us 1min
-    python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/us_data_1min --region us --interval 1min
-    # in 1d
-    python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/in_data --region in --interval 1d
-    # in 1min
-    python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/in_data_1min --region in --interval 1min
     ```
 
 ### Collector *YahooFinance* data to qlib
@@ -121,7 +115,7 @@ pip install -r requirements.txt
         
                 qlib_data_1d can be obtained like this:
                     $ python scripts/get_data.py qlib_data --target_dir <qlib_data_1d_dir> --interval 1d
-                    $ python scripts/data_collector/yahoo/collector.py update_data_to_bin --qlib_data_1d_dir <qlib_data_1d_dir> --trading_date 2021-06-01
+                    $ python scripts/data_collector/yahoo/collector.py update_data_to_bin --qlib_data_1d_dir <qlib_data_1d_dir> --end_date <end_date>
                 or:
                     download 1d data from YahooFinance
             
@@ -180,9 +174,8 @@ pip install -r requirements.txt
 
   * Manual update of data
       ```
-      python scripts/data_collector/yahoo/collector.py update_data_to_bin --qlib_data_1d_dir <user data dir> --trading_date <start date> --end_date <end date>
+      python scripts/data_collector/yahoo/collector.py update_data_to_bin --qlib_data_1d_dir <user data dir> --end_date <end date>
       ```
-      * `trading_date`: start of trading day
       * `end_date`: end of trading day(not included)
       * `check_data_length`: check the number of rows per *symbol*, by default `None`
         > if `len(symbol_df) < check_data_length`, it will be re-fetched, with the number of re-fetches coming from the `max_collector_count` parameter
@@ -191,10 +184,10 @@ pip install -r requirements.txt
       * `source_dir`: The directory where the raw data collected from the Internet is saved, default "Path(__file__).parent/source"
       * `normalize_dir`: Directory for normalize data, default "Path(__file__).parent/normalize"
       * `qlib_data_1d_dir`: the qlib data to be updated for yahoo, usually from: [download qlib data](https://github.com/microsoft/qlib/tree/main/scripts#download-cn-data)
-      * `trading_date`: trading days to be updated, by default ``datetime.datetime.now().strftime("%Y-%m-%d")``
       * `end_date`: end datetime, default ``pd.Timestamp(trading_date + pd.Timedelta(days=1))``; open interval(excluding end)
       * `region`: region, value from ["CN", "US"], default "CN"
-
+      * `interval`: interval, default "1d"(Currently only supports 1d data)
+      * `exists_skip`: exists skip, by default False
 
 ## Using qlib data
 

@@ -35,7 +35,7 @@ class TestDumpData(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        GetData().csv_data_cn(SOURCE_DIR)
+        GetData().download_data(file_name="csv_data_cn.zip", target_dir=SOURCE_DIR)
         TestDumpData.DUMP_DATA = DumpDataAll(csv_path=SOURCE_DIR, qlib_dir=QLIB_DIR, include_fields=cls.FIELDS)
         TestDumpData.STOCK_NAMES = list(map(lambda x: x.name[:-4].upper(), SOURCE_DIR.glob("*.csv")))
         provider_uri = str(QLIB_DIR.resolve())

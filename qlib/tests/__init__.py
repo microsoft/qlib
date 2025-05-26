@@ -14,7 +14,6 @@ from qlib.data.storage import CalendarStorage, InstrumentStorage, FeatureStorage
 
 
 class TestAutoData(unittest.TestCase):
-
     _setup_kwargs = {}
     provider_uri = "~/.qlib/qlib_data/cn_data_simple"  # target_dir
     provider_uri_1day = "~/.qlib/qlib_data/cn_data"  # target_dir
@@ -188,7 +187,7 @@ class MockInstrumentStorage(MockStorageBase, InstrumentStorage):
     def __init__(self, **kwargs):
         super().__init__()
         instruments = {}
-        for symbol, group in self.df.groupby(by="symbol"):
+        for symbol, group in self.df.groupby(by="symbol", group_keys=False):
             start = group["datetime"].iloc[0]
             end = group["datetime"].iloc[-1]
             instruments[symbol] = [(start, end)]
@@ -286,6 +285,5 @@ class TestMockData(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-
         provider_uri = "Not necessary."
         init(region=REG_TW, provider_uri=provider_uri, expression_cache=None, dataset_cache=None, **cls._setup_kwargs)

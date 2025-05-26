@@ -132,7 +132,6 @@ class FilterCol(Processor):
         self.col_list = col_list
 
     def __call__(self, df):
-
         cols = get_group_columns(df, self.fields_group)
         all_cols = df.columns
         diff_cols = np.setdiff1d(all_cols.get_level_values(-1), cols.get_level_values(-1))
@@ -188,14 +187,9 @@ class Fillna(Processor):
         if self.fields_group is None:
             df.fillna(self.fill_value, inplace=True)
         else:
-            cols = get_group_columns(df, self.fields_group)
             # this implementation is extremely slow
             # df.fillna({col: self.fill_value for col in cols}, inplace=True)
-
-            # So we use numpy to accelerate filling values
-            nan_select = np.isnan(df.values)
-            nan_select[:, ~df.columns.isin(cols)] = False
-            df.values[nan_select] = self.fill_value
+            df[self.fields_group] = df[self.fields_group].fillna(self.fill_value)
         return df
 
 
@@ -319,9 +313,13 @@ class CSZScoreNorm(Processor):
         # try not modify original dataframe
         if not isinstance(self.fields_group, list):
             self.fields_group = [self.fields_group]
-        for g in self.fields_group:
-            cols = get_group_columns(df, g)
-            df[cols] = df[cols].groupby("datetime", group_keys=False).apply(self.zscore_func)
+        # depress warning by references:
+        # https://stackoverflow.com/questions/20625582/how-to-deal-with-settingwithcopywarning-in-pandas
+        # https://pandas.pydata.org/pandas-docs/stable/user_guide/options.html#getting-and-setting-options
+        with pd.option_context("mode.chained_assignment", None):
+            for g in self.fields_group:
+                cols = get_group_columns(df, g)
+                df[cols] = df[cols].groupby("datetime", group_keys=False).apply(self.zscore_func)
         return df
 
 
@@ -354,7 +352,7 @@ class CSRankNorm(Processor):
     def __call__(self, df):
         # try not modify original dataframe
         cols = get_group_columns(df, self.fields_group)
-        t = df[cols].groupby("datetime").rank(pct=True)
+        t = df[cols].groupby("datetime", group_keys=False).rank(pct=True)
         t -= 0.5
         t *= 3.46  # NOTE: towards unit std
         df[cols] = t

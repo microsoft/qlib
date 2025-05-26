@@ -475,7 +475,6 @@ class TemporalFusionTransformer:
 
         embeddings = []
         for i in range(num_categorical_variables):
-
             embedding = tf.keras.Sequential(
                 [
                     tf.keras.layers.InputLayer([time_steps]),
@@ -600,7 +599,7 @@ class TemporalFusionTransformer:
         print("Getting valid sampling locations.")
         valid_sampling_locations = []
         split_data_map = {}
-        for identifier, df in data.groupby(id_col):
+        for identifier, df in data.groupby(id_col, group_key=False):
             print("Getting locations for {}".format(identifier))
             num_entries = len(df)
             if num_entries >= self.time_steps:
@@ -679,8 +678,7 @@ class TemporalFusionTransformer:
         input_cols = [tup[0] for tup in self.column_definition if tup[2] not in {InputTypes.ID, InputTypes.TIME}]
 
         data_map = {}
-        for _, sliced in data.groupby(id_col):
-
+        for _, sliced in data.groupby(id_col, group_keys=False):
             col_mappings = {"identifier": [id_col], "time": [time_col], "outputs": [target_col], "inputs": input_cols}
 
             for k in col_mappings:
@@ -954,7 +952,6 @@ class TemporalFusionTransformer:
         """
 
         with tf.variable_scope(self.name):
-
             transformer_layer, all_inputs, attention_components = self._build_base_graph()
 
             outputs = tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(self.output_size * len(self.quantiles)))(

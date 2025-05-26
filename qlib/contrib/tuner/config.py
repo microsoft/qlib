@@ -4,20 +4,20 @@
 # pylint: skip-file
 # flake8: noqa
 
-import yaml
 import copy
 import os
+from ruamel.yaml import YAML
 
 
 class TunerConfigManager:
     def __init__(self, config_path):
-
         if not config_path:
             raise ValueError("Config path is invalid.")
         self.config_path = config_path
 
         with open(config_path) as fp:
-            config = yaml.safe_load(fp)
+            yaml = YAML(typ="safe", pure=True)
+            config = yaml.load(fp)
         self.config = copy.deepcopy(config)
 
         self.pipeline_ex_config = PipelineExperimentConfig(config.get("experiment", dict()), self)
@@ -58,7 +58,6 @@ class PipelineExperimentConfig:
 
 class OptimizationConfig:
     def __init__(self, config, TUNER_CONFIG_MANAGER):
-
         self.report_type = config.get("report_type", "pred_long")
         if self.report_type not in [
             "pred_long",

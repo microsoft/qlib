@@ -536,7 +536,6 @@ class DatasetProvider(abc.ABC):
         """
         if len(fields) == 0:
             raise ValueError("fields cannot be empty")
-        fields = fields.copy()
         column_names = [str(f) for f in fields]
         return column_names
 
@@ -617,7 +616,7 @@ class DatasetProvider(abc.ABC):
 
         data = pd.DataFrame(obj)
         if not data.empty and not np.issubdtype(data.index.dtype, np.dtype("M")):
-            # If the underlaying provides the data not in datatime formmat, we'll convert it into datetime format
+            # If the underlaying provides the data not in datetime format, we'll convert it into datetime format
             _calendar = Cal.calendar(freq=freq)
             data.index = _calendar[data.index.values.astype(int)]
         data.index.names = ["datetime"]
@@ -1096,7 +1095,6 @@ class ClientDatasetProvider(DatasetProvider):
                 else:
                     return data
         else:
-
             """
             Call the server to generate the data-set cache, get the uri of the cache file.
             Then load the data from the file on NFS directly.

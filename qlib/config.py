@@ -173,7 +173,11 @@ _default_config = {
                 "filters": ["field_not_found"],
             }
         },
-        "loggers": {"qlib": {"level": logging.DEBUG, "handlers": ["console"]}},
+        # Normally this should be set to `False` to avoid duplicated logging [1].
+        # However, due to bug in pytest, it requires log message to propagate to root logger to be captured by `caplog` [2].
+        # [1] https://github.com/microsoft/qlib/pull/1661
+        # [2] https://github.com/pytest-dev/pytest/issues/3697
+        "loggers": {"qlib": {"level": logging.DEBUG, "handlers": ["console"], "propagate": False}},
         # To let qlib work with other packages, we shouldn't disable existing loggers.
         # Note that this param is default to True according to the documentation of logging.
         "disable_existing_loggers": False,
@@ -293,7 +297,6 @@ class QlibConfig(Config):
         """
 
         def __init__(self, provider_uri: Union[str, Path, dict], mount_path: Union[str, Path, dict]):
-
             """
             The relation of `provider_uri` and `mount_path`
             - `mount_path` is used only if provider_uri is an NFS path
