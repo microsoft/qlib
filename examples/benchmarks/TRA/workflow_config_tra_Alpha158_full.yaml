@@ -104,7 +104,6 @@ task:
         valid: [2015-01-01, 2016-12-31]
         test: [2017-01-01, 2020-08-01]
       seq_len: 60
-      horizon: 2
       input_size:
       num_states: *num_states
       batch_size: 1024
