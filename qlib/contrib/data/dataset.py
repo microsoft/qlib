@@ -136,8 +136,9 @@ class MTSDatasetH(DatasetH):
             # Try to guess horizon
             if isinstance(handler, (dict, str)):
                 handler = init_instance_by_config(handler)
+            assert "label" in getattr(handler.data_loader, "fields", None)
             label = handler.data_loader.fields["label"][0][0]
-            horizon = guess_horizon(label)
+            horizon = guess_horizon([label])
 
         assert num_states == 0 or horizon > 0, "please specify `horizon` to avoid data leakage"
         assert memory_mode in ["sample", "daily"], "unsupported memory mode"

@@ -10,6 +10,8 @@ from typing import List, Union
 import numpy as np
 import pandas as pd
 
+from qlib.data.data import DatasetProvider
+
 
 def robust_zscore(x: pd.Series, zscore=False):
     """Robust ZScore Normalization
@@ -107,17 +109,10 @@ def update_config(base_config: dict, ext_config: Union[dict, List[dict]]):
     return base_config
 
 
-def guess_horizon(label):
+def guess_horizon(label: List):
     """
     Try to guess the horizon by parsing label
     """
-    regex = r"Ref\(\s*\$[a-zA-Z]+,\s*-(\d+)\)"
-    horizon_list = [int(x) for x in re.findall(regex, label)]
-
-    if len(horizon_list) == 0:
-        return 0
-    max_horizon = max(horizon_list)
-    # Unlikely the label doesn't use future information
-    if max_horizon < 2:
-        return 0
-    return max_horizon + 1
+    expr = DatasetProvider.parse_fields(label)[0]
+    lft_etd, rght_etd = expr.get_extended_window_size()
+    return rght_etd
