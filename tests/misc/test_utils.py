@@ -119,15 +119,15 @@ class DataUtils(TestCase):
         init()
 
     def test_guess_horizon(self):
-        label = "Ref($close, -2) / Ref($close, -1) - 1"
+        label = ["Ref($close, -2) / Ref($close, -1) - 1"]
         result = guess_horizon(label)
         assert result == 2
 
-        label = "Ref($close, -5) / Ref($close, -1) - 1"
+        label = ["Ref($close, -5) / Ref($close, -1) - 1"]
         result = guess_horizon(label)
         assert result == 5
 
-        label = "Ref($close, -1) / Ref($close, -1) - 1"
+        label = ["Ref($close, -1) / Ref($close, -1) - 1"]
         result = guess_horizon(label)
         assert result == 1
 
