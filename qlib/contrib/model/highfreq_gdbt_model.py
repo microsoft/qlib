@@ -90,8 +90,14 @@ class HFLGBModel(ModelFT, LightGBMFInt):
         if y_train.values.ndim == 2 and y_train.values.shape[1] == 1:
             l_name = df_train["label"].columns[0]
             # Convert label into alpha
-            df_train["label"][l_name] = df_train["label"][l_name] - df_train["label"][l_name].mean(level=0)
-            df_valid["label"][l_name] = df_valid["label"][l_name] - df_valid["label"][l_name].mean(level=0)
+            df_train.loc[:, ("label", l_name)] = (
+                df_train.loc[:, ("label", l_name)]
+                - df_train.loc[:, ("label", l_name)].groupby(level=0, group_keys=False).mean()
+            )
+            df_valid.loc[:, ("label", l_name)] = (
+                df_valid.loc[:, ("label", l_name)]
+                - df_valid.loc[:, ("label", l_name)].groupby(level=0, group_keys=False).mean()
+            )
 
             def mapping_fn(x):
                 return 0 if x < 0 else 1

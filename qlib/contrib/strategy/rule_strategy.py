@@ -347,7 +347,7 @@ class SBBStrategyEMA(SBBStrategyBase):
         self.signal = {}
 
         if not signal_df.empty:
-            for stock_id, stock_val in signal_df.groupby(level="instrument"):
+            for stock_id, stock_val in signal_df.groupby(level="instrument", group_keys=False):
                 self.signal[stock_id] = stock_val["signal"].droplevel(level="instrument")
 
     def reset_level_infra(self, level_infra):
@@ -434,7 +434,7 @@ class ACStrategy(BaseStrategy):
         self.signal = {}
 
         if not signal_df.empty:
-            for stock_id, stock_val in signal_df.groupby(level="instrument"):
+            for stock_id, stock_val in signal_df.groupby(level="instrument", group_keys=False):
                 self.signal[stock_id] = stock_val["volatility"].droplevel(level="instrument")
 
     def reset_level_infra(self, level_infra):

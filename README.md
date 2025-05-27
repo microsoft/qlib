@@ -26,10 +26,24 @@ We have prepared several demo videos for you:
 | Quant Factor Mining from reports | [Link](https://rdagent.azurewebsites.net/report_factor?lang=en) | [Link](https://rdagent.azurewebsites.net/report_factor?lang=zh) |
 | Quant Model Optimization | [Link](https://rdagent.azurewebsites.net/model_loop?lang=en) | [Link](https://rdagent.azurewebsites.net/model_loop?lang=zh) |
 
+- [R&D-Agent-Quant: A Multi-Agent Framework for Data-Centric Factors and Model Joint Optimization](https://arxiv.org/abs/2505.15155)
+```BibTeX
+@misc{li2025rdagentquant,
+    title={R\&D-Agent-Quant: A Multi-Agent Framework for Data-Centric Factors and Model Joint Optimization},
+    author={Yuante Li and Xu Yang and Xiao Yang and Minrui Xu and Xisen Wang and Weiqing Liu and Jiang Bian},
+    year={2025},
+    eprint={2505.15155},
+    archivePrefix={arXiv},
+    primaryClass={cs.AI}
+}
+```
+![image](https://github.com/user-attachments/assets/3198bc10-47ba-4ee0-8a8e-46d5ce44f45d)
+
 ***
 
 | Feature | Status |
 | --                      | ------    |
+| [R&D-Agent-Quant](https://arxiv.org/abs/2505.15155) Published | Apply R&D-Agent to Qlib for quant trading | 
 | BPQP for End-to-end learning | 📈Coming soon!([Under review](https://github.com/microsoft/qlib/pull/1863)) |
 | 🔥LLM-driven Auto Quant Factory🔥 | 🚀 Released in [♾️RD-Agent](https://github.com/microsoft/RD-Agent) on Aug 8, 2024 |
 | KRNN and Sandwich models | :chart_with_upwards_trend: [Released](https://github.com/microsoft/qlib/pull/1414/) on May 26, 2023 |
@@ -200,7 +214,7 @@ Here is an example to download the latest data.
 ```bash
 wget https://github.com/chenditc/investment_data/releases/latest/download/qlib_bin.tar.gz
 mkdir -p ~/.qlib/qlib_data/cn_data
-tar -zxvf qlib_bin.tar.gz -C ~/.qlib/qlib_data/cn_data --strip-components=2
+tar -zxvf qlib_bin.tar.gz -C ~/.qlib/qlib_data/cn_data --strip-components=1
 rm -f qlib_bin.tar.gz
 ```
 
@@ -461,6 +475,14 @@ python run_all_model.py run 10
 ```
 
 It also provides the API to run specific models at once. For more use cases, please refer to the file's [docstrings](examples/run_all_model.py). 
+
+### Break change
+In `pandas`, `group_key` is one of the parameters of the `groupby` method. From version 1.5 to 2.0 of `pandas`, the default value of `group_key` has been changed from `no default` to `True`, which will cause qlib to report an error during operation. So we set `group_key=False`, but it doesn't guarantee that some programmes will run correctly, including:
+* qlib\examples\rl_order_execution\scripts\gen_training_orders.py
+* qlib\examples\benchmarks\TRA\src\dataset.MTSDatasetH.py
+* qlib\examples\benchmarks\TFT\tft.py
+
+
 
 ## [Adapting to Market Dynamics](examples/benchmarks_dynamic)
 

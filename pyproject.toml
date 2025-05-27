@@ -26,7 +26,7 @@ readme = {file = "README.md", content-type = "text/markdown"}
 dependencies = [
   "pyyaml",
   "numpy",
-  "pandas",
+  "pandas>=0.24",
   "mlflow",
   "filelock>=3.16.0",
   "redis",
@@ -67,10 +67,13 @@ lint = [
   "flake8",
   "nbqa",
 ]
+# snowballstemmer, a dependency of sphinx, was released on 2025-05-08 with version 3.0.0,
+# which causes errors in the build process. So we've limited the version for now.
 docs = [
   "sphinx",
   "sphinx_rtd_theme",
   "readthedocs_sphinx_ext",
+  "snowballstemmer<3.0",
 ]
 package = [
   "twine",
