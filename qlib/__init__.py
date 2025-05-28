@@ -99,7 +99,7 @@ def _mount_nfs_uri(provider_uri, mount_path, auto_mount: bool = False):
         if "windows" in sys_type.lower():
             # system: window
             try:
-                result = subprocess.run(
+                subprocess.run(
                     ["mount", "-o", "anon", provider_uri, mount_path],
                     capture_output=True,
                     text=True,
@@ -108,9 +108,9 @@ def _mount_nfs_uri(provider_uri, mount_path, auto_mount: bool = False):
                 LOG.info("Mount finished.")
             except subprocess.CalledProcessError as e:
                 error_output = (e.stdout or "") + (e.stderr or "")
-                if "85" in result.returncode:
+                if e.returncode == 85:
                     LOG.warning(f"{provider_uri} already mounted at {mount_path}")
-                elif "53" in result.returncode:
+                elif e.returncode == 53:
                     raise OSError("Network path not found") from e
                 elif "error" in error_output.lower() or "错误" in error_output:
                     raise OSError("Invalid mount path") from e
@@ -162,12 +162,12 @@ def _mount_nfs_uri(provider_uri, mount_path, auto_mount: bool = False):
                     raise OSError("nfs-common is not found, please install it by execute: sudo apt install nfs-common")
                 # manually mount
                 try:
-                    result = subprocess.run(mount_command, check=True, capture_output=True, text=True)
+                    subprocess.run(mount_command, check=True, capture_output=True, text=True)
                     LOG.info("Mount finished.")
                 except subprocess.CalledProcessError as e:
-                    if "256" in result.returncode:
+                    if e.returncode == 256:
                         raise OSError("Mount failed: requires sudo or permission denied") from e
-                    elif "32512" in result.returncode:
+                    elif e.returncode == 32512:
                         raise OSError(f"mount {provider_uri} on {mount_path} error! Command error") from e
                     else:
                         raise OSError(f"Mount failed: {e.stderr}") from e
