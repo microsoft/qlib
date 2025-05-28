@@ -158,9 +158,9 @@ def _mount_nfs_uri(provider_uri, mount_path, auto_mount: bool = False):
                 except subprocess.CalledProcessError as e:
                     LOG.error(f"Mount error: {e.stderr}")
                     if "permission denied" in e.stderr.lower():
-                        raise OSError("Mount failed: requires sudo or permission denied")
+                        raise OSError("Mount failed: requires sudo or permission denied") from e
                     else:
-                        raise OSError(f"Mount failed: {e.stderr}")
+                        raise OSError(f"Mount failed: {e.stderr}") from e
             else:
                 LOG.warning(f"{_remote_uri} on {_mount_path} is already mounted")
 
