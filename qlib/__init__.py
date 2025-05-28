@@ -81,7 +81,7 @@ def _mount_nfs_uri(provider_uri, mount_path, auto_mount: bool = False):
     LOG = get_module_logger("mount nfs", level=logging.INFO)
     if mount_path is None:
         raise ValueError(f"Invalid mount path: {mount_path}!")
-    if not re.match(r'^[a-zA-Z0-9.:/\-_]+$', provider_uri):
+    if not re.match(r"^[a-zA-Z0-9.:/\-_]+$", provider_uri):
         raise ValueError(f"Invalid provider_uri format: {provider_uri}")
     # FIXME: the C["provider_uri"] is modified in this function
     # If it is not modified, we can pass only  provider_uri or mount_path instead of C
