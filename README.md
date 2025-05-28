@@ -210,7 +210,7 @@ Also, users can install the latest dev version ``Qlib`` by the source code accor
 **Tips for Mac**: If you are using Mac with M1, you might encounter issues in building the wheel for LightGBM, which is due to missing dependencies from OpenMP. To solve the problem, install openmp first with ``brew install libomp`` and then run ``pip install .`` to build it successfully. 
 
 ## Data Preparation
-❗ Due to more restrict data security policy. The offical dataset is disabled temporarily. You can try [this data source](https://github.com/chenditc/investment_data/releases) contributed by the community.
+❗ Due to more restrict data security policy. The official dataset is disabled temporarily. You can try [this data source](https://github.com/chenditc/investment_data/releases) contributed by the community.
 Here is an example to download the latest data.
 ```bash
 wget https://github.com/chenditc/investment_data/releases/latest/download/qlib_bin.tar.gz
@@ -620,7 +620,7 @@ You can find some impefect implementation in Qlib by  `rg 'TODO|FIXME' qlib`
  
 If you would like to become one of Qlib's maintainers to contribute more (e.g. help merge PR, triage issues), please contact us by email([qlib@microsoft.com](mailto:qlib@microsoft.com)).  We are glad to help to upgrade your permission.
 
-## Licence
+## License
 Most contributions require you to agree to a
 Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
 the right to use your contribution. For details, visit https://cla.opensource.microsoft.com.
