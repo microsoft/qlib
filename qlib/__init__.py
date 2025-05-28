@@ -99,7 +99,7 @@ def _mount_nfs_uri(provider_uri, mount_path, auto_mount: bool = False):
         if "windows" in sys_type.lower():
             # system: window
             try:
-                subprocess.run(
+                result = subprocess.run(
                     ["mount", "-o", "anon", provider_uri, mount_path],
                     capture_output=True,
                     text=True,
@@ -108,11 +108,11 @@ def _mount_nfs_uri(provider_uri, mount_path, auto_mount: bool = False):
                 LOG.info("Mount finished.")
             except subprocess.CalledProcessError as e:
                 error_output = (e.stdout or "") + (e.stderr or "")
-                if "85" in error_output:
+                if "85" in result.returncode:
                     LOG.warning(f"{provider_uri} already mounted at {mount_path}")
-                elif "53" in error_output:
+                elif "53" in result.returncode:
                     raise OSError("Network path not found") from e
-                elif "error" in error_output.lower():
+                elif "error" in error_output.lower() or "错误" in error_output:
                     raise OSError("Invalid mount path") from e
                 else:
                     raise OSError(f"Unknown mount error: {error_output.strip()}") from e
@@ -162,12 +162,13 @@ def _mount_nfs_uri(provider_uri, mount_path, auto_mount: bool = False):
                     raise OSError("nfs-common is not found, please install it by execute: sudo apt install nfs-common")
                 # manually mount
                 try:
-                    subprocess.run(mount_command, check=True, capture_output=True, text=True)
+                    result = subprocess.run(mount_command, check=True, capture_output=True, text=True)
                     LOG.info("Mount finished.")
                 except subprocess.CalledProcessError as e:
-                    LOG.error(f"Mount error: {e.stderr}")
-                    if "permission denied" in e.stderr.lower():
+                    if "256" in result.returncode:
                         raise OSError("Mount failed: requires sudo or permission denied") from e
+                    elif "32512" in result.returncode:
+                        raise OSError(f"mount {provider_uri} on {mount_path} error! Command error") from e
                     else:
                         raise OSError(f"Mount failed: {e.stderr}") from e
             else:
