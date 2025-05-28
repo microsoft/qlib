@@ -82,13 +82,13 @@ def _mount_nfs_uri(provider_uri, mount_path, auto_mount: bool = False):
         raise ValueError(f"Invalid mount path: {mount_path}!")
     # FIXME: the C["provider_uri"] is modified in this function
     # If it is not modified, we can pass only  provider_uri or mount_path instead of C
-    mount_command = "sudo mount.nfs %s %s" % (provider_uri, mount_path)
+    mount_command = ["sudo", "mount.nfs", provider_uri, mount_path]
     # If the provider uri looks like this 172.23.233.89//data/csdesign'
     # It will be a nfs path. The client provider will be used
     if not auto_mount:  # pylint: disable=R1702
         if not Path(mount_path).exists():
             raise FileNotFoundError(
-                f"Invalid mount path: {mount_path}! Please mount manually: {mount_command} or Set init parameter `auto_mount=True`"
+                f"Invalid mount path: {mount_path}! Please mount manually: {' '.join(mount_command)} or Set init parameter `auto_mount=True`"
             )
     else:
         # Judging system type
@@ -152,16 +152,15 @@ def _mount_nfs_uri(provider_uri, mount_path, auto_mount: bool = False):
                 if not command_res:
                     raise OSError("nfs-common is not found, please install it by execute: sudo apt install nfs-common")
                 # manually mount
-                command_status = os.system(mount_command)
-                if command_status == 256:
-                    raise OSError(
-                        f"mount {provider_uri} on {mount_path} error! Needs SUDO! Please mount manually: {mount_command}"
-                    )
-                elif command_status == 32512:
-                    # LOG.error("Command error")
-                    raise OSError(f"mount {provider_uri} on {mount_path} error! Command error")
-                elif command_status == 0:
-                    LOG.info("Mount finished")
+                try:
+                    subprocess.run(mount_command, check=True, capture_output=True, text=True)
+                    LOG.info("Mount finished.")
+                except subprocess.CalledProcessError as e:
+                    LOG.error(f"Mount error: {e.stderr}")
+                    if "permission denied" in e.stderr.lower():
+                        raise OSError("Mount failed: requires sudo or permission denied")
+                    else:
+                        raise OSError(f"Mount failed: {e.stderr}")
             else:
                 LOG.warning(f"{_remote_uri} on {_mount_path} is already mounted")
 
