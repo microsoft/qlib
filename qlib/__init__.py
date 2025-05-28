@@ -5,6 +5,7 @@ from pathlib import Path
 __version__ = "0.9.6.99"
 __version__bak = __version__  # This version is backup for QlibConfig.reset_qlib_version
 import os
+import re
 from typing import Union
 from ruamel.yaml import YAML
 import logging
@@ -80,6 +81,8 @@ def _mount_nfs_uri(provider_uri, mount_path, auto_mount: bool = False):
     LOG = get_module_logger("mount nfs", level=logging.INFO)
     if mount_path is None:
         raise ValueError(f"Invalid mount path: {mount_path}!")
+    if not re.match(r'^[a-zA-Z0-9.:/\-_]+$', provider_uri):
+        raise ValueError(f"Invalid provider_uri format: {provider_uri}")
     # FIXME: the C["provider_uri"] is modified in this function
     # If it is not modified, we can pass only  provider_uri or mount_path instead of C
     mount_command = ["sudo", "mount.nfs", provider_uri, mount_path]
@@ -95,19 +98,24 @@ def _mount_nfs_uri(provider_uri, mount_path, auto_mount: bool = False):
         sys_type = platform.system()
         if "windows" in sys_type.lower():
             # system: window
-            exec_result = os.popen(f"mount -o anon {provider_uri} {mount_path}")
-            result = exec_result.read()
-            if "85" in result:
-                LOG.warning(f"{provider_uri} on Windows:{mount_path} is already mounted")
-            elif "53" in result:
-                raise OSError("not find network path")
-            elif "error" in result or "错误" in result:
-                raise OSError("Invalid mount path")
-            elif provider_uri in result:
-                LOG.info("window success mount..")
-            else:
-                raise OSError(f"unknown error: {result}")
-
+            try:
+                subprocess.run(
+                    ["mount", "-o", "anon", provider_uri, mount_path],
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                )
+                LOG.info("Mount finished.")
+            except subprocess.CalledProcessError as e:
+                error_output = (e.stdout or "") + (e.stderr or "")
+                if "85" in error_output:
+                    LOG.warning(f"{provider_uri} already mounted at {mount_path}")
+                elif "53" in error_output:
+                    raise OSError("Network path not found") from e
+                elif "error" in error_output.lower():
+                    raise OSError("Invalid mount path") from e
+                else:
+                    raise OSError(f"Unknown mount error: {error_output.strip()}") from e
         else:
             # system: linux/Unix/Mac
             # check mount
@@ -119,12 +127,13 @@ def _mount_nfs_uri(provider_uri, mount_path, auto_mount: bool = False):
             _is_mount = False
             while _check_level_num:
                 with subprocess.Popen(
-                    'mount | grep "{}"'.format(_remote_uri),
-                    shell=True,
+                    ["mount"],
+                    text=True,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,
                 ) as shell_r:
                     _command_log = shell_r.stdout.readlines()
+                    _command_log = [line for line in _command_log if _remote_uri in line]
                 if len(_command_log) > 0:
                     for _c in _command_log:
                         _temp_mount = _c.decode("utf-8").split(" ")[2]
