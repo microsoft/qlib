@@ -7,6 +7,7 @@ from __future__ import print_function
 
 import numpy as np
 import pandas as pd
+import abc
 
 from typing import Union, List, Type
 from scipy.stats import percentileofscore
@@ -59,6 +60,9 @@ class ElemOperator(ExpressionOps):
 
     def get_extended_window_size(self):
         return self.feature.get_extended_window_size()
+
+    def get_required_raw_features(self) -> set:
+        return self.feature.get_required_raw_features()
 
 
 class ChangeInstrument(ElemOperator):
@@ -208,6 +212,11 @@ class Mask(NpElemOperator):
     def _load_internal(self, instrument, start_index, end_index, *args):
         return self.feature.load(self.instrument, start_index, end_index, *args)
 
+    def get_required_raw_features(self) -> set:
+        # Mask's second argument `instrument` is a string, not an expression.
+        # So, only features from self.feature are relevant.
+        return self.feature.get_required_raw_features()
+
 
 class Not(NpElemOperator):
     """Not Operator
@@ -274,6 +283,14 @@ class PairOperator(ExpressionOps):
         else:
             rl, rr = 0, 0
         return max(ll, rl), max(lr, rr)
+
+    def get_required_raw_features(self) -> set:
+        features = set()
+        if isinstance(self.feature_left, Expression):
+            features.update(self.feature_left.get_required_raw_features())
+        if isinstance(self.feature_right, Expression):
+            features.update(self.feature_right.get_required_raw_features())
+        return features
 
 
 class NpPairOperator(PairOperator):
@@ -704,6 +721,16 @@ class If(ExpressionOps):
             cl, cr = 0, 0
         return max(ll, rl, cl), max(lr, rr, cr)
 
+    def get_required_raw_features(self) -> set:
+        features = set()
+        if isinstance(self.condition, Expression):
+            features.update(self.condition.get_required_raw_features())
+        if isinstance(self.feature_left, Expression):
+            features.update(self.feature_left.get_required_raw_features())
+        if isinstance(self.feature_right, Expression):
+            features.update(self.feature_right.get_required_raw_features())
+        return features
+
 
 #################### Rolling ####################
 # NOTE: methods like `rolling.mean` are optimized with cython,
@@ -776,6 +803,9 @@ class Rolling(ExpressionOps):
             lft_etd, rght_etd = self.feature.get_extended_window_size()
             lft_etd = max(lft_etd + self.N - 1, lft_etd)
             return lft_etd, rght_etd
+
+    def get_required_raw_features(self) -> set:
+        return self.feature.get_required_raw_features()
 
 
 class Ref(Rolling):
@@ -1463,6 +1493,14 @@ class PairRolling(ExpressionOps):
         else:
             return max(ll, rl) + self.N - 1, max(lr, rr)
 
+    def get_required_raw_features(self) -> set:
+        features = set()
+        if isinstance(self.feature_left, Expression):
+            features.update(self.feature_left.get_required_raw_features())
+        if isinstance(self.feature_right, Expression):
+            features.update(self.feature_right.get_required_raw_features())
+        return features
+
 
 class Corr(PairRolling):
     """Rolling Correlation
@@ -1518,6 +1556,102 @@ class Cov(PairRolling):
 
     def __init__(self, feature_left, feature_right, N):
         super(Cov, self).__init__(feature_left, feature_right, N, "cov")
+
+
+#################### Cross-Sectional Operators ####################
+class CSOperator(ExpressionOps):
+    """Base class for Cross-Sectional Operators.
+    CS Operators operate across multiple instruments at a single point in time.
+    Directly calling .load() on a CSOperator in a single-instrument context
+    will typically return the underlying feature's data for that instrument with a warning,
+    as the cross-sectional calculation requires data from the entire instrument universe.
+    The true CS calculation is expected to be orchestrated by a higher-level processor (e.g., DatasetProvider).
+    """
+    def __init__(self, feature):
+        if not isinstance(feature, Expression):
+            raise TypeError("Input feature for CSOperator must be an Expression object.")
+        self.feature = feature
+
+    def __str__(self):
+        return f"{type(self).__name__}({self.feature})"
+
+    def get_required_raw_features(self) -> set:
+        return self.feature.get_required_raw_features()
+
+    def get_longest_back_rolling(self):
+        # CS operations are typically on a snapshot, but the underlying feature might have rolling.
+        return self.feature.get_longest_back_rolling()
+
+    def get_extended_window_size(self):
+        # CS operations are typically on a snapshot, but the underlying feature might have rolling.
+        return self.feature.get_extended_window_size()
+
+    def _load_internal(self, instrument, start_index, end_index, *args):
+        get_module_logger(self.__class__.__name__).warning(
+            f"{self} is a cross-sectional operator. Called in a single-instrument context for '{instrument}'. "
+            f"Returning the underlying feature's data. True CS calculation requires a data panel."
+        )
+        # Load the underlying feature data for the given instrument
+        return self.feature.load(instrument, start_index, end_index, *args)
+
+    @abc.abstractmethod
+    def calculate_cross_section(self, data_slice: pd.Series) -> pd.Series:
+        """
+        Calculates the cross-sectional value.
+        Parameters
+        ----------
+        data_slice : pd.Series
+            A Series where index is instrument and values are the feature's values for a single point in time.
+
+        Returns
+        -------
+        pd.Series
+            A Series with the same index as data_slice, containing the cross-sectionally processed values.
+        """
+        raise NotImplementedError("This method must be implemented by subclasses.")
+
+class CSRank(CSOperator):
+    """Cross-Sectional Rank (percentile rank)
+    Calculates the percentile rank of each instrument's feature value within the cross-section.
+    """
+    def __init__(self, feature, pct=True):
+        super().__init__(feature)
+        self.pct = pct
+
+    def __str__(self):
+        return f"{type(self).__name__}({self.feature}, pct={self.pct})"
+
+    def calculate_cross_section(self, data_slice: pd.Series) -> pd.Series:
+        # rank() on a Series by default handles NaNs by assigning them rank NaN
+        # and ranks from 1 to N for non-NaNs.
+        # pct=True converts this to percentile rank.
+        return data_slice.rank(pct=self.pct, na_option='keep')
+
+class CSZScore(CSOperator):
+    """Cross-Sectional Z-Score
+    Calculates the Z-score of each instrument's feature value within the cross-section.
+    z = (x - mean) / std
+    """
+    def __init__(self, feature, cap=None):
+        super().__init__(feature)
+        self.cap = cap # Optional capping for Z-score
+
+    def __str__(self):
+        if self.cap is not None:
+            return f"{type(self).__name__}({self.feature}, cap={self.cap})"
+        return f"{type(self).__name__}({self.feature})"
+
+    def calculate_cross_section(self, data_slice: pd.Series) -> pd.Series:
+        mean = data_slice.mean()
+        std = data_slice.std()
+        if std == 0 or pd.isna(std):
+            # If std is 0 (all values are the same) or NaN (all values are NaN or only one non-NaN), Z-score is 0 or NaN
+            return pd.Series(0.0 if std == 0 else np.nan, index=data_slice.index)
+        
+        z_scores = (data_slice - mean) / std
+        if self.cap is not None:
+            z_scores = z_scores.clip(-abs(self.cap), abs(self.cap))
+        return z_scores
 
 
 #################### Operator which only support data with time index ####################
@@ -1613,6 +1747,9 @@ OpsList = [
     If,
     Feature,
     PFeature,
+    CSOperator,
+    CSRank,
+    CSZScore,
 ] + [TResample]
 
 

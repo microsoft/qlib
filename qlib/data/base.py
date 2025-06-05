@@ -234,6 +234,10 @@ class Expression(abc.ABC):
         """
         raise NotImplementedError("This function must be implemented in your newly defined feature")
 
+    def get_required_raw_features(self) -> set:
+        """Return a set of raw feature names (e.g., '$close', '$$roe_q') this expression depends on."""
+        return set()
+
 
 class Feature(Expression):
     """Static Expression
@@ -248,7 +252,7 @@ class Feature(Expression):
             self._name = type(self).__name__
 
     def __str__(self):
-        return "$" + self._name
+        return self._name
 
     def _load_internal(self, instrument, start_index, end_index, freq):
         # load
@@ -262,15 +266,21 @@ class Feature(Expression):
     def get_extended_window_size(self):
         return 0, 0
 
+    def get_required_raw_features(self) -> set:
+        return {f"${self._name}"}
+
 
 class PFeature(Feature):
     def __str__(self):
-        return "$$" + self._name
+        return self._name
 
     def _load_internal(self, instrument, start_index, end_index, cur_time, period=None):
         from .data import PITD  # pylint: disable=C0415
 
         return PITD.period_feature(instrument, str(self), start_index, end_index, cur_time, period)
+
+    def get_required_raw_features(self) -> set:
+        return {f"$$${self._name}"}
 
 
 class ExpressionOps(Expression):

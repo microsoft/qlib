@@ -944,6 +944,7 @@ from .mod import (
     init_instance_by_config,
     class_casting,
 )
+from .parser import parse_field
 
 __all__ = [
     "get_or_create_path",
@@ -958,4 +959,5 @@ __all__ = [
     "get_cls_kwargs",
     "init_instance_by_config",
     "class_casting",
+    "parse_field",
 ]
