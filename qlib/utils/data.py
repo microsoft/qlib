@@ -12,6 +12,7 @@ import pandas as pd
 from qlib.data.data import DatasetProvider
 
 
+
 def robust_zscore(x: pd.Series, zscore=False):
     """Robust ZScore Normalization
 
@@ -115,3 +116,56 @@ def guess_horizon(label: List):
     expr = DatasetProvider.parse_fields(label)[0]
     lft_etd, rght_etd = expr.get_extended_window_size()
     return rght_etd
+
+
+class DataRange:
+    """存储数据范围信息的类，包括股票、时间范围和特征
+    
+    Attributes
+    ----------
+    instruments : List[str]
+        股票代码列表
+    start_time : str
+        开始时间
+    end_time : str
+        结束时间
+    fields : List[str]
+        特征列表
+    """
+    
+    def __init__(self, instruments: List[str], start_time: str, end_time: str, fields: List[str]):
+        self.instruments = instruments
+        self.start_time = start_time
+        self.end_time = end_time
+        self.fields = fields
+        
+    def __repr__(self):
+        return f"DataRange(instruments={self.instruments}, start_time={self.start_time}, end_time={self.end_time}, fields={self.fields})"
+    
+    @classmethod
+    def from_expression(cls, expression: str) -> 'DataRange':
+        """从表达式创建 DataRange 对象
+        
+        Parameters
+        ----------
+        expression : str
+            表达式字符串，例如 "$close" 或 "$open+$close"
+            
+        Returns
+        -------
+        DataRange
+            包含数据范围信息的对象
+        """
+        # 解析表达式获取特征
+        fields = DatasetProvider.parse_fields([expression])
+        
+        # 获取时间范围
+        left_etd, right_etd = fields[0].get_extended_window_size()
+        
+        # 这里需要根据实际情况设置股票列表和时间范围
+        # 这里只是示例，实际使用时需要根据具体需求修改
+        instruments = []  # 需要从配置或其他地方获取
+        start_time = ""   # 需要从配置或其他地方获取
+        end_time = ""     # 需要从配置或其他地方获取
+        
+        return cls(instruments, start_time, end_time, fields)
