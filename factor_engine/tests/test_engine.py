@@ -52,7 +52,7 @@ class TestScheduler:
 
         # 2. 规划
         ast = expression_parser.parse(expression)
-        dag = planner.plan(ast)
+        dag = planner.plan(ast, context)
 
         # 3. 执行
         result_container = scheduler.execute(dag, context)
@@ -79,11 +79,11 @@ class TestScheduler:
         # 手动构建 AST 和 DAG
         ast1 = expression_parser.parse("slow_op_1")
         ast2 = expression_parser.parse("slow_op_2")
-        node1 = planner.plan(ast1)
-        node2 = planner.plan(ast2)
+        node1 = planner.plan(ast1, context)
+        node2 = planner.plan(ast2, context)
         
         # 创建根节点
-        root_node = planner.plan(expression_parser.parse("add(slow_op_1, slow_op_2)"))
+        root_node = planner.plan(expression_parser.parse("add(slow_op_1, slow_op_2)"), context)
 
         # `slow_op` 在 mock 中会 sleep 0.1 秒
         # 两个并行执行，总时间应该略大于 0.1 秒，但远小于 0.2 秒
@@ -109,7 +109,7 @@ class TestScheduler:
         context = ExecutionContext("2023-01-01", "2023-01-05")
 
         ast = expression_parser.parse(expression)
-        dag = planner.plan(ast)
+        dag = planner.plan(ast, context)
 
         with pytest.raises(ValueError, match="未知的测试字段: unknown_field"):
             scheduler.execute(dag, context) 

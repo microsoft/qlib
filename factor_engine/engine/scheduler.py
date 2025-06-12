@@ -6,14 +6,10 @@ from typing import Dict, Any, Callable, List, Optional
 
 from factor_engine.core.dag import DAGNode, NodeStatus
 from factor_engine.data_layer.loader import DataProvider
+from factor_engine.engine.cache import Cache
+from factor_engine.engine.utils import generate_cache_key
+from .context import ExecutionContext
 
-
-class ExecutionContext:
-    """一个简单的数据类，用于在执行期间清晰地传递上下文信息。"""
-    def __init__(self, start_date: str, end_date: str, stocks: Optional[List[str]] = None):
-        self.start_date = start_date
-        self.end_date = end_date
-        self.stocks = stocks
 
 class Scheduler:
     """
@@ -24,17 +20,19 @@ class Scheduler:
     是事件驱动和异步的。
     """
 
-    def __init__(self, data_provider: DataProvider, operators: Dict[str, Callable], max_workers: Optional[int] = None):
+    def __init__(self, data_provider: DataProvider, operators: Dict[str, Callable], cache: Optional[Cache] = None, max_workers: Optional[int] = None):
         """
         初始化调度器。
 
         Args:
             data_provider: 用于加载底层数据的数据提供者。
             operators: 一个字典，将操作符名称 (e.g., 'op_add') 映射到可调用的函数。
+            cache: 用于存储计算结果的缓存对象。
             max_workers: 线程池中的最大工作线程数。默认为 None，由 ThreadPoolExecutor 决定。
         """
         self.data_provider = data_provider
         self.operators = operators
+        self.cache = cache
         self.max_workers = max_workers
         
         # 运行时状态，每次执行时都会重置
@@ -151,6 +149,13 @@ class Scheduler:
             node.result_ref = result  # 也将引用保存在节点中
             node.status = NodeStatus.COMPLETED
             
+            # --- 缓存写入 ---
+            if self.cache:
+                # 'literal' 节点的结果是常数，不应被缓存
+                if node.operator != 'literal':
+                    cache_key = generate_cache_key(node.expression, self._context)
+                    self.cache.set(cache_key, result)
+
             # 检查是否为根节点，如果是则发出完成信号
             if node.id == self._root_node.id:
                 self._completion_event.set()
@@ -193,6 +198,10 @@ class Scheduler:
     def _prepare_nodes_for_execution(nodes: List[DAGNode]):
         """重置所有节点的状态并计算其初始入度，为新的执行做准备。"""
         for node in nodes:
+            # 如果节点已经被 planner 标记为已缓存，则跳过状态重置
+            if node.status == NodeStatus.CACHED:
+                continue
+            
             # 只重置执行相关的状态
             node.status = NodeStatus.PENDING
             node.update_in_degree() 
