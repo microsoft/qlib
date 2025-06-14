@@ -72,7 +72,7 @@ class ExecutionPlanner:
             
             node = DAGNode(
                 expression=expression_str,
-                operator=f"op_{ast_node.value}",
+                operator=ast_node.value,
                 args=op_args,
                 kwargs={}
             )

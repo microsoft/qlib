@@ -3,16 +3,37 @@ from pathlib import Path
 import pytest
 import pandas as pd
 import numpy as np
-from factor_engine.data_layer.containers import PanelContainer
 
-# 将项目根目录 (factor_engine) 添加到 Python 搜索路径
-# 这能确保测试在运行时可以找到 'data_layer' 等模块
-project_root = Path(__file__).parent.parent
+# This ensures that when pytest runs, it can find the 'factor_engine' module.
+# It adds the project's root directory (the parent of 'factor_engine') to the path.
+project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
+
+# Imports from our module must come AFTER the sys.path modification
+from factor_engine.data_layer.containers import PanelContainer
+from factor_engine.data_layer.calendar import Calendar
+from factor_engine.data_layer.loader import ParquetDataProvider
+
+
+@pytest.fixture(scope="module")
+def test_data_path():
+    """Returns the root directory for test data."""
+    return Path(__file__).parent / 'test_data'
+
+@pytest.fixture(scope="module")
+def calendar_fixture():
+    """Provides a calendar instance for the tests."""
+    # This range covers the dates in the test parquet files
+    return Calendar(start_date="2023-01-01", end_date="2023-01-31")
+
+@pytest.fixture(scope="module")
+def data_provider_fixture(test_data_path, calendar_fixture):
+    """Provides a ParquetDataProvider instance."""
+    return ParquetDataProvider(data_path=str(test_data_path), calendar=calendar_fixture)
 
 @pytest.fixture(scope="module")
 def sample_panel_data_1() -> PanelContainer:
-    """一个固定的 PanelContainer 实例，用于测试。"""
+    """A fixed PanelContainer instance for testing."""
     dates = pd.to_datetime(['2023-01-01', '2023-01-02', '2023-01-03', '2023-01-04', '2023-01-05'])
     stocks = ['AAPL', 'GOOG', 'MSFT']
     data = np.array([
@@ -27,7 +48,7 @@ def sample_panel_data_1() -> PanelContainer:
 
 @pytest.fixture(scope="module")
 def sample_panel_data_2() -> PanelContainer:
-    """第二个固定的 PanelContainer 实例，用于二元运算测试。"""
+    """A second fixed PanelContainer instance for binary operation tests."""
     dates = pd.to_datetime(['2023-01-01', '2023-01-02', '2023-01-03', '2023-01-04', '2023-01-05'])
     stocks = ['AAPL', 'GOOG', 'MSFT']
     data = np.array([
@@ -42,7 +63,7 @@ def sample_panel_data_2() -> PanelContainer:
 
 @pytest.fixture(scope="module")
 def panel_with_nan() -> PanelContainer:
-    """一个包含 NaN 值的 PanelContainer。"""
+    """A PanelContainer with NaN values."""
     dates = pd.to_datetime(['2023-01-01', '2023-01-02', '2023-01-03'])
     stocks = ['AAPL', 'GOOG']
     data = np.array([

@@ -8,7 +8,6 @@ from factor_engine.parser_planner.parser import ExpressionParser
 from factor_engine.parser_planner.planner import ExecutionPlanner
 from factor_engine.engine.scheduler import Scheduler
 from factor_engine.engine.context import ExecutionContext
-from factor_engine.engine.utils import load_operators
 from factor_engine.data_layer.loader import DataProvider
 from factor_engine.data_layer.containers import PanelContainer
 from factor_engine.core.dag import NodeStatus
@@ -60,13 +59,12 @@ class TestCacheIntegration:
         """
         expression = "ts_mean(close, 5)"
         parser = ExpressionParser()
-        operators = load_operators()
         cache = InMemoryCache(max_size=10)
         context = ExecutionContext("2023-01-01", "2023-01-10", stocks=['AAPL', 'GOOG'])
 
         # --- 第一次运行 ---
         planner1 = ExecutionPlanner(cache=cache)
-        scheduler1 = Scheduler(mock_data_provider_with_counter, operators, cache=cache)
+        scheduler1 = Scheduler(mock_data_provider_with_counter, cache=cache)
         
         ast1 = parser.parse(expression)
         dag1 = planner1.plan(ast1, context)
@@ -83,7 +81,7 @@ class TestCacheIntegration:
         mock_data_provider_with_counter.load_call_count = 0
         
         # 重用 planner1，但创建新的 scheduler
-        scheduler2 = Scheduler(mock_data_provider_with_counter, operators, cache=cache)
+        scheduler2 = Scheduler(mock_data_provider_with_counter, cache=cache)
         
         ast2 = parser.parse(expression)
         dag2 = planner1.plan(ast2, context)

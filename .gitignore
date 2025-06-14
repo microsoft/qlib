@@ -50,3 +50,6 @@ tags
 ./pretrain
 .idea/
 .aider*
+
+# data
+database/

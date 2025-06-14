@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 import pandas as pd
 import pyarrow.parquet as pq
 from pathlib import Path
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Union
 
 from .containers import PanelContainer
 from .calendar import Calendar
@@ -92,4 +92,78 @@ class ParquetDataProvider(DataProvider):
             yyyymmdd = date.strftime('%Y%m%d')
             path = self._data_path / str(year) / f"{yyyymmdd}.parquet"
             paths.append(path)
-        return list(dict.fromkeys(paths)) 
+        return list(dict.fromkeys(paths))
+
+def load_daily_bundle(data_path: Union[str, Path], start_time: str = None, end_time: str = None, instruments: List[str] = None) -> pd.DataFrame:
+    """
+    Load a bundle of daily data from a directory of parquet files.
+
+    This function is designed to load all available fields for a given time range 
+    and return a long-format DataFrame with a (date, instrument) MultiIndex,
+    which is suitable for factor computation.
+
+    The directory structure is expected to be <data_path>/<year>/<yyyymmdd>.parquet
+
+    Parameters
+    ----------
+    data_path : Union[str, Path]
+        Path to the root directory containing the parquet files.
+    start_time : str, optional
+        Start of the time range in 'YYYY-MM-DD' format, by default None
+    end_time : str, optional
+        End of the time range in 'YYYY-MM-DD' format, by default None
+    instruments : List[str], optional
+        A list of instrument IDs to load. If None, load all., by default None
+
+    Returns
+    -------
+    pd.DataFrame
+        A DataFrame containing the loaded daily data, with columns for all fields
+        and a MultiIndex of ('date', 'instrument').
+    """
+    data_path = Path(data_path)
+    try:
+        start_dt = pd.to_datetime(start_time) if start_time else None
+        end_dt = pd.to_datetime(end_time) if end_time else None
+    except ValueError as e:
+        raise ValueError(f"Invalid date format for start_time or end_time: {e}")
+
+    all_files = sorted(data_path.glob("*/*.parquet"))
+    
+    files_to_load = []
+    for f in all_files:
+        try:
+            date_str = f.stem
+            file_date = pd.to_datetime(date_str, format="%Y%m%d")
+            if (start_dt is None or file_date >= start_dt) and \
+               (end_dt is None or file_date <= end_dt):
+                files_to_load.append(f)
+        except ValueError:
+            # Silently ignore files with non-date names
+            pass
+    
+    if not files_to_load:
+        return pd.DataFrame()
+
+    df_list = [pd.read_parquet(f) for f in files_to_load]
+    if not df_list:
+        return pd.DataFrame()
+
+    df = pd.concat(df_list, ignore_index=True)
+
+    df['date'] = pd.to_datetime(df['yyyymmdd'], format='%Y%m%d')
+    df = df.rename(columns={"code": "instrument"})
+    df = df.set_index(['date', 'instrument'])
+    df = df.drop(columns=["yyyymmdd"])
+
+    if start_time:
+        df = df.loc[pd.IndexSlice[start_time:, :], :]
+
+    if instruments is not None:
+        # Ensure instruments is a list for isin
+        if isinstance(instruments, str):
+            instruments = [instruments]
+        df = df[df.index.get_level_values('instrument').isin(instruments)]
+    
+    df = df.sort_index()
+    return df 

@@ -8,6 +8,8 @@ import pandas as pd
 from factor_engine.data_layer.containers import PanelContainer
 from typing import Dict, Any, List, Tuple
 
+from .registry import op_registry
+
 class Operator(ABC):
     """
     Base class for all operators in the factor engine.
@@ -195,8 +197,7 @@ class CrossSectionOperator(Operator):
         if not isinstance(data, PanelContainer):
             raise TypeError(f"操作数必须是 PanelContainer，但得到了 {type(data)}")
 
-# --- Binary Operators ---
-
+@op_registry.register
 class AddOperator(BinaryOperator):
     """对两个 PanelContainer 的数据执行元素级加法。"""
     
@@ -210,6 +211,7 @@ class AddOperator(BinaryOperator):
         self.validate_output(result)
         return result
 
+@op_registry.register
 class SubtractOperator(BinaryOperator):
     """对两个 PanelContainer 的数据执行元素级减法。"""
     
@@ -223,6 +225,7 @@ class SubtractOperator(BinaryOperator):
         self.validate_output(result)
         return result
 
+@op_registry.register
 class MultiplyOperator(BinaryOperator):
     """对两个 PanelContainer 的数据执行元素级乘法。"""
     
@@ -236,6 +239,7 @@ class MultiplyOperator(BinaryOperator):
         self.validate_output(result)
         return result
 
+@op_registry.register
 class DivideOperator(BinaryOperator):
     """对两个 PanelContainer 的数据执行元素级除法。"""
     
@@ -252,6 +256,7 @@ class DivideOperator(BinaryOperator):
         self.validate_output(result)
         return result
 
+@op_registry.register
 class MaxOperator(BinaryOperator):
     """对两个 PanelContainer 的数据执行元素级最大值。"""
     
@@ -265,6 +270,7 @@ class MaxOperator(BinaryOperator):
         self.validate_output(result)
         return result
 
+@op_registry.register
 class MinOperator(BinaryOperator):
     """对两个 PanelContainer 的数据执行元素级最小值。"""
     
@@ -278,8 +284,43 @@ class MinOperator(BinaryOperator):
         self.validate_output(result)
         return result
 
+@op_registry.register
+class TimeSeriesCorrelationOperator(TimeSeriesOperator):
+    """
+    Computes the time-series rolling correlation between two PanelContainers.
+    """
+    
+    def __init__(self, window: int = 1):
+        super().__init__("ts_corr", window, "Time-series rolling correlation")
+
+    def get_required_inputs(self) -> List[Tuple[str, type]]:
+        return [("a", PanelContainer), ("b", PanelContainer), ("window", int)]
+
+    def execute(self, a: PanelContainer, b: PanelContainer, window: int = None) -> PanelContainer:
+        """
+        Calculates the rolling correlation.
+        """
+        window = window if window is not None else self.window
+        # Use custom validation as it's a mix of TimeSeries and Binary
+        if not isinstance(a, PanelContainer) or not isinstance(b, PanelContainer):
+            raise TypeError(f"Both operands must be PanelContainer, but got {type(a)} and {type(b)}")
+        if window <= 1:
+            raise ValueError(f"Window for correlation must be greater than 1, but got {window}")
+
+        a_data = a.get_data()
+        b_data = b.get_data()
+        
+        a_aligned, b_aligned = a_data.align(b_data, join='outer')
+        
+        rolling_corr = a_aligned.rolling(window=window).corr(b_aligned, pairwise=True)
+        
+        result = PanelContainer(rolling_corr)
+        self.validate_output(result)
+        return result
+
 # --- Unary Operators ---
 
+@op_registry.register
 class NegateOperator(UnaryOperator):
     """对 PanelContainer 的数据执行元素级取负。"""
     
@@ -292,6 +333,7 @@ class NegateOperator(UnaryOperator):
         self.validate_output(result)
         return result
 
+@op_registry.register
 class AbsOperator(UnaryOperator):
     """对 PanelContainer 的数据执行元素级绝对值。"""
     
@@ -304,6 +346,7 @@ class AbsOperator(UnaryOperator):
         self.validate_output(result)
         return result
 
+@op_registry.register
 class LogOperator(UnaryOperator):
     """对 PanelContainer 的数据执行元素级自然对数。"""
     
@@ -312,7 +355,6 @@ class LogOperator(UnaryOperator):
     
     def execute(self, data: PanelContainer) -> PanelContainer:
         self.validate_inputs(data)
-        # log of non-positive numbers is undefined, results in NaN
         result_data = np.log(data.get_data())
         result = PanelContainer(result_data.replace([np.inf, -np.inf], np.nan))
         self.validate_output(result)
@@ -320,6 +362,7 @@ class LogOperator(UnaryOperator):
 
 # --- Time-Series Operators ---
 
+@op_registry.register
 class TimeSeriesMeanOperator(TimeSeriesOperator):
     """计算面板数据在时间序列上的滚动平均值。"""
     
@@ -335,6 +378,7 @@ class TimeSeriesMeanOperator(TimeSeriesOperator):
         self.validate_output(result)
         return result
 
+@op_registry.register
 class TimeSeriesStdOperator(TimeSeriesOperator):
     """计算面板数据在时间序列上的滚动标准差。"""
     
@@ -350,6 +394,7 @@ class TimeSeriesStdOperator(TimeSeriesOperator):
         self.validate_output(result)
         return result
 
+@op_registry.register
 class ShiftOperator(TimeSeriesOperator):
     """将面板数据在时间序列上向前平移（滞后）。"""
     
@@ -365,6 +410,7 @@ class ShiftOperator(TimeSeriesOperator):
         self.validate_output(result)
         return result
 
+@op_registry.register
 class TimeSeriesMaxOperator(TimeSeriesOperator):
     """计算面板数据在时间序列上的滚动最大值。"""
     
@@ -380,6 +426,7 @@ class TimeSeriesMaxOperator(TimeSeriesOperator):
         self.validate_output(result)
         return result
 
+@op_registry.register
 class TimeSeriesMinOperator(TimeSeriesOperator):
     """计算面板数据在时间序列上的滚动最小值。"""
     
@@ -395,6 +442,7 @@ class TimeSeriesMinOperator(TimeSeriesOperator):
         self.validate_output(result)
         return result
 
+@op_registry.register
 class TimeSeriesRankOperator(TimeSeriesOperator):
     """计算面板数据在时间序列上的滚动排名。"""
     
@@ -415,6 +463,7 @@ class TimeSeriesRankOperator(TimeSeriesOperator):
 
 # --- Cross-Sectional Operators ---
 
+@op_registry.register
 class CrossSectionRankOperator(CrossSectionOperator):
     """在每个时间点上（行）对数据进行横截面排名。"""
     
@@ -428,6 +477,7 @@ class CrossSectionRankOperator(CrossSectionOperator):
         self.validate_output(result)
         return result
 
+@op_registry.register
 class CrossSectionNormalizeOperator(CrossSectionOperator):
     """在每个时间点上（行）对数据进行横截面 Z-score 标准化。"""
     
@@ -439,8 +489,6 @@ class CrossSectionNormalizeOperator(CrossSectionOperator):
         df = data.get_data()
         mean = df.mean(axis=1)
         std = df.std(axis=1)
-        # df.sub(mean, axis=0) -> subtracts the mean of each row from each element in that row
-        # df.div(std, axis=0) -> divides each element in each row by the std of that row
         result_data = df.sub(mean, axis=0).div(std, axis=0)
         result_data.replace([np.inf, -np.inf], np.nan, inplace=True)
         result_data.fillna(0, inplace=True)

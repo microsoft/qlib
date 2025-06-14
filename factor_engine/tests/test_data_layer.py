@@ -2,10 +2,11 @@ import pytest
 import pandas as pd
 from pathlib import Path
 import pyarrow
+import unittest
 
-from data_layer.calendar import Calendar
-from data_layer.loader import ParquetDataProvider
-from data_layer.containers import PanelContainer
+from factor_engine.data_layer.calendar import Calendar
+from factor_engine.data_layer.loader import ParquetDataProvider, load_daily_bundle
+from factor_engine.data_layer.containers import PanelContainer
 
 @pytest.fixture(scope="module")
 def test_data_path():
@@ -72,4 +73,65 @@ def test_panel_container_methods(data_provider_fixture):
     
     date_series = container.get_date_data(pd.to_datetime("2023-01-05"))
     assert isinstance(date_series, pd.Series)
-    assert date_series['SZ000001'] == 20.3 
+    assert date_series['SZ000001'] == 20.3
+
+# Using unittest.TestCase for more complex assertions within the pytest framework
+class TestLoadDailyBundle(unittest.TestCase):
+    
+    @classmethod
+    def setUpClass(cls):
+        """Set up data path once for all tests in this class."""
+        # This approach avoids using pytest fixtures directly in a unittest.TestCase
+        # A bit of a workaround to get the path.
+        cls.db_path = Path(__file__).parent.parent.parent / "database"
+
+    def test_load_all_data(self):
+        """Test loading all data without any filters."""
+        df = load_daily_bundle(data_path=self.db_path)
+        self.assertIsInstance(df, pd.DataFrame)
+        self.assertFalse(df.empty)
+        self.assertEqual(df.index.names, ["date", "instrument"])
+        self.assertIsInstance(df.index.get_level_values('date')[0], pd.Timestamp)
+        # check if all expected columns are loaded
+        self.assertTrue(all(c in df.columns for c in ['open', 'high', 'low', 'close', 'volume', 'turnover']))
+
+    def test_load_with_time_range(self):
+        """Test loading data for a specific time range."""
+        start_time = "2024-01-02"
+        end_time = "2024-01-04"
+        df = load_daily_bundle(data_path=self.db_path, start_time=start_time, end_time=end_time)
+        self.assertFalse(df.empty)
+        dates = df.index.get_level_values('date').unique()
+        self.assertGreaterEqual(dates.min(), pd.to_datetime(start_time))
+        self.assertLessEqual(dates.max(), pd.to_datetime(end_time))
+        # Assuming there are 3 trading days in this range in the test data
+        self.assertEqual(len(dates), 3)
+
+    def test_load_with_instruments(self):
+        """Test loading data for specific instruments."""
+        instruments = ["000001.SZ", "000002.SZ"]
+        df = load_daily_bundle(data_path=self.db_path, instruments=instruments)
+        self.assertFalse(df.empty)
+        loaded_instruments = df.index.get_level_values('instrument').unique()
+        self.assertCountEqual(loaded_instruments, instruments)
+
+    def test_load_with_single_instrument(self):
+        """Test loading data for a single instrument passed as a string."""
+        instrument = "000001.SZ"
+        df = load_daily_bundle(data_path=self.db_path, instruments=[instrument])
+        self.assertFalse(df.empty)
+        loaded_instruments = df.index.get_level_values('instrument').unique()
+        self.assertEqual(len(loaded_instruments), 1)
+        self.assertEqual(loaded_instruments[0], instrument)
+
+    def test_load_no_data_for_time_range(self):
+        """Test loading data for a time range with no data files."""
+        start_time = "1999-01-01"
+        end_time = "1999-01-05"
+        df = load_daily_bundle(data_path=self.db_path, start_time=start_time, end_time=end_time)
+        self.assertTrue(df.empty)
+    
+    def test_invalid_date_format(self):
+        """Test that an invalid date format raises a ValueError."""
+        with self.assertRaises(ValueError):
+            load_daily_bundle(data_path=self.db_path, start_time="invalid-date") 
