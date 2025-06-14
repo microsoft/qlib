@@ -38,12 +38,20 @@ class ExecutionPlanner:
             existing_node = self._nodes_map[expression_str]
             # 如果这个节点已经被计算过(在同一次规划中)，我们可以认为它是一种 "in-memory" 缓存命中
             if existing_node.status in (NodeStatus.COMPLETED, NodeStatus.CACHED):
-                 # 创建一个克隆的、状态为 CACHED 的节点以清晰地表示短路
-                return self._create_cached_node(expression_str, existing_node.result_ref)
+                # 对于COMPLETED状态的节点，我们需要从真正的缓存中获取结果
+                if existing_node.status == NodeStatus.COMPLETED and self._cache is not None and context:
+                    cache_key = generate_cache_key(expression_str, context)
+                    cached_result = self._cache.get(cache_key)
+                    if cached_result is not None:
+                        # 创建一个克隆的、状态为 CACHED 的节点以清晰地表示短路
+                        return self._create_cached_node(expression_str, cached_result)
+                # 对于已经是CACHED状态的节点，直接返回
+                elif existing_node.status == NodeStatus.CACHED:
+                    return self._create_cached_node(expression_str, existing_node.result_ref)
             return existing_node
         
         # 2. 检查外部缓存
-        if self._cache and context:
+        if self._cache is not None and context:
             cache_key = generate_cache_key(expression_str, context)
             cached_result = self._cache.get(cache_key)
             if cached_result is not None:

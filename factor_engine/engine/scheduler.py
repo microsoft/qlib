@@ -35,6 +35,9 @@ class Scheduler:
         self._max_workers = max_workers
         self._verbose = verbose
         
+        if self._verbose:
+            print(f"[Scheduler] Initialized with cache: {type(cache)} ({cache})")
+        
         # 如果 max_workers <= 1, 则切换到同步（单线程）模式
         self._synchronous = max_workers <= 1
 
@@ -82,6 +85,17 @@ class Scheduler:
             [node for node in all_nodes if node.in_degree == 0 and node.status != NodeStatus.CACHED]
         )
 
+        # 处理缓存的节点 - 将它们的结果添加到结果字典中
+        for node in all_nodes:
+            if node.status == NodeStatus.CACHED:
+                self._node_results[node.id] = node.result_ref
+                if self._verbose:
+                    print(f"[Scheduler] Using cached result for node: '{node.expression}'")
+
+        # 如果根节点已经缓存，直接返回
+        if self._root_node.status == NodeStatus.CACHED:
+            return self._root_node.result_ref
+
         while ready_queue:
             node = ready_queue.popleft()
             
@@ -112,6 +126,17 @@ class Scheduler:
         ready_queue = collections.deque(
             [node for node in all_nodes if node.in_degree == 0 and node.status != NodeStatus.CACHED]
         )
+
+        # 处理缓存的节点 - 将它们的结果添加到结果字典中
+        for node in all_nodes:
+            if node.status == NodeStatus.CACHED:
+                self._node_results[node.id] = node.result_ref
+                if self._verbose:
+                    print(f"[Scheduler] Using cached result for node: '{node.expression}'")
+
+        # 如果根节点已经缓存，直接返回
+        if self._root_node.status == NodeStatus.CACHED:
+            return self._root_node.result_ref
 
         if not ready_queue and self._root_node.status != NodeStatus.COMPLETED:
              raise RuntimeError(f"No nodes are ready to run, but the root node '{self._root_node.expression}' is not completed. Check for cycles in the DAG.")
@@ -160,7 +185,21 @@ class Scheduler:
                 stocks=self._context.stocks,
             )
 
-        args = [self._node_results.get(arg.id) if isinstance(arg, DAGNode) else arg for arg in node.args]
+        # 修复：正确处理参数，避免访问未准备好的结果
+        args = []
+        for arg in node.args:
+            if isinstance(arg, DAGNode):
+                # 如果是DAGNode，我们需要等待它的结果
+                with self._lock:
+                    if arg.id not in self._node_results:
+                        # 这不应该发生，因为DAG的拓扑排序应该确保依赖项先完成
+                        raise RuntimeError(f"Dependency node '{arg.expression}' result not available for '{node.expression}'")
+                    args.append(self._node_results[arg.id])
+            else:
+                # 直接使用字面量或其他值
+                args.append(arg)
+
+        # 获取操作符并执行
         op = op_registry.get(node.operator, **node.kwargs)
         return op(*args)
 
@@ -169,6 +208,9 @@ class Scheduler:
         try:
             result = future.result()
             with self._lock:
+                if self._verbose:
+                    print(f"[Scheduler] _task_done_callback: cache is {type(self._cache)} ({self._cache})")
+                
                 if self._execution_errors: # An error has occurred, stop processing
                     return
 
@@ -179,10 +221,20 @@ class Scheduler:
                 if self._verbose:
                     print(f"[Scheduler] Completed node: '{node.expression}'")
 
+                # 检查并提交准备好的父节点
                 for parent in node.parents:
                     parent.in_degree -= 1
                     if parent.in_degree == 0:
-                        self._submit_node(parent)
+                        # 确保所有依赖的结果都已准备好
+                        all_deps_ready = all(
+                            dep.status == NodeStatus.COMPLETED or dep.status == NodeStatus.CACHED
+                            for dep in parent.dependencies
+                        )
+                        if all_deps_ready:
+                            self._submit_node(parent)
+                        else:
+                            if self._verbose:
+                                print(f"[Scheduler] Parent node '{parent.expression}' dependencies not all ready yet")
 
                 if self._root_node.status == NodeStatus.COMPLETED:
                     self._completion_event.set()
@@ -197,9 +249,28 @@ class Scheduler:
                 self._completion_event.set()
 
     def _write_to_cache(self, node: DAGNode, result: Any):
-        if self._cache and node.operator != 'literal':
+        if self._verbose:
+            print(f"[Scheduler] _write_to_cache called for node: '{node.expression}', operator: {node.operator}")
+            print(f"[Scheduler] self._cache is: {self._cache}")
+            print(f"[Scheduler] bool(self._cache): {bool(self._cache)}")
+            print(f"[Scheduler] node.operator != 'literal': {node.operator != 'literal'}")
+        
+        if self._cache is not None and node.operator != 'literal':
             cache_key = generate_cache_key(node.expression, self._context)
+            if self._verbose:
+                print(f"[Scheduler] Writing to cache with key: {cache_key}")
             self._cache.set(cache_key, result)
+            if self._verbose:
+                print(f"[Scheduler] Cache size after write: {len(self._cache)}")
+        elif self._cache is None:
+            if self._verbose:
+                print(f"[Scheduler] No cache available")
+        elif node.operator == 'literal':
+            if self._verbose:
+                print(f"[Scheduler] Skipping cache for literal node")
+        else:
+            if self._verbose:
+                print(f"[Scheduler] Cache write conditions not met")
 
     @staticmethod
     def _collect_nodes(root_node: DAGNode) -> List[DAGNode]:

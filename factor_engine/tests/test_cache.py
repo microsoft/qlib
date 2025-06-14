@@ -12,6 +12,9 @@ from factor_engine.data_layer.loader import DataProvider
 from factor_engine.data_layer.containers import PanelContainer
 from factor_engine.core.dag import NodeStatus
 
+# 导入操作符模块以确保所有操作符都被注册
+import factor_engine.operators
+
 # 使用 conftest.py 中的 fixtures
 
 class TestInMemoryCache:
