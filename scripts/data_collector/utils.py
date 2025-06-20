@@ -335,6 +335,7 @@ def get_us_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
         for _name in ["otherlisted", "nasdaqtraded"]:
             url = f"https://www.nasdaqtrader.com/dynamic/SymDir/{_name}.txt"
             df = pd.read_csv(url, sep="|")
+            df = df.rename(columns={"ACT Symbol": "Symbol"})
             _symbols = df["Symbol"].dropna()
             _symbols = _symbols.str.replace("$", "-P", regex=False)
             _symbols = _symbols.str.replace(".W", "-WT", regex=False)
