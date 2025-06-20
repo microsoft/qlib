@@ -300,30 +300,41 @@ def get_us_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
     global _US_SYMBOLS  # pylint: disable=W0603
 
     @deco_retry
-    def _get_eastmoney():
-        url = "http://4.push2.eastmoney.com/api/qt/clist/get?pn=1&pz=10000&fs=m:105,m:106,m:107&fields=f12"
+    def _get_eastmoney_by_page(page):
+        page_size = 100
+        url = f"http://4.push2.eastmoney.com/api/qt/clist/get?pn={page}&pz={page_size}&fs=m:105,m:106,m:107&fields=f12"
         resp = requests.get(url, timeout=None)
         if resp.status_code != 200:
             raise ValueError("request error")
-
         try:
             _symbols = [_v["f12"].replace("_", "-P") for _v in resp.json()["data"]["diff"].values()]
+            return _symbols
         except Exception as e:
             logger.warning(f"request error: {e}")
             raise
 
+    @deco_retry
+    def _get_eastmoney():
+        _symbols = []
+        page = 1
+        while True:
+            current_symbols = _get_eastmoney_by_page(page)
+            if not current_symbols:
+                break
+            if len(current_symbols) < 100:
+                break  # last page
+            _symbols.extend(current_symbols)
+            page += 1
         if len(_symbols) < 8000:
             raise ValueError("request error")
-
         return _symbols
 
     @deco_retry
     def _get_nasdaq():
         _res_symbols = []
         for _name in ["otherlisted", "nasdaqtraded"]:
-            url = f"ftp://ftp.nasdaqtrader.com/SymbolDirectory/{_name}.txt"
+            url = f"https://www.nasdaqtrader.com/dynamic/SymDir/{_name}.txt"
             df = pd.read_csv(url, sep="|")
-            df = df.rename(columns={"ACT Symbol": "Symbol"})
             _symbols = df["Symbol"].dropna()
             _symbols = _symbols.str.replace("$", "-P", regex=False)
             _symbols = _symbols.str.replace(".W", "-WT", regex=False)
