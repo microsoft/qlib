@@ -300,33 +300,60 @@ def get_us_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
     global _US_SYMBOLS  # pylint: disable=W0603
 
     @deco_retry
-    def _get_eastmoney_by_page(page):
-        page_size = 100
-        url = f"http://4.push2.eastmoney.com/api/qt/clist/get?pn={page}&pz={page_size}&fs=m:105,m:106,m:107&fields=f12"
-        resp = requests.get(url, timeout=None)
-        if resp.status_code != 200:
-            raise ValueError("request error")
-        try:
-            _symbols = [_v["f12"].replace("_", "-P") for _v in resp.json()["data"]["diff"].values()]
-            return _symbols
-        except Exception as e:
-            logger.warning(f"request error: {e}")
-            raise
-
-    @deco_retry
     def _get_eastmoney():
+        base_url = "http://4.push2.eastmoney.com/api/qt/clist/get"
+        params = {
+            "pn": 1,  # page number
+            "pz": 100,  # page size, default to 100
+            "fs": "m:105,m:106,m:107",
+            "fields": "f12",
+        }
+
         _symbols = []
         page = 1
         while True:
-            current_symbols = _get_eastmoney_by_page(page)
-            if not current_symbols:
-                break
-            if len(current_symbols) < 100:
-                break  # last page
-            _symbols.extend(current_symbols)
-            page += 1
+            params["pn"] = page
+            try:
+                resp = requests.get(base_url, params=params, timeout=None)
+                resp.raise_for_status()
+                data = resp.json()
+
+                # Check if response contains valid data
+                if not data or "data" not in data or not data["data"] or "diff" not in data["data"]:
+                    logger.warning(f"Invalid response structure on page {page}")
+                    break
+
+                # fetch the current page data
+                current_symbols = [_v["f12"] for _v in data["data"]["diff"].values()]
+
+                if not current_symbols:  # It's the last page if there is no data in current page
+                    logger.info(f"Last page reached: {page - 1}")
+                    break
+
+                _symbols.extend(current_symbols)
+
+                # show progress
+                logger.info(
+                    f"Page {page}: fetch {len(current_symbols)} stocks:[{current_symbols[0]} ... {current_symbols[-1]}]"
+                )
+
+                page += 1
+
+                # sleep time to avoid overloading the server
+                time.sleep(0.5)
+
+            except requests.exceptions.HTTPError as e:
+                raise requests.exceptions.HTTPError(
+                    f"Request to {url} failed with status code {resp.status_code}"
+                ) from e
+            except Exception as e:
+                logger.warning("An error occurred while extracting data from the response.")
+                raise
+
+        # If the number of symbols is less than the minimum required, raise an error
         if len(_symbols) < 8000:
             raise ValueError("request error")
+
         return _symbols
 
     @deco_retry
