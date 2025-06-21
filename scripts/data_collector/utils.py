@@ -344,7 +344,7 @@ def get_us_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
 
             except requests.exceptions.HTTPError as e:
                 raise requests.exceptions.HTTPError(
-                    f"Request to {url} failed with status code {resp.status_code}"
+                    f"Request to {base_url} failed with status code {resp.status_code}"
                 ) from e
             except Exception as e:
                 logger.warning("An error occurred while extracting data from the response.")
