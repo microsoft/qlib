@@ -1,6 +1,7 @@
 import pytest
 import time
 import pandas as pd
+import factor_engine.operators
 from unittest.mock import MagicMock
 
 from factor_engine.parser_planner.parser import ExpressionParser
