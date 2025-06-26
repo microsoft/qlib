@@ -708,7 +708,7 @@ class DataHandlerLP(DataHandler):
             proc_func=proc_func,
         )
 
-    def get_cols(self, col_set=DataHandler.CS_ALL, data_key: DATA_KEY_TYPE = DK_I) -> list:
+    def get_cols(self, col_set=DataHandler.CS_ALL, data_key: DATA_KEY_TYPE = BaseDataHandler.DK_I) -> list:
         """
         get the column names
 
