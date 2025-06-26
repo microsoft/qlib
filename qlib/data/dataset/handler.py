@@ -24,17 +24,17 @@ DATA_KEY_TYPE = Literal["raw", "infer", "learn"]
 
 
 class BaseDataHandler(Serializable):
-    """This is a interface for data handler
-    It does not assume the internal data structure of the data handler
-    It only defines the interface for external users (use dataframe as the internal data structure)
+    """This is an interface for data handler.
+    It does not assume the internal data structure of the data handler.
+    It only defines the interface for external users (use dataframe as the internal data structure).
 
-    In the future, the data handler's more detailed implementation should be refactored. Here are some guidelines.
+    In the future, the data handler's more detailed implementation should be refactored. Here are some guidelines:
 
-    It coverse several components:
+    It covers several components:
     - [data loader] -> internal representation of the data -> data preprocessing -> interface adaptor for the fetch interface
-    - The workflow to combine them all
-        - the workflow may be very complicated, DataHandlerLP is one of the practices, but it can't satisfy all the requirements.
-          So leaving the flexibility to the user to implement the workflow is a more reasonable choice.
+    - The workflow to combine them all:
+        - The workflow may be very complicated. DataHandlerLP is one of the practices, but it can't satisfy all the requirements.
+        So leaving the flexibility to the user to implement the workflow is a more reasonable choice.
 
     """
 
