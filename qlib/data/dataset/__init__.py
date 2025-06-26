@@ -229,6 +229,7 @@ class DatasetH(Dataset):
         logger = get_module_logger("DatasetH")
         seg_kwargs = {"col_set": col_set}
         seg_kwargs.update(kwargs)
+        # TODO: this should be removed after the data_handler is removed
         if "data_key" in getfullargspec(self.handler.fetch).args:
             seg_kwargs["data_key"] = data_key
         else:
