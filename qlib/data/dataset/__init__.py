@@ -226,14 +226,8 @@ class DatasetH(Dataset):
         ------
         NotImplementedError:
         """
-        logger = get_module_logger("DatasetH")
-        seg_kwargs = {"col_set": col_set}
+        seg_kwargs = {"col_set": col_set, "data_key": data_key}
         seg_kwargs.update(kwargs)
-        # TODO: this should be removed after the data_handler is removed
-        if "data_key" in getfullargspec(self.handler.fetch).args:
-            seg_kwargs["data_key"] = data_key
-        else:
-            logger.info(f"data_key[{data_key}] is ignored.")
 
         # Conflictions may happen here
         # - The fetched data and the segment key may both be string
@@ -263,7 +257,7 @@ class DatasetH(Dataset):
     def _get_extrema(segments, idx: int, cmp: Callable, key_func=pd.Timestamp):
         """it will act like sort and return the max value or None"""
         candidate = None
-        for k, seg in segments.items():
+        for _, seg in segments.items():
             point = seg[idx]
             if point is None:
                 # None indicates unbounded, return directly
