@@ -24,18 +24,20 @@ DATA_KEY_TYPE = Literal["raw", "infer", "learn"]
 
 
 class BaseDataHandler(Serializable):
-    """This is an interface for data handler.
-    It does not assume the internal data structure of the data handler.
-    It only defines the interface for external users (use dataframe as the internal data structure).
+    """
+    Interface for data handler.
+
+    This class does not assume the internal data structure of the data handler.
+    It only defines the interface for external users (uses DataFrame as the internal data structure).
 
     In the future, the data handler's more detailed implementation should be refactored. Here are some guidelines:
 
     It covers several components:
+
     - [data loader] -> internal representation of the data -> data preprocessing -> interface adaptor for the fetch interface
     - The workflow to combine them all:
-        - The workflow may be very complicated. DataHandlerLP is one of the practices, but it can't satisfy all the requirements.
-        So leaving the flexibility to the user to implement the workflow is a more reasonable choice.
-
+      The workflow may be very complicated. DataHandlerLP is one of the practices, but it can't satisfy all the requirements.
+      So leaving the flexibility to the user to implement the workflow is a more reasonable choice.
     """
 
     def __init__(self, *args, **kwargs):
@@ -65,11 +67,11 @@ class BaseDataHandler(Serializable):
 
 class DataHandler(BaseDataHandler):
     """
-
     The motivation of DataHandler:
-    - it proivdes a implementation of BaseDataHandler that we implement it with
-      - Handle response with a internal loaded dataframe
-        - the dataframe is loaded by a data loader.
+
+    - It provides an implementation of BaseDataHandler that we implement with:
+        - Handling responses with an internal loaded DataFrame
+        - The DataFrame is loaded by a data loader.
 
     The steps to using a handler
     1. initialized data handler  (call by `init`).
