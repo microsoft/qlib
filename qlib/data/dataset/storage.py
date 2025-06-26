@@ -22,7 +22,6 @@ class BaseHandlerStorage:
         level: Union[str, int] = "datetime",
         col_set: Union[str, List[str]] = DataHandler.CS_ALL,
         fetch_orig: bool = True,
-        **kwargs,
     ) -> pd.DataFrame:
         """fetch data from the data storage
 
@@ -66,7 +65,6 @@ class NaiveDFStorage(BaseHandlerStorage):
         level: Union[str, int] = "datetime",
         col_set: Union[str, List[str]] = DataHandler.CS_ALL,
         fetch_orig: bool = True,
-        **kwargs,
     ) -> pd.DataFrame:
         data_df = self.df
         data_df = fetch_df_by_col(data_df, col_set)
