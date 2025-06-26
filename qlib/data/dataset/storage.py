@@ -50,6 +50,7 @@ class BaseHandlerStorage:
         """
         raise NotImplementedError("fetch is method not implemented!")
 
+
 class NaiveDFStorage(BaseHandlerStorage):
     """Naive data storage for datahandler
     - NaiveDFStorage is a naive data storage for datahandler

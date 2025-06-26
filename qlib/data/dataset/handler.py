@@ -37,12 +37,12 @@ class BaseDataHandler(Serializable):
           So leaving the flexibility to the user to implement the workflow is a more reasonable choice.
 
     """
+
     def __init__(self, *args, **kwargs):
         """
         We should define how to get ready for the fetching.
         """
         super().__init__(*args, **kwargs)
-
 
     CS_ALL = "__all"  # return all columns with single-level index column
     CS_RAW = "__raw"  # return raw data with multi-level index column
@@ -53,12 +53,13 @@ class BaseDataHandler(Serializable):
     DK_L: DATA_KEY_TYPE = "learn"
 
     @abstractmethod
-    def fetch(self,
-              selector: Union[pd.Timestamp, slice, str, pd.Index] = slice(None, None),
-              level: Union[str, int] = "datetime",
-              col_set: Union[str, List[str]] = CS_ALL,
-              data_key: DATA_KEY_TYPE = DK_I,
-              ) -> pd.DataFrame:
+    def fetch(
+        self,
+        selector: Union[pd.Timestamp, slice, str, pd.Index] = slice(None, None),
+        level: Union[str, int] = "datetime",
+        col_set: Union[str, List[str]] = CS_ALL,
+        data_key: DATA_KEY_TYPE = DK_I,
+    ) -> pd.DataFrame:
         pass
 
 
@@ -66,7 +67,7 @@ class DataHandler(BaseDataHandler):
     """
 
     The motivation of DataHandler:
-    - it proivdes a implementation of BaseDataHandler that we implement it with 
+    - it proivdes a implementation of BaseDataHandler that we implement it with
       - Handle response with a internal loaded dataframe
         - the dataframe is loaded by a data loader.
 
@@ -309,11 +310,9 @@ class DataHandler(BaseDataHandler):
                 data_df = fetch_df_by_col(data_df, col_set)
                 data_df = fetch_df_by_index(data_df, selector, level, fetch_orig=self.fetch_orig)
         elif isinstance(data_storage, BaseHandlerStorage):
-                if proc_func is not None:
-                    raise ValueError(f"proc_func is not supported by the storage {type(data_storage)}")
-                data_df = data_storage.fetch(
-                    selector=selector, level=level, col_set=col_set, fetch_orig=self.fetch_orig
-                )
+            if proc_func is not None:
+                raise ValueError(f"proc_func is not supported by the storage {type(data_storage)}")
+            data_df = data_storage.fetch(selector=selector, level=level, col_set=col_set, fetch_orig=self.fetch_orig)
         else:
             raise TypeError(f"data_storage should be pd.DataFrame|HashingStockStorage, not {type(data_storage)}")
 
@@ -377,7 +376,6 @@ class DataHandler(BaseDataHandler):
         for cur_date in trading_dates[min_periods:]:
             selector = self.get_range_selector(cur_date, periods)
             yield cur_date, self.fetch(selector, **kwargs)
-
 
 
 class DataHandlerLP(DataHandler):
