@@ -663,7 +663,7 @@ class DataHandlerLP(DataHandler):
 
         # TODO: Be able to cache handler data. Save the memory for data processing
 
-    def _get_df_by_key(self, data_key: DATA_KEY_TYPE = DK_I) -> pd.DataFrame:
+    def _get_df_by_key(self, data_key: DATA_KEY_TYPE = BaseDataHandler.DK_I) -> pd.DataFrame:
         if data_key == self.DK_R and self.drop_raw:
             raise AttributeError(
                 "DataHandlerLP has not attribute _data, please set drop_raw = False if you want to use raw data"
