@@ -25,6 +25,8 @@ from qlib.data import D
 from qlib.tests.data import GetData
 from qlib.utils import code_to_fname, fname_to_code, exists_qlib_data
 from qlib.constant import REG_CN as REGION_CN
+from qlib.constant import REG_US as REGION_US
+
 
 CUR_DIR = Path(__file__).resolve().parent
 sys.path.append(str(CUR_DIR.parent.parent))
@@ -371,7 +373,7 @@ class YahooNormalize(BaseNormalize):
     @staticmethod
     def calc_change(df: pd.DataFrame, last_close: float) -> pd.Series:
         df = df.copy()
-        _tmp_series = df["close"].fillna(method="ffill")
+        _tmp_series = df["close"].ffill()
         _tmp_shift_series = _tmp_series.shift(1)
         if last_close is not None:
             _tmp_shift_series.iloc[0] = float(last_close)
@@ -392,8 +394,24 @@ class YahooNormalize(BaseNormalize):
         columns = copy.deepcopy(YahooNormalize.COLUMNS)
         df = df.copy()
         df.set_index(date_field_name, inplace=True)
-        df.index = pd.to_datetime(df.index)
-        df.index = df.index.tz_localize(None)
+        try:
+            df.index = pd.to_datetime(df.index, format='%Y-%m-%d')
+        except ValueError:
+            # If the standard format fails, try with mixed format to handle different datetime formats
+            # Use utc=True to handle mixed timezones and avoid FutureWarning
+            try:
+                df.index = pd.to_datetime(df.index, format='mixed', utc=True)
+            except Exception:
+                # Fallback: try without format specification but with utc=True
+                df.index = pd.to_datetime(df.index, utc=True)
+        
+        # Handle timezone localization properly
+        if hasattr(df.index, 'tz') and df.index.tz is not None:
+            # If index has timezone info, convert to None (remove timezone)
+            df.index = df.index.tz_convert(None)
+        elif hasattr(df.index, 'tz_localize'):
+            # If index is timezone-naive, ensure it stays that way
+            df.index = df.index.tz_localize(None)
         df = df[~df.index.duplicated(keep="first")]
         if calendar_list is not None:
             df = df.reindex(
@@ -459,7 +477,7 @@ class YahooNormalize1d(YahooNormalize, ABC):
         df.set_index(self._date_field_name, inplace=True)
         if "adjclose" in df:
             df["factor"] = df["adjclose"] / df["close"]
-            df["factor"] = df["factor"].fillna(method="ffill")
+            df["factor"] = df["factor"].ffill()
         else:
             df["factor"] = 1
         for _col in self.COLUMNS:
@@ -725,7 +743,7 @@ class YahooNormalizeBR1min(YahooNormalizeBR, YahooNormalize1min):
 
 
 class Run(BaseRun):
-    def __init__(self, source_dir=None, normalize_dir=None, max_workers=1, interval="1d", region=REGION_CN):
+    def __init__(self, source_dir=None, normalize_dir=None, max_workers=1, interval="1d", region=REGION_US):
         """
 
         Parameters
