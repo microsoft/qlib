@@ -18,7 +18,7 @@ class BaseHandlerStorage:
     @abstractmethod
     def fetch(
         self,
-        selector: Union[pd.Timestamp, slice, str, list] = slice(None, None),
+        selector: Union[pd.Timestamp, slice, str, pd.Index] = slice(None, None),
         level: Union[str, int] = "datetime",
         col_set: Union[str, List[str]] = DataHandler.CS_ALL,
         fetch_orig: bool = True,
@@ -61,7 +61,7 @@ class NaiveDFStorage(BaseHandlerStorage):
 
     def fetch(
         self,
-        selector: Union[pd.Timestamp, slice, str, list] = slice(None, None),
+        selector: Union[pd.Timestamp, slice, str, pd.Index] = slice(None, None),
         level: Union[str, int] = "datetime",
         col_set: Union[str, List[str]] = DataHandler.CS_ALL,
         fetch_orig: bool = True,
@@ -154,7 +154,7 @@ class HashingStockStorage(BaseHandlerStorage):
 
     def fetch(
         self,
-        selector: Union[pd.Timestamp, slice, str] = slice(None, None),
+        selector: Union[pd.Timestamp, slice, str, pd.Index] = slice(None, None),
         level: Union[str, int] = "datetime",
         col_set: Union[str, List[str]] = DataHandler.CS_ALL,
         fetch_orig: bool = True,

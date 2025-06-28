@@ -23,7 +23,7 @@ from . import loader as data_loader_module
 DATA_KEY_TYPE = Literal["raw", "infer", "learn"]
 
 
-class BaseDataHandler(Serializable):
+class DataHandlerABC(Serializable):
     """
     Interface for data handler.
 
@@ -65,7 +65,7 @@ class BaseDataHandler(Serializable):
         pass
 
 
-class DataHandler(BaseDataHandler):
+class DataHandler(DataHandlerABC):
     """
     The motivation of DataHandler:
 
@@ -199,8 +199,8 @@ class DataHandler(BaseDataHandler):
         self,
         selector: Union[pd.Timestamp, slice, str, pd.Index] = slice(None, None),
         level: Union[str, int] = "datetime",
-        col_set: Union[str, List[str]] = BaseDataHandler.CS_ALL,
-        data_key: DATA_KEY_TYPE = BaseDataHandler.DK_I,
+        col_set: Union[str, List[str]] = DataHandlerABC.CS_ALL,
+        data_key: DATA_KEY_TYPE = DataHandlerABC.DK_I,
         squeeze: bool = False,
         proc_func: Optional[Callable] = None,
     ) -> pd.DataFrame:
@@ -281,7 +281,7 @@ class DataHandler(BaseDataHandler):
         data_storage,
         selector: Union[pd.Timestamp, slice, str, pd.Index] = slice(None, None),
         level: Union[str, int] = "datetime",
-        col_set: Union[str, List[str]] = BaseDataHandler.CS_ALL,
+        col_set: Union[str, List[str]] = DataHandlerABC.CS_ALL,
         squeeze: bool = False,
         proc_func: Callable = None,
     ):
@@ -326,7 +326,7 @@ class DataHandler(BaseDataHandler):
                 data_df = data_df.reset_index(level=level, drop=True)
         return data_df
 
-    def get_cols(self, col_set=BaseDataHandler.CS_ALL) -> list:
+    def get_cols(self, col_set=DataHandlerABC.CS_ALL) -> list:
         """
         get the column names
 
@@ -663,7 +663,7 @@ class DataHandlerLP(DataHandler):
 
         # TODO: Be able to cache handler data. Save the memory for data processing
 
-    def _get_df_by_key(self, data_key: DATA_KEY_TYPE = BaseDataHandler.DK_I) -> pd.DataFrame:
+    def _get_df_by_key(self, data_key: DATA_KEY_TYPE = DataHandlerABC.DK_I) -> pd.DataFrame:
         if data_key == self.DK_R and self.drop_raw:
             raise AttributeError(
                 "DataHandlerLP has not attribute _data, please set drop_raw = False if you want to use raw data"
@@ -710,7 +710,7 @@ class DataHandlerLP(DataHandler):
             proc_func=proc_func,
         )
 
-    def get_cols(self, col_set=DataHandler.CS_ALL, data_key: DATA_KEY_TYPE = BaseDataHandler.DK_I) -> list:
+    def get_cols(self, col_set=DataHandler.CS_ALL, data_key: DATA_KEY_TYPE = DataHandlerABC.DK_I) -> list:
         """
         get the column names
 
