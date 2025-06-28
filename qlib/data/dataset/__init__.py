@@ -371,6 +371,8 @@ class TSDataSampler:
                 ffill with previous samples first and fill with later samples second
         flt_data : pd.Series
             a column of data(True or False) to filter data. Its index order is <"datetime", "instrument">
+            This feature is essential because:
+            - We want some sample not included due to label-based filtering, but we can't filter them at the beginning due to the features is still important in the feature.
             None:
                 kepp all data
 
@@ -656,8 +658,9 @@ class TSDatasetH(DatasetH):
 
     DEFAULT_STEP_LEN = 30
 
-    def __init__(self, step_len=DEFAULT_STEP_LEN, **kwargs):
+    def __init__(self, step_len=DEFAULT_STEP_LEN, flt_col: Optional[str] = None, **kwargs):
         self.step_len = step_len
+        self.flt_col = flt_col
         super().__init__(**kwargs)
 
     def config(self, **kwargs):
@@ -688,10 +691,10 @@ class TSDatasetH(DatasetH):
         dtype = kwargs.pop("dtype", None)
         if not isinstance(slc, slice):
             slc = slice(*slc)
-        start, end = slc.start, slc.stop
-        flt_col = kwargs.pop("flt_col", None)
-        # TSDatasetH will retrieve more data for complete time-series
+        if (flt_col := kwargs.pop("flt_col", None)) is None:
+            flt_col = self.flt_col
 
+        # TSDatasetH will retrieve more data for complete time-series
         ext_slice = self._extend_slice(slc, self.cal, self.step_len)
         data = super()._prepare_seg(ext_slice, **kwargs)
 
@@ -705,8 +708,8 @@ class TSDatasetH(DatasetH):
 
         tsds = TSDataSampler(
             data=data,
-            start=start,
-            end=end,
+            start=slc.start,
+            end=slc.stop,
             step_len=self.step_len,
             dtype=dtype,
             flt_data=flt_data,

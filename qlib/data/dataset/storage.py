@@ -3,7 +3,8 @@ import pandas as pd
 import numpy as np
 
 from .handler import DataHandler
-from typing import Union, List, Callable
+from typing import Union, List
+from qlib.log import get_module_logger
 
 from .utils import get_level_index, fetch_df_by_index, fetch_df_by_col
 
@@ -66,6 +67,19 @@ class NaiveDFStorage(BaseHandlerStorage):
         col_set: Union[str, List[str]] = DataHandler.CS_ALL,
         fetch_orig: bool = True,
     ) -> pd.DataFrame:
+
+        # Following conflicts may occur
+        # - Does [20200101", "20210101"] mean selecting this slice or these two days?
+        # To solve this issue
+        #   - slice have higher priorities (except when level is none)
+        if isinstance(selector, (tuple, list)) and level is not None:
+            # when level is None, the argument will be passed in directly
+            # we don't have to convert it into slice
+            try:
+                selector = slice(*selector)
+            except ValueError:
+                get_module_logger("DataHandlerLP").info(f"Fail to converting to query to slice. It will used directly")
+
         data_df = self.df
         data_df = fetch_df_by_col(data_df, col_set)
         data_df = fetch_df_by_index(data_df, selector, level, fetch_orig=fetch_orig)
