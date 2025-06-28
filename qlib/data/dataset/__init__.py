@@ -235,9 +235,11 @@ class DatasetH(Dataset):
         # - The segment name will have higher priorities
 
         # 1) Use it as segment name first
+        # 1.1) directly fetch split like "train" "valid" "test"
         if isinstance(segments, str) and segments in self.segments:
             return self._prepare_seg(self.segments[segments], **seg_kwargs)
 
+        # 1.2) fetch multiple splits like ["train", "valid"] ["train", "valid", "test"]
         if isinstance(segments, (list, tuple)) and all(seg in self.segments for seg in segments):
             return [self._prepare_seg(self.segments[seg], **seg_kwargs) for seg in segments]
 
