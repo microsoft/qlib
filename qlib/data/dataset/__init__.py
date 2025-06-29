@@ -226,13 +226,8 @@ class DatasetH(Dataset):
         ------
         NotImplementedError:
         """
-        logger = get_module_logger("DatasetH")
-        seg_kwargs = {"col_set": col_set}
+        seg_kwargs = {"col_set": col_set, "data_key": data_key}
         seg_kwargs.update(kwargs)
-        if "data_key" in getfullargspec(self.handler.fetch).args:
-            seg_kwargs["data_key"] = data_key
-        else:
-            logger.info(f"data_key[{data_key}] is ignored.")
 
         # Conflictions may happen here
         # - The fetched data and the segment key may both be string
@@ -240,9 +235,11 @@ class DatasetH(Dataset):
         # - The segment name will have higher priorities
 
         # 1) Use it as segment name first
+        # 1.1) directly fetch split like "train" "valid" "test"
         if isinstance(segments, str) and segments in self.segments:
             return self._prepare_seg(self.segments[segments], **seg_kwargs)
 
+        # 1.2) fetch multiple splits like ["train", "valid"] ["train", "valid", "test"]
         if isinstance(segments, (list, tuple)) and all(seg in self.segments for seg in segments):
             return [self._prepare_seg(self.segments[seg], **seg_kwargs) for seg in segments]
 
@@ -262,7 +259,7 @@ class DatasetH(Dataset):
     def _get_extrema(segments, idx: int, cmp: Callable, key_func=pd.Timestamp):
         """it will act like sort and return the max value or None"""
         candidate = None
-        for k, seg in segments.items():
+        for _, seg in segments.items():
             point = seg[idx]
             if point is None:
                 # None indicates unbounded, return directly
@@ -376,6 +373,8 @@ class TSDataSampler:
                 ffill with previous samples first and fill with later samples second
         flt_data : pd.Series
             a column of data(True or False) to filter data. Its index order is <"datetime", "instrument">
+            This feature is essential because:
+            - We want some sample not included due to label-based filtering, but we can't filter them at the beginning due to the features is still important in the feature.
             None:
                 kepp all data
 
@@ -661,8 +660,9 @@ class TSDatasetH(DatasetH):
 
     DEFAULT_STEP_LEN = 30
 
-    def __init__(self, step_len=DEFAULT_STEP_LEN, **kwargs):
+    def __init__(self, step_len=DEFAULT_STEP_LEN, flt_col: Optional[str] = None, **kwargs):
         self.step_len = step_len
+        self.flt_col = flt_col
         super().__init__(**kwargs)
 
     def config(self, **kwargs):
@@ -693,10 +693,10 @@ class TSDatasetH(DatasetH):
         dtype = kwargs.pop("dtype", None)
         if not isinstance(slc, slice):
             slc = slice(*slc)
-        start, end = slc.start, slc.stop
-        flt_col = kwargs.pop("flt_col", None)
-        # TSDatasetH will retrieve more data for complete time-series
+        if (flt_col := kwargs.pop("flt_col", None)) is None:
+            flt_col = self.flt_col
 
+        # TSDatasetH will retrieve more data for complete time-series
         ext_slice = self._extend_slice(slc, self.cal, self.step_len)
         data = super()._prepare_seg(ext_slice, **kwargs)
 
@@ -710,8 +710,8 @@ class TSDatasetH(DatasetH):
 
         tsds = TSDataSampler(
             data=data,
-            start=start,
-            end=end,
+            start=slc.start,
+            end=slc.stop,
             step_len=self.step_len,
             dtype=dtype,
             flt_data=flt_data,

@@ -1,8 +1,10 @@
+from abc import abstractmethod
 import pandas as pd
 import numpy as np
 
 from .handler import DataHandler
-from typing import Union, List, Callable
+from typing import Union, List
+from qlib.log import get_module_logger
 
 from .utils import get_level_index, fetch_df_by_index, fetch_df_by_col
 
@@ -14,14 +16,13 @@ class BaseHandlerStorage:
     - If users want to use custom data storage, they should define subclass inherited BaseHandlerStorage, and implement the following method
     """
 
+    @abstractmethod
     def fetch(
         self,
-        selector: Union[pd.Timestamp, slice, str, list] = slice(None, None),
+        selector: Union[pd.Timestamp, slice, str, pd.Index] = slice(None, None),
         level: Union[str, int] = "datetime",
         col_set: Union[str, List[str]] = DataHandler.CS_ALL,
         fetch_orig: bool = True,
-        proc_func: Callable = None,
-        **kwargs,
     ) -> pd.DataFrame:
         """fetch data from the data storage
 
@@ -41,8 +42,6 @@ class BaseHandlerStorage:
                 select several sets of meaningful columns, the returned data has multiple level
         fetch_orig : bool
             Return the original data instead of copy if possible.
-        proc_func: Callable
-            please refer to the doc of DataHandler.fetch
 
         Returns
         -------
@@ -51,13 +50,40 @@ class BaseHandlerStorage:
         """
         raise NotImplementedError("fetch is method not implemented!")
 
-    @staticmethod
-    def from_df(df: pd.DataFrame):
-        raise NotImplementedError("from_df method is not implemented!")
 
-    def is_proc_func_supported(self):
-        """whether the arg `proc_func` in `fetch` method is supported."""
-        raise NotImplementedError("is_proc_func_supported method is not implemented!")
+class NaiveDFStorage(BaseHandlerStorage):
+    """Naive data storage for datahandler
+    - NaiveDFStorage is a naive data storage for datahandler
+    - NaiveDFStorage will input a pandas.DataFrame as and provide interface support for fetching data
+    """
+
+    def __init__(self, df: pd.DataFrame):
+        self.df = df
+
+    def fetch(
+        self,
+        selector: Union[pd.Timestamp, slice, str, pd.Index] = slice(None, None),
+        level: Union[str, int] = "datetime",
+        col_set: Union[str, List[str]] = DataHandler.CS_ALL,
+        fetch_orig: bool = True,
+    ) -> pd.DataFrame:
+
+        # Following conflicts may occur
+        # - Does [20200101", "20210101"] mean selecting this slice or these two days?
+        # To solve this issue
+        #   - slice have higher priorities (except when level is none)
+        if isinstance(selector, (tuple, list)) and level is not None:
+            # when level is None, the argument will be passed in directly
+            # we don't have to convert it into slice
+            try:
+                selector = slice(*selector)
+            except ValueError:
+                get_module_logger("DataHandlerLP").info(f"Fail to converting to query to slice. It will used directly")
+
+        data_df = self.df
+        data_df = fetch_df_by_col(data_df, col_set)
+        data_df = fetch_df_by_index(data_df, selector, level, fetch_orig=fetch_orig)
+        return data_df
 
 
 class HashingStockStorage(BaseHandlerStorage):
@@ -142,7 +168,7 @@ class HashingStockStorage(BaseHandlerStorage):
 
     def fetch(
         self,
-        selector: Union[pd.Timestamp, slice, str] = slice(None, None),
+        selector: Union[pd.Timestamp, slice, str, pd.Index] = slice(None, None),
         level: Union[str, int] = "datetime",
         col_set: Union[str, List[str]] = DataHandler.CS_ALL,
         fetch_orig: bool = True,
@@ -164,7 +190,3 @@ class HashingStockStorage(BaseHandlerStorage):
             return fetch_stock_df_list[0]
         else:
             return pd.concat(fetch_stock_df_list, sort=False, copy=~fetch_orig)
-
-    def is_proc_func_supported(self):
-        """the arg `proc_func` in `fetch` method is not supported in HashingStockStorage"""
-        return False
