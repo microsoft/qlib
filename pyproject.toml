@@ -40,6 +40,10 @@ dependencies = [
   "lightgbm",
   "gym",
   "cvxpy",
+  # After upgrading scipy to version 1.16.0,
+  # we encountered ImportError: cannot import name '_lazywhere', in the build documentation,
+  # so we restricted the version of scipy to: 1.15.3
+  "scipy<=1.15.3"
   "joblib",
   "matplotlib",
   "jupyter",
