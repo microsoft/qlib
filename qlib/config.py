@@ -27,6 +27,27 @@ from qlib.constant import REG_CN, REG_US, REG_TW
 if TYPE_CHECKING:
     from qlib.utils.time import Freq
 
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class MLflowSettings(BaseSettings):
+    uri: str = "file:" + str(Path(os.getcwd()).resolve() / "mlruns")
+    default_exp_name: str = "Experiment"
+
+
+class QSettings(BaseSettings):
+    """Project specific settings."""
+
+    mlflow: MLflowSettings = MLflowSettings()
+
+    model_config = SettingsConfigDict(
+        env_prefix="QLIB_",
+        env_nested_delimiter="_",
+    )
+
+
+QSETTINGS = QSettings()
+
 
 class Config:
     def __init__(self, default_conf):
@@ -187,8 +208,8 @@ _default_config = {
         "class": "MLflowExpManager",
         "module_path": "qlib.workflow.expm",
         "kwargs": {
-            "uri": "file:" + str(Path(os.getcwd()).resolve() / "mlruns"),
-            "default_exp_name": "Experiment",
+            "uri": QSETTINGS.mlflow.uri,
+            "default_exp_name": QSETTINGS.mlflow.default_exp_name,
         },
     },
     "pit_record_type": {

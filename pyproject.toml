@@ -27,6 +27,9 @@ dependencies = [
   "pyyaml",
   "numpy",
   "pandas>=0.24",
+  # I encoutered an Error that the set_uri does not work when downloading artifacts in mlflow 3.1.1;
+  # But earlier versions of mlflow does not have this problem.
+  # But when I switch to 2.*.* version, another error occurs, which is even more strange...
   "mlflow",
   "filelock>=3.16.0",
   "redis",
@@ -45,6 +48,7 @@ dependencies = [
   "jupyter",
   "nbconvert",
   "pyarrow",
+  "pydantic-settings",
 ]
 
 [project.optional-dependencies]
@@ -90,6 +94,7 @@ test = [
 ]
 analysis = [
   "plotly",
+  "statsmodels",
 ]
 
 [tool.setuptools]
