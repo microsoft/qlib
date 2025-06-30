@@ -70,6 +70,10 @@ lint = [
 # snowballstemmer, a dependency of sphinx, was released on 2025-05-08 with version 3.0.0,
 # which causes errors in the build process. So we've limited the version for now.
 docs = [
+  # After upgrading scipy to version 1.16.0,
+  # we encountered ImportError: cannot import name '_lazywhere', in the build documentation,
+  # so we restricted the version of scipy to: 1.15.3
+  "scipy<=1.15.3",
   "sphinx",
   "sphinx_rtd_theme",
   "readthedocs_sphinx_ext",

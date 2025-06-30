@@ -40,7 +40,7 @@ class DataHandlerABC(Serializable):
       So leaving the flexibility to the user to implement the workflow is a more reasonable choice.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):  # pylint: disable=W0246
         """
         We should define how to get ready for the fetching.
         """
