@@ -12,6 +12,7 @@ from gym import spaces
 
 from qlib.constant import EPS
 from qlib.rl.data.base import ProcessedDataProvider
+from qlib.rl.data.pickle_styled import TeacherActionDataProvider
 from qlib.rl.interpreter import ActionInterpreter, StateInterpreter
 from qlib.rl.order_execution.state import SAOEState
 from qlib.typehint import TypedDict
@@ -51,6 +52,10 @@ class FullHistoryObs(TypedDict):
     target: Any
     position: Any
     position_history: Any
+
+
+class OPDObs(FullHistoryObs):
+    teacher_action: Any
 
 
 class DummyStateInterpreter(StateInterpreter[SAOEState, dict]):
@@ -151,6 +156,110 @@ class FullHistoryStateInterpreter(StateInterpreter[SAOEState, FullHistoryObs]):
         arr = arr.copy(deep=True)
         arr.loc[current:] = 0.0  # mask out data after this moment (inclusive)
         return arr
+
+
+class OracleObsInterpreter(FullHistoryStateInterpreter):
+    def interpret(self, state: SAOEState) -> FullHistoryObs:
+        processed = self.processed_data_provider.get_data(
+            stock_id=state.order.stock_id,
+            date=pd.Timestamp(state.order.start_time.date()),
+            feature_dim=self.data_dim,
+            time_index=state.ticks_index,
+        )
+
+        position_history = np.full(self.max_step + 1, 0.0, dtype=np.float32)
+        position_history[0] = state.order.amount
+        position_history[1 : len(state.history_steps) + 1] = state.history_steps["position"].to_numpy()
+
+        return cast(
+            FullHistoryObs,
+            canonicalize(
+                {
+                    "data_processed": np.array(processed.today),
+                    "data_processed_prev": np.array(processed.yesterday),
+                    "acquiring": _to_int32(state.order.direction == state.order.BUY),
+                    "cur_tick": _to_int32(min(int(np.sum(state.ticks_index < state.cur_time)), self.data_ticks - 1)),
+                    "cur_step": _to_int32(min(state.cur_step, self.max_step - 1)),
+                    "num_step": _to_int32(self.max_step),
+                    "target": _to_float32(state.order.amount),
+                    "position": _to_float32(state.position),
+                    "position_history": _to_float32(position_history[: self.max_step]),
+                },
+            ),
+        )
+
+
+class OPDObsInterpreter(FullHistoryStateInterpreter):
+    def __init__(
+        self,
+        max_step: int,
+        data_ticks: int,
+        data_dim: int,
+        processed_data_provider: dict | ProcessedDataProvider,
+        teacher_action_data_provider: dict | TeacherActionDataProvider,
+    ) -> None:
+        super().__init__(max_step, data_ticks, data_dim, processed_data_provider)
+        # self.teacher_action_file = teacher_action_file
+        self.teacher_action_data_provider = init_instance_by_config(
+            teacher_action_data_provider, accept_types=TeacherActionDataProvider
+        )
+
+    def interpret(self, state: SAOEState) -> OPDObs:
+        processed = self.processed_data_provider.get_data(
+            stock_id=state.order.stock_id,
+            date=pd.Timestamp(state.order.start_time.date()),
+            feature_dim=self.data_dim,
+            time_index=state.ticks_index,
+        )
+
+        position_history = np.full(self.max_step + 1, 0.0, dtype=np.float32)
+        position_history[0] = state.order.amount
+        position_history[1 : len(state.history_steps) + 1] = state.history_steps["position"].to_numpy()
+        teacher_action = self.teacher_action_data_provider.get_data(
+            stock_id=state.order.stock_id, date=pd.Timestamp(state.order.start_time.date())
+        ).teacher_action
+        try:
+            this_teacher_action = teacher_action.values[state.cur_step]
+        except IndexError:
+            this_teacher_action = 0
+
+        # The min, slice here are to make sure that indices fit into the range,
+        # even after the final step of the simulator (in the done step),
+        # to make network in policy happy.
+        return cast(
+            OPDObs,
+            canonicalize(
+                {
+                    "data_processed": np.array(self._mask_future_info(processed.today, state.cur_time)),
+                    "data_processed_prev": np.array(processed.yesterday),
+                    "acquiring": _to_int32(state.order.direction == state.order.BUY),
+                    "cur_tick": _to_int32(min(int(np.sum(state.ticks_index < state.cur_time)), self.data_ticks - 1)),
+                    "cur_step": _to_int32(min(state.cur_step, self.max_step - 1)),
+                    "num_step": _to_int32(self.max_step),
+                    "target": _to_float32(state.order.amount),
+                    "position": _to_float32(state.position),
+                    "position_history": _to_float32(position_history[: self.max_step]),
+                    "teacher_action": _to_int32(this_teacher_action),
+                },
+            ),
+        )
+
+    @property
+    def observation_space(self) -> spaces.Dict:
+        space = {
+            "data_processed": spaces.Box(-np.inf, np.inf, shape=(self.data_ticks, self.data_dim)),
+            "data_processed_prev": spaces.Box(-np.inf, np.inf, shape=(self.data_ticks, self.data_dim)),
+            "acquiring": spaces.Discrete(2),
+            "cur_tick": spaces.Box(0, self.data_ticks - 1, shape=(), dtype=np.int32),
+            "cur_step": spaces.Box(0, self.max_step - 1, shape=(), dtype=np.int32),
+            # TODO: support arbitrary length index
+            "num_step": spaces.Box(self.max_step, self.max_step, shape=(), dtype=np.int32),
+            "target": spaces.Box(-EPS, np.inf, shape=()),
+            "position": spaces.Box(-EPS, np.inf, shape=()),
+            "position_history": spaces.Box(-EPS, np.inf, shape=(self.max_step,)),
+            "teacher_action": spaces.Box(-EPS, np.inf, shape=(), dtype=np.int32),
+        }
+        return spaces.Dict(space)
 
 
 class CurrentStateObs(TypedDict):
