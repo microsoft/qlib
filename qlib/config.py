@@ -36,7 +36,17 @@ class MLflowSettings(BaseSettings):
 
 
 class QSettings(BaseSettings):
-    """Project specific settings."""
+    """
+    Qlib's settings.
+    It tries to provide a default settings for most of Qlib's components.
+    But it would be a long journey to provide a comprehensive settings for all of Qlib's components.
+
+    Here is some design guidelines:
+    - The priority of settings is
+        - Actively passed-in settings, like `qlib.init(provider_uri=...)`
+        - The default settings
+            - QSettings tries to provide default settings for most of Qlib's components.
+    """
 
     mlflow: MLflowSettings = MLflowSettings()
 
