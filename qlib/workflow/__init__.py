@@ -1,5 +1,18 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+"""
+Motivation of this design (instead of using mlflow directly):
+- Better design than mlflow native design
+    - we have record object with a lot of methods(more intuitive), instead of use run_id everytime in mlflow
+        - So the recorder's interfaces like log, start, will be more intuitive.
+- Provide richer and tailerd features than mlflow native
+    - Logging code diff at the start of run.
+    - log_object and load_object to for Python object directly instead log_artifact and download_artifact
+- (weak) Allow diverse backend support
+
+To be honest, design always add burdens. For example,
+- You need to create an experiment before you can get a recorder. (In MLflow, experiments are more like tags, and you often just use a run_id in many interfaces without first defining an experiment.)
+"""
 
 from contextlib import contextmanager
 from typing import Text, Optional, Any, Dict

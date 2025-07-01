@@ -27,6 +27,37 @@ from qlib.constant import REG_CN, REG_US, REG_TW
 if TYPE_CHECKING:
     from qlib.utils.time import Freq
 
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class MLflowSettings(BaseSettings):
+    uri: str = "file:" + str(Path(os.getcwd()).resolve() / "mlruns")
+    default_exp_name: str = "Experiment"
+
+
+class QSettings(BaseSettings):
+    """
+    Qlib's settings.
+    It tries to provide a default settings for most of Qlib's components.
+    But it would be a long journey to provide a comprehensive settings for all of Qlib's components.
+
+    Here is some design guidelines:
+    - The priority of settings is
+        - Actively passed-in settings, like `qlib.init(provider_uri=...)`
+        - The default settings
+            - QSettings tries to provide default settings for most of Qlib's components.
+    """
+
+    mlflow: MLflowSettings = MLflowSettings()
+
+    model_config = SettingsConfigDict(
+        env_prefix="QLIB_",
+        env_nested_delimiter="_",
+    )
+
+
+QSETTINGS = QSettings()
+
 
 class Config:
     def __init__(self, default_conf):
@@ -187,8 +218,8 @@ _default_config = {
         "class": "MLflowExpManager",
         "module_path": "qlib.workflow.expm",
         "kwargs": {
-            "uri": "file:" + str(Path(os.getcwd()).resolve() / "mlruns"),
-            "default_exp_name": "Experiment",
+            "uri": QSETTINGS.mlflow.uri,
+            "default_exp_name": QSETTINGS.mlflow.default_exp_name,
         },
     },
     "pit_record_type": {
