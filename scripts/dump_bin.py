@@ -359,8 +359,7 @@ class DumpDataFix(DumpDataAll):
         _fun = partial(self._get_date, is_begin_end=True)
         new_stock_files = sorted(
             filter(
-                lambda x: self.get_symbol_from_file(x).upper()
-                not in self._old_instruments,
+                lambda x: self.get_symbol_from_file(x).upper() not in self._old_instruments,
                 self.df_files,
             )
         )
