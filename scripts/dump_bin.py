@@ -83,7 +83,7 @@ class DumpDataBase:
 
         Parameters
         ----------
-        csv_path: str
+        data_path: str
             stock data path or directory
         qlib_dir: str
             qlib(dump) data director
@@ -408,7 +408,7 @@ class DumpDataUpdate(DumpDataBase):
 
         Parameters
         ----------
-        csv_path: str
+        data_path: str
             stock data path or directory
         qlib_dir: str
             qlib(dump) data director
