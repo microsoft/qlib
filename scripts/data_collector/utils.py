@@ -301,21 +301,40 @@ def get_us_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
 
     @deco_retry
     def _get_eastmoney():
-        url = "http://4.push2.eastmoney.com/api/qt/clist/get?pn=1&pz=10000&fs=m:105,m:106,m:107&fields=f12"
-        resp = requests.get(url, timeout=None)
-        if resp.status_code != 200:
-            raise ValueError("request error")
+        symbols = []
+        page = 1
+        headers = {
+            "User-Agent": "Mozilla/5.0"
+        }
 
-        try:
-            _symbols = [_v["f12"].replace("_", "-P") for _v in resp.json()["data"]["diff"].values()]
-        except Exception as e:
-            logger.warning(f"request error: {e}")
-            raise
+        max_pages  = 1000
+        while page <= max_pages:
+            url = f"http://4.push2.eastmoney.com/api/qt/clist/get"
+            params = {
+                "pn": page,
+                "pz": 100,
+                "fs": "m:105,m:106,m:107",
+                "fields": "f12"
+            }
 
-        if len(_symbols) < 8000:
-            raise ValueError("request error")
+            try:
+                resp = requests.get(url, headers=headers, params=params, timeout=10)
+                if resp.status_code != 200:
+                    break
+                data = resp.json()
+                diff = data.get("data", {}).get("diff")
+                if not diff:
+                    break
+                page_symbols = [v["f12"].replace("_", "-P") for v in diff.values() if "f12" in v]
+                if not page_symbols:
+                    break
+                symbols.extend(page_symbols)
+                page += 1
+                time.sleep(0.01) 
+            except:
+                break
 
-        return _symbols
+        return symbols
 
     @deco_retry
     def _get_nasdaq():
