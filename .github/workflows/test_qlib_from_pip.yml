@@ -63,7 +63,7 @@ jobs:
     - name: Downloads dependencies data
       run: |
         cd ..
-        python -m qlib.run.get_data qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn
+        python -m qlib.cli.data qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn
         cd qlib
 
     - name: Test workflow by config
