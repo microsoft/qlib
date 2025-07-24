@@ -60,10 +60,12 @@ jobs:
         brew unlink libomp
         brew install libomp.rb
 
+    # When the new version is released it should be changed to:
+    # python -m qlib.cli.data qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn
     - name: Downloads dependencies data
       run: |
         cd ..
-        python -m qlib.cli.data qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn
+        python -m qlib.run.get_data qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn
         cd qlib
 
     - name: Test workflow by config
