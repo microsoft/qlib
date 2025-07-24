@@ -997,7 +997,7 @@ class Run(BaseRun):
 
         # dump bin
         _dump = DumpDataUpdate(
-            csv_path=self.normalize_dir,
+            data_path=self.normalize_dir,
             qlib_dir=qlib_data_1d_dir,
             exclude_fields="symbol,date",
             max_workers=self.max_workers,
