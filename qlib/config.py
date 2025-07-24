@@ -49,6 +49,7 @@ class QSettings(BaseSettings):
     """
 
     mlflow: MLflowSettings = MLflowSettings()
+    provider_uri: str = "~/.qlib/qlib_data/cn_data"
 
     model_config = SettingsConfigDict(
         env_prefix="QLIB_",
@@ -261,7 +262,7 @@ MODE_CONF = {
     },
     "client": {
         # config it in user's own code
-        "provider_uri": "~/.qlib/qlib_data/cn_data",
+        "provider_uri": QSETTINGS.provider_uri,
         # cache
         # Using parameter 'remote' to announce the client is using server_cache, and the writing access will be disabled.
         # Disable cache by default. Avoid introduce advanced features for beginners

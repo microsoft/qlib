@@ -167,7 +167,7 @@ Supposed that users prepare their CSV format data in the directory ``~/.qlib/csv
 
 .. code-block:: bash
 
-    python scripts/dump_bin.py dump_all --csv_path  ~/.qlib/csv_data/my_data --qlib_dir ~/.qlib/qlib_data/my_data --include_fields open,close,high,low,volume,factor
+    python scripts/dump_bin.py dump_all --data_path  ~/.qlib/csv_data/my_data --qlib_dir ~/.qlib/qlib_data/my_data --include_fields open,close,high,low,volume,factor
 
 For other supported parameters when dumping the data into `.bin` file, users can refer to the information by running the following commands:
 

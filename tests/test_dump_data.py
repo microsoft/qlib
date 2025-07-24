@@ -36,7 +36,7 @@ class TestDumpData(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         GetData().download_data(file_name="csv_data_cn.zip", target_dir=SOURCE_DIR)
-        TestDumpData.DUMP_DATA = DumpDataAll(csv_path=SOURCE_DIR, qlib_dir=QLIB_DIR, include_fields=cls.FIELDS)
+        TestDumpData.DUMP_DATA = DumpDataAll(data_path=SOURCE_DIR, qlib_dir=QLIB_DIR, include_fields=cls.FIELDS)
         TestDumpData.STOCK_NAMES = list(map(lambda x: x.name[:-4].upper(), SOURCE_DIR.glob("*.csv")))
         provider_uri = str(QLIB_DIR.resolve())
         qlib.init(
@@ -76,7 +76,7 @@ class TestDumpData(unittest.TestCase):
     def test_4_dump_features_simple(self):
         stock = self.STOCK_NAMES[0]
         dump_data = DumpDataFix(
-            csv_path=SOURCE_DIR.joinpath(f"{stock.lower()}.csv"), qlib_dir=QLIB_DIR, include_fields=self.FIELDS
+            data_path=SOURCE_DIR.joinpath(f"{stock.lower()}.csv"), qlib_dir=QLIB_DIR, include_fields=self.FIELDS
         )
         dump_data.dump()
 

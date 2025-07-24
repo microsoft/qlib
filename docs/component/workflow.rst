@@ -110,7 +110,7 @@ If users want to use ``qrun`` under debug mode, please use the following command
 
 .. code-block:: bash
 
-    python -m pdb qlib/workflow/cli.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
+    python -m pdb qlib/cli/run.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
 
 .. note::
 
