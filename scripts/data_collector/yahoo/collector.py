@@ -2,45 +2,45 @@
 # Licensed under the MIT License.
 
 import abc
+import sys
 import copy
+import time
 import datetime
 import importlib
-import multiprocessing
-import sys
-import time
 from abc import ABC
+import multiprocessing
 from pathlib import Path
 from typing import Iterable
 
 import fire
+import requests
 import numpy as np
 import pandas as pd
-import requests
-from dateutil.tz import tzlocal
 from loguru import logger
 from yahooquery import Ticker
+from dateutil.tz import tzlocal
 
 import qlib
-from qlib.constant import REG_CN as REGION_CN
 from qlib.data import D
 from qlib.tests.data import GetData
-from qlib.utils import code_to_fname, exists_qlib_data, fname_to_code
+from qlib.utils import code_to_fname, fname_to_code, exists_qlib_data
+from qlib.constant import REG_CN as REGION_CN
 
 CUR_DIR = Path(__file__).resolve().parent
 sys.path.append(str(CUR_DIR.parent.parent))
 
+from dump_bin import DumpDataUpdate
 from data_collector.base import BaseCollector, BaseNormalize, BaseRun, Normalize
 from data_collector.utils import (
-    calc_adjusted_price,
     deco_retry,
-    generate_minutes_calendar_from_daily,
-    get_br_stock_symbols,
     get_calendar_list,
     get_hs_stock_symbols,
-    get_in_stock_symbols,
     get_us_stock_symbols,
+    get_in_stock_symbols,
+    get_br_stock_symbols,
+    generate_minutes_calendar_from_daily,
+    calc_adjusted_price,
 )
-from dump_bin import DumpDataUpdate
 
 INDEX_BENCH_URL = "http://push2his.eastmoney.com/api/qt/stock/kline/get?secid=1.{index_code}&fields1=f1%2Cf2%2Cf3%2Cf4%2Cf5&fields2=f51%2Cf52%2Cf53%2Cf54%2Cf55%2Cf56%2Cf57%2Cf58&klt=101&fqt=0&beg={begin}&end={end}"
 
