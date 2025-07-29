@@ -91,6 +91,7 @@ package = [
 test = [
   "yahooquery",
   "baostock",
+  "aiohttp>=3.11.13",
   "akshare",
 ]
 analysis = [
