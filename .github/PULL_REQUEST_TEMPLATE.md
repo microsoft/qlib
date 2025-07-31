@@ -1,4 +1,15 @@
-<!--- Provide a general summary of your changes in the Title above -->
+<!--- Thank you for submitting a Pull Request! In order to make our work smoother. -->
+<!--- please make sure your Pull Request meets the following requirements: -->
+<!---   1. Provide a general summary of your changes in the Title above; -->
+<!---   2. Add appropriate prefixes to titles, such as `build:`, `chore:`, `ci:`, `docs:`, `feat:`, `fix:`, `perf:`, `refactor:`, `revert:`, `style:`, `test:`(Ref: https://www.conventionalcommits.org/). -->
+<!--- Category: -->
+<!--- Patch Updates: `fix:` -->
+<!---   Example: fix(auth): correct login validation issue -->
+<!--- minor update (introduces new functionality): `feat` -->
+<!---   Example: feature(parser): add ability to parse arrays -->
+<!--- major update(destructive update): Include BREAKING CHANGE in the commit message footer, or add `! ` in the commit footer to indicate that there is a destructive update. -->
+<!---   Example: feat(auth)! : remove support for old authentication method -->
+<!--- Other updates: `build:`, `chore:`, `ci:`, `docs:`, `perf:`, `refactor:`, `revert:`, `style:`, `test:`. -->
 
 ## Description
 <!--- Describe your changes in detail -->

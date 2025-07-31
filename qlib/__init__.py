@@ -1,8 +1,14 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+from importlib import metadata as _meta
 from pathlib import Path
 
-__version__ = "0.9.6.99"
+# Will be overwritten by semantic-release; fallback lets local “editable”
+# installs still expose a version string.
+try:
+    __version__: str = _meta.version(__package__ or "qlib")
+except _meta.PackageNotFoundError:  # pragma: no cover
+    __version__ = "0.0.0"
 __version__bak = __version__  # This version is backup for QlibConfig.reset_qlib_version
 import os
 import re

@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools", "cython", "numpy>=1.24.0"]
+requires = ["setuptools", "setuptools-scm", "cython", "numpy>=1.24.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -55,6 +55,7 @@ dependencies = [
 dev = [
   "pytest",
   "statsmodels",
+  "uv",
 ]
 # On macos-13 system, when using python version greater than or equal to 3.10,
 # pytorch can't fully support Numpy version above 2.0, so, when you want to install torch,
@@ -104,3 +105,17 @@ packages = [
 
 [project.scripts]
 qrun = "qlib.workflow.cli:run"
+
+[tool.setuptools_scm]
+local_scheme = "no-local-version"
+version_scheme = "guess-next-dev"
+
+# ───────── semantic-release settings ─────────
+[tool.semantic_release]
+version_source  = "commit"
+# Switch to new parser as angular is deprecated
+commit_parser   = "conventional"
+tag_format      = "v{version}"
+major_on_zero   = true
+build_command   = "uvx hatch build"
+changelog_file  = "CHANGELOG.md"

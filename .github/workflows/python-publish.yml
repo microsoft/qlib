@@ -35,7 +35,7 @@ jobs:
     - name: Upload to PyPi
       env:
         TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+        TWINE_PASSWORD: ${{ secrets.TESTPYPI }}
       run: |
         twine check dist/*.whl
         twine upload dist/*.whl --verbose
@@ -59,7 +59,7 @@ jobs:
     - name: Upload to PyPi
       env:
         TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+        TWINE_PASSWORD: ${{ secrets.TESTPYPI }}
       run: |
         twine check dist/pyqlib-*-manylinux*.whl
         twine upload dist/pyqlib-*-manylinux*.whl --verbose

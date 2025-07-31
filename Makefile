@@ -1,4 +1,4 @@
-.PHONY: clean deepclean prerequisite dependencies lightgbm rl develop lint docs package test analysis all install dev black pylint flake8 mypy nbqa nbconvert lint build upload docs-gen
+.PHONY: clean deepclean prerequisite dependencies lightgbm rl develop lint docs package test analysis all install dev black pylint flake8 mypy nbqa nbconvert lint bump build release docs-gen
 #You can modify it according to your terminal
 SHELL := /bin/bash
 
@@ -190,16 +190,23 @@ nbconvert:
 lint: black pylint flake8 mypy nbqa
 
 ########################################################################################
-# Package
+# Release workflow
 ########################################################################################
 
-# Build the package.
-build:
-	python -m build --wheel
+# Bump version & create changelog / tag (does NOT push)
+bump:
+	@echo "🔖 semantic-release: bumping version …"
+	uvx --from python-semantic-release semantic-release version --no-push
 
-# Upload the package.
-upload:
-	python -m twine upload dist/*
+# Build the sdist & wheel with Hatch
+build:
+	@echo "📦  Building $(PACKAGE) …"
+	uv build
+
+# Convenience target: bump + build
+release:
+	@echo "✅  Release artefacts ready in dist/"
+	uv publish
 
 ########################################################################################
 # Documentation
