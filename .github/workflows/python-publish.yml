@@ -4,8 +4,12 @@
 name: Upload Python Package
 
 on:
-  release:
-    types: [published]
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - edited
 
 jobs:
   deploy_with_bdist_wheel:
@@ -37,8 +41,9 @@ jobs:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.TESTPYPI }}
       run: |
-        twine check dist/*.whl
-        twine upload dist/*.whl --verbose
+        ls dist
+        # twine check dist/*.whl
+        # twine upload dist/*.whl --verbose
 
   deploy_with_manylinux:
     runs-on: ubuntu-latest
@@ -61,5 +66,6 @@ jobs:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.TESTPYPI }}
       run: |
-        twine check dist/pyqlib-*-manylinux*.whl
-        twine upload dist/pyqlib-*-manylinux*.whl --verbose
+        ls dist
+        # twine check dist/pyqlib-*-manylinux*.whl
+        # twine upload dist/pyqlib-*-manylinux*.whl --verbose
