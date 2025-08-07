@@ -64,7 +64,7 @@
      This will convert the normalized csv in `feature` directory as numpy array and store the normalized data one file per column and one symbol per directory. 
     
      - parameters:
-       - `csv_path`: stock data path or directory, **normalize result(normalize_dir)**
+       - `data_path`: stock data path or directory, **normalize result(normalize_dir)**
        - `qlib_dir`: qlib(dump) data director
        - `freq`: transaction frequency, by default `day`
          > `freq_map = {1d:day, 5mih: 5min}`
@@ -74,6 +74,7 @@
          > dump_fields = `include_fields if include_fields else set(symbol_df.columns) - set(exclude_fields) exclude_fields else symbol_df.columns`
        - `symbol_field_name`: column *name* identifying symbol in csv files, by default `symbol`
        - `date_field_name`: column *name* identifying time in csv files, by default `date`
+       - `file_suffix`: stock data file format, by default ".csv"
      - examples:
        ```bash
        # dump 5min cn
