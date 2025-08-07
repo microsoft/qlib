@@ -103,4 +103,4 @@ packages = [
 ]
 
 [project.scripts]
-qrun = "qlib.workflow.cli:run"
+qrun = "qlib.cli.run:run"

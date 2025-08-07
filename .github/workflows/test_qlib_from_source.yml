@@ -104,7 +104,7 @@ jobs:
     - name: Test workflow by config (install from source)
       run: |
         python -m pip install numba
-        python qlib/workflow/cli.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
+        python qlib/cli/run.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
 
     - name: Unit tests with Pytest
       uses: nick-fields/retry@v2
