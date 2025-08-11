@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools", "cython", "numpy>=1.24.0"]
+requires = ["setuptools", "setuptools-scm", "cython", "numpy>=1.24.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -49,6 +49,7 @@ dependencies = [
   "nbconvert",
   "pyarrow",
   "pydantic-settings",
+  "setuptools-scm",
 ]
 
 [project.optional-dependencies]
@@ -104,3 +105,7 @@ packages = [
 
 [project.scripts]
 qrun = "qlib.cli.run:run"
+
+[tool.setuptools_scm]
+local_scheme = "no-local-version"
+version_scheme = "guess-next-dev"
