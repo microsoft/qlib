@@ -41,14 +41,47 @@ jobs:
         if: ${{ steps.release_please.outputs.release_created }}
         env:
           TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+          TWINE_PASSWORD: ${{ secrets.TESTPYPI }}
         run: |
           twine check dist/pyqlib-*-manylinux*.whl
           twine upload dist/pyqlib-*-manylinux*.whl --verbose
 
-  check_status:
-    needs: deploy_with_manylinux
-    runs-on: ubuntu-latest
-    if: ${{ success() }}
+  deploy_with_bdist_wheel:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, macos-13, macos-14, macos-15]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+
     steps:
-      - run: echo "All bdist_wheel jobs succeeded."
+      - name: Release please
+        id: release_please
+        uses: googleapis/release-please-action@v4
+        with:
+          token: ${{ secrets.PAT }}
+          release-type: simple
+      - uses: actions/checkout@v4
+        if: ${{ steps.release_please.outputs.release_created }}
+        with:
+          fetch-depth: 0
+      - name: Set up Python ${{ matrix.python-version }}
+        if: ${{ steps.release_please.outputs.release_created }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        if: ${{ steps.release_please.outputs.release_created }}
+        run: |
+          make dev
+      - name: Build wheel on ${{ matrix.os }}
+        if: ${{ steps.release_please.outputs.release_created }}
+        run: |
+          make build
+      - name: Upload to PyPi
+        if: ${{ steps.release_please.outputs.release_created }}
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.TESTPYPI }}
+        run: |
+          twine check dist/*.whl
+          twine upload dist/*.whl --verbose
