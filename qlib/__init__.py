@@ -1,8 +1,10 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+import subprocess
 from pathlib import Path
 
-__version__ = "0.9.6.99"
+latest_version = subprocess.check_output(["git", "describe", "--tags", "--abbrev=0"], text=True).strip()
+__version__ = latest_version
 __version__bak = __version__  # This version is backup for QlibConfig.reset_qlib_version
 import os
 import re

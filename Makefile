@@ -199,7 +199,7 @@ build:
 
 # Upload the package.
 upload:
-	python -m twine upload dist/*
+	python -m twine upload dist/*.whl
 
 ########################################################################################
 # Documentation
