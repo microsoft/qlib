@@ -44,7 +44,7 @@ jobs:
           TWINE_PASSWORD: ${{ secrets.TESTPYPI }}
         run: |
           twine check dist/pyqlib-*-manylinux*.whl
-          twine upload dist/pyqlib-*-manylinux*.whl --verbose
+          twine upload --repository-url https://test.pypi.org/legacy/ dist/pyqlib-*-manylinux*.whl --verbose
 
   deploy_with_bdist_wheel:
     runs-on: ${{ matrix.os }}
@@ -84,4 +84,4 @@ jobs:
           TWINE_PASSWORD: ${{ secrets.TESTPYPI }}
         run: |
           twine check dist/*.whl
-          twine upload dist/*.whl --verbose
+          twine upload --repository-url https://test.pypi.org/legacy/ dist/*.whl --verbose
