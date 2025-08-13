@@ -1,0 +1,56 @@
+name: Test qlib from source slow
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    timeout-minutes: 720
+    # we may retry for 3 times for `Unit tests with Pytest`
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-24.04, ubuntu-22.04, macos-13, macos-14, macos-15]
+        # In github action, using python 3.7, pip install will not match the latest version of the package.
+        # Also, python 3.7 is no longer supported from macos-14, and will be phased out from macos-13 in the near future.
+        # All things considered, we have removed python 3.7.
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+
+    steps:
+    - name: Test qlib from source slow
+      uses: actions/checkout@v3
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Set up Python tools
+      run: |
+        make dev
+
+    - name: Downloads dependencies data
+      run: |
+        python scripts/get_data.py qlib_data --name qlib_data_simple --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
+
+    # install.sh file contents from: https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh
+    # brew_install.sh file contents from: https://raw.githubusercontent.com/Microsoft/qlib/main/.github/brew_install.sh
+    - name: Install Lightgbm for MacOS
+      if: ${{ matrix.os == 'macos-13' || matrix.os == 'macos-14' || matrix.os == 'macos-15' }}
+      run: |
+        brew update
+        brew install libomp || brew reinstall libomp
+        python -m pip install lightgbm
+
+    - name: Unit tests with Pytest
+      uses: nick-fields/retry@v2
+      with:
+        timeout_minutes: 240
+        max_attempts: 3
+        command: |
+          cd tests
+          python -m pytest . -m "slow" --durations=0
