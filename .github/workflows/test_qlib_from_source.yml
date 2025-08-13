@@ -100,9 +100,9 @@ jobs:
         # wget https://raw.githubusercontent.com/Homebrew/homebrew-core/fb8323f2b170bd4ae97e1bac9bf3e2983af3fdb0/Formula/libomp.rb
         # brew unlink libomp
         # brew install libomp.rb
-        brew tap-new ~/local-tap
-        brew extract --version=11.1.0 libomp ~/local-tap
-        brew install ~/local-tap/libomp@11.1.0
+        brew tap-new local/tap
+        brew extract --version=11.1.0 libomp local/tap
+        brew install local/tap/libomp@11.1.0
 
     - name: Check Qlib ipynb with nbconvert
       run: |
