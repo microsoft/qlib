@@ -15,7 +15,7 @@ jobs:
     strategy:
       matrix:
         # os: [windows-latest, ubuntu-24.04, ubuntu-22.04, macos-13, macos-14, macos-15]
-        os: [macos-13]
+        os: [macos-14]
         # In github action, using python 3.7, pip install will not match the latest version of the package.
         # Also, python 3.7 is no longer supported from macos-14, and will be phased out from macos-13 in the near future.
         # All things considered, we have removed python 3.7.
@@ -97,9 +97,10 @@ jobs:
         HOMEBREW_NO_AUTO_UPDATE=1 brew install lightgbm
         # FIX MacOS error: Segmentation fault
         # reference: https://github.com/microsoft/LightGBM/issues/4229
-        wget https://raw.githubusercontent.com/Homebrew/homebrew-core/fb8323f2b170bd4ae97e1bac9bf3e2983af3fdb0/Formula/libomp.rb
-        brew unlink libomp
-        brew install libomp.rb
+        brew reinstall libomp
+        # wget https://raw.githubusercontent.com/Homebrew/homebrew-core/fb8323f2b170bd4ae97e1bac9bf3e2983af3fdb0/Formula/libomp.rb
+        # brew unlink libomp
+        # brew install libomp.rb
 
     - name: Check Qlib ipynb with nbconvert
       run: |
