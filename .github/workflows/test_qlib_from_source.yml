@@ -97,11 +97,13 @@ jobs:
         # python -m pip install lightgbm
         # brew uninstall --ignore-dependencies libomp || true
         # conda install -y -c conda-forge lightgbm
-        export OMP_NUM_THREADS=1
-        export MKL_NUM_THREADS=1
-        export NUMEXPR_NUM_THREADS=1
-        export OPENBLAS_NUM_THREADS=1
-        export VECLIB_MAXIMUM_THREADS=1
+      # env:
+      #   OMP_NUM_THREADS: 1
+      #   MKL_NUM_THREADS: 1
+      #   NUMEXPR_NUM_THREADS: 1
+      #   OPENBLAS_NUM_THREADS: 1
+      #   VECLIB_MAXIMUM_THREADS: 1
+      #   PYTORCH_ENABLE_MPS_FALLBACK: 1
 
         # /bin/bash -c "$(curl -fsSL https://github.com/SunsetWolf/qlib_dataset/releases/download/maocs_lightgbm/install.sh)"
         # /bin/bash -c "$(curl -fsSL https://github.com/SunsetWolf/qlib_dataset/releases/download/maocs_lightgbm/brew_install.sh)"
@@ -127,7 +129,23 @@ jobs:
     #     python -m pip install numba
     #     python qlib/cli/run.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
 
-    - name: Unit tests with Pytest
+    - name: Unit tests with Pytest (MacOS)
+      if: ${{ matrix.os == 'macos-13' || matrix.os == 'macos-14' || matrix.os == 'macos-15' }}
+      uses: nick-fields/retry@v2
+      with:
+        timeout_minutes: 60
+        max_attempts: 3
+        command: |
+          export OMP_NUM_THREADS=1
+          export MKL_NUM_THREADS=1
+          export NUMEXPR_NUM_THREADS=1
+          export OPENBLAS_NUM_THREADS=1
+          export VECLIB_MAXIMUM_THREADS=1
+          cd tests
+          python -m pytest . -m "not slow" --durations=0
+
+    - name: Unit tests with Pytest (Ubuntu and Windows)
+      if: ${{ matrix.os != 'macos-13' && matrix.os != 'macos-14' && matrix.os != 'macos-15' }}
       uses: nick-fields/retry@v2
       with:
         timeout_minutes: 60
