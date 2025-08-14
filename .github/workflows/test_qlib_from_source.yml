@@ -14,8 +14,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        # os: [windows-latest, ubuntu-24.04, ubuntu-22.04, macos-13, macos-14, macos-15]
-        os: [macos-13, macos-14, macos-15]
+        os: [windows-latest, ubuntu-24.04, ubuntu-22.04, macos-13, macos-14, macos-15]
         # In github action, using python 3.7, pip install will not match the latest version of the package.
         # Also, python 3.7 is no longer supported from macos-14, and will be phased out from macos-13 in the near future.
         # All things considered, we have removed python 3.7.
@@ -53,81 +52,52 @@ jobs:
       run: |
         make dev
 
-    # - name: Lint with Black
-    #   run: |
-    #     make black
+    - name: Lint with Black
+      run: |
+        make black
 
-    # - name: Make html with sphinx
-    #   # Since read the docs builds on ubuntu 22.04, we only need to test that the build passes on ubuntu 22.04.
-    #   if: ${{ matrix.os == 'ubuntu-22.04' }}
-    #   run: |
-    #     make docs-gen
+    - name: Make html with sphinx
+      # Since read the docs builds on ubuntu 22.04, we only need to test that the build passes on ubuntu 22.04.
+      if: ${{ matrix.os == 'ubuntu-22.04' }}
+      run: |
+        make docs-gen
 
-    # - name: Check Qlib with pylint
-    #   run: |
-    #     make pylint
+    - name: Check Qlib with pylint
+      run: |
+        make pylint
 
-    # - name: Check Qlib with flake8
-    #   run: |
-    #     make flake8
+    - name: Check Qlib with flake8
+      run: |
+        make flake8
 
-    # - name: Check Qlib with mypy
-    #   run: |
-    #     make mypy
+    - name: Check Qlib with mypy
+      run: |
+        make mypy
     
-    # - name: Check Qlib ipynb with nbqa
-    #   run: |
-    #     make nbqa
+    - name: Check Qlib ipynb with nbqa
+      run: |
+        make nbqa
 
     - name: Test data downloads
       run: |
         python scripts/get_data.py qlib_data --name qlib_data_simple --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
         python scripts/get_data.py download_data --file_name rl_data.zip --target_dir tests/.data/rl
 
-    # install.sh file contents from: https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh
-    # brew_install.sh file contents from: https://raw.githubusercontent.com/Microsoft/qlib/main/.github/brew_install.sh
     - name: Install Lightgbm for MacOS
       if: ${{ matrix.os == 'macos-13' || matrix.os == 'macos-14' || matrix.os == 'macos-15' }}
       run: |
         brew update
         brew install libomp || brew reinstall libomp
-        # export CXX=g++
-        # export CC=gcc
         python -m pip install --no-binary=:all: lightgbm
-        # python -m pip install lightgbm
-        # brew uninstall --ignore-dependencies libomp || true
-        # conda install -y -c conda-forge lightgbm
-      # env:
-      #   OMP_NUM_THREADS: 1
-      #   MKL_NUM_THREADS: 1
-      #   NUMEXPR_NUM_THREADS: 1
-      #   OPENBLAS_NUM_THREADS: 1
-      #   VECLIB_MAXIMUM_THREADS: 1
-      #   PYTORCH_ENABLE_MPS_FALLBACK: 1
 
-        # /bin/bash -c "$(curl -fsSL https://github.com/SunsetWolf/qlib_dataset/releases/download/maocs_lightgbm/install.sh)"
-        # /bin/bash -c "$(curl -fsSL https://github.com/SunsetWolf/qlib_dataset/releases/download/maocs_lightgbm/brew_install.sh)"
-        # HOMEBREW_NO_AUTO_UPDATE=1 brew install lightgbm
-        
-        # FIX MacOS error: Segmentation fault
-        # reference: https://github.com/microsoft/LightGBM/issues/4229
-        
-        # wget https://raw.githubusercontent.com/Homebrew/homebrew-core/fb8323f2b170bd4ae97e1bac9bf3e2983af3fdb0/Formula/libomp.rb
-        # brew unlink libomp
-        # brew install libomp.rb
+    - name: Check Qlib ipynb with nbconvert
+      run: |
+        make nbconvert
 
-        # brew tap-new local/tap
-        # brew extract --version=11.1.0 libomp local/tap
-        # brew install local/tap/libomp@11.1.0
-
-    # - name: Check Qlib ipynb with nbconvert
-    #   run: |
-    #     make nbconvert
-
-    # - name: Test workflow by config (install from source)
-    #   run: |
-    #     python -m pip install numba
-    #     python qlib/cli/run.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
+    - name: Test workflow by config (install from source)
+      run: |
+        python -m pip install numba
+        python qlib/cli/run.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
 
     - name: Unit tests with Pytest (MacOS)
       if: ${{ matrix.os == 'macos-13' || matrix.os == 'macos-14' || matrix.os == 'macos-15' }}
