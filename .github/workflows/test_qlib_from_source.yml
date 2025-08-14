@@ -106,11 +106,12 @@ jobs:
         timeout_minutes: 60
         max_attempts: 3
         command: |
-          export OMP_NUM_THREADS=1
-          export MKL_NUM_THREADS=1
-          export NUMEXPR_NUM_THREADS=1
-          export OPENBLAS_NUM_THREADS=1
-          export VECLIB_MAXIMUM_THREADS=1
+          # Limit the number of threads in various libraries to prevent Segmentation faults caused by OpenMP multithreading conflicts under macOS.
+          export OMP_NUM_THREADS=1  # Limit the number of OpenMP threads
+          export MKL_NUM_THREADS=1  # Limit the number of Intel MKL threads
+          export NUMEXPR_NUM_THREADS=1  # Limit the number of NumExpr threads
+          export OPENBLAS_NUM_THREADS=1  # Limit the number of OpenBLAS threads
+          export VECLIB_MAXIMUM_THREADS=1  # Limit the number of macOS Accelerate/vecLib threads
           cd tests
           python -m pytest . -m "not slow" --durations=0
 
