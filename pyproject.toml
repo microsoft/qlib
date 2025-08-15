@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools", "cython", "numpy>=1.24.0"]
+requires = ["setuptools", "setuptools-scm", "cython", "numpy>=1.24.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -22,6 +22,7 @@ dynamic = ["version"]
 description = "A Quantitative-research Platform"
 requires-python = ">=3.8.0"
 readme = {file = "README.md", content-type = "text/markdown"}
+license = { text = "MIT" }
 
 dependencies = [
   "pyyaml",
@@ -49,6 +50,7 @@ dependencies = [
   "nbconvert",
   "pyarrow",
   "pydantic-settings",
+  "setuptools-scm",
 ]
 
 [project.optional-dependencies]
@@ -108,3 +110,7 @@ license-files = []
 
 [project.scripts]
 qrun = "qlib.cli.run:run"
+
+[tool.setuptools_scm]
+local_scheme = "no-local-version"
+version_scheme = "guess-next-dev"
