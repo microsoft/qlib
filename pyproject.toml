@@ -96,12 +96,12 @@ analysis = [
   "plotly",
   "statsmodels",
 ]
-license-files = []
 
 [tool.setuptools]
 packages = [
   "qlib",
 ]
+license-files = []
 
 [project.scripts]
 qrun = "qlib.cli.run:run"
