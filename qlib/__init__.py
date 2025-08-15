@@ -1,16 +1,20 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+import subprocess
 from pathlib import Path
 
-__version__ = "0.9.7"
+latest_version = subprocess.check_output(["git", "describe", "--tags", "--abbrev=0"], text=True).strip()
+__version__ = latest_version
 __version__bak = __version__  # This version is backup for QlibConfig.reset_qlib_version
-import os
-import re
-from typing import Union
-from ruamel.yaml import YAML
 import logging
+import os
 import platform
+import re
 import subprocess
+from typing import Union
+
+from ruamel.yaml import YAML
+
 from .log import get_module_logger
 
 

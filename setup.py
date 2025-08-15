@@ -1,6 +1,8 @@
-from setuptools import setup, Extension
-import numpy
 import os
+
+import numpy
+from setuptools import Extension, setup
+from setuptools_scm import get_version
 
 
 def read(rel_path: str) -> str:
@@ -9,17 +11,9 @@ def read(rel_path: str) -> str:
         return fp.read()
 
 
-def get_version(rel_path: str) -> str:
-    for line in read(rel_path).splitlines():
-        if line.startswith("__version__"):
-            delim = '"' if '"' in line else "'"
-            return line.split(delim)[1]
-    raise RuntimeError("Unable to find version string.")
-
-
 NUMPY_INCLUDE = numpy.get_include()
 
-VERSION = get_version("qlib/__init__.py")
+VERSION = get_version().split("+")[0]
 
 
 setup(
