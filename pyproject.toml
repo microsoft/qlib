@@ -96,6 +96,7 @@ analysis = [
   "plotly",
   "statsmodels",
 ]
+license-files = []
 
 [tool.setuptools]
 packages = [
