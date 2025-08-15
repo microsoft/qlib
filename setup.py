@@ -2,7 +2,8 @@ import os
 
 import numpy
 from setuptools import Extension, setup
-from setuptools_scm import get_version
+
+import qlib
 
 
 def read(rel_path: str) -> str:
@@ -13,7 +14,7 @@ def read(rel_path: str) -> str:
 
 NUMPY_INCLUDE = numpy.get_include()
 
-VERSION = get_version().split("+")[0]
+VERSION = qlib.__version__
 
 
 setup(
