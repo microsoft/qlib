@@ -2,9 +2,9 @@
 # Licensed under the MIT License.
 from pathlib import Path
 
-from setup import VERSION
+from setuptools_scm import get_version
 
-__version__ = VERSION
+__version__ = get_version().split("+")[0]
 __version__bak = __version__  # This version is backup for QlibConfig.reset_qlib_version
 import logging
 import os
