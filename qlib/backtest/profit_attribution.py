@@ -281,13 +281,13 @@ def brinson_pa(
 
     stock_group_field = stock_df[group_field].unstack().T
     # FIXME: some attributes of some suspend stock is NAN.
-    stock_group_field = stock_group_field.fillna(method="ffill")
+    stock_group_field = stock_group_field.ffill()
     stock_group_field = stock_group_field.loc[start_date:end_date]
 
     stock_group = get_stock_group(stock_group_field, bench_stock_weight, group_method, group_n)
 
     deal_price_df = stock_df["deal_price"].unstack().T
-    deal_price_df = deal_price_df.fillna(method="ffill")
+    deal_price_df = deal_price_df.ffill()
 
     # NOTE:
     # The return will be slightly different from the of the return in the report.

@@ -222,7 +222,7 @@ def get_valid_value(series, last=True):
     Nan | float
         the first/last valid value
     """
-    return series.fillna(method="ffill").iloc[-1] if last else series.fillna(method="bfill").iloc[0]
+    return series.ffill().iloc[-1] if last else series.bfill().iloc[0]
 
 
 def _ts_data_valid(ts_feature, last=False):

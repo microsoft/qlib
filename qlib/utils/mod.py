@@ -161,7 +161,6 @@ def init_instance_by_config(
             # path like 'file:///<path to pickle file>/obj.pkl'
             pr = urlparse(config)
             if pr.scheme == "file":
-
                 # To enable relative path like file://data/a/b/c.pkl.  pr.netloc will be data
                 path = pr.path
                 if pr.netloc != "":
