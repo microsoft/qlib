@@ -33,7 +33,7 @@ def parse_position(position: dict = None) -> pd.DataFrame:
 
     position_weight_df = get_stock_weight_df(position)
     # If the day does not exist, use the last weight
-    position_weight_df.fillna(method="ffill", inplace=True)
+    position_weight_df.ffill(inplace=True)
 
     previous_data = {"date": None, "code_list": []}
 

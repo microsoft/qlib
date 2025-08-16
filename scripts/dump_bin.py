@@ -180,7 +180,9 @@ class DumpDataBase:
         return (
             self._include_fields
             if self._include_fields
-            else set(df_columns) - set(self._exclude_fields) if self._exclude_fields else df_columns
+            else set(df_columns) - set(self._exclude_fields)
+            if self._exclude_fields
+            else df_columns
         )
 
     @staticmethod
