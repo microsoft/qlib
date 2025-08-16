@@ -91,6 +91,8 @@ package = [
 test = [
   "yahooquery",
   "baostock",
+  "aiohttp>=3.11.15",
+  "akshare",
 ]
 analysis = [
   "plotly",
