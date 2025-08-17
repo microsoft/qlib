@@ -169,5 +169,3 @@ if __name__ == "__main__":
             pio.write_html(fig, str(figs_dir / f"risk_graph_{idx}.html"), auto_open=False, include_plotlyjs="cdn")
 
         print(f"Saved figures to: {figs_dir}")
-
-

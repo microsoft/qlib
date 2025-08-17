@@ -572,6 +572,7 @@ class LongShortTopKStrategy(BaseSignalStrategy):
 
         # Helper functions copied from TopkDropoutStrategy semantics
         if self.only_tradable:
+
             def get_first_n(li, n, reverse=False):
                 cur_n = 0
                 res = []
@@ -590,12 +591,15 @@ class LongShortTopKStrategy(BaseSignalStrategy):
 
             def filter_stock(li):
                 return [
-                    si for si in li
+                    si
+                    for si in li
                     if self.trade_exchange.is_stock_tradable(
                         stock_id=si, start_time=trade_start_time, end_time=trade_end_time
                     )
                 ]
+
         else:
+
             def get_first_n(li, n):
                 return list(li)[:n]
 
@@ -606,6 +610,7 @@ class LongShortTopKStrategy(BaseSignalStrategy):
                 return li
 
         import copy
+
         current_temp: Position = copy.deepcopy(self.trade_position)
 
         # Build current long/short lists by sign of amount
@@ -631,7 +636,9 @@ class LongShortTopKStrategy(BaseSignalStrategy):
             topk_candi = get_first_n(pred_score.sort_values(ascending=False).index, self.topk_long)
             candi = list(filter(lambda x: x not in last_long, topk_candi))
             try:
-                today_long_candi = list(np.random.choice(candi, n_to_add_long, replace=False)) if n_to_add_long > 0 else []
+                today_long_candi = (
+                    list(np.random.choice(candi, n_to_add_long, replace=False)) if n_to_add_long > 0 else []
+                )
             except ValueError:
                 today_long_candi = candi
         else:
@@ -661,7 +668,9 @@ class LongShortTopKStrategy(BaseSignalStrategy):
             topk_candi = get_first_n(pred_score.sort_values(ascending=True).index, self.topk_short)
             candi = list(filter(lambda x: x not in last_short, topk_candi))
             try:
-                today_short_candi = list(np.random.choice(candi, n_to_add_short, replace=False)) if n_to_add_short > 0 else []
+                today_short_candi = (
+                    list(np.random.choice(candi, n_to_add_short, replace=False)) if n_to_add_short > 0 else []
+                )
             except ValueError:
                 today_short_candi = candi
         else:
@@ -694,12 +703,20 @@ class LongShortTopKStrategy(BaseSignalStrategy):
         # apply hold_thresh when removing
         actual_sold_longs = set()
         for code in last_long:
-            if code in sell_long and current_temp.get_stock_count(code, bar=time_per_step) >= self.hold_thresh and can_trade(code, OrderDir.SELL):
+            if (
+                code in sell_long
+                and current_temp.get_stock_count(code, bar=time_per_step) >= self.hold_thresh
+                and can_trade(code, OrderDir.SELL)
+            ):
                 actual_sold_longs.add(code)
 
         actual_covered_shorts = set()
         for code in last_short:
-            if code in cover_short and current_temp.get_stock_count(code, bar=time_per_step) >= self.hold_thresh and can_trade(code, OrderDir.BUY):
+            if (
+                code in cover_short
+                and current_temp.get_stock_count(code, bar=time_per_step) >= self.hold_thresh
+                and can_trade(code, OrderDir.BUY)
+            ):
                 actual_covered_shorts.add(code)
 
         buy_long = [c for c in buy_long if can_trade(c, OrderDir.BUY)]
