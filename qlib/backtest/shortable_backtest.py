@@ -11,11 +11,11 @@ import pandas as pd
 import numpy as np
 import math
 from qlib.backtest.executor import SimulatorExecutor
+from qlib.backtest.utils import CommonInfrastructure
 from qlib.backtest.decision import Order, OrderDir, TradeDecisionWO
-from qlib.backtest.account import Account, AccumulatedInfo
+from qlib.backtest.account import Account
 from qlib.backtest.position import Position
 from qlib.utils import init_instance_by_config
-from qlib.backtest.utils import CommonInfrastructure
 
 from .shortable_exchange import ShortableExchange
 from .shortable_position import ShortablePosition
@@ -89,19 +89,6 @@ class ShortableAccount(Account):
 
         return df, meta
 
-    # 覆盖账户变量初始化，使用 ShortablePosition 作为持仓类型
-    def init_vars(self, init_cash: float, position_dict: dict, freq: str, benchmark_config: dict) -> None:
-        # 1) 多层共享变量
-        self.init_cash = init_cash
-        # 使用 ShortablePosition 作为持仓
-        self.current_position = ShortablePosition(cash=init_cash, position_dict=position_dict)
-        self.accum_info = AccumulatedInfo()
-
-        # 2) 非共享变量
-        self.portfolio_metrics = None
-        self.hist_positions = {}
-        self.reset(freq=freq, benchmark_config=benchmark_config)
-
 class ShortableExecutor(SimulatorExecutor):
     """
     Executor that supports short selling with proper position and fee management.
@@ -116,8 +103,8 @@ class ShortableExecutor(SimulatorExecutor):
                  borrow_fee_model: Optional[BaseBorrowFeeModel] = None,
                  settle_type: str = Position.ST_NO,
                  region: str = "cn",  # 微调 #3: 区域参数化，遵循Qlib标准
-                 common_infra: CommonInfrastructure | None = None,
                  account: Optional[ShortableAccount] = None,
+                 common_infra: Optional[CommonInfrastructure] = None,
                  **kwargs):
         """
         Initialize ShortableExecutor.
@@ -150,14 +137,6 @@ class ShortableExecutor(SimulatorExecutor):
         if isinstance(trade_exchange, dict):
             trade_exchange = init_instance_by_config(trade_exchange)
         
-        # 去除 monkey-patch：优先构造 ShortableAccount 并注入 common_infra
-        if common_infra is None:
-            common_infra = CommonInfrastructure()
-        if account is None:
-            account = ShortableAccount()
-        # CommonInfrastructure uses reset_infra
-        common_infra.reset_infra(trade_account=account)
-
         super().__init__(
             time_per_step=time_per_step,
             generate_portfolio_metrics=generate_portfolio_metrics,
@@ -178,32 +157,41 @@ class ShortableExecutor(SimulatorExecutor):
         
     def reset(self, start_time=None, end_time=None, init_cash=1e6, **kwargs):
         """
-        Reset executor with ShortablePosition.
-        
-        CRITICAL: Don't recreate Account, just replace position and monkey-patch method.
+        Reset executor time window. Position adaptation is handled in reset_common_infra when account is ready.
         """
-        # CRITICAL: Must pass init_cash to parent
         super().reset(start_time=start_time, end_time=end_time, init_cash=init_cash, **kwargs)
-        
-        # 确保当前账户/持仓类型为 Shortable 系列；若不是，仅替换持仓类型并保留仓位与现金
+
+    def reset_common_infra(self, common_infra: CommonInfrastructure, copy_trade_account: bool = False) -> None:
+        """Ensure account exists first, then adapt position to ShortablePosition and monkey-patch account hooks."""
+        super().reset_common_infra(common_infra, copy_trade_account=copy_trade_account)
+        if not hasattr(self, "trade_account") or self.trade_account is None:
+            return
+        # Replace current position with ShortablePosition (preserve holdings and cash)
+        old_pos = self.trade_account.current_position
+        position_dict = {}
         try:
-            old_pos = self.trade_account.current_position
-            if not isinstance(old_pos, ShortablePosition):
-                position_dict = {}
-                if hasattr(old_pos, "get_stock_list"):
-                    for sid in old_pos.get_stock_list():
-                        position_dict[sid] = {
-                            "amount": old_pos.get_stock_amount(sid),
-                            "price": old_pos.get_stock_price(sid),
-                        }
-                pos = ShortablePosition(
-                    cash=old_pos.get_cash(include_settle=True) if hasattr(old_pos, "get_cash") else init_cash,
-                    position_dict=position_dict,
-                )
-                pos._settle_type = getattr(self, 'settle_type', Position.ST_NO)
-                self.trade_account.current_position = pos
+            if hasattr(old_pos, "get_stock_list"):
+                for sid in old_pos.get_stock_list():
+                    position_dict[sid] = {
+                        "amount": old_pos.get_stock_amount(sid),
+                        "price": old_pos.get_stock_price(sid),
+                    }
         except Exception:
-            pass
+            position_dict = {}
+
+        pos = ShortablePosition(
+            cash=old_pos.get_cash(include_settle=True) if hasattr(old_pos, "get_cash") else init_cash,
+            position_dict=position_dict,
+        )
+        pos._settle_type = getattr(self, 'settle_type', Position.ST_NO)
+        self.trade_account.current_position = pos
+        
+        # Monkey-patch: use our fixed _update_state_from_order on existing account
+        import types
+        self.trade_account._update_state_from_order = types.MethodType(
+            ShortableAccount._update_state_from_order, self.trade_account
+        )
+        # NOTE: Do not monkey-patch get_portfolio_metrics to avoid super() binding issues.
         
         # Sync aliases
         self.account = self.trade_account
@@ -411,8 +399,8 @@ class LongShortStrategy:
                  top_k: int = 30,
                  exchange: Optional = None,
                  risk_limit: Optional[Dict] = None,
-                 lot_size: Optional[int] = None,
-                 min_trade_threshold: Optional[int] = None):
+                 lot_size: Optional[int] = 100,
+                 min_trade_threshold: Optional[int] = 100):
         """
         Initialize long-short strategy.
         
@@ -437,10 +425,9 @@ class LongShortStrategy:
         self.net_exposure = net_exposure
         self.top_k = top_k
         self.exchange = exchange
-        # 为兼容 TradeDecisionWO 的访问，暴露 trade_exchange 属性
-        self.trade_exchange = exchange
-        self.lot_size = lot_size
-        self.min_trade_threshold = min_trade_threshold
+        # 允许 None，按直觉处理：None -> 无手数限制 / 无最小阈值
+        self.lot_size = 1 if lot_size is None else lot_size
+        self.min_trade_threshold = 0 if min_trade_threshold is None else min_trade_threshold
         self.risk_limit = risk_limit or {
             "max_leverage": 2.0,
             "max_position_size": 0.1,
@@ -466,20 +453,6 @@ class LongShortStrategy:
         signal_sorted = signal.sort_values(ascending=False)
         long_stocks = signal_sorted.head(self.top_k).index.tolist()
         short_stocks = signal_sorted.tail(self.top_k).index.tolist()
-
-        # 过滤不可交易标的（与 qlib Topk 策略口径对齐）
-        def _is_tradable(code: str, direction: OrderDir) -> bool:
-            try:
-                return (
-                    self.exchange is not None
-                    and self.exchange.is_stock_tradable(
-                        stock_id=code, start_time=date, end_time=date, direction=direction
-                    )
-                )
-            except Exception:
-                return True
-        long_stocks = [s for s in long_stocks if _is_tradable(s, OrderDir.BUY)]
-        short_stocks = [s for s in short_stocks if _is_tradable(s, OrderDir.SELL)]
         
         # 修复 #3: 按方向获取价格（与撮合口径一致）
         long_prices = self._get_current_prices(long_stocks, date, self.exchange, OrderDir.BUY) if long_stocks else {}
@@ -500,20 +473,14 @@ class LongShortStrategy:
         # 多头订单
         for stock in long_stocks:
             if stock in prices:
-                raw_shares = (long_weight_per_stock * equity) / prices[stock]
-                # 使用交易所的交易单位进行取整，避免与市场单位不一致
-                factor = self.exchange.get_factor(stock, date, date) if self.exchange is not None else None
-                target_shares = self.exchange.round_amount_by_trade_unit(raw_shares, factor) if self.exchange is not None else round_to_lot(raw_shares, lot=self.lot_size or 1)
+                target_shares = round_to_lot(
+                    (long_weight_per_stock * equity) / prices[stock], 
+                    lot=self.lot_size
+                )
                 current_shares = current_position.get_stock_amount(stock)
                 delta = target_shares - current_shares
                 
-                # 最小阈值：优先使用显式参数；否则用交易单位；最后退化为1
-                if self.min_trade_threshold is not None:
-                    min_thr = self.min_trade_threshold
-                else:
-                    unit = self.exchange.get_amount_of_trade_unit(factor, stock, date, date) if self.exchange is not None else None
-                    min_thr = int(unit) if (unit is not None and unit > 0) else 1
-                if abs(delta) >= min_thr:
+                if abs(delta) >= self.min_trade_threshold:  # 按配置的交易阈值
                     direction = OrderDir.BUY if delta > 0 else OrderDir.SELL
                     orders.append(Order(
                         stock_id=stock,
@@ -526,19 +493,14 @@ class LongShortStrategy:
         # 空头订单
         for stock in short_stocks:
             if stock in prices:
-                raw_shares = (short_weight_per_stock * equity) / prices[stock]  # 负值
-                factor = self.exchange.get_factor(stock, date, date) if self.exchange is not None else None
-                rounded = self.exchange.round_amount_by_trade_unit(abs(raw_shares), factor) if self.exchange is not None else abs(round_to_lot(raw_shares, lot=self.lot_size or 1))
-                target_shares = -rounded
+                target_shares = round_to_lot(
+                    (short_weight_per_stock * equity) / prices[stock],  # 负值
+                    lot=self.lot_size
+                )
                 current_shares = current_position.get_stock_amount(stock)
                 delta = target_shares - current_shares
                 
-                if self.min_trade_threshold is not None:
-                    min_thr = self.min_trade_threshold
-                else:
-                    unit = self.exchange.get_amount_of_trade_unit(factor, stock, date, date) if self.exchange is not None else None
-                    min_thr = int(unit) if (unit is not None and unit > 0) else 1
-                if abs(delta) >= min_thr:
+                if abs(delta) >= self.min_trade_threshold:
                     direction = OrderDir.BUY if delta > 0 else OrderDir.SELL
                     orders.append(Order(
                         stock_id=stock,
@@ -554,22 +516,7 @@ class LongShortStrategy:
         
         for stock in current_stocks - target_stocks:
             amount = current_position.get_stock_amount(stock)
-            # 方向与可交易性判断
-            close_dir = OrderDir.SELL if amount > 0 else OrderDir.BUY
-            if not _is_tradable(stock, close_dir):
-                continue
-            # 按配置或交易单位设定最小阈值
-            if self.min_trade_threshold is not None:
-                min_thr = self.min_trade_threshold
-            else:
-                factor = self.exchange.get_factor(stock, date, date) if self.exchange is not None else None
-                unit = (
-                    self.exchange.get_amount_of_trade_unit(factor, stock, date, date)
-                    if self.exchange is not None
-                    else None
-                )
-                min_thr = int(unit) if (unit is not None and unit > 0) else 1
-            if abs(amount) >= min_thr:
+            if abs(amount) >= self.min_trade_threshold:  # 按配置的交易阈值
                 direction = OrderDir.SELL if amount > 0 else OrderDir.BUY
                 orders.append(Order(
                     stock_id=stock,
@@ -583,14 +530,8 @@ class LongShortStrategy:
         if orders and not self._check_risk_limits(orders, current_position):
             # 如果超过风险限额，缩放订单
             orders = self._scale_orders_for_risk(orders, current_position)
-        # 适配 TradeDecisionWO: 需要传入带有 trade_calendar 的对象
-        class _OneStepCalendar:
-            def __init__(self, d: pd.Timestamp):
-                self._d = pd.Timestamp(d)
-            def get_step_time(self):
-                return self._d, self._d
-        # 将一个仅用于当前决策步的 trade_calendar 注入到自身
-        self.trade_calendar = _OneStepCalendar(date)
+        
+        # 注意：TradeDecisionWO 的第二个参数应为 strategy，对齐 Qlib 设计
         return TradeDecisionWO(orders, self)
     
     def _get_current_prices(self, stock_list, date, exchange=None, direction=None):

@@ -148,49 +148,66 @@ class ShortableExchange(Exchange):
                         cover_val = cover_amount * trade_price
                         open_val = open_amount * trade_price
                         
-                        final_cost = self._calc_cross_zero_cost_values(
-                            cover_val,
-                            open_val,
-                            total_trade_val,
-                            self.close_cost,
-                            self.open_cost,
-                        )
+                        if not total_trade_val or np.isnan(total_trade_val):
+                            cover_impact = self.impact_cost
+                            open_impact = self.impact_cost
+                        else:
+                            cover_impact = self.impact_cost * (cover_val / total_trade_val) ** 2
+                            open_impact = self.impact_cost * (open_val / total_trade_val) ** 2
+                        
+                        # Calculate costs WITHOUT min_cost, then apply min_cost ONCE
+                        cover_cost_no_min = cover_val * (self.close_cost + cover_impact)
+                        open_cost_no_min = open_val * (self.open_cost + open_impact)
+                        final_cost = max(cover_cost_no_min + open_cost_no_min, self.min_cost)
                     
                     # Final cash check after rounding with trade unit protection
                     if cash < final_val + final_cost:
-                        # Reduce by one trade unit until it fits
-                        trade_unit_amount = self._get_safe_trade_unit_amount(order)
-                        if trade_unit_amount > 0:
-                            steps = 0
-                            max_steps = 10000  # Prevent infinite loop
-                            while order.deal_amount > 0 and cash < order.deal_amount * trade_price + final_cost and steps < max_steps:
-                                order.deal_amount -= trade_unit_amount
-                                steps += 1
-                                final_val = order.deal_amount * trade_price
-                                # Recalculate cost with new amount
-                                if order.deal_amount <= abs(current_amount):
-                                    if not total_trade_val or np.isnan(total_trade_val):
-                                        final_impact = self.impact_cost
-                                    else:
-                                        final_impact = self.impact_cost * (final_val / total_trade_val) ** 2
-                                    final_cost = max(final_val * (self.close_cost + final_impact), self.min_cost)
-                                else:
-                                    cover_val = abs(current_amount) * trade_price
-                                    open_val = (order.deal_amount - abs(current_amount)) * trade_price
-                                    if not total_trade_val or np.isnan(total_trade_val):
-                                        cover_impact = self.impact_cost
-                                        open_impact = self.impact_cost
-                                    else:
-                                        cover_impact = self.impact_cost * (cover_val / total_trade_val) ** 2
-                                        open_impact = self.impact_cost * (open_val / total_trade_val) ** 2
-                                    cover_cost_no_min = cover_val * (self.close_cost + cover_impact)
-                                    open_cost_no_min = open_val * (self.open_cost + open_impact)
-                                    final_cost = max(cover_cost_no_min + open_cost_no_min, self.min_cost)
-                            if steps >= max_steps:
-                                self.logger.warning(f"Max iterations reached for order {order}, setting to 0")
-                                order.deal_amount = 0
+                        trade_unit_amount = self.get_amount_of_trade_unit(order.factor, order.stock_id, 
+                                                                           order.start_time, order.end_time)
+                        if getattr(self, "impact_cost", 0.0) == 0.0:
+                            feasible = self._compute_feasible_buy_amount_cross_zero(
+                                price=trade_price,
+                                cash=cash,
+                                cover_amount=abs(current_amount),
+                                open_cost_ratio=self.open_cost,
+                                close_cost_ratio=self.close_cost,
+                                min_cost=self.min_cost,
+                                trade_unit_amount=trade_unit_amount or 0.0,
+                            )
+                            order.deal_amount = min(order.deal_amount, feasible)
                         else:
-                            order.deal_amount = 0
+                            # Reduce by trade unit until it fits (fallback)
+                            if trade_unit_amount and trade_unit_amount > 0:
+                                steps = 0
+                                max_steps = 10000  # Prevent infinite loop
+                                while order.deal_amount > 0 and cash < order.deal_amount * trade_price + final_cost and steps < max_steps:
+                                    order.deal_amount -= trade_unit_amount
+                                    steps += 1
+                                    final_val = order.deal_amount * trade_price
+                                    # Recalculate cost with new amount
+                                    if order.deal_amount <= abs(current_amount):
+                                        if not total_trade_val or np.isnan(total_trade_val):
+                                            final_impact = self.impact_cost
+                                        else:
+                                            final_impact = self.impact_cost * (final_val / total_trade_val) ** 2
+                                        final_cost = max(final_val * (self.close_cost + final_impact), self.min_cost)
+                                    else:
+                                        cover_val = abs(current_amount) * trade_price
+                                        open_val = (order.deal_amount - abs(current_amount)) * trade_price
+                                        if not total_trade_val or np.isnan(total_trade_val):
+                                            cover_impact = self.impact_cost
+                                            open_impact = self.impact_cost
+                                        else:
+                                            cover_impact = self.impact_cost * (cover_val / total_trade_val) ** 2
+                                            open_impact = self.impact_cost * (open_val / total_trade_val) ** 2
+                                        cover_cost_no_min = cover_val * (self.close_cost + cover_impact)
+                                        open_cost_no_min = open_val * (self.open_cost + open_impact)
+                                        final_cost = max(cover_cost_no_min + open_cost_no_min, self.min_cost)
+                                if steps >= max_steps:
+                                    self.logger.warning(f"Max iterations reached for order {order}, setting to 0")
+                                    order.deal_amount = 0
+                            else:
+                                order.deal_amount = 0
                 else:
                     # No position info, just round
                     order.deal_amount = self.round_amount_by_trade_unit(order.deal_amount, order.factor)
@@ -211,17 +228,17 @@ class ShortableExchange(Exchange):
                     cover_val = cover_amount * trade_price
                     open_val = open_amount * trade_price
                     
-                    trade_cost = (
-                        self._calc_cross_zero_cost_values(
-                            cover_val,
-                            open_val,
-                            total_trade_val,
-                            self.close_cost,
-                            self.open_cost,
-                        )
-                        if trade_val > 1e-5
-                        else 0
-                    )
+                    if not total_trade_val or np.isnan(total_trade_val):
+                        cover_impact = self.impact_cost
+                        open_impact = self.impact_cost
+                    else:
+                        cover_impact = self.impact_cost * (cover_val / total_trade_val) ** 2
+                        open_impact = self.impact_cost * (open_val / total_trade_val) ** 2
+                    
+                    # Calculate costs WITHOUT min_cost, then apply min_cost ONCE
+                    cover_cost_no_min = cover_val * (self.close_cost + cover_impact)
+                    open_cost_no_min = open_val * (self.open_cost + open_impact)
+                    trade_cost = max(cover_cost_no_min + open_cost_no_min, self.min_cost) if trade_val > 1e-5 else 0
             
             else:
                 # Simple case: either pure covering short or pure opening long
@@ -267,25 +284,36 @@ class ShortableExchange(Exchange):
                     final_cost = max(final_val * (cost_ratio + final_impact), self.min_cost)
                     
                     if cash < final_val + final_cost:
-                        # Reduce by trade units until it fits
-                        trade_unit_amount = self._get_safe_trade_unit_amount(order)
-                        if trade_unit_amount > 0:
-                            steps = 0
-                            max_steps = 10000
-                            while order.deal_amount > 0 and cash < order.deal_amount * trade_price + final_cost and steps < max_steps:
-                                order.deal_amount -= trade_unit_amount
-                                steps += 1
-                                final_val = order.deal_amount * trade_price
-                                if not total_trade_val or np.isnan(total_trade_val):
-                                    final_impact = self.impact_cost
-                                else:
-                                    final_impact = self.impact_cost * (final_val / total_trade_val) ** 2
-                                final_cost = max(final_val * (cost_ratio + final_impact), self.min_cost)
-                            if steps >= max_steps:
-                                self.logger.warning(f"Max iterations reached for order {order}, setting to 0")
-                                order.deal_amount = 0
+                        trade_unit_amount = self.get_amount_of_trade_unit(order.factor, order.stock_id,
+                                                                          order.start_time, order.end_time)
+                        if getattr(self, "impact_cost", 0.0) == 0.0:
+                            feasible = self._compute_feasible_buy_amount(
+                                price=trade_price,
+                                cash=cash,
+                                cost_ratio=cost_ratio,
+                                min_cost=self.min_cost,
+                                trade_unit_amount=trade_unit_amount or 0.0,
+                            )
+                            order.deal_amount = min(order.deal_amount, feasible)
                         else:
-                            order.deal_amount = 0
+                            # Reduce by trade units until it fits
+                            if trade_unit_amount and trade_unit_amount > 0:
+                                steps = 0
+                                max_steps = 10000
+                                while order.deal_amount > 0 and cash < order.deal_amount * trade_price + final_cost and steps < max_steps:
+                                    order.deal_amount -= trade_unit_amount
+                                    steps += 1
+                                    final_val = order.deal_amount * trade_price
+                                    if not total_trade_val or np.isnan(total_trade_val):
+                                        final_impact = self.impact_cost
+                                    else:
+                                        final_impact = self.impact_cost * (final_val / total_trade_val) ** 2
+                                    final_cost = max(final_val * (cost_ratio + final_impact), self.min_cost)
+                                if steps >= max_steps:
+                                    self.logger.warning(f"Max iterations reached for order {order}, setting to 0")
+                                    order.deal_amount = 0
+                            else:
+                                order.deal_amount = 0
                 else:
                     # Unknown amount of money - just round the amount
                     order.deal_amount = self.round_amount_by_trade_unit(order.deal_amount, order.factor)
@@ -314,13 +342,19 @@ class ShortableExchange(Exchange):
                     total_val = close_val + open_val
                     
                     # Calculate impact costs for both legs (pre-rounding)
-                    total_cost = self._calc_cross_zero_cost_values(
-                        close_val,
-                        open_val,
-                        total_trade_val,
-                        self.close_cost,
-                        self.open_cost,
-                    )
+                    if not total_trade_val or np.isnan(total_trade_val):
+                        close_impact = self.impact_cost
+                        open_impact = self.impact_cost
+                    else:
+                        close_impact = self.impact_cost * (close_val / total_trade_val) ** 2
+                        open_impact = self.impact_cost * (open_val / total_trade_val) ** 2
+                    
+                    # Calculate costs WITHOUT min_cost for each leg
+                    close_cost_no_min = close_val * (self.close_cost + close_impact)
+                    open_cost_no_min = open_val * (self.open_cost + open_impact)
+                    
+                    # Apply min_cost ONCE for the total
+                    total_cost = max(close_cost_no_min + open_cost_no_min, self.min_cost)
                     
                     # Check if we have enough cash to pay transaction costs
                     # We receive cash from the sale but still need to pay costs
@@ -361,19 +395,21 @@ class ShortableExchange(Exchange):
                             # Still crossing zero
                             close_val = current_amount * trade_price
                             open_val = (order.deal_amount - current_amount) * trade_price
-                            final_cost = self._calc_cross_zero_cost_values(
-                                close_val,
-                                open_val,
-                                total_trade_val,
-                                self.close_cost,
-                                self.open_cost,
-                            )
+                            if not total_trade_val or np.isnan(total_trade_val):
+                                close_impact = self.impact_cost
+                                open_impact = self.impact_cost
+                            else:
+                                close_impact = self.impact_cost * (close_val / total_trade_val) ** 2
+                                open_impact = self.impact_cost * (open_val / total_trade_val) ** 2
+                            close_cost_no_min = close_val * (self.close_cost + close_impact)
+                            open_cost_no_min = open_val * (self.open_cost + open_impact)
+                            final_cost = max(close_cost_no_min + open_cost_no_min, self.min_cost)
                         
                         # Final check and potential reduction
                         if cash + final_val < final_cost:
-                            # Try to reduce by trade units
-                            trade_unit_amount = self._get_safe_trade_unit_amount(order)
-                            if trade_unit_amount > 0:
+                            trade_unit_amount = self.get_amount_of_trade_unit(order.factor, order.stock_id,
+                                                                              order.start_time, order.end_time)
+                            if trade_unit_amount and trade_unit_amount > 0:
                                 steps = 0
                                 max_steps = 10000
                                 while order.deal_amount > 0 and cash + order.deal_amount * trade_price < final_cost and steps < max_steps:
@@ -424,17 +460,17 @@ class ShortableExchange(Exchange):
                     close_val = current_amount * trade_price
                     open_val = (order.deal_amount - current_amount) * trade_price
                     
-                    trade_cost = (
-                        self._calc_cross_zero_cost_values(
-                            close_val,
-                            open_val,
-                            total_trade_val,
-                            self.close_cost,
-                            self.open_cost,
-                        )
-                        if trade_val > 1e-5
-                        else 0
-                    )
+                    if not total_trade_val or np.isnan(total_trade_val):
+                        close_impact = self.impact_cost
+                        open_impact = self.impact_cost
+                    else:
+                        close_impact = self.impact_cost * (close_val / total_trade_val) ** 2
+                        open_impact = self.impact_cost * (open_val / total_trade_val) ** 2
+                    
+                    # Calculate costs WITHOUT min_cost, then apply min_cost ONCE
+                    close_cost_no_min = close_val * (self.close_cost + close_impact)
+                    open_cost_no_min = open_val * (self.open_cost + open_impact)
+                    trade_cost = max(close_cost_no_min + open_cost_no_min, self.min_cost) if trade_val > 1e-5 else 0
             
             else:
                 # Simple case: either pure closing long or pure opening short
@@ -488,39 +524,105 @@ class ShortableExchange(Exchange):
         # CRITICAL: Return in correct order (trade_price, trade_val, trade_cost)
         return trade_price, trade_val, trade_cost
 
-    def _get_safe_trade_unit_amount(self, order: Order) -> float:
-        """获取安全的交易单位数量，避免无限循环或无意义的极小步长。
-        返回 <=0 表示不可用。
+    # ------------------------
+    # Helpers to compute feasible amounts without slow loops
+    # ------------------------
+    def _compute_feasible_buy_value_linear_min_cost(self, cash: float, cost_ratio: float, min_cost: float) -> float:
         """
-        try:
-            tua = self.get_amount_of_trade_unit(order.factor, order.stock_id, order.start_time, order.end_time)
-            if tua is None:
-                return 0.0
-            tua = float(tua)
-            if not np.isfinite(tua) or tua <= 0 or tua < 1e-12:
-                return 0.0
-            return tua
-        except Exception:
+        Compute max trade value for BUY given cash, cost ratio and min_cost (impact_cost assumed 0 here).
+        Returns value in currency (not amount).
+        """
+        if cash <= 0:
+            return 0.0
+        # No transaction cost
+        if cost_ratio <= 0 and min_cost <= 0:
+            return cash
+        # If only min_cost
+        if cost_ratio <= 0 and min_cost > 0:
+            return max(0.0, cash - min_cost)
+        # cost_ratio > 0
+        threshold_val = min_cost / cost_ratio if min_cost > 0 else 0.0
+        # Candidate in linear region
+        linear_val = cash / (1.0 + cost_ratio)
+        # Candidate in min_cost region
+        min_region_val = max(0.0, min(cash - min_cost, threshold_val)) if min_cost > 0 else 0.0
+        # Check linear region validity: must be >= threshold
+        linear_valid = linear_val >= threshold_val
+        if linear_valid:
+            return max(0.0, linear_val)
+        return max(0.0, min_region_val)
+
+    def _compute_feasible_buy_amount(self, price: float, cash: float, cost_ratio: float, min_cost: float,
+                                     trade_unit_amount: float) -> float:
+        """Return feasible BUY amount honoring trade unit and min_cost (impact_cost assumed 0)."""
+        if price <= 0 or cash <= 0:
+            return 0.0
+        val = self._compute_feasible_buy_value_linear_min_cost(cash, cost_ratio, min_cost)
+        amount = val / price
+        if trade_unit_amount and trade_unit_amount > 0:
+            amount = (amount // trade_unit_amount) * trade_unit_amount
+        return max(0.0, amount)
+
+    def _compute_feasible_buy_amount_cross_zero(self, price: float, cash: float,
+                                                cover_amount: float,
+                                                open_cost_ratio: float,
+                                                close_cost_ratio: float,
+                                                min_cost: float,
+                                                trade_unit_amount: float) -> float:
+        """
+        For BUY crossing zero: cover a fixed short (cover_amount) then optionally open long.
+        Compute the max total amount (cover + open) that fits the cash constraint with min_cost applied once.
+        Assumes impact_cost == 0 for closed-form computation.
+        """
+        if price <= 0 or cash <= 0:
+            return 0.0
+        cover_val = cover_amount * price
+        cover_cost_lin = cover_val * close_cost_ratio
+        # Case when even covering cost cannot be paid -> 0
+        if cash <= min(cover_val + min_cost, cover_val + cover_cost_lin):
+            # If can't afford to cover full, try partial cover constrained by min_cost/linear
+            # Under min_cost regime, any positive trade needs paying min_cost, which may be impossible; set 0
+            # Under linear regime, solve for max cover value only:
+            if min_cost <= cover_cost_lin and close_cost_ratio > 0:
+                # linear regime for cover only
+                max_cover_val = max(0.0, cash - cover_cost_lin) / (1.0)  # since inequality cash >= cover_val + cover_cost_lin
+                max_cover_amount = max_cover_val / price
+                if trade_unit_amount and trade_unit_amount > 0:
+                    max_cover_amount = (max_cover_amount // trade_unit_amount) * trade_unit_amount
+                return max(0.0, min(cover_amount, max_cover_amount))
             return 0.0
 
-    def _calc_cross_zero_cost_values(
-        self,
-        close_val: float,
-        open_val: float,
-        total_trade_val: Optional[float],
-        close_cost_ratio: float,
-        open_cost_ratio: float,
-    ) -> float:
-        """合并计算跨零两条腿的交易成本，并仅计一次 min_cost。"""
-        if not total_trade_val or np.isnan(total_trade_val) or total_trade_val <= 0:
-            close_impact = self.impact_cost
-            open_impact = self.impact_cost
+        # We can cover; now compute max open value
+        # Two regimes depending on min_cost vs linear total cost
+        # Total cost = max(cover_cost_lin + open_val*open_cost_ratio, min_cost)
+        # Regime boundary at open_val_threshold where cover_cost_lin + open_val*open_cost_ratio == min_cost
+        if open_cost_ratio <= 0:
+            # No open cost; cost is either min_cost or cover_cost_lin
+            if min_cost > cover_cost_lin:
+                open_val_max = max(0.0, cash - cover_val - min_cost)
+            else:
+                open_val_max = max(0.0, cash - cover_val - cover_cost_lin)
         else:
-            close_impact = self.impact_cost * (close_val / total_trade_val) ** 2
-            open_impact = self.impact_cost * (open_val / total_trade_val) ** 2
-        close_cost_no_min = close_val * (close_cost_ratio + close_impact)
-        open_cost_no_min = open_val * (open_cost_ratio + open_impact)
-        return max(close_cost_no_min + open_cost_no_min, self.min_cost)
+            threshold_open_val = max(0.0, (min_cost - cover_cost_lin) / open_cost_ratio) if min_cost > cover_cost_lin else 0.0
+            # Candidate in min_cost regime
+            min_region_val = max(0.0, cash - cover_val - min_cost)
+            # Candidate in linear regime
+            linear_val = max(0.0, (cash - cover_val - cover_cost_lin) / (1.0 + open_cost_ratio))
+            # Choose regime consistently
+            if min_cost <= cover_cost_lin:
+                # Always linear
+                open_val_max = linear_val
+            elif min_region_val <= threshold_open_val:
+                open_val_max = min_region_val
+            else:
+                open_val_max = linear_val
+
+        # Round by trade unit
+        open_amount = open_val_max / price
+        if trade_unit_amount and trade_unit_amount > 0:
+            open_amount = (open_amount // trade_unit_amount) * trade_unit_amount
+        total_amount = cover_amount + max(0.0, open_amount)
+        return max(0.0, total_amount)
     
     def generate_amount_position_from_weight_position(
         self,

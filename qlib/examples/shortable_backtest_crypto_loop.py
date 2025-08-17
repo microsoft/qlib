@@ -4,9 +4,10 @@ import qlib
 from qlib.data import D
 from qlib.constant import REG_CRYPTO
 
-from qlib.backtest.shortable_backtest import ShortableExecutor, LongShortStrategy, ShortableAccount
+from qlib.backtest.shortable_backtest import ShortableExecutor, ShortableAccount
 from qlib.backtest.shortable_exchange import ShortableExchange
 from qlib.backtest.decision import OrderDir
+from qlib.contrib.strategy.signal_strategy import LongShortTopKStrategy
 
 
 def main():
@@ -49,32 +50,35 @@ def main():
     )
     exe.reset(start_time=start, end_time=end)
 
-    # Strategy
-    strat = LongShortStrategy(gross_leverage=1.0, net_exposure=0.0, top_k=3, exchange=ex,
-                              lot_size=None, min_trade_threshold=None)
+    # Precompute momentum signal for the whole period (shift=1 used by strategy)
+    feat = D.features(codes, ["$close"], start, end, freq="day", disk_cache=True)
+    if feat is None or feat.empty:
+        print("No features to build signal.")
+        return
+    feat = feat.sort_index()
+    grp = feat.groupby("instrument")["$close"]
+    prev_close = grp.shift(1)
+    mom = (feat["$close"] / prev_close - 1.0).rename("score")
+    # Use MultiIndex Series (instrument, datetime)
+    signal_series = mom.dropna()
 
-    # Drive by executor calendar to ensure alignment
+    # Strategy (TopK-aligned, long-short)
+    strat = LongShortTopKStrategy(
+        topk_long=3,
+        topk_short=3,
+        n_drop_long=1,
+        n_drop_short=1,
+        only_tradable=False,
+        forbid_all_trade_at_limit=True,
+        signal=signal_series,
+        trade_exchange=ex,
+    )
+    # Bind strategy infra to executor
+    strat.reset(level_infra=exe.get_level_infra(), common_infra=exe.common_infra)
+
+    # Drive by executor calendar
     while not exe.finished():
-        d, _ = exe.trade_calendar.get_step_time()
-        # Build simple momentum signal (last/prev - 1); fallback to last close demean
-        feat = D.features(codes, ["$close"], d - pd.Timedelta(days=10), d, freq="day", disk_cache=True)
-        if feat is None or feat.empty:
-            td = strat.generate_trade_decision(pd.Series(dtype=float), exe.position, d)
-            exe.execute(td)
-            continue
-        g = feat.groupby("instrument")["$close"]
-        last = g.last()
-        # robust prev: each group iloc[-2]
-        try:
-            prev = g.apply(lambda s: s.iloc[-2])
-            sig = (last / prev - 1.0).dropna()
-        except Exception:
-            sig = pd.Series(dtype=float)
-        if sig.empty:
-            last = last.dropna()
-            sig = (last - last.mean()) if not last.empty else pd.Series(dtype=float)
-
-        td = strat.generate_trade_decision(sig, exe.position, d)
+        td = strat.generate_trade_decision()
         exe.execute(td)
 
     # Output metrics
