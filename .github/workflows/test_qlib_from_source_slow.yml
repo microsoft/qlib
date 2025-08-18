@@ -39,8 +39,6 @@ jobs:
       run: |
         python scripts/get_data.py qlib_data --name qlib_data_simple --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
 
-    # install.sh file contents from: https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh
-    # brew_install.sh file contents from: https://raw.githubusercontent.com/Microsoft/qlib/main/.github/brew_install.sh
     - name: Install Lightgbm for MacOS
       if: ${{ matrix.os == 'macos-14' || matrix.os == 'macos-15' }}
       run: |

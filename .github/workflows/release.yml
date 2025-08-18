@@ -67,13 +67,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest, macos-13, macos-latest]
+        # After testing, the whl files of pyqlib built by macos-14 and macos-15 in python environments of 3.8, 3.9, 3.10, 3.11, 3.12,
+        # the filenames are exactly duplicated, which will result in the duplicated whl files not being able to be uploaded to pypi,
+        # so we chose to just keep the latest macos-latest. macos-latest currently points to macos-15.
+        # Also, macos-13 will stop being supported on 2025-11-14.
+        # Refs: https://github.blog/changelog/2025-07-11-upcoming-changes-to-macos-hosted-runners-macos-latest-migration-and-xcode-support-policy-updates/
+        os: [windows-latest, macos-latest]
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
-        exclude:
-          - os: macos-13
-            python-version: "3.11"
-          - os: macos-13
-            python-version: "3.12"
 
     steps:
       - uses: actions/checkout@v4
