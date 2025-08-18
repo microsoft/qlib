@@ -46,7 +46,10 @@ def main():
     short_weight = -0.5 / max(len(shorts), 1)
 
     print("day:", day.date())
-    for leg, lst, w, dir_ in [("LONG", longs, long_weight, OrderDir.BUY), ("SHORT", shorts, short_weight, OrderDir.SELL)]:
+    for leg, lst, w, dir_ in [
+        ("LONG", longs, long_weight, OrderDir.BUY),
+        ("SHORT", shorts, short_weight, OrderDir.SELL),
+    ]:
         print(f"\n{leg} candidates:")
         for code in lst:
             try:
@@ -58,19 +61,20 @@ def main():
                 rounded = ex.round_amount_by_trade_unit(abs(raw), fac) if px else 0.0
                 if dir_ == OrderDir.SELL:
                     rounded = -rounded
-                print(code, {
-                    "price": px,
-                    "factor": fac,
-                    "unit": unit,
-                    "tradable": tradable,
-                    "raw_shares": raw,
-                    "rounded": rounded,
-                })
+                print(
+                    code,
+                    {
+                        "price": px,
+                        "factor": fac,
+                        "unit": unit,
+                        "tradable": tradable,
+                        "raw_shares": raw,
+                        "rounded": rounded,
+                    },
+                )
             except Exception as e:
                 print(code, "error:", e)
 
 
 if __name__ == "__main__":
     main()
-
-

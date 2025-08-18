@@ -307,7 +307,6 @@ _default_region_config = {
         "limit_threshold": 0.1,
         "deal_price": "close",
     },
-
     # Crypto region: 24/7, no limit_threshold, unit=1, default deal_price=close
     REG_CRYPTO: {
         "trade_unit": 1,

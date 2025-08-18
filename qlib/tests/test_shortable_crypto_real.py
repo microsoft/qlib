@@ -107,7 +107,7 @@ def test_shortable_with_real_data_end_to_end():
         last = last.dropna()
         if last.empty:
             pytest.skip("No closes to build fallback signal; skipping")
-        sig = (last - last.mean())  # demeaned last close as pseudo-signal
+        sig = last - last.mean()  # demeaned last close as pseudo-signal
 
     # Generate orders for the end_time
     # For crypto, use unit step to ensure orders are generated and avoid empty indicators
@@ -134,5 +134,3 @@ def test_shortable_with_real_data_end_to_end():
     assert isinstance(meta.get("net_exposure", 0), float)
     # If we have short positions, borrow cost may be > 0
     assert meta.get("total_borrow_cost", 0) >= 0
-
-

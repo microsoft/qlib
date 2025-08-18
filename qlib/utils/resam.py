@@ -96,9 +96,11 @@ def get_higher_eq_freq_feature(instruments, fields, start_time=None, end_time=No
                 _f = _Freq(stem)
                 if _f.base == _Freq.NORM_FREQ_MINUTE:
                     freq_names.append(str(_f))
+
             # sort by minute count (1min < 5min < 60min)
             def _minute_order(x: str) -> int:
                 from .time import Freq as _Freq  # local import
+
                 _f = _Freq(x)
                 return _f.count
 
@@ -126,9 +128,7 @@ def get_higher_eq_freq_feature(instruments, fields, start_time=None, end_time=No
                 last_exc = None
                 for mf in min_freqs:
                     try:
-                        _result = D.features(
-                            instruments, fields, start_time, end_time, freq=mf, disk_cache=disk_cache
-                        )
+                        _result = D.features(instruments, fields, start_time, end_time, freq=mf, disk_cache=disk_cache)
                         _freq = mf
                         break
                     except (ValueError, KeyError) as _e:
