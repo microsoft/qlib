@@ -107,6 +107,24 @@ def get_exchange(
         )
         return exchange
     else:
+        # If user passes an exchange config, inject missing basic kwargs such as freq/start/end.
+        if isinstance(exchange, dict):
+            ex_cfg = copy.deepcopy(exchange)
+            ex_kwargs = ex_cfg.setdefault("kwargs", {})
+            ex_kwargs.setdefault("freq", freq)
+            ex_kwargs.setdefault("start_time", start_time)
+            ex_kwargs.setdefault("end_time", end_time)
+            ex_kwargs.setdefault("codes", codes)
+            if deal_price is not None:
+                ex_kwargs.setdefault("deal_price", deal_price)
+            if subscribe_fields:
+                ex_kwargs.setdefault("subscribe_fields", subscribe_fields)
+            if limit_threshold is not None:
+                ex_kwargs.setdefault("limit_threshold", limit_threshold)
+            ex_kwargs.setdefault("open_cost", open_cost)
+            ex_kwargs.setdefault("close_cost", close_cost)
+            ex_kwargs.setdefault("min_cost", min_cost)
+            exchange = ex_cfg
         return init_instance_by_config(exchange, accept_types=Exchange)
 
 
@@ -199,11 +217,28 @@ def get_strategy_executor(
     )
 
     exchange_kwargs = copy.copy(exchange_kwargs)
+    # derive freq from executor config if not explicitly provided
+    if "freq" not in exchange_kwargs:
+        try:
+            if isinstance(executor, dict):
+                tps = executor.get("kwargs", {}).get("time_per_step")
+                if isinstance(tps, str) and tps:
+                    exchange_kwargs["freq"] = tps
+        except Exception:
+            pass
+
     if "start_time" not in exchange_kwargs:
         exchange_kwargs["start_time"] = start_time
     if "end_time" not in exchange_kwargs:
         exchange_kwargs["end_time"] = end_time
     trade_exchange = get_exchange(**exchange_kwargs)
+
+    # align account/report frequency with exchange frequency to avoid inconsistent benchmark frequency
+    try:
+        trade_account.reset(freq=trade_exchange.freq, benchmark_config=trade_account.benchmark_config)
+    except Exception:
+        # best effort; keep original when unexpected
+        pass
 
     common_infra = CommonInfrastructure(trade_account=trade_account, trade_exchange=trade_exchange)
     trade_strategy = init_instance_by_config(strategy, accept_types=BaseStrategy)

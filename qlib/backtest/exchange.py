@@ -175,7 +175,11 @@ class Exchange:
         # 　get volume limit from kwargs
         self.buy_vol_limit, self.sell_vol_limit, vol_lt_fields = self._get_vol_limit(volume_threshold)
 
-        necessary_fields = {self.buy_price, self.sell_price, "$close", "$change", "$factor", "$volume"}
+        # base fields always needed
+        necessary_fields = {self.buy_price, self.sell_price, "$close", "$factor", "$volume"}
+        # only require $change when using float threshold
+        if self.limit_type == self.LT_FLT:
+            necessary_fields.add("$change")
         if self.limit_type == self.LT_TP_EXP:
             assert isinstance(limit_threshold, tuple)
             for exp in limit_threshold:
@@ -202,14 +206,24 @@ class Exchange:
         # get stock data from qlib
         if len(self.codes) == 0:
             self.codes = D.instruments()
-        self.quote_df = D.features(
-            self.codes,
-            self.all_fields,
-            self.start_time,
-            self.end_time,
-            freq=self.freq,
-            disk_cache=True,
-        )
+        try:
+            self.quote_df = D.features(
+                self.codes,
+                self.all_fields,
+                self.start_time,
+                self.end_time,
+                freq=self.freq,
+                disk_cache=True,
+            )
+        except (ValueError, KeyError):
+            # fallback to available higher/equal frequency (e.g., 60min) when requested freq (e.g., day) is unavailable
+            from ..utils.resam import get_higher_eq_freq_feature  # pylint: disable=C0415
+
+            _df, _freq = get_higher_eq_freq_feature(
+                self.codes, self.all_fields, self.start_time, self.end_time, freq=self.freq, disk_cache=1
+            )
+            self.quote_df = _df
+            self.freq = _freq
         self.quote_df.columns = self.all_fields
 
         # check buy_price data and sell_price data

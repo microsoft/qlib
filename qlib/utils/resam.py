@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 from functools import partial
-from typing import Union, Callable
+from typing import Union, Callable, List
 
 from . import lazy_sort_index
 from .time import Freq, cal_sam_minute
@@ -79,21 +79,85 @@ def get_higher_eq_freq_feature(instruments, fields, start_time=None, end_time=No
 
     from ..data.data import D  # pylint: disable=C0415
 
+    def _list_supported_minute_freqs() -> List[str]:
+        """Return supported minute freqs sorted ascending (e.g., ["1min", "5min", "60min"])."""
+        try:
+            calendars_dir = C.dpm.get_data_uri(C.DEFAULT_FREQ).joinpath("calendars")
+            freq_names = []
+            for p in calendars_dir.glob("*.txt"):
+                stem = p.stem
+                # skip future calendars
+                if stem.endswith("_future"):
+                    continue
+                try:
+                    from .time import Freq as _Freq  # local import to avoid cycle
+                except Exception:
+                    continue
+                _f = _Freq(stem)
+                if _f.base == _Freq.NORM_FREQ_MINUTE:
+                    freq_names.append(str(_f))
+            # sort by minute count (1min < 5min < 60min)
+            def _minute_order(x: str) -> int:
+                from .time import Freq as _Freq  # local import
+                _f = _Freq(x)
+                return _f.count
+
+            return sorted(set(freq_names), key=_minute_order)
+        except Exception:
+            # best effort
+            return []
+
     try:
         _result = D.features(instruments, fields, start_time, end_time, freq=freq, disk_cache=disk_cache)
         _freq = freq
     except (ValueError, KeyError) as value_key_e:
         _, norm_freq = Freq.parse(freq)
         if norm_freq in [Freq.NORM_FREQ_MONTH, Freq.NORM_FREQ_WEEK, Freq.NORM_FREQ_DAY]:
+            # try day first
             try:
                 _result = D.features(instruments, fields, start_time, end_time, freq="day", disk_cache=disk_cache)
                 _freq = "day"
             except (ValueError, KeyError):
-                _result = D.features(instruments, fields, start_time, end_time, freq="1min", disk_cache=disk_cache)
-                _freq = "1min"
+                # fall back to best available minute frequency (e.g., 1min/5min/60min)
+                min_freqs = _list_supported_minute_freqs()
+                if not min_freqs:
+                    # last resort: 1min (original behavior)
+                    min_freqs = ["1min"]
+                last_exc = None
+                for mf in min_freqs:
+                    try:
+                        _result = D.features(
+                            instruments, fields, start_time, end_time, freq=mf, disk_cache=disk_cache
+                        )
+                        _freq = mf
+                        break
+                    except (ValueError, KeyError) as _e:
+                        last_exc = _e
+                        continue
+                else:
+                    raise ValueError(f"No supported minute frequency found for features; tried: {min_freqs}") from (
+                        last_exc or value_key_e
+                    )
         elif norm_freq == Freq.NORM_FREQ_MINUTE:
-            _result = D.features(instruments, fields, start_time, end_time, freq="1min", disk_cache=disk_cache)
-            _freq = "1min"
+            # try requested minute first; if fails, try other supported minute freqs
+            min_freqs = [freq]
+            sup_mf = _list_supported_minute_freqs()
+            for mf in sup_mf:
+                if mf not in min_freqs:
+                    min_freqs.append(mf)
+            last_exc = None
+            for mf in min_freqs:
+                try:
+                    _result = D.features(instruments, fields, start_time, end_time, freq=mf, disk_cache=disk_cache)
+                    _freq = mf
+                    break
+                except (ValueError, KeyError) as _e:
+                    last_exc = _e
+                    continue
+            else:
+                raise ValueError(f"No supported minute frequency found for features; tried: {min_freqs}") from (
+                    last_exc or value_key_e
+                )
         else:
             raise ValueError(f"freq {freq} is not supported") from value_key_e
     return _result, _freq
