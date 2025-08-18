@@ -1,0 +1,107 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release_please.outputs.release_created }}
+
+    steps:
+      - name: Release please
+        id: release_please
+        uses: googleapis/release-please-action@v4
+        with:
+          token: ${{ secrets.PAT }}
+          release-type: simple
+
+  deploy_with_manylinux:
+    needs: release
+    permissions:
+      contents: write
+      pull-requests: read
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        if: needs.release.outputs.release_created == 'true'
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python ${{ matrix.python-version }}
+        if: needs.release.outputs.release_created == 'true'
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Build wheel on Linux
+        if: needs.release.outputs.release_created == 'true'
+        uses: RalfG/python-wheels-manylinux-build@v0.7.1-manylinux2014_x86_64
+        with:
+          python-versions: 'cp38-cp38 cp39-cp39 cp310-cp310 cp311-cp311 cp312-cp312'
+          build-requirements: 'numpy cython'
+
+      - name: Install dependencies
+        if: needs.release.outputs.release_created == 'true'
+        run: |
+          python -m pip install twine
+
+      - name: Upload to PyPi
+        if: needs.release.outputs.release_created == 'true'
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.TESTPYPI }}
+        run: |
+          twine check dist/pyqlib-*-manylinux*.whl
+          twine upload --repository-url https://test.pypi.org/legacy/ dist/pyqlib-*-manylinux*.whl --verbose
+
+  deploy_with_bdist_wheel:
+    needs: release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        # After testing, the whl files of pyqlib built by macos-14 and macos-15 in python environments of 3.8, 3.9, 3.10, 3.11, 3.12,
+        # the filenames are exactly duplicated, which will result in the duplicated whl files not being able to be uploaded to pypi,
+        # so we chose to just keep the latest macos-latest. macos-latest currently points to macos-15.
+        # Also, macos-13 will stop being supported on 2025-11-14.
+        # Refs: https://github.blog/changelog/2025-07-11-upcoming-changes-to-macos-hosted-runners-macos-latest-migration-and-xcode-support-policy-updates/
+        os: [windows-latest, macos-latest]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+        if: needs.release.outputs.release_created == 'true'
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python ${{ matrix.python-version }}
+        if: needs.release.outputs.release_created == 'true'
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        if: needs.release.outputs.release_created == 'true'
+        run: |
+          make dev
+
+      - name: Build wheel on ${{ matrix.os }}
+        if: needs.release.outputs.release_created == 'true'
+        run: |
+          make build
+
+      - name: Upload to PyPi
+        if: needs.release.outputs.release_created == 'true'
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.TESTPYPI }}
+        run: |
+          twine check dist/*.whl
+          twine upload --repository-url https://test.pypi.org/legacy/ dist/*.whl --verbose
