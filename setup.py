@@ -14,7 +14,7 @@ def read(rel_path: str) -> str:
 NUMPY_INCLUDE = numpy.get_include()
 
 
-VERSION = get_version(root=".", relativ_to=__file__).split("+")[0]
+VERSION = get_version(root=".", relative_to=__file__).split("+")[0]
 
 setup(
     version=VERSION,
