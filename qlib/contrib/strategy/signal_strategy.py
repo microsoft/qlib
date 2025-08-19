@@ -545,6 +545,7 @@ class LongShortTopKStrategy(BaseSignalStrategy):
         only_tradable: bool = False,
         forbid_all_trade_at_limit: bool = True,
         rebalance_to_weights: bool = True,
+        long_share: Optional[float] = None,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
@@ -558,6 +559,8 @@ class LongShortTopKStrategy(BaseSignalStrategy):
         self.only_tradable = only_tradable
         self.forbid_all_trade_at_limit = forbid_all_trade_at_limit
         self.rebalance_to_weights = rebalance_to_weights
+        # When both legs enabled, split risk_degree by long_share (0~1). None -> 0.5 default.
+        self.long_share = long_share
 
     def generate_trade_decision(self, execute_result=None):
         # Align time windows (shift=1)
@@ -789,14 +792,15 @@ class LongShortTopKStrategy(BaseSignalStrategy):
 
             # 3) Buy new longs with equal cash split, honoring risk_degree
             rd = float(self.get_risk_degree(trade_step))
-            # TopK 对齐：若未启用短腿（topk_short<=0），无论是否存在历史残余空头，都按 long-only 使用全部 rd
+            # 分配长/短额度：支持 long_share；单腿模式退化
+            short_only_mode = (self.topk_long is None) or (self.topk_long <= 0)
+            share = self.long_share if (self.long_share is not None) else 0.5
             if long_only_mode:
-                rd_long = rd
+                rd_long, rd_short = rd, 0.0
+            elif short_only_mode:
+                rd_long, rd_short = 0.0, rd
             else:
-                # 双腿都启用时，长/短各占一半 rd
-                long_active = (len(final_long_set) > 0) or (len(buy_long) > 0)
-                short_active = (len(final_short_set) > 0) or (len(open_short) > 0)
-                rd_long = rd * 0.5 if (long_active and short_active) else rd
+                rd_long, rd_short = rd * share, rd * (1.0 - share)
             # Align with TopK: use cash snapshot after long sells; split by planned count (raw)
             value_per_buy = (
                 cash_after_long_sells * rd_long / len(raw_buy_long) if len(raw_buy_long) > 0 else 0.0
@@ -847,7 +851,9 @@ class LongShortTopKStrategy(BaseSignalStrategy):
                     if px is not None:
                         current_short_value += abs(float(amt)) * px
 
-            rd_short = 0.0 if long_only_mode else (rd * 0.5 if (long_active and short_active) else rd)
+            # 使用与上方一致的 rd_short 分配
+            # 注意：若 short_only_mode 则 rd_long 为 0，rd_short 为 rd。
+            # 这里直接沿用前面算好的 rd_short
             desired_short_value = equity * rd_short
             remaining_short_value = max(0.0, desired_short_value - current_short_value)
             # Align with TopK: split by planned short-open count (raw), then check tradability
@@ -881,11 +887,12 @@ class LongShortTopKStrategy(BaseSignalStrategy):
 
         # Target weights
         rd = float(self.get_risk_degree(trade_step))
+        share = self.long_share if (self.long_share is not None) else 0.5
         long_total = 0.0
         short_total = 0.0
         if len(final_long_set) > 0 and len(final_short_set) > 0:
-            long_total = rd * 0.5
-            short_total = rd * 0.5
+            long_total = rd * share
+            short_total = rd * (1.0 - share)
         elif len(final_long_set) > 0:
             long_total = rd
         elif len(final_short_set) > 0:
