@@ -27,7 +27,9 @@ license = { text = "MIT" }
 dependencies = [
   "pyyaml",
   "numpy",
-  "pandas>=0.24",
+  # Since version 2.1.0, pandas has deprecated the method parameter of the fillna method. 
+  # qlib has updated the fillna method in PR 1987 and limited the minimum version of pandas.
+  "pandas>=2.1",
   # I encoutered an Error that the set_uri does not work when downloading artifacts in mlflow 3.1.1;
   # But earlier versions of mlflow does not have this problem.
   # But when I switch to 2.*.* version, another error occurs, which is even more strange...
