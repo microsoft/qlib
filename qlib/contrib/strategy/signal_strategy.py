@@ -711,13 +711,24 @@ class LongShortTopKStrategy(BaseSignalStrategy):
                 actual_sold_longs.add(code)
 
         actual_covered_shorts = set()
-        for code in last_short:
-            if (
-                code in cover_short
-                and current_temp.get_stock_count(code, bar=time_per_step) >= self.hold_thresh
-                and can_trade(code, OrderDir.BUY)
-            ):
-                actual_covered_shorts.add(code)
+        # TopK 对齐：在 long-only 模式下，任何已存在的空头都应被完全回补（不受 n_drop_short 与 hold_thresh 限制）
+        long_only_mode = (self.topk_short is None) or (self.topk_short <= 0)
+        if long_only_mode:
+            for code in last_short:
+                if can_trade(code, OrderDir.BUY):
+                    actual_covered_shorts.add(code)
+        else:
+            for code in last_short:
+                if (
+                    code in cover_short
+                    and current_temp.get_stock_count(code, bar=time_per_step) >= self.hold_thresh
+                    and can_trade(code, OrderDir.BUY)
+                ):
+                    actual_covered_shorts.add(code)
+
+        # Preserve raw planned lists before tradability filtering to align with TopK semantics
+        raw_buy_long = list(buy_long)
+        raw_open_short = list(open_short)
 
         buy_long = [c for c in buy_long if can_trade(c, OrderDir.BUY)]
         open_short = [c for c in open_short if can_trade(c, OrderDir.SELL)]
@@ -725,6 +736,148 @@ class LongShortTopKStrategy(BaseSignalStrategy):
 
         final_long_set = (set(long_now) - actual_sold_longs) | set(buy_long)
         final_short_set = (set(short_now) - actual_covered_shorts) | set(open_short)
+
+        # Optional: TopK-style no-rebalance branch (symmetric long/short)
+        if not self.rebalance_to_weights:
+            order_list: List[Order] = []
+            cash = current_temp.get_cash()
+
+            # 1) Sell dropped longs entirely
+            for code in long_now:
+                if code in actual_sold_longs and can_trade(code, OrderDir.SELL):
+                    sell_amount = current_temp.get_stock_amount(code=code)
+                    if sell_amount <= 0:
+                        continue
+                    sell_order = Order(
+                        stock_id=code,
+                        amount=sell_amount,
+                        start_time=trade_start_time,
+                        end_time=trade_end_time,
+                        direction=OrderDir.SELL,
+                    )
+                    if self.trade_exchange.check_order(sell_order):
+                        order_list.append(sell_order)
+                        trade_val, trade_cost, trade_price = self.trade_exchange.deal_order(
+                            sell_order, position=current_temp
+                        )
+                        cash += trade_val - trade_cost
+
+            # Snapshot cash AFTER long sells but BEFORE short covers
+            # TopK-style long leg should allocate based on this snapshot to avoid
+            # short-cover cash consumption leaking into long-buy budget.
+            cash_after_long_sells = cash
+
+            # 2) Cover dropped shorts entirely (BUY to cover)
+            for code in short_now:
+                if code in actual_covered_shorts and can_trade(code, OrderDir.BUY):
+                    cover_amount = abs(current_temp.get_stock_amount(code=code))
+                    if cover_amount <= 0:
+                        continue
+                    cover_order = Order(
+                        stock_id=code,
+                        amount=cover_amount,
+                        start_time=trade_start_time,
+                        end_time=trade_end_time,
+                        direction=OrderDir.BUY,
+                    )
+                    if self.trade_exchange.check_order(cover_order):
+                        order_list.append(cover_order)
+                        trade_val, trade_cost, trade_price = self.trade_exchange.deal_order(
+                            cover_order, position=current_temp
+                        )
+                        cash -= trade_val + trade_cost  # covering consumes cash
+
+            # 3) Buy new longs with equal cash split, honoring risk_degree
+            rd = float(self.get_risk_degree(trade_step))
+            # TopK 对齐：若未启用短腿（topk_short<=0），无论是否存在历史残余空头，都按 long-only 使用全部 rd
+            if long_only_mode:
+                rd_long = rd
+            else:
+                # 双腿都启用时，长/短各占一半 rd
+                long_active = (len(final_long_set) > 0) or (len(buy_long) > 0)
+                short_active = (len(final_short_set) > 0) or (len(open_short) > 0)
+                rd_long = rd * 0.5 if (long_active and short_active) else rd
+            # Align with TopK: use cash snapshot after long sells; split by planned count (raw)
+            value_per_buy = (
+                cash_after_long_sells * rd_long / len(raw_buy_long) if len(raw_buy_long) > 0 else 0.0
+            )
+            for code in raw_buy_long:
+                if not can_trade(code, OrderDir.BUY):
+                    continue
+                price = self.trade_exchange.get_deal_price(
+                    stock_id=code, start_time=trade_start_time, end_time=trade_end_time, direction=OrderDir.BUY
+                )
+                if price is None or not np.isfinite(price) or price <= 0:
+                    continue
+                buy_amount = value_per_buy / float(price)
+                factor = self.trade_exchange.get_factor(
+                    stock_id=code, start_time=trade_start_time, end_time=trade_end_time
+                )
+                buy_amount = self.trade_exchange.round_amount_by_trade_unit(buy_amount, factor)
+                if buy_amount <= 0:
+                    continue
+                buy_order = Order(
+                    stock_id=code,
+                    amount=buy_amount,
+                    start_time=trade_start_time,
+                    end_time=trade_end_time,
+                    direction=OrderDir.BUY,
+                )
+                order_list.append(buy_order)
+
+            # 4) Open new shorts equally by target short notional derived from rd
+            # Compute current short notional after covering
+            def _get_price(sid: str, direction: int):
+                px = self.trade_exchange.get_deal_price(
+                    stock_id=sid, start_time=trade_start_time, end_time=trade_end_time, direction=direction
+                )
+                return float(px) if (px is not None and np.isfinite(px) and px > 0) else None
+
+            # Recompute equity after previous simulated deals
+            # For TopK parity, compute equity BEFORE executing new long buys and BEFORE opening new shorts
+            # i.e., after simulated sells/covers above.
+            equity = max(1e-12, float(current_temp.calculate_value()))
+
+            # Sum current short notional
+            current_short_value = 0.0
+            for sid in current_temp.get_stock_list():
+                amt = current_temp.get_stock_amount(sid)
+                if amt < 0:
+                    px = _get_price(sid, OrderDir.BUY)  # price to cover
+                    if px is not None:
+                        current_short_value += abs(float(amt)) * px
+
+            rd_short = 0.0 if long_only_mode else (rd * 0.5 if (long_active and short_active) else rd)
+            desired_short_value = equity * rd_short
+            remaining_short_value = max(0.0, desired_short_value - current_short_value)
+            # Align with TopK: split by planned short-open count (raw), then check tradability
+            value_per_short_open = (
+                remaining_short_value / len(raw_open_short) if len(raw_open_short) > 0 else 0.0
+            )
+
+            for code in raw_open_short:
+                if not can_trade(code, OrderDir.SELL):
+                    continue
+                price = _get_price(code, OrderDir.SELL)
+                if price is None:
+                    continue
+                sell_amount = value_per_short_open / float(price)
+                factor = self.trade_exchange.get_factor(
+                    stock_id=code, start_time=trade_start_time, end_time=trade_end_time
+                )
+                sell_amount = self.trade_exchange.round_amount_by_trade_unit(sell_amount, factor)
+                if sell_amount <= 0:
+                    continue
+                sell_order = Order(
+                    stock_id=code,
+                    amount=sell_amount,
+                    start_time=trade_start_time,
+                    end_time=trade_end_time,
+                    direction=OrderDir.SELL,
+                )
+                order_list.append(sell_order)
+
+            return TradeDecisionWO(order_list, self)
 
         # Target weights
         rd = float(self.get_risk_degree(trade_step))
