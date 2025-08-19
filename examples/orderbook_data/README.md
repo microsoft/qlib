@@ -27,7 +27,7 @@ pip install arctic  # NOTE: pip may fail to resolve the right package dependency
 2. Please follow following steps to download example data
 ```bash
 cd examples/orderbook_data/
-gdown https://drive.google.com/uc?id=15nZF7tFT_eKVZAcMFL1qPS4jGyJflH7e  # Proxies may be necessary here.
+gdown https://drive.google.com/uc?id=15FuUqWn2rkCi8uhJYGEQWKakcEqLJNDG  # Proxies may be necessary here.
 python ../../scripts/get_data.py _unzip --file_path highfreq_orderbook_example_data.zip --target_dir .
 ```
 
