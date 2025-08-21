@@ -8,18 +8,29 @@ dataset/provider and sets the benchmark to BTCUSDT. Other parts are kept the sam
 """
 import os
 import importlib.util
-from pathlib import Path
-import plotly.io as pio
 import qlib
+import sys
+import multiprocessing as mp
 from qlib.utils import init_instance_by_config, flatten_dict
-from qlib.workflow import R
-from qlib.workflow.record_temp import SignalRecord, SigAnaRecord
 
 
 if __name__ == "__main__":
+    # Windows 兼容：spawn 模式需要 freeze_support，且避免顶层重型导入
+    if sys.platform.startswith("win"):
+        mp.freeze_support()
+    # Emulate Windows spawn on POSIX if needed
+    if os.environ.get("WINDOWS_SPAWN_TEST") == "1" and not sys.platform.startswith("win"):
+        try:
+            mp.set_start_method("spawn", force=True)
+        except RuntimeError:
+            pass
+    # Lazy imports to avoid circular import issues on Windows spawn mode
+    from qlib.workflow import R
+    from qlib.workflow.record_temp import SignalRecord, SigAnaRecord
+    from qlib.data import D
     # Initialize with crypto perp data provider (ensure this path exists in your env)
     provider_uri = "~/.qlib/qlib_data/crypto_data_perp"
-    qlib.init(provider_uri=provider_uri)
+    qlib.init(provider_uri=provider_uri, kernels=1)
 
     # Dataset & model
     data_handler_config = {
@@ -30,6 +41,28 @@ if __name__ == "__main__":
         "instruments": "all",
         "label": ["Ref($close, -2) / Ref($close, -1) - 1"],
     }
+
+    DEBUG_FAST = os.environ.get("FAST_DEBUG") == "1"
+    if DEBUG_FAST:
+        # Use the latest available calendar to auto-derive a tiny, non-empty window
+        cal = D.calendar(freq="day", future=False)
+        if len(cal) >= 45:
+            end_dt = cal[-1]
+            # last 45 days: 20d fit, 10d valid, 15d test
+            fit_start_dt = cal[-45]
+            fit_end_dt = cal[-25]
+            valid_start_dt = cal[-24]
+            valid_end_dt = cal[-15]
+            test_start_dt = cal[-14]
+            test_end_dt = end_dt
+            data_handler_config.update(
+                {
+                    "fit_start_time": fit_start_dt,
+                    "fit_end_time": fit_end_dt,
+                    "start_time": fit_start_dt,
+                    "end_time": end_dt,
+                }
+            )
 
     dataset_config = {
         "class": "DatasetH",
@@ -49,6 +82,13 @@ if __name__ == "__main__":
         },
     }
 
+    if DEBUG_FAST and len(D.calendar(freq="day", future=False)) >= 45:
+        dataset_config["kwargs"]["segments"] = {
+            "train": (data_handler_config["fit_start_time"], data_handler_config["fit_end_time"]),
+            "valid": (valid_start_dt, valid_end_dt),
+            "test": (test_start_dt, test_end_dt),
+        }
+
     model_config = {
         "class": "LGBModel",
         "module_path": "qlib.contrib.model.gbdt",
@@ -65,12 +105,15 @@ if __name__ == "__main__":
         },
     }
 
+    if DEBUG_FAST:
+        model_config["kwargs"].update({"num_threads": 2, "num_boost_round": 10})
+
     model = init_instance_by_config(model_config)
     dataset = init_instance_by_config(dataset_config)
 
     # Load CryptoPortAnaRecord from crypto-qlib/crypto_qlib_config.py
     this_dir = os.path.dirname(os.path.abspath(__file__))
-    project_root = os.path.abspath(os.path.join(this_dir, "..", "..", ".."))
+    project_root = os.path.abspath(os.path.join(this_dir, "..", ".."))
     crypto_cfg_path = os.path.join(project_root, "crypto-qlib", "crypto_qlib_config.py")
     spec = importlib.util.spec_from_file_location("crypto_qlib_config", crypto_cfg_path)
     crypto_cfg = importlib.util.module_from_spec(spec)
@@ -80,6 +123,12 @@ if __name__ == "__main__":
 
     # Align backtest time to test segment
     test_start, test_end = dataset_config["kwargs"]["segments"]["test"]
+
+    # Strategy params (shrink for fast validation)
+    topk_l, topk_s, drop_l, drop_s = 20, 20, 10, 10
+    if DEBUG_FAST:
+        topk_l = topk_s = 5
+        drop_l = drop_s = 1
 
     port_analysis_config = {
         "executor": {
@@ -95,10 +144,10 @@ if __name__ == "__main__":
             "module_path": "qlib.contrib.strategy.signal_strategy",
             "kwargs": {
                 "signal": (model, dataset),
-                "topk_long": 20,
-                "topk_short": 20,
-                "n_drop_long": 10,
-                "n_drop_short": 10,
+                "topk_long": topk_l,
+                "topk_short": topk_s,
+                "n_drop_long": drop_l,
+                "n_drop_short": drop_s,
                 "hold_thresh": 3,
                 "only_tradable": True,
                 "forbid_all_trade_at_limit": False,
@@ -148,24 +197,3 @@ if __name__ == "__main__":
         par = CryptoPortAnaRecord(recorder, port_analysis_config, "day")
         par.generate()
 
-        # Visualization (save figures like workflow_by_code.ipynb)
-        from qlib.contrib.report.analysis_position import report as qreport
-        from qlib.contrib.report.analysis_position import risk_analysis as qrisk
-
-        report_df = recorder.load_object("portfolio_analysis/report_normal_1day.pkl")
-        analysis_df = recorder.load_object("portfolio_analysis/port_analysis_1day.pkl")
-
-        figs_dir = Path(recorder.artifact_uri).joinpath("portfolio_analysis/figs").resolve()
-        os.makedirs(figs_dir, exist_ok=True)
-
-        # Portfolio report graphs
-        rep_figs = qreport.report_graph(report_df, show_notebook=False)
-        for idx, fig in enumerate(rep_figs, start=1):
-            pio.write_html(fig, str(figs_dir / f"report_graph_{idx}.html"), auto_open=False, include_plotlyjs="cdn")
-
-        # Risk analysis graphs
-        risk_figs = qrisk.risk_analysis_graph(analysis_df, report_df, show_notebook=False)
-        for idx, fig in enumerate(risk_figs, start=1):
-            pio.write_html(fig, str(figs_dir / f"risk_graph_{idx}.html"), auto_open=False, include_plotlyjs="cdn")
-
-        print(f"Saved figures to: {figs_dir}")
