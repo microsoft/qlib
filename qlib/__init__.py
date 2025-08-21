@@ -2,9 +2,12 @@
 # Licensed under the MIT License.
 from pathlib import Path
 
-from setuptools_scm import get_version
-
-__version__ = get_version(root="..", relative_to=__file__)
+try:
+    from setuptools_scm import get_version
+    __version__ = get_version(root="..", relative_to=__file__)
+except (LookupError, ImportError):
+    # Fallback version when setuptools_scm fails
+    __version__ = "1.0.0.dev"
 __version__bak = __version__  # This version is backup for QlibConfig.reset_qlib_version
 import logging
 import os
