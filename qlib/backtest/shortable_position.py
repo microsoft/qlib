@@ -19,7 +19,8 @@ class ShortablePosition(Position):
     """
 
     # Class constant for position close tolerance
-    POSITION_EPSILON = 1e-10  # Can be adjusted based on trade unit requirements
+    # Use a slightly larger epsilon to suppress floating residuals in full-window runs
+    POSITION_EPSILON = 1e-06  # Can be adjusted based on trade unit requirements
 
     def __init__(
         self,
@@ -207,6 +208,15 @@ class ShortablePosition(Position):
         if include_settle:
             cash += self.position.get("cash_delay", 0.0)
         return cash
+
+    def get_stock_amount(self, code: str) -> float:
+        """
+        Return amount with near-zero values clamped to zero to avoid false residual shorts.
+        """
+        amt = super().get_stock_amount(code)
+        if abs(amt) < self.POSITION_EPSILON:
+            return 0.0
+        return amt
 
     def set_cash(self, value: float) -> None:
         """
@@ -412,7 +422,7 @@ class ShortablePosition(Position):
 
         for stock_id in stock_list:
             amount = self.position[stock_id]["amount"]
-            if amount < 0:
+            if amount < -self.POSITION_EPSILON:
                 shorts[stock_id] = amount
 
         return shorts
@@ -431,7 +441,7 @@ class ShortablePosition(Position):
 
         for stock_id in stock_list:
             amount = self.position[stock_id]["amount"]
-            if amount > 0:
+            if amount > self.POSITION_EPSILON:
                 longs[stock_id] = amount
 
         return longs
