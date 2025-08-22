@@ -8,6 +8,7 @@ from qlib.backtest.shortable_backtest import ShortableExecutor, ShortableAccount
 from qlib.backtest.shortable_exchange import ShortableExchange
 from qlib.backtest.decision import OrderDir
 from qlib.contrib.strategy.signal_strategy import LongShortTopKStrategy
+from qlib.backtest.utils import CommonInfrastructure
 
 
 def main():
@@ -48,7 +49,9 @@ def main():
         verbose=False,
         account=account,
     )
-    exe.reset(start_time=start, end_time=end)
+    # Build and inject common infrastructure to executor (and later strategy)
+    common_infra = CommonInfrastructure(trade_account=account, trade_exchange=ex)
+    exe.reset(common_infra=common_infra, start_time=start, end_time=end)
 
     # Precompute momentum signal for the whole period (shift=1 used by strategy)
     feat = D.features(codes, ["$close"], start, end, freq="day", disk_cache=True)
@@ -73,8 +76,8 @@ def main():
         signal=signal_series,
         trade_exchange=ex,
     )
-    # Bind strategy infra to executor
-    strat.reset(level_infra=exe.get_level_infra(), common_infra=exe.common_infra)
+    # Bind strategy infra explicitly with the same common_infra
+    strat.reset(level_infra=exe.get_level_infra(), common_infra=common_infra)
 
     # Drive by executor calendar
     while not exe.finished():

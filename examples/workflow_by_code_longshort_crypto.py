@@ -8,6 +8,7 @@ dataset/provider and sets the benchmark to BTCUSDT. Other parts are kept the sam
 """
 import os
 import importlib.util
+import sys
 import qlib
 import sys
 import multiprocessing as mp
@@ -111,15 +112,13 @@ if __name__ == "__main__":
     model = init_instance_by_config(model_config)
     dataset = init_instance_by_config(dataset_config)
 
-    # Load CryptoPortAnaRecord from crypto-qlib/crypto_qlib_config.py
-    this_dir = os.path.dirname(os.path.abspath(__file__))
-    project_root = os.path.abspath(os.path.join(this_dir, "..", ".."))
-    crypto_cfg_path = os.path.join(project_root, "crypto-qlib", "crypto_qlib_config.py")
-    spec = importlib.util.spec_from_file_location("crypto_qlib_config", crypto_cfg_path)
-    crypto_cfg = importlib.util.module_from_spec(spec)
-    assert spec and spec.loader
-    spec.loader.exec_module(crypto_cfg)
-    CryptoPortAnaRecord = crypto_cfg.CryptoPortAnaRecord
+    # Prefer contrib's crypto version; fallback to default PortAnaRecord (no external local dependency)
+    try:
+        from qlib.contrib.workflow.crypto_record_temp import CryptoPortAnaRecord as PortAnaRecord  # type: ignore
+        print("Using contrib's crypto version of CryptoPortAnaRecord as PortAnaRecord")
+    except Exception:
+        from qlib.workflow.record_temp import PortAnaRecord
+        print("Using default version of PortAnaRecord")
 
     # Align backtest time to test segment
     test_start, test_end = dataset_config["kwargs"]["segments"]["test"]
@@ -194,6 +193,6 @@ if __name__ == "__main__":
         sar.generate()
 
         # Backtest with long-short strategy (Crypto metrics)
-        par = CryptoPortAnaRecord(recorder, port_analysis_config, "day")
+        par = PortAnaRecord(recorder, port_analysis_config, "day")
         par.generate()
 
