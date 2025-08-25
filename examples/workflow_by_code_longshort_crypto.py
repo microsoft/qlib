@@ -33,6 +33,19 @@ if __name__ == "__main__":
     provider_uri = "~/.qlib/qlib_data/crypto_data_perp"
     qlib.init(provider_uri=provider_uri, kernels=1)
 
+    # Auto-select benchmark by data source: cn_data -> SH000300; crypto -> BTCUSDT
+    # Fallback: if path not resolvable, default to SH000300 for safety
+    try:
+        from pathlib import Path
+        from qlib.config import C
+
+        data_roots = {k: str(C.dpm.get_data_uri(k)) for k in C.dpm.provider_uri.keys()}
+        data_roots_str = " ".join(data_roots.values()).lower()
+        is_cn = ("cn_data" in data_roots_str) or ("cn\x5fdata" in data_roots_str)
+        benchmark_auto = "SH000300" if is_cn else "BTCUSDT"
+    except Exception:
+        benchmark_auto = "SH000300"
+
     # Dataset & model
     data_handler_config = {
         "start_time": "2019-01-02",
@@ -156,7 +169,7 @@ if __name__ == "__main__":
             "start_time": test_start,
             "end_time": test_end,
             "account": 100000000,
-            "benchmark": "BTCUSDT",
+            "benchmark": benchmark_auto,
             "exchange_kwargs": {
                 "exchange": {
                     "class": "ShortableExchange",
