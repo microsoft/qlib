@@ -66,7 +66,7 @@ class ShortableAccount(Account):
                 self.accum_info.add_return_value(profit)  # note here do not consider cost
 
     def get_portfolio_metrics(self):
-        """扩展父类指标，增加多空维度指标，保持返回结构不变。"""
+        """Extend parent metrics with long/short-specific fields while keeping return shape unchanged."""
         try:
             df, meta = super().get_portfolio_metrics()
         except Exception:
@@ -105,7 +105,7 @@ class ShortableExecutor(SimulatorExecutor):
         trade_exchange: Optional[ShortableExchange] = None,
         borrow_fee_model: Optional[BaseBorrowFeeModel] = None,
         settle_type: str = Position.ST_NO,
-        region: str = "cn",  # 微调 #3: 区域参数化，遵循Qlib标准
+        region: str = "cn",  # Tweak #3: parameterize region to follow Qlib standard
         account: Optional[ShortableAccount] = None,
         common_infra: Optional[CommonInfrastructure] = None,
         **kwargs,
@@ -132,7 +132,7 @@ class ShortableExecutor(SimulatorExecutor):
         region : str
             Region for trading calendar ('cn', 'us', etc.) - follows qlib.init() default
         """
-        # 在调用父类初始化之前设置属性，因为父类会调用reset()
+        # Set attributes before calling parent __init__ because parent will invoke reset()
         self.settle_type = settle_type
         self.borrow_fee_model = borrow_fee_model or FixedRateBorrowFeeModel()
         self.region = region
@@ -152,7 +152,7 @@ class ShortableExecutor(SimulatorExecutor):
             **kwargs,
         )
 
-        # 根据地区设置借券费用年天数（股票252，Crypto 365）
+        # Configure days-per-year for borrow fee (252 for stocks, 365 for crypto)
         try:
             if hasattr(self.borrow_fee_model, "set_days_per_year"):
                 self.borrow_fee_model.set_days_per_year(365 if self.region == "crypto" else 252)
@@ -183,10 +183,22 @@ class ShortableExecutor(SimulatorExecutor):
         except Exception:
             position_dict = {}
 
-        pos = ShortablePosition(
-            cash=old_pos.get_cash(include_settle=True) if hasattr(old_pos, "get_cash") else init_cash,
-            position_dict=position_dict,
-        )
+        # Determine a safe initial cash if old_pos has no get_cash
+        try:
+            fallback_cash = old_pos.get_cash(include_settle=True) if hasattr(old_pos, "get_cash") else None
+        except Exception:
+            fallback_cash = None
+        if fallback_cash is None:
+            try:
+                fallback_cash = (
+                    self.trade_account.current_position.get_cash()  # type: ignore[attr-defined]
+                    if hasattr(self.trade_account.current_position, "get_cash")
+                    else 1e6
+                )
+            except Exception:
+                fallback_cash = 1e6
+
+        pos = ShortablePosition(cash=fallback_cash, position_dict=position_dict)
         pos._settle_type = getattr(self, "settle_type", Position.ST_NO)
         self.trade_account.current_position = pos
 
@@ -213,15 +225,15 @@ class ShortableExecutor(SimulatorExecutor):
         # Execute orders normally
         trade_info = super()._execute_orders(trade_decision, date)
 
-        # 事后守门：检查现金
+        # Post-check: ensure cash is non-negative
         if hasattr(self.account.current_position, "get_cash"):
             if self.account.current_position.get_cash() < -1e-6:
                 if self.verbose:
-                    print(f"[{date}] Warning: 现金为负，请检查保证金逻辑或缩放权重")
+                    print(f"[{date}] Warning: negative cash; check margin logic or scale weights")
 
-        # 只在交易日扣费一次
+        # Charge borrow fee once per trading day
         if self._is_trading_day(date) and isinstance(self.account.current_position, ShortablePosition):
-            # CRITICAL FIX: 使用当日市值而非建仓价计算借券费
+            # CRITICAL FIX: use current market value instead of entry price for borrow fee
             position = self.account.current_position
             stock_positions = {}
 
@@ -229,12 +241,12 @@ class ShortableExecutor(SimulatorExecutor):
                 info = position.position.get(stock_id, {})
                 amt = info.get("amount", 0.0)
 
-                # Skip non-short positions and zero positions
+                # Skip non-short and zero positions
                 if amt >= 0:
                     continue
 
-                # 使用当日价格（与撮合同口径）而非建仓价
-                # 对于借券费，方向不重要，统一用BUY方向获取价格
+                # Use current price (aligned with matching) instead of entry
+                # For borrow fee, direction is not important; use BUY as a placeholder
                 px = self.trade_exchange.get_deal_price(
                     stock_id=stock_id,
                     start_time=date,
@@ -248,7 +260,7 @@ class ShortableExecutor(SimulatorExecutor):
                     px = position.get_stock_price(stock_id)
 
                 if px is None or not np.isfinite(px) or px <= 0:
-                    # Still no valid price, skip this stock
+                    # Still no valid price; skip this stock
                     if self.verbose:
                         print(f"[{date}] Warning: Cannot get price for {stock_id}, skipping borrow fee")
                     continue
@@ -262,7 +274,7 @@ class ShortableExecutor(SimulatorExecutor):
             borrow_cost = self.borrow_fee_model.calculate_daily_cost(
                 stock_positions, date  # Now with current daily prices
             )
-            # 按步长缩放（分钟频率按当日分钟数比例计提）
+            # Scale by step length (minute freq uses minutes-per-day proportion)
             try:
                 borrow_cost *= self._borrow_fee_step_multiplier()
             except Exception:
@@ -300,7 +312,7 @@ class ShortableExecutor(SimulatorExecutor):
                 )
 
                 if px is None or not np.isfinite(px) or px <= 0:
-                    # 回退到上一次有效价格
+                    # Fallback to last valid price
                     px = position.get_stock_price(stock_id)
 
                 if px is not None and np.isfinite(px) and px > 0:
@@ -315,7 +327,7 @@ class ShortableExecutor(SimulatorExecutor):
             print(f"[{date}] Mark-to-market: Equity=${equity:,.0f}, Leverage={leverage:.2f}, NetExp={net_exp:.2%}")
 
     def _is_trading_day(self, date):
-        """检查是否为交易日
+        """Check whether it is a trading day.
 
         CRITICAL FIX: Only crypto markets trade 24/7, not US markets!
         """
@@ -333,7 +345,7 @@ class ShortableExecutor(SimulatorExecutor):
             return date.weekday() < 5
 
     def _borrow_fee_step_multiplier(self) -> float:
-        """将“按天”借券费换算为当前步长比例。"""
+        """Convert per-day borrow fee to current step multiplier."""
         t = (self.time_per_step or "").lower()
         if t in ("day", "1d"):
             return 1.0
@@ -365,7 +377,7 @@ class ShortableExecutor(SimulatorExecutor):
                 {
                     "leverage": position.get_leverage(),
                     "net_exposure": position.get_net_exposure(),
-                    "total_borrow_cost": position.borrow_cost_accumulated,  # 从属性读取，不是字典
+                    "total_borrow_cost": position.borrow_cost_accumulated,  # read from attribute, not dict
                 }
             )
 
@@ -388,10 +400,7 @@ class ShortableExecutor(SimulatorExecutor):
 
 
 def round_to_lot(shares, lot=100):
-    """按手数向零取整，避免越权
-
-    Round towards zero to avoid exceeding position limits.
-    """
+    """Round towards zero by lot size to avoid exceeding limits."""
     if lot <= 1:
         return int(shares)  # toward zero
     lots = int(abs(shares) // lot)  # toward zero in lot units
@@ -437,7 +446,7 @@ class LongShortStrategy:
         self.net_exposure = net_exposure
         self.top_k = top_k
         self.exchange = exchange
-        # 允许 None，按直觉处理：None -> 无手数限制 / 无最小阈值
+        # Allow None and treat intuitively: None -> no lot limit / no min threshold
         self.lot_size = 1 if lot_size is None else lot_size
         self.min_trade_threshold = 0 if min_trade_threshold is None else min_trade_threshold
         self.risk_limit = risk_limit or {
@@ -446,8 +455,8 @@ class LongShortStrategy:
             "max_net_exposure": 0.3,
         }
 
-        # 计算多空比例: gross = long + short, net = long - short
-        # 解得: long = (gross + net) / 2, short = (gross - net) / 2
+        # Compute long/short ratios: gross = long + short, net = long - short
+        # So: long = (gross + net) / 2, short = (gross - net) / 2
         self.long_ratio = (gross_leverage + net_exposure) / 2
         self.short_ratio = (gross_leverage - net_exposure) / 2
 
@@ -457,40 +466,40 @@ class LongShortStrategy:
         """
         Generate trade decisions based on signal using correct weight-to-shares conversion.
         """
-        # 获取当前权益和价格
+        # Get current equity
         equity = current_position.calculate_value()
 
-        # 选股
+        # Select stocks
         signal_sorted = signal.sort_values(ascending=False)
         long_stocks = signal_sorted.head(self.top_k).index.tolist()
         short_stocks = signal_sorted.tail(self.top_k).index.tolist()
 
-        # 修复 #3: 按方向获取价格（与撮合口径一致）
+        # Fix #3: get prices by direction (consistent with matching)
         long_prices = self._get_current_prices(long_stocks, date, self.exchange, OrderDir.BUY) if long_stocks else {}
         short_prices = (
             self._get_current_prices(short_stocks, date, self.exchange, OrderDir.SELL) if short_stocks else {}
         )
         prices = {**long_prices, **short_prices}
 
-        # 计算权重
+        # Compute per-stock weights
         long_weight_per_stock = self.long_ratio / len(long_stocks) if long_stocks else 0
-        short_weight_per_stock = -self.short_ratio / len(short_stocks) if short_stocks else 0  # 负值
+        short_weight_per_stock = -self.short_ratio / len(short_stocks) if short_stocks else 0  # negative
 
-        # 微调 #2: 单票权重硬约束 - 裁剪到equity×cap以下
-        max_position_weight = self.risk_limit.get("max_position_size", 0.1)  # 默认10%
+        # Tweak #2: hard cap per-position weight at equity × cap
+        max_position_weight = self.risk_limit.get("max_position_size", 0.1)  # default 10%
         long_weight_per_stock = min(long_weight_per_stock, max_position_weight)
-        short_weight_per_stock = max(short_weight_per_stock, -max_position_weight)  # 负值所以用max
+        short_weight_per_stock = max(short_weight_per_stock, -max_position_weight)  # negative, so use max
 
         orders = []
 
-        # 多头订单
+        # Long orders
         for stock in long_stocks:
             if stock in prices:
                 target_shares = round_to_lot((long_weight_per_stock * equity) / prices[stock], lot=self.lot_size)
                 current_shares = current_position.get_stock_amount(stock)
                 delta = target_shares - current_shares
 
-                if abs(delta) >= self.min_trade_threshold:  # 按配置的交易阈值
+                if abs(delta) >= self.min_trade_threshold:  # respect configured trade threshold
                     direction = OrderDir.BUY if delta > 0 else OrderDir.SELL
                     orders.append(
                         Order(
@@ -498,11 +507,11 @@ class LongShortStrategy:
                         )
                     )
 
-        # 空头订单
+        # Short orders
         for stock in short_stocks:
             if stock in prices:
                 target_shares = round_to_lot(
-                    (short_weight_per_stock * equity) / prices[stock], lot=self.lot_size  # 负值
+                    (short_weight_per_stock * equity) / prices[stock], lot=self.lot_size  # negative
                 )
                 current_shares = current_position.get_stock_amount(stock)
                 delta = target_shares - current_shares
@@ -515,51 +524,51 @@ class LongShortStrategy:
                         )
                     )
 
-        # 平仓不在目标中的股票
+        # Close positions not in target set
         current_stocks = set(current_position.get_stock_list())
         target_stocks = set(long_stocks + short_stocks)
 
         for stock in current_stocks - target_stocks:
             amount = current_position.get_stock_amount(stock)
-            if abs(amount) >= self.min_trade_threshold:  # 按配置的交易阈值
+            if abs(amount) >= self.min_trade_threshold:  # respect configured trade threshold
                 direction = OrderDir.SELL if amount > 0 else OrderDir.BUY
                 orders.append(
                     Order(stock_id=stock, amount=abs(int(amount)), direction=direction, start_time=date, end_time=date)
                 )
 
-        # Fix #2: 启用风险限额检查
+        # Fix #2: enable risk limit checks
         if orders and not self._check_risk_limits(orders, current_position):
-            # 如果超过风险限额，缩放订单
+            # If exceeding risk limits, scale orders
             orders = self._scale_orders_for_risk(orders, current_position)
 
-        # 注意：TradeDecisionWO 的第二个参数应为 strategy，对齐 Qlib 设计
+        # Note: The 2nd arg of TradeDecisionWO should be the strategy per Qlib design
         return TradeDecisionWO(orders, self)
 
     def _get_current_prices(self, stock_list, date, exchange=None, direction=None):
-        """获取与撮合一致的价格，支持方向区分"""
+        """Fetch prices consistent with matching, supporting order direction."""
         prices = {}
 
         if exchange is not None:
-            # 使用exchange的价格接口，确保与撮合口径一致
+            # Use exchange API to ensure consistency with matching
             for stock in stock_list:
                 try:
-                    # 修复 #3: 使用方向相关的价格获取方式
+                    # Fix #3: use direction-aware price fetching
                     price = exchange.get_deal_price(
                         stock_id=stock,
                         start_time=date,
                         end_time=date,
-                        direction=direction,  # BUY/SELL方向，与实际执行一致
+                        direction=direction,  # BUY/SELL direction, aligned with execution
                     )
                     if price is not None and not math.isnan(price):
                         prices[stock] = float(price)
                     else:
-                        # 如果无法获取价格，跳过该股票
+                        # Skip this stock if price unavailable
                         continue
                 except Exception:
-                    # 价格获取失败，跳过该股票
+                    # Price fetch failed; skip
                     continue
         else:
-            # 备用方案：使用固定价格（仅用于测试）
+            # Fallback: use a fixed price (testing only)
             for stock in stock_list:
                 prices[stock] = 100.0  # placeholder
 
@@ -623,31 +632,31 @@ class LongShortStrategy:
         return sim
 
     def _scale_orders_for_risk(self, orders: List[Order], position: ShortablePosition) -> List[Order]:
-        """自适应风险缩放 - 按实际超限程度精确缩放"""
-        # 修复 #2: 先模拟订单执行，得到实际的leverage和net_exposure
+        """Adaptive risk scaling - scale precisely by the degree of limit breach."""
+        # Fix #2: simulate execution first to get leverage and net_exposure
         simulated_position = self._simulate_position_change(orders, position)
         leverage = simulated_position.get_leverage()
         net_exposure = abs(simulated_position.get_net_exposure())
 
-        # 计算缩放因子：按超限程度自适应
+        # Compute scale factor based on degree of breach
         max_leverage = self.risk_limit.get("max_leverage", 2.0)
         max_net_exposure = self.risk_limit.get("max_net_exposure", 0.3)
 
         scale_leverage = max_leverage / leverage if leverage > max_leverage else 1.0
         scale_net = max_net_exposure / net_exposure if net_exposure > max_net_exposure else 1.0
 
-        # 取更严格的约束，并留安全边际
+        # Take stricter constraint with a small safety margin
         scale_factor = min(scale_leverage, scale_net) * 0.98
-        scale_factor = min(scale_factor, 1.0)  # 不放大，只缩小
+        scale_factor = min(scale_factor, 1.0)  # never amplify, only shrink
 
-        if scale_factor >= 0.99:  # 基本不需要缩放
+        if scale_factor >= 0.99:  # scaling nearly unnecessary
             return orders
 
         scaled_orders = []
         for order in orders:
-            # 按手数取整，保留原时间字段
+            # Round by lot size; keep original time fields
             scaled_amount = round_to_lot(order.amount * scale_factor, lot=self.lot_size)
-            if scaled_amount <= 0:  # 跳过取整后为0的订单
+            if scaled_amount <= 0:  # skip zero-after-rounding
                 continue
 
             scaled_order = Order(

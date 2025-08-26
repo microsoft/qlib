@@ -16,7 +16,7 @@ from qlib.utils import init_instance_by_config, flatten_dict
 
 
 if __name__ == "__main__":
-    # Windows 兼容：spawn 模式需要 freeze_support，且避免顶层重型导入
+    # Windows compatibility: spawn mode needs freeze_support and avoid heavy top-level imports
     if sys.platform.startswith("win"):
         mp.freeze_support()
     # Emulate Windows spawn on POSIX if needed
@@ -29,6 +29,7 @@ if __name__ == "__main__":
     from qlib.workflow import R
     from qlib.workflow.record_temp import SignalRecord, SigAnaRecord
     from qlib.data import D
+
     # Initialize with crypto perp data provider (ensure this path exists in your env)
     provider_uri = "~/.qlib/qlib_data/crypto_data_perp"
     qlib.init(provider_uri=provider_uri, kernels=1)
@@ -128,9 +129,11 @@ if __name__ == "__main__":
     # Prefer contrib's crypto version; fallback to default PortAnaRecord (no external local dependency)
     try:
         from qlib.contrib.workflow.crypto_record_temp import CryptoPortAnaRecord as PortAnaRecord  # type: ignore
+
         print("Using contrib's crypto version of CryptoPortAnaRecord as PortAnaRecord")
     except Exception:
         from qlib.workflow.record_temp import PortAnaRecord
+
         print("Using default version of PortAnaRecord")
 
     # Align backtest time to test segment
@@ -208,4 +211,3 @@ if __name__ == "__main__":
         # Backtest with long-short strategy (Crypto metrics)
         par = PortAnaRecord(recorder, port_analysis_config, "day")
         par.generate()
-

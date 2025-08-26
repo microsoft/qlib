@@ -151,8 +151,12 @@ class CryptoPortAnaRecord(PortAnaRecord):
                 c = c.astype(float).fillna(0) if isinstance(c, pd.Series) else float(c)
 
                 # geometric excess
-                analysis["excess_return_without_cost"] = _crypto_risk_analysis((1 + r) / (1 + b) - 1, N=self.crypto_annual_days)
-                analysis["excess_return_with_cost"] = _crypto_risk_analysis((1 + (r - c)) / (1 + b) - 1, N=self.crypto_annual_days)
+                analysis["excess_return_without_cost"] = _crypto_risk_analysis(
+                    (1 + r) / (1 + b) - 1, N=self.crypto_annual_days
+                )
+                analysis["excess_return_with_cost"] = _crypto_risk_analysis(
+                    (1 + (r - c)) / (1 + b) - 1, N=self.crypto_annual_days
+                )
 
                 analysis_df = pd.concat(analysis)
                 from ...utils import flatten_dict
@@ -165,5 +169,3 @@ class CryptoPortAnaRecord(PortAnaRecord):
 
 
 __all__ = ["CryptoPortAnaRecord"]
-
-

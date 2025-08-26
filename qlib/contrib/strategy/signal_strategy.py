@@ -629,7 +629,9 @@ class LongShortTopKStrategy(BaseSignalStrategy):
             elif amt < 0:
                 short_now.append(code)
         if self._debug:
-            print(f"[LongShortTopKStrategy][{trade_start_time}] init_pos: longs={len(long_now)}, shorts={len(short_now)}")
+            print(
+                f"[LongShortTopKStrategy][{trade_start_time}] init_pos: longs={len(long_now)}, shorts={len(short_now)}"
+            )
             if short_now:
                 try:
                     details = [(c, float(current_temp.get_stock_amount(c))) for c in short_now]
@@ -724,10 +726,10 @@ class LongShortTopKStrategy(BaseSignalStrategy):
                 actual_sold_longs.add(code)
 
         actual_covered_shorts = set()
-        # TopK 对齐：在 long-only 模式下，任何已存在的空头都应被完全回补（不受 n_drop_short 与 hold_thresh 限制）
+        # Align with TopK: in long-only mode, fully cover any existing shorts (not limited by n_drop_short or hold_thresh)
         long_only_mode = (self.topk_short is None) or (self.topk_short <= 0)
         if long_only_mode:
-            # 仅当存在真实负仓时才加入回补，避免误判
+            # Only cover when there is a real negative position to avoid false positives
             for code in last_short:
                 if current_temp.get_stock_amount(code) < 0 and can_trade(code, OrderDir.BUY):
                     actual_covered_shorts.add(code)
@@ -740,7 +742,9 @@ class LongShortTopKStrategy(BaseSignalStrategy):
                 ):
                     actual_covered_shorts.add(code)
         if self._debug:
-            print(f"[LongShortTopKStrategy][{trade_start_time}] cover_shorts={len(actual_covered_shorts)} buy_longs_plan={len(buy_long)} open_shorts_plan={len(open_short)}")
+            print(
+                f"[LongShortTopKStrategy][{trade_start_time}] cover_shorts={len(actual_covered_shorts)} buy_longs_plan={len(buy_long)} open_shorts_plan={len(open_short)}"
+            )
 
         # Preserve raw planned lists before tradability filtering to align with TopK semantics
         raw_buy_long = list(buy_long)
@@ -805,7 +809,7 @@ class LongShortTopKStrategy(BaseSignalStrategy):
 
             # 3) Buy new longs with equal cash split, honoring risk_degree
             rd = float(self.get_risk_degree(trade_step))
-            # 分配长/短额度：支持 long_share；单腿模式退化
+            # Allocate long/short share: support long_share; degenerate for single-leg mode
             short_only_mode = (self.topk_long is None) or (self.topk_long <= 0)
             share = self.long_share if (self.long_share is not None) else 0.5
             if long_only_mode:
@@ -815,11 +819,11 @@ class LongShortTopKStrategy(BaseSignalStrategy):
             else:
                 rd_long, rd_short = rd * share, rd * (1.0 - share)
             if self._debug:
-                print(f"[LongShortTopKStrategy][{trade_start_time}] rd={rd:.4f} rd_long={rd_long:.4f} rd_short={rd_short:.4f} cash_after_long_sells={cash_after_long_sells:.2f}")
+                print(
+                    f"[LongShortTopKStrategy][{trade_start_time}] rd={rd:.4f} rd_long={rd_long:.4f} rd_short={rd_short:.4f} cash_after_long_sells={cash_after_long_sells:.2f}"
+                )
             # Align with TopK: use cash snapshot after long sells; split by planned count (raw)
-            value_per_buy = (
-                cash_after_long_sells * rd_long / len(raw_buy_long) if len(raw_buy_long) > 0 else 0.0
-            )
+            value_per_buy = cash_after_long_sells * rd_long / len(raw_buy_long) if len(raw_buy_long) > 0 else 0.0
             for code in raw_buy_long:
                 if not can_trade(code, OrderDir.BUY):
                     continue
@@ -866,17 +870,17 @@ class LongShortTopKStrategy(BaseSignalStrategy):
                     if px is not None:
                         current_short_value += abs(float(amt)) * px
 
-            # 使用与上方一致的 rd_short 分配
-            # 注意：若 short_only_mode 则 rd_long 为 0，rd_short 为 rd。
-            # 这里直接沿用前面算好的 rd_short
+            # Use the same rd_short allocation as above
+            # Note: if short_only_mode, rd_long = 0 and rd_short = rd
+            # Reuse the rd_short computed earlier
             desired_short_value = equity * rd_short
             remaining_short_value = max(0.0, desired_short_value - current_short_value)
             # Align with TopK: split by planned short-open count (raw), then check tradability
-            value_per_short_open = (
-                remaining_short_value / len(raw_open_short) if len(raw_open_short) > 0 else 0.0
-            )
+            value_per_short_open = remaining_short_value / len(raw_open_short) if len(raw_open_short) > 0 else 0.0
             if self._debug:
-                print(f"[LongShortTopKStrategy][{trade_start_time}] equity={equity:.2f} cur_short_val={current_short_value:.2f} desired_short_val={desired_short_value:.2f} rem_short_val={remaining_short_value:.2f} v_per_short={value_per_short_open:.2f}")
+                print(
+                    f"[LongShortTopKStrategy][{trade_start_time}] equity={equity:.2f} cur_short_val={current_short_value:.2f} desired_short_val={desired_short_value:.2f} rem_short_val={remaining_short_value:.2f} v_per_short={value_per_short_open:.2f}"
+                )
 
             for code in raw_open_short:
                 if not can_trade(code, OrderDir.SELL):

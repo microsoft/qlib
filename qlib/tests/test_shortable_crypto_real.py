@@ -15,7 +15,7 @@ from qlib.backtest.shortable_backtest import ShortableExecutor, LongShortStrateg
 def _try_init_qlib():
     """Initialize qlib with real crypto data if available; otherwise skip tests."""
     candidates = [
-        os.path.expanduser("~/.qlib/qlib_data/crypto_data_perp"),  # 优先使用你提供的 perp 路径
+        os.path.expanduser("~/.qlib/qlib_data/crypto_data_perp"),  # Prefer user's provided perp path
         os.path.expanduser("~/.qlib/qlib_data/crypto_data"),
         str(Path(__file__).resolve().parents[3] / "crypto-qlib" / "binance_crypto_data_perp"),
         str(Path(__file__).resolve().parents[3] / "crypto-qlib" / "binance_crypto_data"),

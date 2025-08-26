@@ -78,7 +78,7 @@ class FixedRateBorrowFeeModel(BaseBorrowFeeModel):
         self.default_rate = default_rate
         self.stock_rates = stock_rates or {}
         self.hard_to_borrow_rate = hard_to_borrow_rate
-        # 可配置：按地区设置（股票 252，Crypto 365）
+        # Configurable: set days-per-year by region (252 for stocks, 365 for crypto)
         self.daily_divisor = int(days_per_year) if days_per_year and days_per_year > 0 else 365
 
     def set_days_per_year(self, n: int) -> None:
@@ -100,7 +100,7 @@ class FixedRateBorrowFeeModel(BaseBorrowFeeModel):
         total_cost = 0.0
 
         for stock_id, position_info in positions.items():
-            # 修复 #4: 严格过滤非股票键
+            # Fix #4: strictly filter non-stock keys
             if not self._is_valid_stock_id(stock_id):
                 continue
 
@@ -108,7 +108,7 @@ class FixedRateBorrowFeeModel(BaseBorrowFeeModel):
                 amount = position_info.get("amount", 0)
                 price = position_info.get("price", 0)
 
-                if amount < 0 and price > 0:  # 只对有效的空头仓位计费
+                if amount < 0 and price > 0:  # charge only valid short positions
                     annual_rate = self.get_borrow_rate(stock_id, date)
                     daily_rate = annual_rate / self.daily_divisor
                     short_value = abs(amount * price)
@@ -117,13 +117,13 @@ class FixedRateBorrowFeeModel(BaseBorrowFeeModel):
         return total_cost
 
     def _is_valid_stock_id(self, stock_id: str) -> bool:
-        """检查是否为有效的股票代码"""
-        # 过滤掉所有已知的非股票键
+        """Check whether it's a valid stock identifier."""
+        # Filter out known non-stock keys
         non_stock_keys = {"cash", "cash_delay", "now_account_value", "borrow_cost_accumulated", "short_proceeds"}
         if stock_id in non_stock_keys:
             return False
 
-        # 进一步检查：有效股票代码通常有固定格式
+        # Additional check: valid stock ids typically have a certain format/length
         if not isinstance(stock_id, str) or len(stock_id) < 4:
             return False
 
@@ -161,7 +161,7 @@ class DynamicBorrowFeeModel(BaseBorrowFeeModel):
         self.default_rate = default_rate
         self.volatility_adjustment = volatility_adjustment
         self.liquidity_adjustment = liquidity_adjustment
-        # 可配置：按地区设置（股票 252，Crypto 365）
+        # Configurable: set days-per-year by region (252 for stocks, 365 for crypto)
         self.daily_divisor = int(days_per_year) if days_per_year and days_per_year > 0 else 365
 
     def set_days_per_year(self, n: int) -> None:
@@ -228,7 +228,7 @@ class DynamicBorrowFeeModel(BaseBorrowFeeModel):
         total_cost = 0.0
 
         for stock_id, position_info in positions.items():
-            # 修复 #4: 使用统一的股票ID验证
+            # Fix #4: use unified stock id validation
             if not self._is_valid_stock_id(stock_id):
                 continue
 
@@ -245,13 +245,13 @@ class DynamicBorrowFeeModel(BaseBorrowFeeModel):
         return total_cost
 
     def _is_valid_stock_id(self, stock_id: str) -> bool:
-        """检查是否为有效的股票代码"""
-        # 过滤掉所有已知的非股票键
+        """Check whether it's a valid stock identifier."""
+        # Filter out known non-stock keys
         non_stock_keys = {"cash", "cash_delay", "now_account_value", "borrow_cost_accumulated", "short_proceeds"}
         if stock_id in non_stock_keys:
             return False
 
-        # 进一步检查：有效股票代码通常有固定格式
+        # Additional check: valid stock ids typically have a certain format/length
         if not isinstance(stock_id, str) or len(stock_id) < 4:
             return False
 
@@ -299,7 +299,7 @@ class TieredBorrowFeeModel(BaseBorrowFeeModel):
         self.normal_rate = 0.03  # 3% for normal
         self.hard_rate = 0.10  # 10% for hard-to-borrow
 
-        # 可配置：按地区设置（股票 252，Crypto 365）
+        # Configurable: set days-per-year by region (252 for stocks, 365 for crypto)
         self.daily_divisor = int(days_per_year) if days_per_year and days_per_year > 0 else 365
 
     def set_days_per_year(self, n: int) -> None:
@@ -331,7 +331,7 @@ class TieredBorrowFeeModel(BaseBorrowFeeModel):
         total_cost = 0.0
 
         for stock_id, position_info in positions.items():
-            # 修复 #4: 使用统一的股票ID验证
+            # Fix #4: use unified stock id validation
             if not self._is_valid_stock_id(stock_id):
                 continue
 
@@ -354,13 +354,13 @@ class TieredBorrowFeeModel(BaseBorrowFeeModel):
         return total_cost
 
     def _is_valid_stock_id(self, stock_id: str) -> bool:
-        """检查是否为有效的股票代码"""
-        # 过滤掉所有已知的非股票键
+        """Check whether it's a valid stock identifier."""
+        # Filter out known non-stock keys
         non_stock_keys = {"cash", "cash_delay", "now_account_value", "borrow_cost_accumulated", "short_proceeds"}
         if stock_id in non_stock_keys:
             return False
 
-        # 进一步检查：有效股票代码通常有固定格式
+        # Additional check: valid stock ids typically have a certain format/length
         if not isinstance(stock_id, str) or len(stock_id) < 4:
             return False
 

@@ -34,7 +34,7 @@ def main():
     feat = D.features(codes, ["$close"], day - pd.Timedelta(days=10), day, freq="day", disk_cache=True)
     g = feat.groupby("instrument")["$close"]
     last = g.last()
-    # 使用每组倒数第2个值并去掉datetime层，确保索引为instrument
+    # Use the second-to-last value per group and drop the datetime level, ensuring index is instrument
     prev = g.apply(lambda s: s.iloc[-2])
     sig = (last / prev - 1.0).dropna().sort_values(ascending=False)
 
