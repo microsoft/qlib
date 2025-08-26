@@ -65,14 +65,14 @@ def get_vn_stock_symbols():
 
 
 class VNStockCollector(BaseCollector, ABC):
-    retry = 5  # Configuration attribute.  How many times will it try to re-request the data if the network fails.
+    retry = 2  # Configuration attribute.  How many times will it try to re-request the data if the network fails.
 
     def __init__(
         self,
         save_dir: str | Path,
         start=None,
         end=None,
-        interval="1d",
+        interval="1D",
         max_workers=4,
         max_collector_count=2,
         delay=0,
@@ -92,7 +92,7 @@ class VNStockCollector(BaseCollector, ABC):
         delay: float
             time.sleep(delay), default 0
         interval: str
-            freq, value from [1min, 1d], default 1min
+            freq, value from [1min, 1D], default 1min
         start: str
             start datetime, default None
         end: str
@@ -117,9 +117,9 @@ class VNStockCollector(BaseCollector, ABC):
         self.init_datetime()
 
     def init_datetime(self):
-        if self.interval == self.INTERVAL_1min:
+        if self.interval == self.INTERVAL_1min or self.interval == self.INTERVAL_1m:
             self.start_datetime = max(self.start_datetime, self.DEFAULT_START_DATETIME_1MIN)
-        elif self.interval == self.INTERVAL_1d:
+        elif self.interval == self.INTERVAL_1d or self.interval == self.INTERVAL_1D:
             pass
         else:
             raise ValueError(f"interval error: {self.interval}")
@@ -154,7 +154,12 @@ class VNStockCollector(BaseCollector, ABC):
             vnstock_interval = "1m" if interval in ["1m", "1min"] else interval
             
             # Create vnstock Quote object
-            quote = Quote(symbol=symbol, source='VCI')
+            quote = Quote(symbol=symbol, source='TCBS')
+            # convert datetime to str if needed
+            if isinstance(start, pd.Timestamp):
+                start = start.strftime("%Y-%m-%d")
+            if isinstance(end, pd.Timestamp):
+                end = end.strftime("%Y-%m-%d")
             _resp = quote.history(start=start, end=end, interval=vnstock_interval)
             
             if isinstance(_resp, pd.DataFrame) and not _resp.empty:
@@ -192,12 +197,12 @@ class VNStockCollector(BaseCollector, ABC):
             return resp
 
         _result = None
-        if interval == self.INTERVAL_1d:
+        if interval == self.INTERVAL_1d or interval == self.INTERVAL_1D:
             try:
                 _result = _get_simple(start_datetime, end_datetime)
             except ValueError as e:
                 pass
-        elif interval == self.INTERVAL_1min:
+        elif interval == self.INTERVAL_1min or interval == self.INTERVAL_1m:
             _res = []
             _start = self.start_datetime
             while _start < self.end_datetime:
@@ -240,14 +245,19 @@ class VNStockCollector(BaseCollector, ABC):
         return "Asia/Ho_Chi_Minh"
 
 
-class VNStockCollectorVN1d(VNStockCollector):
+class VNStockCollectorVN1D(VNStockCollector):
     def download_index_data(self):
         # Download Vietnamese index data (VNINDEX, HNXINDEX, UPCOMINDEX)
         logger.info("Downloading Vietnamese index data...")
         for _index_name, _index_code in {"vnindex": "VNINDEX", "hnxindex": "HNXINDEX", "upcomindex": "UPCOMINDEX"}.items():
             logger.info(f"get index data: {_index_name}({_index_code})......")
             try:
-                quote = Quote(symbol=_index_code, source='VCI')
+                quote = Quote(symbol=_index_code, source='TCBS')
+                # convert datetime to str if needed
+                if isinstance(self.start_datetime, pd.Timestamp):
+                    self.start_datetime = self.start_datetime.strftime("%Y-%m-%d")
+                if isinstance(self.end_datetime, pd.Timestamp):
+                    self.end_datetime = self.end_datetime.strftime("%Y-%m-%d")
                 df = quote.history(start=self.start_datetime, end=self.end_datetime, interval='1D')
                 
                 if df is not None and not df.empty:
@@ -495,12 +505,12 @@ class VNStockNormalize1dExtend(VNStockNormalize1d):
 
 
 class VNStockNormalize1min(VNStockNormalize, ABC):
-    """Normalised to 1min using local 1d data"""
+    """Normalised to 1min using local 1D data"""
 
     AM_RANGE: tuple | None = None  # eg: ("09:30:00", "11:29:00")
     PM_RANGE: tuple | None = None  # eg: ("13:00:00", "14:59:00")
 
-    # Whether the trading day of 1min data is consistent with 1d
+    # Whether the trading day of 1min data is consistent with 1D
     CONSISTENT_1d = True
     CALC_PAUSED_NUM = True
 
@@ -512,7 +522,7 @@ class VNStockNormalize1min(VNStockNormalize, ABC):
         Parameters
         ----------
         qlib_data_1d_dir: str, Path
-            the qlib data to be updated for yahoo, usually from: Normalised to 1min using local 1d data
+            the qlib data to be updated for yahoo, usually from: Normalised to 1min using local 1D data
         date_field_name: str
             date field name, default is date
         symbol_field_name: str
@@ -588,7 +598,7 @@ class VNStockNormalizeVN1min(VNStockNormalizeVN, VNStockNormalize1min):
         return get_calendar_list("ALL")
 
 class Run(BaseRun):
-    def __init__(self, source_dir=None, normalize_dir=None, max_workers=1, interval="1d", region="VN"):
+    def __init__(self, source_dir=None, normalize_dir=None, max_workers=1, interval="1D", region="VN"):
         """
 
         Parameters
@@ -600,7 +610,7 @@ class Run(BaseRun):
         max_workers: int
             Concurrent number, default is 1; when collecting data, it is recommended that max_workers be set to 1
         interval: str
-            freq, value from [1min, 1d], default 1d
+            freq, value from [1min, 1D], default 1D
         region: str
             region, value from ["VN"], default "VN"
         """
@@ -655,14 +665,14 @@ class Run(BaseRun):
         Examples
         ---------
             # get daily data
-            $ python collector.py download_data --source_dir ~/.qlib/stock_data/source --region VN --start 2020-11-01 --end 2020-11-10 --delay 0.1 --interval 1d
+            $ python collector.py download_data --source_dir ~/.qlib/stock_data/source --region VN --start 2020-11-01 --end 2020-11-10 --delay 0.1 --interval 1D
             # get 1m data
             $ python collector.py download_data --source_dir ~/.qlib/stock_data/source --region VN --start 2020-11-01 --end 2020-11-10 --delay 0.1 --interval 1m
         """
-        if self.interval == "1d" and end is not None and pd.Timestamp(end) > pd.Timestamp(datetime.datetime.now().strftime("%Y-%m-%d")):
+        if self.interval == "1D" and end is not None and pd.Timestamp(end) > pd.Timestamp(datetime.datetime.now().strftime("%Y-%m-%d")):
             raise ValueError(f"end_date: {end} is greater than the current date.")
 
-        super(Run, self).download_data(max_collector_count, int(delay), start, end, check_data_length or 0, limit_nums or 0)
+        super(Run, self).download_data(max_collector_count, int(delay), start, end, check_data_length or 0, limit_nums)
 
     def normalize_data(
         self,
@@ -682,23 +692,23 @@ class Run(BaseRun):
         end_date: str
             if not None, normalize the last date saved (including end_date); if None, it will ignore this parameter; by default None
         qlib_data_1d_dir: str
-            if interval==1min, qlib_data_1d_dir cannot be None, normalize 1min needs to use 1d data;
+            if interval==1min, qlib_data_1d_dir cannot be None, normalize 1min needs to use 1D data;
 
                 qlib_data_1d can be obtained like this:
-                    $ python scripts/get_data.py qlib_data --target_dir <qlib_data_1d_dir> --interval 1d
+                    $ python scripts/get_data.py qlib_data --target_dir <qlib_data_1d_dir> --interval 1D
                     $ python scripts/data_collector/yahoo/collector.py update_data_to_bin --qlib_data_1d_dir <qlib_data_1d_dir> --trading_date 2021-06-01
                 or:
-                    download 1d data, reference: https://github.com/microsoft/qlib/tree/main/scripts/data_collector/yahoo#1d-from-yahoo
+                    download 1D data, reference: https://github.com/microsoft/qlib/tree/main/scripts/data_collector/yahoo#1D-from-yahoo
 
         Examples
         ---------
-            $ python collector.py normalize_data --source_dir ~/.qlib/stock_data/source --normalize_dir ~/.qlib/stock_data/normalize --region vn --interval 1d
+            $ python collector.py normalize_data --source_dir ~/.qlib/stock_data/source --normalize_dir ~/.qlib/stock_data/normalize --region vn --interval 1D
             $ python collector.py normalize_data --qlib_data_1d_dir ~/.qlib/qlib_data/vn_data --source_dir ~/.qlib/stock_data/source_vn_1min --normalize_dir ~/.qlib/stock_data/normalize_vn_1min --region VN --interval 1min
         """
         if self.interval.lower() == "1min":
             if qlib_data_1d_dir is None or not Path(qlib_data_1d_dir).expanduser().exists():
                 raise ValueError(
-                    "If normalize 1min, the qlib_data_1d_dir parameter must be set: --qlib_data_1d_dir <user qlib 1d data >, Reference: https://github.com/microsoft/qlib/tree/main/scripts/data_collector/yahoo#automatic-update-of-daily-frequency-datafrom-yahoo-finance"
+                    "If normalize 1min, the qlib_data_1d_dir parameter must be set: --qlib_data_1d_dir <user qlib 1D data >, Reference: https://github.com/microsoft/qlib/tree/main/scripts/data_collector/yahoo#automatic-update-of-daily-frequency-datafrom-yahoo-finance"
                 )
         super(Run, self).normalize_data(
             date_field_name, symbol_field_name, end_date=end_date, qlib_data_1d_dir=qlib_data_1d_dir
@@ -717,7 +727,7 @@ class Run(BaseRun):
 
                 2. collector source data: https://github.com/microsoft/qlib/tree/main/scripts/data_collector/yahoo#collector-data; save to <dir2>
 
-                3. normalize new source data(from step 2): python scripts/data_collector/yahoo/collector.py normalize_data_1d_extend --old_qlib_dir <dir1> --source_dir <dir2> --normalize_dir <dir3> --region CN --interval 1d
+                3. normalize new source data(from step 2): python scripts/data_collector/yahoo/collector.py normalize_data_1d_extend --old_qlib_dir <dir1> --source_dir <dir2> --normalize_dir <dir3> --region CN --interval 1D
 
                 4. dump data: python scripts/dump_bin.py dump_update --data_path <dir3> --qlib_dir <dir1> --freq day --date_field_name date --symbol_field_name symbol --exclude_fields symbol,date
 
@@ -734,7 +744,7 @@ class Run(BaseRun):
 
         Examples
         ---------
-            $ python collector.py normalize_data_1d_extend --old_qlib_dir ~/.qlib/qlib_data/vn_data --source_dir ~/.qlib/stock_data/source --normalize_dir ~/.qlib/stock_data/normalize --region VN --interval 1d
+            $ python collector.py normalize_data_1d_extend --old_qlib_dir ~/.qlib/qlib_data/vn_data --source_dir ~/.qlib/stock_data/source --normalize_dir ~/.qlib/stock_data/normalize --region VN --interval 1D
         """
         _class = getattr(self._cur_module, f"{self.normalize_class_name}Extend")
         yc = Normalize(
@@ -782,7 +792,7 @@ class Run(BaseRun):
         Examples
         ---------
             # get daily data
-            $ python collector.py download_today_data --source_dir ~/.qlib/stock_data/source --region VN --delay 0.1 --interval 1d
+            $ python collector.py download_today_data --source_dir ~/.qlib/stock_data/source --region VN --delay 0.1 --interval 1D
             # get 1m data
             $ python collector.py download_today_data --source_dir ~/.qlib/stock_data/source --region VN --delay 0.1 --interval 1m
         """
@@ -829,10 +839,10 @@ class Run(BaseRun):
             $ python collector.py update_data_to_bin --qlib_data_1d_dir <user data dir> --trading_date <start date> --end_date <end date>
         """
 
-        if self.interval.lower() != "1d":
-            logger.warning(f"currently supports 1d data updates: --interval 1d")
+        if self.interval.lower() != "1D":
+            logger.warning(f"currently supports 1D data updates: --interval 1D")
 
-        # download qlib 1d data
+        # download qlib 1D data
         qlib_data_1d_dir = str(Path(qlib_data_1d_dir).expanduser().resolve())
         if not exists_qlib_data(qlib_data_1d_dir):
             GetData().qlib_data(

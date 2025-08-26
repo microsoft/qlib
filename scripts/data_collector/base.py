@@ -28,6 +28,8 @@ class BaseCollector(abc.ABC):
 
     INTERVAL_1min = "1min"
     INTERVAL_1d = "1d"
+    INTERVAL_1D = "1D"
+    INTERVAL_1m = "1m"
 
     def __init__(
         self,
