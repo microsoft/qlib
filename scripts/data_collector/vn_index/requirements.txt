@@ -1,0 +1,7 @@
+vnstock>=1.2.0
+fire
+requests
+pandas
+loguru
+tqdm
+openpyxl
