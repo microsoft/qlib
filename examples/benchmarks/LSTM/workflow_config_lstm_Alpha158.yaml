@@ -1,13 +1,13 @@
 qlib_init:
-    provider_uri: "~/.qlib/qlib_data/cn_data"
-    region: cn
-market: &market csi300
-benchmark: &benchmark SH000300
+    provider_uri: "~/.qlib/qlib_data/vn_data_dump"
+    region: vn
+market: &market vn30
+benchmark: &benchmark VCB
 data_handler_config: &data_handler_config
-    start_time: 2008-01-01
-    end_time: 2020-08-01
-    fit_start_time: 2008-01-01
-    fit_end_time: 2014-12-31
+    start_time: 2020-01-01
+    end_time: 2025-08-26
+    fit_start_time: 2020-01-01
+    fit_end_time: 2025-08-01
     instruments: *market
     infer_processors:
         - class: FilterCol
@@ -40,8 +40,8 @@ port_analysis_config: &port_analysis_config
             topk: 50
             n_drop: 5
     backtest:
-        start_time: 2017-01-01
-        end_time: 2020-08-01
+        start_time: 2020-01-01
+        end_time: 2025-08-01
         account: 100000000
         benchmark: *benchmark
         exchange_kwargs:
@@ -76,9 +76,9 @@ task:
                 module_path: qlib.contrib.data.handler
                 kwargs: *data_handler_config
             segments:
-                train: [2008-01-01, 2014-12-31]
-                valid: [2015-01-01, 2016-12-31]
-                test: [2017-01-01, 2020-08-01]
+                train: [2020-01-01, 2024-12-31]
+                valid: [2025-01-01, 2025-08-01]
+                test: [2025-08-02, 2025-08-26]
             step_len: 20
     record: 
         - class: SignalRecord
