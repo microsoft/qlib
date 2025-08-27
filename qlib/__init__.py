@@ -2,15 +2,19 @@
 # Licensed under the MIT License.
 from pathlib import Path
 
-__version__ = "0.9.6.99"
+from setuptools_scm import get_version
+
+__version__ = get_version(root="..", relative_to=__file__)
 __version__bak = __version__  # This version is backup for QlibConfig.reset_qlib_version
-import os
-import re
-from typing import Union
-from ruamel.yaml import YAML
 import logging
+import os
 import platform
+import re
 import subprocess
+from typing import Union
+
+from ruamel.yaml import YAML
+
 from .log import get_module_logger
 
 

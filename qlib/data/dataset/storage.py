@@ -67,7 +67,6 @@ class NaiveDFStorage(BaseHandlerStorage):
         col_set: Union[str, List[str]] = DataHandler.CS_ALL,
         fetch_orig: bool = True,
     ) -> pd.DataFrame:
-
         # Following conflicts may occur
         # - Does [20200101", "20210101"] mean selecting this slice or these two days?
         # To solve this issue

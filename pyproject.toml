@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools", "cython", "numpy>=1.24.0"]
+requires = ["setuptools", "setuptools-scm", "cython", "numpy>=1.24.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -22,11 +22,15 @@ dynamic = ["version"]
 description = "A Quantitative-research Platform"
 requires-python = ">=3.8.0"
 readme = {file = "README.md", content-type = "text/markdown"}
+license = { text = "MIT" }
 
 dependencies = [
   "pyyaml",
   "numpy",
-  "pandas>=0.24",
+  # Since version 1.1.0, pandas supports the ffill and bfill methods.
+  # Since version 2.1.0, pandas has deprecated the method parameter of the fillna method. 
+  # qlib has updated the fillna method in PR 1987 and limited the minimum version of pandas.
+  "pandas>=1.1",
   # I encoutered an Error that the set_uri does not work when downloading artifacts in mlflow 3.1.1;
   # But earlier versions of mlflow does not have this problem.
   # But when I switch to 2.*.* version, another error occurs, which is even more strange...
@@ -49,6 +53,7 @@ dependencies = [
   "nbconvert",
   "pyarrow",
   "pydantic-settings",
+  "setuptools-scm",
 ]
 
 [project.optional-dependencies]
@@ -97,10 +102,18 @@ analysis = [
   "statsmodels",
 ]
 
+# In the process of releasing a new version, when checking the manylinux package with twine, an error is reported:
+# InvalidDistribution: Invalid distribution metadata: unrecognized or malformed field 'license-file'
+# To solve this problem, we added license-files here. Refs: https://github.com/pypa/twine/issues/1216
 [tool.setuptools]
 packages = [
   "qlib",
 ]
+license-files = []
 
 [project.scripts]
-qrun = "qlib.workflow.cli:run"
+qrun = "qlib.cli.run:run"
+
+[tool.setuptools_scm]
+local_scheme = "no-local-version"
+version_scheme = "guess-next-dev"

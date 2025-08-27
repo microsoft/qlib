@@ -36,5 +36,5 @@ python collector.py normalize_data --interval quarterly --source_dir ~/.qlib/sto
 
 ```bash
 cd qlib/scripts
-python dump_pit.py dump --csv_path ~/.qlib/stock_data/source/pit_normalized --qlib_dir ~/.qlib/qlib_data/cn_data --interval quarterly
+python dump_pit.py dump --data_path ~/.qlib/stock_data/source/pit_normalized --qlib_dir ~/.qlib/qlib_data/cn_data --interval quarterly
 ```
