@@ -4,14 +4,24 @@
 """
 Integration module for short-selling support in Qlib backtest.
 This module provides the main executor and strategy components.
+
+Pylint notes:
+- C0301 (line-too-long): Disabled at module level due to verbose logging and URLs.
+- W0718 (broad-exception-caught): Used intentionally around optional hooks; safe and logged.
+- W0212 (protected-access): Access needed for adapting Qlib internals; guarded carefully.
+- W0201 (attribute-defined-outside-init): Account/position aliases injected post reset; intentional.
+- R0902/R0913/R0914/R0903: Complexity from executor/strategy wiring; contained locally.
+- W0237: Signature differs intentionally to match Qlib hooks; behavior preserved.
 """
+
+# pylint: disable=C0301,W0718,W0212,W0201,R0902,R0913,R0914,W0237,R0903
 
 from __future__ import annotations
 
+import math
 from typing import Dict, List, Optional
 import pandas as pd
 import numpy as np
-import math
 from qlib.backtest.executor import SimulatorExecutor
 from qlib.backtest.utils import CommonInfrastructure
 from qlib.backtest.decision import Order, OrderDir, TradeDecisionWO
@@ -96,6 +106,7 @@ class ShortableExecutor(SimulatorExecutor):
     Executor that supports short selling with proper position and fee management.
     """
 
+    # pylint: disable=W0613  # some optional parameters are kept for API compatibility
     def __init__(
         self,
         time_per_step: str = "day",
@@ -223,10 +234,10 @@ class ShortableExecutor(SimulatorExecutor):
         self._mark_to_market(date)
 
         # Execute orders normally
-        trade_info = super()._execute_orders(trade_decision, date)
+        trade_info = super()._execute_orders(trade_decision, date)  # pylint: disable=E1101
 
         # Post-check: ensure cash is non-negative
-        if hasattr(self.account.current_position, "get_cash"):  # pylint: disable=has-member
+        if hasattr(self.account.current_position, "get_cash"):
             if self.account.current_position.get_cash() < -1e-6:
                 if self.verbose:
                     print(f"[{date}] Warning: negative cash; check margin logic or scale weights")
@@ -294,7 +305,7 @@ class ShortableExecutor(SimulatorExecutor):
 
         CRITICAL: Use same price calibration as trading (close or open)
         """
-        if not isinstance(self.account.current_position, ShortablePosition):  # pylint: disable=has-member
+        if not isinstance(self.account.current_position, ShortablePosition):
             return
 
         position = self.account.current_position
@@ -336,7 +347,7 @@ class ShortableExecutor(SimulatorExecutor):
 
         # For all other markets (including US), use trading calendar
         try:
-            from qlib.data import D
+            from qlib.data import D  # pylint: disable=C0415
 
             cal = D.calendar(freq=self.time_per_step, future=False)
             return date in cal
@@ -350,7 +361,7 @@ class ShortableExecutor(SimulatorExecutor):
         if t in ("day", "1d"):
             return 1.0
         try:
-            import re
+            import re  # pylint: disable=C0415
 
             m = re.match(r"(\d+)\s*min", t)
             if not m:
@@ -367,7 +378,7 @@ class ShortableExecutor(SimulatorExecutor):
         """
         Get enhanced portfolio metrics including short-specific metrics.
         """
-        metrics = super().get_portfolio_metrics()
+        metrics = super().get_portfolio_metrics()  # pylint: disable=E1101
 
         if isinstance(self.account.current_position, ShortablePosition):
             position = self.account.current_position
@@ -604,7 +615,7 @@ class LongShortStrategy:
             price = sim.get_stock_price(od.stock_id) if od.stock_id in sim.position else None
             if not _valid(price) and getattr(self, "trade_exchange", None) is not None and hasattr(od, "start_time"):
                 try:
-                    px = self.trade_exchange.get_deal_price(
+                    px = self.trade_exchange.get_deal_price(  # pylint: disable=E1101
                         od.stock_id, od.start_time, od.end_time or od.start_time, od.direction
                     )
                     if _valid(px):

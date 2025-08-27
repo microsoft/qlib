@@ -1,5 +1,14 @@
-# Copyright (c) Microsoft Corporation.
-# Licensed under the MIT License.
+"""ShortableExchange: extend Exchange to support short selling with zero-crossing logic.
+
+Pylint notes:
+- C0301 (line-too-long): allow long explanatory comments and formulas.
+- R1702/R0912/R0915 (nested blocks/branches/statements): complex matching kept for fidelity.
+- R0914/R0913 (many locals/args): accepted due to detailed cost/cash handling.
+- R1716 (chained-comparison): allow for concise numerical checks.
+- W0237 (arguments-renamed), W0613 (unused-argument): compatibility with base signatures.
+"""
+
+# pylint: disable=C0301,R1702,R0912,R0915,R0914,R0913,R1716,W0237,W0613
 
 from typing import Optional, Tuple, cast, TYPE_CHECKING
 import numpy as np

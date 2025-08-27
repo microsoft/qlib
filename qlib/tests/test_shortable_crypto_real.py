@@ -1,3 +1,5 @@
+"""Tests for shortable crypto backtest components (executor/exchange/position)."""
+# pylint: disable=C0301,W0718,C0116,R1710,R0914,C0411
 import os
 from pathlib import Path
 import pytest

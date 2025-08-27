@@ -1,6 +1,8 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+"""Shortable position implementation for Qlib backtests."""
+
 from typing import Dict, Union
 import numpy as np
 import pandas as pd
@@ -49,7 +51,7 @@ class ShortablePosition(Position):
 
         # Initialize logger if available
         try:
-            from qlib.log import get_module_logger
+            from qlib.log import get_module_logger  # pylint: disable=C0415
 
             self.logger = get_module_logger("ShortablePosition")
         except ImportError:
@@ -115,7 +117,7 @@ class ShortablePosition(Position):
         elif self._settle_type == self.ST_NO:
             self.position["cash"] += new_cash
         else:
-            raise NotImplementedError(f"This type of input is not supported")
+            raise NotImplementedError("This type of input is not supported")
 
     def _buy_stock(self, stock_id: str, trade_val: float, cost: float, trade_price: float) -> None:
         """
@@ -347,7 +349,9 @@ class ShortablePosition(Position):
                         daily_cost += short_value * self._daily_borrow_rate
                     elif price is None or not np.isfinite(price) or price <= 0:
                         if getattr(self, "logger", None) is not None:
-                            self.logger.debug(f"Invalid price for short position {stock_id}: {price}")
+                            self.logger.debug(
+                                f"Invalid price for short position {stock_id}: {price}"
+                            )
 
         return daily_cost
 
@@ -464,7 +468,9 @@ class ShortablePosition(Position):
                 gross += abs(amt * price)
             elif price is None or not np.isfinite(price) or price <= 0:
                 if getattr(self, "logger", None) is not None:
-                    self.logger.debug(f"Invalid price for {sid} in gross value calculation: {price}")
+                    self.logger.debug(
+                        f"Invalid price for {sid} in gross value calculation: {price}"
+                    )
         return gross
 
     def get_net_value(self) -> float:

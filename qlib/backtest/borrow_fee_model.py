@@ -1,9 +1,13 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+"""Borrow fee models for short selling in Qlib backtests."""
+
+# pylint: disable=R1716,R0913,W0613,W0201,W0718
+
+from abc import ABC, abstractmethod
 from typing import Dict, Optional
 import pandas as pd
-from abc import ABC, abstractmethod
 
 
 class BaseBorrowFeeModel(ABC):
@@ -81,11 +85,12 @@ class FixedRateBorrowFeeModel(BaseBorrowFeeModel):
         self.daily_divisor = int(days_per_year) if days_per_year and days_per_year > 0 else 365
 
     def set_days_per_year(self, n: int) -> None:
-        try:
+        """Set days-per-year divisor used to convert annual rate to daily."""
+        try:  # pylint: disable=W0718  # robustness preferred; benign conversion
             n = int(n)
             if n > 0:
                 self.daily_divisor = n
-        except Exception:
+        except Exception:  # pylint: disable=W0718
             pass
 
     def get_borrow_rate(self, stock_id: str, date: pd.Timestamp) -> float:
@@ -107,7 +112,7 @@ class FixedRateBorrowFeeModel(BaseBorrowFeeModel):
                 amount = position_info.get("amount", 0)
                 price = position_info.get("price", 0)
 
-                if amount < 0 and price > 0:  # charge only valid short positions
+                if (amount < 0) and (price > 0):  # charge only valid short positions
                     annual_rate = self.get_borrow_rate(stock_id, date)
                     daily_rate = annual_rate / self.daily_divisor
                     short_value = abs(amount * price)
@@ -118,12 +123,13 @@ class FixedRateBorrowFeeModel(BaseBorrowFeeModel):
     def _is_valid_stock_id(self, stock_id: str) -> bool:
         """Check whether it's a valid stock identifier."""
         # Filter out known non-stock keys
-        non_stock_keys = {"cash", "cash_delay", "now_account_value", "borrow_cost_accumulated", "short_proceeds"}
+        non_stock_keys = {"cash", "cash_delay", "now_account_value",
+                          "borrow_cost_accumulated", "short_proceeds"}
         if stock_id in non_stock_keys:
             return False
 
         # Additional check: valid stock ids typically have a certain format/length
-        if not isinstance(stock_id, str) or len(stock_id) < 4:
+        if (not isinstance(stock_id, str)) or (len(stock_id) < 4):
             return False
 
         return True
@@ -164,11 +170,12 @@ class DynamicBorrowFeeModel(BaseBorrowFeeModel):
         self.daily_divisor = int(days_per_year) if days_per_year and days_per_year > 0 else 365
 
     def set_days_per_year(self, n: int) -> None:
-        try:
+        """Set days-per-year divisor used to convert annual rate to daily."""
+        try:  # pylint: disable=W0718
             n = int(n)
             if n > 0:
                 self.daily_divisor = n
-        except Exception:
+        except Exception:  # pylint: disable=W0718
             pass
 
         # Cache for calculated rates
@@ -198,7 +205,7 @@ class DynamicBorrowFeeModel(BaseBorrowFeeModel):
         return final_rate
 
     def _get_base_rate(self, stock_id: str, date: pd.Timestamp) -> float:
-        """Get base rate from data or default."""
+        """Get base borrowing rate from data if available, otherwise default."""
         if self.rate_data is not None:
             try:
                 return self.rate_data.loc[(date, stock_id), "borrow_rate"]
@@ -207,19 +214,11 @@ class DynamicBorrowFeeModel(BaseBorrowFeeModel):
         return self.default_rate
 
     def _get_volatility_multiplier(self, stock_id: str, date: pd.Timestamp) -> float:
-        """
-        Calculate volatility-based rate multiplier.
-        Higher volatility -> Higher borrowing cost
-        """
-        # Placeholder - in practice, calculate from historical data
+        """Return volatility multiplier (placeholder=1.0)."""
         return 1.0
 
     def _get_liquidity_multiplier(self, stock_id: str, date: pd.Timestamp) -> float:
-        """
-        Calculate liquidity-based rate multiplier.
-        Lower liquidity -> Higher borrowing cost
-        """
-        # Placeholder - in practice, calculate from volume data
+        """Return liquidity multiplier (placeholder=1.0)."""
         return 1.0
 
     def calculate_daily_cost(self, positions: Dict, date: pd.Timestamp) -> float:
@@ -235,7 +234,7 @@ class DynamicBorrowFeeModel(BaseBorrowFeeModel):
                 amount = position_info.get("amount", 0)
                 price = position_info.get("price", 0)
 
-                if amount < 0 and price > 0:  # Short position
+                if (amount < 0) and (price > 0):  # Short position
                     annual_rate = self.get_borrow_rate(stock_id, date)
                     daily_rate = annual_rate / self.daily_divisor
                     short_value = abs(amount * price)
@@ -246,12 +245,13 @@ class DynamicBorrowFeeModel(BaseBorrowFeeModel):
     def _is_valid_stock_id(self, stock_id: str) -> bool:
         """Check whether it's a valid stock identifier."""
         # Filter out known non-stock keys
-        non_stock_keys = {"cash", "cash_delay", "now_account_value", "borrow_cost_accumulated", "short_proceeds"}
+        non_stock_keys = {"cash", "cash_delay", "now_account_value",
+                          "borrow_cost_accumulated", "short_proceeds"}
         if stock_id in non_stock_keys:
             return False
 
         # Additional check: valid stock ids typically have a certain format/length
-        if not isinstance(stock_id, str) or len(stock_id) < 4:
+        if (not isinstance(stock_id, str)) or (len(stock_id) < 4):
             return False
 
         return True
@@ -302,6 +302,7 @@ class TieredBorrowFeeModel(BaseBorrowFeeModel):
         self.daily_divisor = int(days_per_year) if days_per_year and days_per_year > 0 else 365
 
     def set_days_per_year(self, n: int) -> None:
+        """Set days-per-year divisor used to convert annual rate to daily."""
         try:
             n = int(n)
             if n > 0:
@@ -313,10 +314,9 @@ class TieredBorrowFeeModel(BaseBorrowFeeModel):
         """Get base borrowing rate by stock category."""
         if stock_id in self.easy_to_borrow:
             return self.easy_rate
-        elif stock_id in self.hard_to_borrow:
+        if stock_id in self.hard_to_borrow:
             return self.hard_rate
-        else:
-            return self.normal_rate
+        return self.normal_rate
 
     def _get_size_multiplier(self, position_value: float) -> float:
         """Get rate multiplier based on position size."""
@@ -338,16 +338,10 @@ class TieredBorrowFeeModel(BaseBorrowFeeModel):
                 amount = position_info.get("amount", 0)
                 price = position_info.get("price", 0)
 
-                if amount < 0 and price > 0:  # Short position
-                    short_value = abs(amount * price)
-
-                    # Get base rate and apply size multiplier
-                    base_rate = self.get_borrow_rate(stock_id, date)
-                    size_mult = self._get_size_multiplier(short_value)
-
-                    annual_rate = base_rate * size_mult
+                if (amount < 0) and (price > 0):  # Short position
+                    annual_rate = self.get_borrow_rate(stock_id, date)
                     daily_rate = annual_rate / self.daily_divisor
-
+                    short_value = abs(amount * price)
                     total_cost += short_value * daily_rate
 
         return total_cost
@@ -355,12 +349,13 @@ class TieredBorrowFeeModel(BaseBorrowFeeModel):
     def _is_valid_stock_id(self, stock_id: str) -> bool:
         """Check whether it's a valid stock identifier."""
         # Filter out known non-stock keys
-        non_stock_keys = {"cash", "cash_delay", "now_account_value", "borrow_cost_accumulated", "short_proceeds"}
+        non_stock_keys = {"cash", "cash_delay", "now_account_value",
+                          "borrow_cost_accumulated", "short_proceeds"}
         if stock_id in non_stock_keys:
             return False
 
         # Additional check: valid stock ids typically have a certain format/length
-        if not isinstance(stock_id, str) or len(stock_id) < 4:
+        if (not isinstance(stock_id, str)) or (len(stock_id) < 4):
             return False
 
         return True

@@ -1,3 +1,5 @@
+"""Signal-driven strategies including LongShortTopKStrategy (crypto-ready)."""
+# pylint: disable=C0301,R0912,R0915,R0902,R0913,R0914,C0411,W0511,W0718,W0612,W0613,C0209,W1309,C1802,C0115,C0116
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 import os

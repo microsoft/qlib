@@ -9,6 +9,8 @@ crypto markets (e.g., 365-day annualization, product compounding) while keeping
 the default Qlib behavior unchanged for other users.
 """
 
+# pylint: disable=C0301,R0913,R0914,R0912,R0915,W0718,C0103
+
 from __future__ import annotations
 
 from typing import List, Union
@@ -109,11 +111,6 @@ class CryptoPortAnaRecord(PortAnaRecord):
                 c = report_normal.get("cost", 0.0)
                 c = c.astype(float).fillna(0) if isinstance(c, pd.Series) else float(c)
 
-                # Product compounding cum NAVs
-                nav_b = (1 + b).cumprod()
-                nav_s0 = (1 + r).cumprod()
-                nav_s1 = (1 + (r - c)).cumprod()
-
                 # Attach crypto metrics for downstream use (non-breaking)
                 try:
                     report_normal.attrs["crypto_metrics"] = {
@@ -143,7 +140,7 @@ class CryptoPortAnaRecord(PortAnaRecord):
                 )
             else:
                 report_normal, _ = portfolio_metric_dict.get(_analysis_freq)
-                analysis = dict()
+                analysis = {}
 
                 r = report_normal["return"].astype(float).fillna(0)
                 b = report_normal["bench"].astype(float).fillna(0)
