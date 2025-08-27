@@ -1,0 +1,127 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug VNStock collector",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/data_collector/vnstock/collector.py",
+            "console": "integratedTerminal",
+            "args": [
+                "download_data",
+                "--source_dir",
+                "./.qlib/vn_data_1d",
+                "--start",
+                "2020-01-01",
+                "--end",
+                "2020-12-31",
+                "--delay",
+                "1",
+                "--interval",
+                "1D",
+                "--region",
+                "VN"
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "SETUPTOOLS_SCM_PRETEND_VERSION": "v0.0.1"
+            }
+        },
+        {
+            "name": "Normalize VNStock collector",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/data_collector/vnstock/collector.py",
+            "console": "integratedTerminal",
+            "args": [
+                "normalize_data",
+                "--source_dir",
+                "~/.qlib/vn_data_1d",
+                "--normalize_dir",
+                "~/.qlib/vn_data_1d_nor",
+                "--interval",
+                "1D",
+                "--region",
+                "VN",
+                "--date_field_name",
+                "time"
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "SETUPTOOLS_SCM_PRETEND_VERSION": "v0.0.1"
+            }
+        },
+        {
+            "name": "Dump VNStock collector",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/dump_bin.py",
+            "console": "integratedTerminal",
+            "args": [
+                "dump_all",
+                "--data_path",
+                "~/.qlib/vn_data_1d_nor",
+                "--qlib_dir",
+                "~/.qlib/qlib_data/vn_data",
+                "--freq",
+                "day",
+                "--date_field_name",
+                "time",
+                "--exclude_fields",
+                "symbol",
+                "--file_suffix",
+                ".csv"
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "SETUPTOOLS_SCM_PRETEND_VERSION": "v0.0.1"
+            }
+        },
+        {
+            "name": "Debug VN30 parse_instruments",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/data_collector/vn_index/collector.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--market_index",
+                "vn_index",
+                "--index_name",
+                "VN30",
+                "--qlib_dir",
+                "~/.qlib/qlib_data/vn_data",
+                "--method",
+                "parse_instruments"
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "SETUPTOOLS_SCM_PRETEND_VERSION": "v0.0.1"
+            }
+        },
+        {
+            "name": "Benchmark VNStock LSTM Alpha158",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/qlib/cli/run.py",
+            "console": "integratedTerminal",
+            "args": [
+                "examples/benchmarks/LSTM/workflow_config_lstm_Alpha158.yaml"
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "SETUPTOOLS_SCM_PRETEND_VERSION": "v0.0.1"
+            }
+        },
+        {
+            "name": "Python Debugger: Current File with Arguments",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": "${command:pickArgs}"
+        }
+    ]
+}
