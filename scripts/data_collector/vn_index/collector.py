@@ -110,6 +110,7 @@ class VNIndex(IndexBase):
                 date: pd.Timestamp
                 type: str, value from ["add", "remove"]
         """
+        # TODO implement this
         logger.info("Vietnamese market change tracking not available through vnstock API")
         # Return empty DataFrame with correct structure
         return pd.DataFrame(columns=[self.SYMBOL_FIELD_NAME, self.DATE_FIELD_NAME, self.CHANGE_TYPE_FIELD])
@@ -142,7 +143,7 @@ class VNIndex(IndexBase):
             
             # Create DataFrame with proper structure
             df = pd.DataFrame()
-            df[self.SYMBOL_FIELD_NAME] = symbols_df['symbol'] if 'symbol' in symbols_df.columns else symbols_df
+            df[self.SYMBOL_FIELD_NAME] = symbols_df
             df[self.START_DATE_FIELD] = self.bench_start_date
             df[self.END_DATE_FIELD] = self.DEFAULT_END_DATE
             

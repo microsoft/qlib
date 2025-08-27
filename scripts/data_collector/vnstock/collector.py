@@ -65,7 +65,7 @@ def get_vn_stock_symbols():
 
 
 class VNStockCollector(BaseCollector, ABC):
-    retry = 2  # Configuration attribute.  How many times will it try to re-request the data if the network fails.
+    retry = 1  # Configuration attribute.  How many times will it try to re-request the data if the network fails.
 
     def __init__(
         self,
@@ -154,7 +154,7 @@ class VNStockCollector(BaseCollector, ABC):
             vnstock_interval = "1m" if interval in ["1m", "1min"] else interval
             
             # Create vnstock Quote object
-            quote = Quote(symbol=symbol, source='TCBS')
+            quote = Quote(symbol=symbol, source='VCI')
             # convert datetime to str if needed
             if isinstance(start, pd.Timestamp):
                 start = start.strftime("%Y-%m-%d")
@@ -256,7 +256,7 @@ class VNStockCollectorVN1D(VNStockCollector):
         for _index_name, _index_code in {"vnindex": "VNINDEX", "hnxindex": "HNXINDEX", "upcomindex": "UPCOMINDEX"}.items():
             logger.info(f"get index data: {_index_name}({_index_code})......")
             try:
-                quote = Quote(symbol=_index_code, source='TCBS')
+                quote = Quote(symbol=_index_code, source='VCI')
                 # convert datetime to str if needed
                 if isinstance(self.start_datetime, pd.Timestamp):
                     self.start_datetime = self.start_datetime.strftime("%Y-%m-%d")
