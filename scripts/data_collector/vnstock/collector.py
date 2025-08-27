@@ -162,6 +162,10 @@ class VNStockCollector(BaseCollector, ABC):
                 end = end.strftime("%Y-%m-%d")
             _resp = quote.history(start=start, end=end, interval=vnstock_interval)
             
+            # if there is 'date' column, change to 'time'
+            if 'date' in _resp.columns:
+                _resp = _resp.rename(columns={'date': 'time'})
+
             if isinstance(_resp, pd.DataFrame) and not _resp.empty:
                 # Add symbol column if not present
                 if 'symbol' not in _resp.columns:
@@ -343,7 +347,7 @@ class VNStockNormalize(BaseNormalize):
         columns = copy.deepcopy(VNStockNormalize.COLUMNS)
         df = df.copy()
         df.set_index(date_field_name, inplace=True)
-        df.index = pd.to_datetime(df.index)
+        df.index = pd.to_datetime(df.index, format='mixed')
         df.index = df.index.tz_localize(None)
         df = df[~df.index.duplicated(keep="first")]
         if calendar_list is not None:
@@ -570,8 +574,103 @@ class VNStockNormalize1min(VNStockNormalize, ABC):
 
 class VNStockNormalizeVN:
     def _get_calendar_list(self) -> Iterable[pd.Timestamp]:
-        # TODO: Get Vietnamese trading calendar
-        return get_calendar_list("ALL")
+        """Get Vietnamese trading calendar from vnstock
+        
+        Returns
+        -------
+        Iterable[pd.Timestamp]
+            Vietnamese trading calendar dates
+        """
+        try:
+            # Use VNINDEX data to generate trading calendar
+            vnstock = Vnstock()
+            stock = vnstock.stock(symbol="VNI", source="TCBS")  # VNINDEX
+            
+            # Get historical data to determine trading days
+            start_date = "2000-01-01"
+            end_date = pd.Timestamp.now().strftime("%Y-%m-%d")
+            
+            df = stock.quote.history(start=start_date, end=end_date, interval="1D")
+            
+            if df is not None and not df.empty:
+                # Extract trading dates from the time column
+                trading_dates = pd.to_datetime(df['time'], format='mixed').dt.date
+                calendar = sorted([pd.Timestamp(date) for date in trading_dates.unique()])
+                logger.info(f"Successfully retrieved {len(calendar)} Vietnamese trading dates from vnstock")
+                return calendar
+            else:
+                logger.warning("No data returned from vnstock for Vietnamese calendar")
+                return self._get_fallback_calendar()
+                
+        except Exception as e:
+            logger.warning(f"Error getting Vietnamese calendar from vnstock: {e}")
+            return self._get_fallback_calendar()
+    
+    def _get_fallback_calendar(self) -> Iterable[pd.Timestamp]:
+        """Generate fallback Vietnamese trading calendar based on business days
+        
+        Returns
+        -------
+        Iterable[pd.Timestamp]
+            Fallback trading calendar
+        """
+        logger.info("Using fallback Vietnamese trading calendar based on business days")
+        
+        # Generate business days (Monday to Friday)
+        calendar = pd.bdate_range(start="2000-01-01", end=pd.Timestamp.now(), freq='B')
+        
+        # Convert to list of Timestamps
+        calendar_list = [pd.Timestamp(date) for date in calendar]
+        
+        # Filter out known Vietnamese holidays (simplified)
+        # Note: This is a basic implementation. For production use, 
+        # consider using a proper Vietnamese holiday calendar library
+        filtered_calendar = []
+        for date in calendar_list:
+            # Skip some major Vietnamese holidays (simplified check)
+            if self._is_vietnamese_holiday(date):
+                continue
+            filtered_calendar.append(date)
+        
+        return filtered_calendar
+    
+    def _is_vietnamese_holiday(self, date: pd.Timestamp) -> bool:
+        """Check if a date is a Vietnamese holiday (simplified implementation)
+        
+        Parameters
+        ----------
+        date : pd.Timestamp
+            Date to check
+            
+        Returns
+        -------
+        bool
+            True if the date is a Vietnamese holiday
+        """
+        # Simplified holiday check - only checking fixed holidays
+        month = date.month
+        day = date.day
+        
+        # New Year's Day
+        if month == 1 and day == 1:
+            return True
+        
+        # International Labor Day
+        if month == 5 and day == 1:
+            return True
+            
+        # Liberation Day
+        if month == 4 and day == 30:
+            return True
+            
+        # National Day
+        if month == 9 and day == 2:
+            return True
+        
+        # Note: Tet holidays and other lunar calendar holidays would need 
+        # more sophisticated calculation, as they vary each year
+        
+        return False
 
 
 class VNStockNormalizeVN1D(VNStockNormalizeVN, VNStockNormalize1D):
@@ -595,7 +694,7 @@ class VNStockNormalizeVN1min(VNStockNormalizeVN, VNStockNormalize1min):
         return symbol
 
     def _get_1d_calendar_list(self) -> Iterable[pd.Timestamp]:
-        return get_calendar_list("ALL")
+        return get_calendar_list("VN_ALL")
 
 class Run(BaseRun):
     def __init__(self, source_dir=None, normalize_dir=None, max_workers=1, interval="1D", region="VN"):

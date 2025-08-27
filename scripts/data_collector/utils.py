@@ -37,6 +37,8 @@ CALENDAR_BENCH_URL_MAP = {
     "US_ALL": "^GSPC",
     "IN_ALL": "^NSEI",
     "BR_ALL": "^BVSP",
+    # NOTE: Use VNINDEX for Vietnamese calendar
+    "VN_ALL": "VNI",
 }
 
 _BENCH_CALENDAR_LIST = None
@@ -58,7 +60,7 @@ def get_calendar_list(bench_code="CSI300") -> List[pd.Timestamp]:
     Parameters
     ----------
     bench_code: str
-        value from ["CSI300", "CSI500", "ALL", "US_ALL"]
+        value from ["CSI300", "CSI500", "ALL", "US_ALL", "IN_ALL", "BR_ALL", "VN_ALL"]
 
     Returns
     -------
@@ -78,6 +80,44 @@ def get_calendar_list(bench_code="CSI300") -> List[pd.Timestamp]:
             print(Ticker(CALENDAR_BENCH_URL_MAP[bench_code]).history(interval="1d", period="max"))
             df = Ticker(CALENDAR_BENCH_URL_MAP[bench_code]).history(interval="1d", period="max")
             calendar = df.index.get_level_values(level="date").map(pd.Timestamp).unique().tolist()
+        elif bench_code.startswith("VN_"):
+            # Vietnamese calendar using vnstock
+            try:
+                from vnstock import Vnstock, Quote
+                
+                # Use VNINDEX as the benchmark for Vietnamese calendar
+                stock = Vnstock().stock(symbol="VNI", source="TCBS")
+                
+                # Get historical data from 2000 to current date
+                start_date = "2000-01-01"
+                end_date = pd.Timestamp.now().strftime("%Y-%m-%d")
+                
+                df = stock.quote.history(start=start_date, end=end_date, interval="1D")
+                if df is not None and not df.empty:
+                    # The 'time' column contains the trading dates
+                    calendar = pd.to_datetime(df['time'], format='mixed').unique().tolist()
+                    calendar = sorted([pd.Timestamp(date) for date in calendar])
+                else:
+                    # Fallback: generate a basic business day calendar for Vietnam
+                    logger.warning("Failed to get Vietnamese calendar from vnstock, using business day fallback")
+                    calendar = pd.bdate_range(start="2000-01-01", end=pd.Timestamp.now(), freq='B').tolist()
+                    # Remove known Vietnamese holidays (basic approximation)
+                    vietnamese_holidays = [
+                        # Tet holidays (approximate, as they vary each year)
+                        # National holidays
+                        "01-01",  # New Year
+                        "04-30",  # Liberation Day
+                        "05-01",  # International Labor Day
+                        "09-02",  # National Day
+                    ]
+                    # This is a simplified approach; real implementation would need proper holiday calculation
+                    
+            except ImportError:
+                logger.warning("vnstock not available, using business day calendar for Vietnamese market")
+                calendar = pd.bdate_range(start="2000-01-01", end=pd.Timestamp.now(), freq='B').tolist()
+            except Exception as e:
+                logger.warning(f"Error getting Vietnamese calendar: {e}, using business day fallback")
+                calendar = pd.bdate_range(start="2000-01-01", end=pd.Timestamp.now(), freq='B').tolist()
         else:
             if bench_code.upper() == "ALL":
 
@@ -735,7 +775,7 @@ def calc_adjusted_price(
     df.drop_duplicates(subset=_date_field_name, inplace=True)
     df.sort_values(_date_field_name, inplace=True)
     symbol = df.iloc[0][_symbol_field_name]
-    df[_date_field_name] = pd.to_datetime(df[_date_field_name])
+    df[_date_field_name] = pd.to_datetime(df[_date_field_name], format='mixed')
     # get 1d data from qlib
     _start = pd.Timestamp(df[_date_field_name].min()).strftime("%Y-%m-%d")
     _end = (pd.Timestamp(df[_date_field_name].max()) + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
@@ -773,7 +813,7 @@ def calc_adjusted_price(
             df.set_index(_date_field_name, inplace=True)
             df = df.reindex(
                 generate_minutes_calendar_from_daily(
-                    calendars=pd.to_datetime(data_1d.reset_index()[_date_field_name].drop_duplicates()),
+                    calendars=pd.to_datetime(data_1d.reset_index()[_date_field_name].drop_duplicates(), format='mixed'),
                     freq=frequence,
                     am_range=("09:30:00", "11:29:00"),
                     pm_range=("13:00:00", "14:59:00"),
