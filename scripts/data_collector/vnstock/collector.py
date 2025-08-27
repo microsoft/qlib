@@ -400,7 +400,7 @@ class VNStockNormalize(BaseNormalize):
         raise NotImplementedError("rewrite adjusted_price")
 
 
-class VNStockNormalize1d(VNStockNormalize, ABC):
+class VNStockNormalize1D(VNStockNormalize, ABC):
     DAILY_FORMAT = "%Y-%m-%d"
 
     def adjusted_price(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -424,7 +424,7 @@ class VNStockNormalize1d(VNStockNormalize, ABC):
         return df.reset_index()
 
     def normalize(self, df: pd.DataFrame) -> pd.DataFrame:
-        df = super(VNStockNormalize1d, self).normalize(df)
+        df = super(VNStockNormalize1D, self).normalize(df)
         df = self._manual_adj_data(df)
         return df
 
@@ -458,7 +458,7 @@ class VNStockNormalize1d(VNStockNormalize, ABC):
         return df.reset_index()
 
 
-class VNStockNormalize1dExtend(VNStockNormalize1d):
+class VNStockNormalize1DExtend(VNStockNormalize1D):
     def __init__(
         self, old_qlib_data_dir: str | Path, date_field_name: str = "date", symbol_field_name: str = "symbol", **kwargs
     ):
@@ -473,7 +473,7 @@ class VNStockNormalize1dExtend(VNStockNormalize1d):
         symbol_field_name: str
             symbol field name, default is symbol
         """
-        super(VNStockNormalize1dExtend, self).__init__(date_field_name, symbol_field_name)
+        super(VNStockNormalize1DExtend, self).__init__(date_field_name, symbol_field_name)
         self.column_list = ["open", "high", "low", "close", "volume", "factor", "change"]
         self.old_qlib_data = self._get_old_data(old_qlib_data_dir)
 
@@ -485,7 +485,7 @@ class VNStockNormalize1dExtend(VNStockNormalize1d):
         return df
 
     def normalize(self, df: pd.DataFrame) -> pd.DataFrame:
-        df = super(VNStockNormalize1dExtend, self).normalize(df)
+        df = super(VNStockNormalize1DExtend, self).normalize(df)
         df.set_index(self._date_field_name, inplace=True)
         symbol_name = df[self._symbol_field_name].iloc[0]
         old_symbol_list = self.old_qlib_data.index.get_level_values("instrument").unique().to_list()
@@ -574,11 +574,11 @@ class VNStockNormalizeVN:
         return get_calendar_list("ALL")
 
 
-class VNStockNormalizeVN1d(VNStockNormalizeVN, VNStockNormalize1d):
+class VNStockNormalizeVN1D(VNStockNormalizeVN, VNStockNormalize1D):
     pass
 
 
-class VNStockNormalizeVN1dExtend(VNStockNormalizeVN, VNStockNormalize1dExtend):
+class VNStockNormalizeVN1DExtend(VNStockNormalizeVN, VNStockNormalize1DExtend):
     pass
 
 
