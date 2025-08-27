@@ -298,7 +298,7 @@ def get_us_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
         stock symbols
     """
     import akshare as ak
-    
+
     global _US_SYMBOLS  # pylint: disable=W0603
 
     @deco_retry
