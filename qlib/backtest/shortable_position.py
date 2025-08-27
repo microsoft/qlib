@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from typing import Dict, Union, Optional
+from typing import Dict, Union
 import numpy as np
 import pandas as pd
 from qlib.backtest.position import Position

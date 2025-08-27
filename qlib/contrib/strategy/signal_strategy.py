@@ -614,7 +614,7 @@ class LongShortTopKStrategy(BaseSignalStrategy):
             def filter_stock(li):
                 return li
 
-        import copy
+        import copy  # pylint: disable=C0415,W0404
 
         current_temp: Position = copy.deepcopy(self.trade_position)
 

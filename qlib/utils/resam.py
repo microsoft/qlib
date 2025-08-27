@@ -90,7 +90,7 @@ def get_higher_eq_freq_feature(instruments, fields, start_time=None, end_time=No
                 if stem.endswith("_future"):
                     continue
                 try:
-                    from .time import Freq as _Freq  # local import to avoid cycle
+                    from .time import Freq as _Freq  # local import to avoid cycle  # pylint: disable=C0415
                 except Exception:
                     continue
                 _f = _Freq(stem)
@@ -99,7 +99,7 @@ def get_higher_eq_freq_feature(instruments, fields, start_time=None, end_time=No
 
             # sort by minute count (1min < 5min < 60min)
             def _minute_order(x: str) -> int:
-                from .time import Freq as _Freq  # local import
+                from .time import Freq as _Freq  # local import  # pylint: disable=C0415
 
                 _f = _Freq(x)
                 return _f.count

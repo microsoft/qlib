@@ -1,9 +1,8 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from typing import Dict, Optional, Union
+from typing import Dict, Optional
 import pandas as pd
-import numpy as np
 from abc import ABC, abstractmethod
 
 

@@ -63,7 +63,7 @@ class CryptoPortAnaRecord(PortAnaRecord):
         self.crypto_annual_days = crypto_annual_days
 
     def _generate(self, **kwargs):  # override only the generation logic
-        from ...backtest import backtest as normal_backtest
+        from ...backtest import backtest as normal_backtest  # pylint: disable=C0415
 
         pred = self.load("pred.pkl")
 
@@ -136,7 +136,7 @@ class CryptoPortAnaRecord(PortAnaRecord):
         # Risk analysis (365 days, product mode) printing and artifacts, mirroring PortAnaRecord
         for _analysis_freq in self.risk_analysis_freq:
             if _analysis_freq not in portfolio_metric_dict:
-                import warnings
+                import warnings  # pylint: disable=C0415
 
                 warnings.warn(
                     f"the freq {_analysis_freq} report is not found, please set the corresponding env with `generate_portfolio_metrics=True`"
@@ -159,7 +159,7 @@ class CryptoPortAnaRecord(PortAnaRecord):
                 )
 
                 analysis_df = pd.concat(analysis)
-                from ...utils import flatten_dict
+                from ...utils import flatten_dict  # pylint: disable=C0415
 
                 analysis_dict = flatten_dict(analysis_df["risk"].unstack().T.to_dict())
                 self.recorder.log_metrics(**{f"{_analysis_freq}.{k}": v for k, v in analysis_dict.items()})

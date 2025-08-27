@@ -203,7 +203,7 @@ class ShortableExecutor(SimulatorExecutor):
         self.trade_account.current_position = pos
 
         # Monkey-patch: use our fixed _update_state_from_order on existing account
-        import types
+        import types  # pylint: disable=C0415
 
         self.trade_account._update_state_from_order = types.MethodType(
             ShortableAccount._update_state_from_order, self.trade_account
@@ -226,7 +226,7 @@ class ShortableExecutor(SimulatorExecutor):
         trade_info = super()._execute_orders(trade_decision, date)
 
         # Post-check: ensure cash is non-negative
-        if hasattr(self.account.current_position, "get_cash"):
+        if hasattr(self.account.current_position, "get_cash"):  # pylint: disable=has-member
             if self.account.current_position.get_cash() < -1e-6:
                 if self.verbose:
                     print(f"[{date}] Warning: negative cash; check margin logic or scale weights")
@@ -294,7 +294,7 @@ class ShortableExecutor(SimulatorExecutor):
 
         CRITICAL: Use same price calibration as trading (close or open)
         """
-        if not isinstance(self.account.current_position, ShortablePosition):
+        if not isinstance(self.account.current_position, ShortablePosition):  # pylint: disable=has-member
             return
 
         position = self.account.current_position
