@@ -123,8 +123,7 @@ class FixedRateBorrowFeeModel(BaseBorrowFeeModel):
     def _is_valid_stock_id(self, stock_id: str) -> bool:
         """Check whether it's a valid stock identifier."""
         # Filter out known non-stock keys
-        non_stock_keys = {"cash", "cash_delay", "now_account_value",
-                          "borrow_cost_accumulated", "short_proceeds"}
+        non_stock_keys = {"cash", "cash_delay", "now_account_value", "borrow_cost_accumulated", "short_proceeds"}
         if stock_id in non_stock_keys:
             return False
 
@@ -245,8 +244,7 @@ class DynamicBorrowFeeModel(BaseBorrowFeeModel):
     def _is_valid_stock_id(self, stock_id: str) -> bool:
         """Check whether it's a valid stock identifier."""
         # Filter out known non-stock keys
-        non_stock_keys = {"cash", "cash_delay", "now_account_value",
-                          "borrow_cost_accumulated", "short_proceeds"}
+        non_stock_keys = {"cash", "cash_delay", "now_account_value", "borrow_cost_accumulated", "short_proceeds"}
         if stock_id in non_stock_keys:
             return False
 
@@ -349,8 +347,7 @@ class TieredBorrowFeeModel(BaseBorrowFeeModel):
     def _is_valid_stock_id(self, stock_id: str) -> bool:
         """Check whether it's a valid stock identifier."""
         # Filter out known non-stock keys
-        non_stock_keys = {"cash", "cash_delay", "now_account_value",
-                          "borrow_cost_accumulated", "short_proceeds"}
+        non_stock_keys = {"cash", "cash_delay", "now_account_value", "borrow_cost_accumulated", "short_proceeds"}
         if stock_id in non_stock_keys:
             return False
 

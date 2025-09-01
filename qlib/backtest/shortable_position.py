@@ -349,9 +349,7 @@ class ShortablePosition(Position):
                         daily_cost += short_value * self._daily_borrow_rate
                     elif price is None or not np.isfinite(price) or price <= 0:
                         if getattr(self, "logger", None) is not None:
-                            self.logger.debug(
-                                f"Invalid price for short position {stock_id}: {price}"
-                            )
+                            self.logger.debug(f"Invalid price for short position {stock_id}: {price}")
 
         return daily_cost
 
@@ -468,9 +466,7 @@ class ShortablePosition(Position):
                 gross += abs(amt * price)
             elif price is None or not np.isfinite(price) or price <= 0:
                 if getattr(self, "logger", None) is not None:
-                    self.logger.debug(
-                        f"Invalid price for {sid} in gross value calculation: {price}"
-                    )
+                    self.logger.debug(f"Invalid price for {sid} in gross value calculation: {price}")
         return gross
 
     def get_net_value(self) -> float:
