@@ -7,14 +7,12 @@ import sys
 from pathlib import Path
 from qlib_utils import (
     SUPPORTED_MODELS, train_model, predict, backtest_strategy,
-    download_all_data, update_daily_data, check_data_health,
-    StreamlitLogHandler
+    download_all_data, update_daily_data, check_data_health
 )
 import pandas as pd
 import plotly.express as px
 import datetime
 import copy
-import logging
 
 # --- Streamlit Pages ---
 
@@ -54,12 +52,8 @@ def data_management_page():
     if st.button("开始检查数据健康度"):
         with st.spinner("正在检查数据..."):
             try:
-                missing_df, abnormal_df = check_data_health(qlib_1d_dir)
-                st.subheader("缺失数据统计:")
-                st.dataframe(missing_df)
-                st.subheader("价格/成交量异常波动统计:")
-                st.dataframe(abnormal_df)
-                st.success("数据健康度检查已完成！")
+                check_data_health(qlib_1d_dir, log_placeholder)
+                st.success("数据健康度检查已完成！详情请查看上方日志。")
             except Exception as e:
                 st.error(f"检查过程中发生错误: {e}")
 
