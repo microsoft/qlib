@@ -100,7 +100,7 @@ def predict(model_path_str: str, qlib_dir: str, prediction_date: str):
     if not config_path.exists():
         raise FileNotFoundError(f"Config file {config_path} not found for model {model_path.name}")
     with open(config_path, 'r') as f:
-        config = yaml.safe_load(f)
+        config = yaml.load(f, Loader=yaml.FullLoader)
     provider_uri = str(Path(qlib_dir).expanduser())
     if not exists_qlib_data(provider_uri):
         raise FileNotFoundError("Qlib data not found.")
@@ -121,7 +121,7 @@ def backtest_strategy(model_path_str: str, qlib_dir: str, start_time: str, end_t
     if not config_path.exists():
         raise FileNotFoundError(f"Config file {config_path} not found for model {model_path.name}")
     with open(config_path, 'r') as f:
-        config = yaml.safe_load(f)
+        config = yaml.load(f, Loader=yaml.FullLoader)
     provider_uri = str(Path(qlib_dir).expanduser())
     if not exists_qlib_data(provider_uri):
         raise FileNotFoundError("Qlib data not found.")
@@ -134,3 +134,22 @@ def backtest_strategy(model_path_str: str, qlib_dir: str, start_time: str, end_t
     strategy = TopkDropoutStrategy(model=model, dataset=dataset, **strategy_kwargs)
     report_df, _ = backtest_daily(start_time=start_time, end_time=end_time, strategy=strategy, exchange_kwargs=exchange_kwargs)
     return report_df
+
+def get_historical_prediction(model_path_str: str, qlib_dir: str, stock_id: str, start_date: str, end_date: str):
+    # This can be slow as it predicts day by day
+    all_scores = []
+    date_range = pd.date_range(start=start_date, end=end_date, freq='B') # Business days
+
+    for date in date_range:
+        date_str = date.strftime("%Y-%m-%d")
+        try:
+            pred_df = predict(model_path_str, qlib_dir, date_str)
+            stock_score = pred_df[pred_df['StockID'] == stock_id]
+            if not stock_score.empty:
+                all_scores.append({'Date': date, 'Score': stock_score.iloc[0]['score']})
+        except Exception as e:
+            # Skip days where prediction fails (e.g., no data, market closed)
+            print(f"Could not predict for {date_str}: {e}")
+            continue
+
+    return pd.DataFrame(all_scores)

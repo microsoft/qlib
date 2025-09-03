@@ -4,7 +4,7 @@ from qlib.constant import REG_CN
 from pathlib import Path
 from qlib_utils import (
     SUPPORTED_MODELS, train_model, predict, backtest_strategy,
-    update_daily_data, check_data_health
+    update_daily_data, check_data_health, get_historical_prediction
 )
 import pandas as pd
 import plotly.express as px
@@ -25,9 +25,16 @@ def data_management_page():
     st.markdown("""
     **请在您的终端中依次执行以下命令：**
     ```bash
+    # 1. 下载社区提供的预处理数据包
     wget https://github.com/chenditc/investment_data/releases/latest/download/qlib_bin.tar.gz
+
+    # 2. 创建用于存放数据的目录 (如果不存在)
     mkdir -p ~/.qlib/qlib_data/cn_data
+
+    # 3. 解压数据包到指定目录
     tar -zxvf qlib_bin.tar.gz -C ~/.qlib/qlib_data/cn_data --strip-components=1
+
+    # 4. (可选) 清理下载的压缩包
     rm -f qlib_bin.tar.gz
     ```
     """)
@@ -107,7 +114,6 @@ def model_training_page():
 
 def prediction_page():
     st.header("投资组合预测")
-    st.markdown("使用一个或多个已训练好的模型，对指定日期的股票进行评分预测，并进行对比。")
     default_data_path = str(Path.home() / ".qlib" / "qlib_data" / "cn_data")
     default_models_path = str(Path.home() / "qlib_models")
     models_dir = st.text_input("模型所在目录", default_models_path, key="models_dir_pred")
@@ -117,6 +123,8 @@ def prediction_page():
     if not available_models:
         st.warning(f"在 '{models_dir_path}' 中未找到模型。")
         return
+
+    st.subheader("多模型对比预测 (单日)")
     selected_models = st.multiselect("选择一个或多个模型进行对比预测", available_models)
     prediction_date = st.date_input("选择预测日期", datetime.date.today() - datetime.timedelta(days=1))
     if st.button("执行对比预测") and selected_models:
@@ -130,9 +138,7 @@ def prediction_page():
                     all_preds.append(pred_df.set_index('StockID')[f"score_{model_name.replace('.pkl', '')}"])
                 combined_df = pd.concat(all_preds, axis=1).reset_index()
                 st.success("预测完成！")
-                st.subheader("多模型预测结果对比")
                 st.dataframe(combined_df)
-                st.subheader("Top-10 股票分数对比图")
                 score_cols = [col for col in combined_df.columns if 'score' in col]
                 combined_df['average_score'] = combined_df[score_cols].mean(axis=1)
                 top_10_stocks = combined_df.nlargest(10, 'average_score')
@@ -142,6 +148,30 @@ def prediction_page():
                 st.plotly_chart(fig, use_container_width=True)
             except Exception as e:
                 st.error(f"预测过程中发生错误: {e}")
+
+    st.subheader("单一股票历史分数追踪")
+    col1, col2 = st.columns(2)
+    single_model_name = col1.selectbox("选择用于追踪的模型", available_models, key="single_model_select")
+    stock_id_input = col2.text_input("输入股票代码 (例如 SH600519)", "SH600519")
+    col3, col4 = st.columns(2)
+    hist_start_date = col3.date_input("追踪开始日期", datetime.date.today() - datetime.timedelta(days=90))
+    hist_end_date = col4.date_input("追踪结束日期", datetime.date.today() - datetime.timedelta(days=1))
+    if st.button("开始追踪"):
+        if not single_model_name or not stock_id_input:
+            st.warning("请选择一个模型并输入股票代码。")
+        else:
+            with st.spinner(f"正在为股票 {stock_id_input} 获取历史分数..."):
+                try:
+                    single_model_path = str(models_dir_path / single_model_name)
+                    hist_df = get_historical_prediction(single_model_path, qlib_dir, stock_id_input.upper(), str(hist_start_date), str(hist_end_date))
+                    if hist_df.empty:
+                        st.warning("在指定时间段内未能获取到该股票的有效预测分数。")
+                    else:
+                        st.success("历史分数追踪完成！")
+                        fig = px.line(hist_df, x="Date", y="Score", title=f"模型 {single_model_name} 对 {stock_id_input} 的历史评分")
+                        st.plotly_chart(fig, use_container_width=True)
+                except Exception as e:
+                    st.error(f"历史分数追踪过程中发生错误: {e}")
 
 def backtesting_page():
     st.header("策略回测")
