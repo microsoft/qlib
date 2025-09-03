@@ -1,0 +1,164 @@
+import qlib
+from qlib.constant import REG_CN
+from qlib.utils import exists_qlib_data, init_instance_by_config
+from qlib.workflow import R
+from qlib.workflow.recorder import PortAnaRecord # CORRECTED IMPORT
+from pathlib import Path
+import yaml
+import streamlit as st
+import pandas as pd
+import pickle
+
+# LightGBM Model Config
+LIGHTGBM_CONFIG = {
+    "task": {
+        "model": {
+            "class": "LGBModel",
+            "module_path": "qlib.contrib.model.gbdt",
+            "kwargs": {
+                "loss": "mse",
+                "colsample_bytree": 0.8879,
+                "learning_rate": 0.0421,
+                "subsample": 0.8789,
+                "n_estimators": 200,
+                "max_depth": 8,
+                "num_leaves": 210,
+                "min_child_samples": 5,
+            },
+        },
+        "dataset": {
+            "class": "DatasetH",
+            "module_path": "qlib.data.dataset",
+            "kwargs": {
+                "handler": {
+                    "class": "Alpha158",
+                    "module_path": "qlib.contrib.data.handler",
+                    "kwargs": {
+                        "start_time": "2014-01-01",
+                        "end_time": "2020-12-31",
+                        "fit_start_time": "2014-01-01",
+                        "fit_end_time": "2018-12-31",
+                        "instruments": "csi300",
+                    },
+                },
+                "segments": {
+                    "train": ("2014-01-01", "2018-12-31"),
+                    "valid": ("2019-01-01", "2019-12-31"),
+                    "test": ("2020-01-01", "2020-12-31"),
+                },
+            },
+        },
+    },
+}
+
+SUPPORTED_MODELS = {
+    "LightGBM (Alpha158)": LIGHTGBM_CONFIG
+}
+
+def train_model(model_name: str, qlib_dir: str, models_save_dir: str):
+    if model_name not in SUPPORTED_MODELS:
+        raise ValueError(f"Model {model_name} is not supported.")
+
+    provider_uri = str(Path(qlib_dir).expanduser())
+    if not exists_qlib_data(provider_uri):
+        raise FileNotFoundError("Qlib data not found. Please download the data first.")
+
+    qlib.init(provider_uri=provider_uri, region=REG_CN)
+
+    model_config = SUPPORTED_MODELS[model_name]
+    dataset = init_instance_by_config(model_config["task"]["dataset"])
+    model = init_instance_by_config(model_config["task"]["model"])
+
+    with R.start(experiment_name="streamlit_train"):
+        model.fit(dataset)
+
+        model_basename = model_name.replace(' ', '_').replace('(', '').replace(')', '')
+        model_save_path = Path(models_save_dir).expanduser() / f"{model_basename}.pkl"
+        config_save_path = Path(models_save_dir).expanduser() / f"{model_basename}.yaml"
+        model_save_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Save model with pickle and config with yaml
+        with open(model_save_path, 'wb') as f:
+            pickle.dump(model, f)
+        with open(config_save_path, 'w') as f:
+            yaml.dump(model_config["task"], f)
+
+        return str(model_save_path)
+
+def predict(model_path_str: str, qlib_dir: str, prediction_date: str):
+    model_path = Path(model_path_str)
+    config_path = model_path.with_suffix(".yaml")
+
+    if not config_path.exists():
+        raise FileNotFoundError(f"Config file {config_path} not found for model {model_path.name}")
+
+    with open(config_path, 'r') as f:
+        config = yaml.safe_load(f)
+
+    provider_uri = str(Path(qlib_dir).expanduser())
+    if not exists_qlib_data(provider_uri):
+        raise FileNotFoundError("Qlib data not found. Please download the data first.")
+
+    qlib.init(provider_uri=provider_uri, region=REG_CN)
+
+    with open(model_path, 'rb') as f:
+        model = pickle.load(f)
+
+    # Update dataset config for prediction
+    config["dataset"]["kwargs"]["handler"]["kwargs"]["start_time"] = pd.to_datetime(prediction_date) - pd.DateOffset(years=2)
+    config["dataset"]["kwargs"]["handler"]["kwargs"]["end_time"] = prediction_date
+    config["dataset"]["kwargs"]["segments"] = {"predict": (prediction_date, prediction_date)}
+
+    dataset = init_instance_by_config(config["dataset"])
+    prediction = model.predict(dataset)
+
+    prediction = prediction.reset_index().rename(columns={'instrument': 'StockID', 'datetime': 'Date'})
+    return prediction.sort_values(by="score", ascending=False)
+
+def backtest_strategy(model_path_str: str, qlib_dir: str, start_time: str, end_time: str):
+    model_path = Path(model_path_str)
+    config_path = model_path.with_suffix(".yaml")
+
+    if not config_path.exists():
+        raise FileNotFoundError(f"Config file {config_path} not found for model {model_path.name}")
+
+    with open(config_path, 'r') as f:
+        config = yaml.safe_load(f)
+
+    provider_uri = str(Path(qlib_dir).expanduser())
+    if not exists_qlib_data(provider_uri):
+        raise FileNotFoundError("Qlib data not found. Please download the data first.")
+
+    qlib.init(provider_uri=provider_uri, region=REG_CN)
+
+    with open(model_path, 'rb') as f:
+        model = pickle.load(f)
+
+    # Update dataset handler times for the backtest period
+    config["dataset"]["kwargs"]["handler"]["kwargs"]["start_time"] = start_time
+    config["dataset"]["kwargs"]["handler"]["kwargs"]["end_time"] = end_time
+
+    PORTFOLIO_ANALYSIS_CONFIG = {
+        "executor": {
+            "class": "SimulatorExecutor", "module_path": "qlib.backtest.executor",
+            "kwargs": {"time_per_step": "day", "generate_portfolio_metrics": True},
+        },
+        "strategy": {
+            "class": "TopkDropoutStrategy", "module_path": "qlib.contrib.strategy.signal_strategy",
+            "kwargs": {"model": model, "dataset": config["dataset"], "topk": 50, "n_drop": 5},
+        },
+        "backtest": {
+            "start_time": start_time, "end_time": end_time, "account": 100000000,
+            "benchmark": "SH000300",
+            "exchange_kwargs": {
+                "freq": "day", "limit_threshold": 0.095, "deal_price": "close",
+                "open_cost": 0.0005, "close_cost": 0.0015, "min_cost": 5,
+            },
+        },
+    }
+
+    with R.start(experiment_name="streamlit_backtest_final"):
+        recorder = R.get_recorder()
+        backtest_record = PortAnaRecord(recorder, **PORTFOLIO_ANALYSIS_CONFIG)
+        backtest_record.generate()
+        return recorder.load_object("portfolio_analysis.pkl")

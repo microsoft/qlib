@@ -1,0 +1,12 @@
+# Qlib for core functionalities
+pyqlib==0.9.7
+# GUI Framework
+streamlit==1.26.0
+# Other dependencies, compatible with Python 3.12
+numpy==1.26.4
+pandas==2.2.0
+scikit-learn==1.4.0
+fire
+torch==2.2.0
+# For qlib data download
+requests_cache
