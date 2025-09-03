@@ -1,7 +1,7 @@
 # Qlib for core functionalities
 pyqlib==0.9.7
 # GUI Framework
-streamlit==1.26.0
+streamlit==1.27.0
 # Other dependencies, compatible with Python 3.12
 numpy==1.26.4
 pandas==2.2.0
@@ -11,3 +11,4 @@ torch==2.2.0
 # For qlib data download
 requests_cache
 xgboost==2.0.3
+catboost==1.2.5
