@@ -2,7 +2,8 @@ import qlib
 from qlib.constant import REG_CN
 from qlib.utils import exists_qlib_data, init_instance_by_config
 from qlib.workflow import R
-from qlib.workflow.recorder import PortAnaRecord # CORRECTED IMPORT
+from qlib.contrib.evaluate import backtest_daily
+from qlib.contrib.strategy import TopkDropoutStrategy
 from pathlib import Path
 import yaml
 import streamlit as st
@@ -158,29 +159,19 @@ def backtest_strategy(model_path_str: str, qlib_dir: str, start_time: str, end_t
     config["dataset"]["kwargs"]["handler"]["kwargs"]["start_time"] = start_time
     config["dataset"]["kwargs"]["handler"]["kwargs"]["end_time"] = end_time
 
-    # Create the full backtest configuration
-    port_analysis_config = {
-        "executor": {
-            "class": "SimulatorExecutor", "module_path": "qlib.backtest.executor",
-            "kwargs": {"time_per_step": "day", "generate_portfolio_metrics": True},
-        },
-        "strategy": {
-            "class": "TopkDropoutStrategy", "module_path": "qlib.contrib.strategy.signal_strategy",
-            "kwargs": {
-                "model": model,
-                "dataset": config["dataset"],
-                **strategy_kwargs, # Unpack user-defined strategy kwargs
-            },
-        },
-        "backtest": {
-            "start_time": start_time, "end_time": end_time, "account": 100000000,
-            "benchmark": "SH000300",
-            "exchange_kwargs": exchange_kwargs, # Use user-defined exchange kwargs
-        },
-    }
+    dataset = init_instance_by_config(config["dataset"])
 
-    with R.start(experiment_name="streamlit_backtest_final"):
-        recorder = R.get_recorder()
-        backtest_record = PortAnaRecord(recorder, **port_analysis_config)
-        backtest_record.generate()
-        return recorder.load_object("portfolio_analysis.pkl")
+    strategy = TopkDropoutStrategy(
+        model=model,
+        dataset=dataset,
+        **strategy_kwargs
+    )
+
+    report_df, _ = backtest_daily(
+        start_time=start_time,
+        end_time=end_time,
+        strategy=strategy,
+        exchange_kwargs=exchange_kwargs
+    )
+
+    return report_df
