@@ -30,7 +30,7 @@ SUPPORTED_MODELS = {
     "ALSTM (Alpha158)": {"task": {"model": ALSTM_MODEL, "dataset": DATASET_ALPHA158}},
 }
 
-# --- Data Management Functions (Reverted to Subprocess) ---
+# --- Data Management Functions ---
 def get_script_path(script_name):
     app_dir = Path().resolve()
     script_path = app_dir / "scripts" / script_name
@@ -64,7 +64,7 @@ def check_data_health(qlib_dir, log_placeholder):
     command = f'"{sys.executable}" "{script_path}" check_data --qlib_dir "{qlib_dir}"'
     run_command_with_log(command, log_placeholder)
 
-# --- Model Training & Evaluation Functions ---
+# --- Model Training & Evaluation Functions (FIXED) ---
 def train_model(model_name: str, qlib_dir: str, models_save_dir: str, custom_config: dict = None, custom_model_name: str = None, stock_pool: str = 'csi300', finetune_model_path: str = None):
     provider_uri = str(Path(qlib_dir).expanduser())
     if not exists_qlib_data(provider_uri):
@@ -73,29 +73,23 @@ def train_model(model_name: str, qlib_dir: str, models_save_dir: str, custom_con
     model_config = copy.deepcopy(custom_config if custom_config is not None else SUPPORTED_MODELS[model_name])
     model_config["task"]["dataset"]["kwargs"]["handler"]["kwargs"]["instruments"] = stock_pool
     dataset = init_instance_by_config(model_config["task"]["dataset"])
-    initial_model = None
+
+    model_kwargs = model_config["task"]["model"]["kwargs"]
     if finetune_model_path:
         with open(finetune_model_path, 'rb') as f:
             initial_model = pickle.load(f)
+        model_kwargs['init_model'] = initial_model
+
     model = init_instance_by_config(model_config["task"]["model"])
-    fit_kwargs = {}
-    if any(m in model_config['task']['model']['class'] for m in ['LGBModel', 'CatBoostModel']):
-        progress_bar = st.progress(0)
-        status_text = st.empty()
-        def tqdm_callback(env):
-            total_iterations = env.end_iteration if hasattr(env, 'end_iteration') else model.iterations
-            if env.iteration % 5 == 0:
-                progress = (env.iteration + 1) / total_iterations
-                progress_bar.progress(min(progress, 1.0))
-                status_text.text(f"正在训练... 第 {env.iteration + 1}/{total_iterations} 轮")
-        fit_kwargs['callbacks'] = [tqdm_callback]
-    if initial_model:
-        fit_kwargs['init_model'] = initial_model
-    model.fit(dataset, **fit_kwargs)
+    model.fit(dataset)
+
     model_basename = custom_model_name if custom_model_name else model_name.replace(' ', '_').replace('(', '').replace(')', '')
     model_save_path = Path(models_save_dir).expanduser() / f"{model_basename}.pkl"
     config_save_path = Path(models_save_dir).expanduser() / f"{model_basename}.yaml"
     model_save_path.parent.mkdir(parents=True, exist_ok=True)
+
+    model_config["task"]["model"]["kwargs"].pop('init_model', None)
+
     with open(model_save_path, 'wb') as f: pickle.dump(model, f)
     with open(config_save_path, 'w') as f: yaml.dump(model_config["task"], f)
     return str(model_save_path)

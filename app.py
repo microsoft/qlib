@@ -25,16 +25,9 @@ def data_management_page():
     st.markdown("""
     **请在您的终端中依次执行以下命令：**
     ```bash
-    # 1. 下载社区提供的预处理数据包
     wget https://github.com/chenditc/investment_data/releases/latest/download/qlib_bin.tar.gz
-
-    # 2. 创建用于存放数据的目录 (如果不存在)
     mkdir -p ~/.qlib/qlib_data/cn_data
-
-    # 3. 解压数据包到指定目录
     tar -zxvf qlib_bin.tar.gz -C ~/.qlib/qlib_data/cn_data --strip-components=1
-
-    # 4. (可选) 清理下载的压缩包
     rm -f qlib_bin.tar.gz
     ```
     """)
@@ -104,7 +97,7 @@ def model_training_page():
         elif "ALSTM" in model_name_key:
             st.info("ALSTM模型的超参数调节暂未在此界面支持。")
     if st.button("开始训练"):
-        with st.spinner("正在准备训练环境..."):
+        with st.spinner("正在训练模型，此过程可能需要较长时间，请耐心等待..."):
             try:
                 saved_path = train_model(model_name_key, qlib_dir, models_save_dir, config, custom_model_name if custom_model_name else None, stock_pool, finetune_model_path)
                 st.success(f"模型训练成功！已保存至: {saved_path}")
