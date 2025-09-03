@@ -30,11 +30,11 @@ class InfoCollector:
         REQUIRED = [
             "pyyaml",
             "mlflow",
-            "filelock>=3.16.0",
+            "filelock",
             "redis",
             "dill",
             "fire",
-            "ruamel.yaml>=0.17.38",
+            "ruamel.yaml",
             "python-redis-lock",
             "tqdm",
             "pymongo",
