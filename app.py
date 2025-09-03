@@ -7,12 +7,14 @@ import sys
 from pathlib import Path
 from qlib_utils import (
     SUPPORTED_MODELS, train_model, predict, backtest_strategy,
-    download_all_data, update_daily_data, check_data_health
+    download_all_data, update_daily_data, check_data_health,
+    StreamlitLogHandler
 )
 import pandas as pd
 import plotly.express as px
 import datetime
 import copy
+import logging
 
 # --- Streamlit Pages ---
 
@@ -22,47 +24,44 @@ def data_management_page():
     default_path = str(Path.home() / ".qlib" / "qlib_data")
     qlib_dir = st.text_input("Qlib 数据存储根路径", default_path, key="data_dir_dm")
     qlib_1d_dir = str(Path(qlib_dir) / "cn_data")
+    log_placeholder = st.empty()
+
     st.subheader("1. 全量下载 (首次使用)")
     st.info("如果您是第一次使用，或数据不完整，请点此按钮。这将从头下载所有A股日线数据，过程非常耗时（可能超过30分钟）。")
     if st.button("开始全量下载"):
         with st.spinner("正在执行全量下载..."):
             try:
-                download_all_data(qlib_1d_dir)
+                download_all_data(qlib_1d_dir, log_placeholder)
                 st.success("全量下载命令已成功执行！")
             except Exception as e:
-                st.error(f"全量下载过程中发生错误:")
-                st.code(str(e))
+                st.error(f"全量下载过程中发生错误: {e}")
+
     st.subheader("2. 增量更新 (日常使用)")
     st.info("如果已有全量数据，可在此处更新到指定日期。")
     col1, col2 = st.columns(2)
     start_date = col1.date_input("更新开始日期", datetime.date.today() - datetime.timedelta(days=7))
     end_date = col2.date_input("更新结束日期", datetime.date.today())
     if st.button("开始增量更新"):
-        with st.spinner("正在更新数据..."):
+        with st.spinner(f"正在更新从 {start_date.strftime('%Y-%m-%d')} 到 {end_date.strftime('%Y-%m-%d')} 的数据..."):
             try:
-                update_daily_data(qlib_1d_dir, start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d"))
+                update_daily_data(qlib_1d_dir, start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d"), log_placeholder)
                 st.success("增量更新命令已成功执行！")
             except Exception as e:
                 st.error(f"增量更新过程中发生错误: {e}")
+
     st.subheader("3. 数据健康度检查")
     st.info("检查本地数据的完整性和质量。")
     if st.button("开始检查数据健康度"):
         with st.spinner("正在检查数据..."):
             try:
-                check_data_health(qlib_1d_dir)
-                st.success("数据健康度检查已完成！详情请查看上方日志。")
+                missing_df, abnormal_df = check_data_health(qlib_1d_dir)
+                st.subheader("缺失数据统计:")
+                st.dataframe(missing_df)
+                st.subheader("价格/成交量异常波动统计:")
+                st.dataframe(abnormal_df)
+                st.success("数据健康度检查已完成！")
             except Exception as e:
                 st.error(f"检查过程中发生错误: {e}")
-    st.subheader("4. 设置自动化每日更新 (可选)")
-    st.markdown("""
-    对于Linux或macOS用户，您可以设置一个定时任务（cron job）来在每个交易日自动更新数据。
-    打开您的终端并输入 `crontab -e`，然后添加以下行（请将路径替换成您的实际路径）：
-    ```bash
-    # 每天下午6点（18:00），周一到周五，自动更新Qlib数据
-    0 18 * * 1-5 python /path/to/qlib/scripts/data_collector/yahoo/collector.py update_data_to_bin --qlib_data_1d_dir <user data dir>
-    ```
-    **注意**: 您需要将 `<user data dir>` 替换为您的Qlib数据路径，例如 `~/.qlib/qlib_data/cn_data`。
-    """)
 
 def model_training_page():
     st.header("模型训练")

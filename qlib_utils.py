@@ -4,6 +4,8 @@ from qlib.utils import exists_qlib_data, init_instance_by_config
 from qlib.workflow import R
 from qlib.contrib.evaluate import backtest_daily
 from qlib.contrib.strategy import TopkDropoutStrategy
+from qlib.data.collector.yahoo import YahooCollector
+from qlib.data.health import check_data
 from pathlib import Path
 import yaml
 import streamlit as st
@@ -12,6 +14,19 @@ import pickle
 import sys
 import subprocess
 import copy
+import logging
+from io import StringIO
+
+# --- Streamlit Logging Handler ---
+class StreamlitLogHandler(logging.Handler):
+    def __init__(self, placeholder):
+        super().__init__()
+        self.placeholder = placeholder
+        self.buffer = ""
+
+    def emit(self, record):
+        self.buffer += self.format(record) + "\n"
+        self.placeholder.code(self.buffer, language='log')
 
 # --- Factor and Model Configurations ---
 HANDLER_ALPHA158 = { "class": "Alpha158", "module_path": "qlib.contrib.data.handler", "kwargs": { "start_time": "2014-01-01", "end_time": "2022-12-31", "fit_start_time": "2014-01-01", "fit_end_time": "2019-12-31", "instruments": "csi300" } }
@@ -32,49 +47,27 @@ SUPPORTED_MODELS = {
     "ALSTM (Alpha158)": {"task": {"model": ALSTM_MODEL, "dataset": DATASET_ALPHA158}},
 }
 
-# --- Helper Functions ---
-def _get_qlib_script_path(script_name):
-    try:
-        import qlib
-        qlib_root = Path(qlib.__file__).resolve().parent
-        script_path = qlib_root / "scripts" / script_name
-        if script_path.exists(): return str(script_path)
-        script_path = qlib_root / "scripts" / "data_collector" / "yahoo" / script_name
-        if script_path.exists(): return str(script_path)
-    except Exception: pass
-    st.warning(f"Could not find {script_name} in standard qlib paths. Falling back to system PATH.")
-    return script_name
+# --- Data Management Functions (Refactored to use direct API calls) ---
+@st.cache_resource
+def get_collector():
+    return YahooCollector()
 
-def run_command_with_log(command):
-    log_area = st.empty()
-    log_text = f"Running command: {command}\n\n"
-    log_area.code(log_text, language='log')
-    process = subprocess.Popen(
-        command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-        text=True, encoding='utf-8', errors='replace'
-    )
-    for line in iter(process.stdout.readline, ''):
-        log_text += line
-        log_area.code(log_text, language='log')
-    process.stdout.close()
-    if process.wait() != 0:
-        raise subprocess.CalledProcessError(process.returncode, command, output=log_text)
+def download_all_data(qlib_dir, log_placeholder):
+    collector = get_collector()
+    handler = StreamlitLogHandler(log_placeholder)
+    collector.logger.addHandler(handler)
+    collector.download_data(qlib_dir=qlib_dir, interval='1d', region="cn")
+    collector.logger.removeHandler(handler)
 
-# --- Data Management Functions ---
-def download_all_data(qlib_dir):
-    script_path = _get_qlib_script_path("collector.py")
-    command = f"{sys.executable} {script_path} download_data --qlib_dir '{qlib_dir}' --source yahoo --interval 1d"
-    run_command_with_log(command)
-
-def update_daily_data(qlib_dir, start_date, end_date):
-    script_path = _get_qlib_script_path("collector.py")
-    command = f"{sys.executable} {script_path} update_data_to_bin --qlib_data_1d_dir '{qlib_dir}' --trading_date {start_date} --end_date {end_date}"
-    run_command_with_log(command)
+def update_daily_data(qlib_dir, start_date, end_date, log_placeholder):
+    collector = get_collector()
+    handler = StreamlitLogHandler(log_placeholder)
+    collector.logger.addHandler(handler)
+    collector.update_data_to_bin(qlib_data_1d_dir=qlib_dir, trading_date=start_date, end_date=end_date)
+    collector.logger.removeHandler(handler)
 
 def check_data_health(qlib_dir):
-    script_path = _get_qlib_script_path("check_data_health.py")
-    command = f"{sys.executable} {script_path} check_data --qlib_dir '{qlib_dir}'"
-    run_command_with_log(command)
+    return check_data(qlib_dir=qlib_dir)
 
 # --- Model Training & Evaluation Functions ---
 def train_model(model_name: str, qlib_dir: str, models_save_dir: str, custom_config: dict = None, custom_model_name: str = None, stock_pool: str = 'csi300', finetune_model_path: str = None):
