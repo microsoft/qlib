@@ -12,3 +12,5 @@ torch==2.2.0
 requests_cache
 xgboost==2.0.3
 catboost==1.2.5
+# Dependency for Qlib's data collector script
+yahooquery==2.3.7
