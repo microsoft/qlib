@@ -54,11 +54,6 @@ def run_command_with_log(command, log_placeholder):
     if process.wait() != 0:
         raise subprocess.CalledProcessError(process.returncode, command, output=log_text)
 
-def download_all_data(qlib_dir, log_placeholder):
-    script_path = get_script_path("collector.py")
-    command = f'"{sys.executable}" "{script_path}" download_data --qlib_dir "{qlib_dir}" --source yahoo --interval 1d --region CN'
-    run_command_with_log(command, log_placeholder)
-
 def update_daily_data(qlib_dir, start_date, end_date, log_placeholder):
     script_path = get_script_path("collector.py")
     command = f'"{sys.executable}" "{script_path}" update_data_to_bin --qlib_data_1d_dir "{qlib_dir}" --trading_date {start_date} --end_date {end_date}'

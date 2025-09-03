@@ -1,13 +1,10 @@
 import streamlit as st
 import qlib
 from qlib.constant import REG_CN
-import os
-import subprocess
-import sys
 from pathlib import Path
 from qlib_utils import (
     SUPPORTED_MODELS, train_model, predict, backtest_strategy,
-    download_all_data, update_daily_data, check_data_health
+    update_daily_data, check_data_health
 )
 import pandas as pd
 import plotly.express as px
@@ -18,41 +15,51 @@ import copy
 
 def data_management_page():
     st.header("数据管理")
-    st.markdown("在这里，您可以下载、更新和检查 Qlib 所需的股票数据。这是使用本工具的第一步。")
+    st.markdown("在这里，您可以下载、更新和检查 Qlib 所需的股票数据。")
     default_path = str(Path.home() / ".qlib" / "qlib_data")
     qlib_dir = st.text_input("Qlib 数据存储根路径", default_path, key="data_dir_dm")
     qlib_1d_dir = str(Path(qlib_dir) / "cn_data")
-    log_placeholder = st.empty()
 
-    st.subheader("1. 全量下载 (首次使用)")
-    st.info("如果您是第一次使用，或数据不完整，请点此按钮。这将从头下载所有A股日线数据，过程非常耗时（可能超过30分钟）。")
-    if st.button("开始全量下载"):
-        with st.spinner("正在执行全量下载..."):
-            try:
-                download_all_data(qlib_1d_dir, log_placeholder)
-                st.success("全量下载命令已成功执行！")
-            except Exception as e:
-                st.error(f"全量下载过程中发生错误: {e}")
+    st.subheader("1. 全量数据部署 (首次使用)")
+    st.info("由于直接从雅虎财经大量下载数据不稳定，推荐通过以下步骤手动下载社区提供的数据包来完成首次数据部署。")
+    st.markdown("""
+    **请在您的终端中依次执行以下命令：**
+    ```bash
+    # 1. 下载社区提供的预处理数据包
+    wget https://github.com/chenditc/investment_data/releases/latest/download/qlib_bin.tar.gz
+
+    # 2. 创建用于存放数据的目录 (如果不存在)
+    mkdir -p ~/.qlib/qlib_data/cn_data
+
+    # 3. 解压数据包到指定目录
+    tar -zxvf qlib_bin.tar.gz -C ~/.qlib/qlib_data/cn_data --strip-components=1
+
+    # 4. (可选) 清理下载的压缩包
+    rm -f qlib_bin.tar.gz
+    ```
+    """)
 
     st.subheader("2. 增量更新 (日常使用)")
-    st.info("如果已有全量数据，可在此处更新到指定日期。")
+    st.info("如果已有全量数据，可在此处更新到指定日期（使用雅虎财经接口）。")
+    log_placeholder_update = st.empty()
     col1, col2 = st.columns(2)
     start_date = col1.date_input("更新开始日期", datetime.date.today() - datetime.timedelta(days=7))
     end_date = col2.date_input("更新结束日期", datetime.date.today())
     if st.button("开始增量更新"):
         with st.spinner(f"正在更新从 {start_date.strftime('%Y-%m-%d')} 到 {end_date.strftime('%Y-%m-%d')} 的数据..."):
             try:
-                update_daily_data(qlib_1d_dir, start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d"), log_placeholder)
+                update_daily_data(qlib_1d_dir, start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d"), log_placeholder_update)
                 st.success("增量更新命令已成功执行！")
             except Exception as e:
                 st.error(f"增量更新过程中发生错误: {e}")
 
     st.subheader("3. 数据健康度检查")
     st.info("检查本地数据的完整性和质量。")
+    log_placeholder_check = st.empty()
     if st.button("开始检查数据健康度"):
         with st.spinner("正在检查数据..."):
             try:
-                check_data_health(qlib_1d_dir, log_placeholder)
+                check_data_health(qlib_1d_dir, log_placeholder_check)
                 st.success("数据健康度检查已完成！详情请查看上方日志。")
             except Exception as e:
                 st.error(f"检查过程中发生错误: {e}")
