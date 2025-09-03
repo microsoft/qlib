@@ -28,7 +28,12 @@ class InfoCollector:
         """collect qlib related info"""
         print("Qlib version: {}".format(qlib.__version__))
         REQUIRED = [
+            "setuptools",
+            "wheel",
+            "cython",
             "pyyaml",
+            "numpy",
+            "pandas",
             "mlflow",
             "filelock",
             "redis",
