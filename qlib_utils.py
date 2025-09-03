@@ -51,11 +51,29 @@ LIGHTGBM_CONFIG = {
     },
 }
 
-SUPPORTED_MODELS = {
-    "LightGBM (Alpha158)": LIGHTGBM_CONFIG
+XGBOOST_CONFIG = {
+    "task": {
+        "model": {
+            "class": "XGBModel",
+            "module_path": "qlib.contrib.model.xgboost",
+            "kwargs": {
+                "n_estimators": 200,
+                "learning_rate": 0.05,
+                "max_depth": 7,
+                "subsample": 0.8,
+                "colsample_bytree": 0.8,
+            },
+        },
+        "dataset": LIGHTGBM_CONFIG["task"]["dataset"],  # Reuse the same dataset config
+    },
 }
 
-def train_model(model_name: str, qlib_dir: str, models_save_dir: str):
+SUPPORTED_MODELS = {
+    "LightGBM (Alpha158)": LIGHTGBM_CONFIG,
+    "XGBoost (Alpha158)": XGBOOST_CONFIG,
+}
+
+def train_model(model_name: str, qlib_dir: str, models_save_dir: str, custom_config: dict = None):
     if model_name not in SUPPORTED_MODELS:
         raise ValueError(f"Model {model_name} is not supported.")
 
@@ -65,11 +83,13 @@ def train_model(model_name: str, qlib_dir: str, models_save_dir: str):
 
     qlib.init(provider_uri=provider_uri, region=REG_CN)
 
-    model_config = SUPPORTED_MODELS[model_name]
+    # Use the user's custom config if provided, otherwise use the default
+    model_config = custom_config if custom_config is not None else SUPPORTED_MODELS[model_name]
+
     dataset = init_instance_by_config(model_config["task"]["dataset"])
     model = init_instance_by_config(model_config["task"]["model"])
 
-    with R.start(experiment_name="streamlit_train"):
+    with R.start(experiment_name="streamlit_train_custom"):
         model.fit(dataset)
 
         model_basename = model_name.replace(' ', '_').replace('(', '').replace(')', '')
@@ -115,7 +135,7 @@ def predict(model_path_str: str, qlib_dir: str, prediction_date: str):
     prediction = prediction.reset_index().rename(columns={'instrument': 'StockID', 'datetime': 'Date'})
     return prediction.sort_values(by="score", ascending=False)
 
-def backtest_strategy(model_path_str: str, qlib_dir: str, start_time: str, end_time: str):
+def backtest_strategy(model_path_str: str, qlib_dir: str, start_time: str, end_time: str, strategy_kwargs: dict, exchange_kwargs: dict):
     model_path = Path(model_path_str)
     config_path = model_path.with_suffix(".yaml")
 
@@ -138,27 +158,29 @@ def backtest_strategy(model_path_str: str, qlib_dir: str, start_time: str, end_t
     config["dataset"]["kwargs"]["handler"]["kwargs"]["start_time"] = start_time
     config["dataset"]["kwargs"]["handler"]["kwargs"]["end_time"] = end_time
 
-    PORTFOLIO_ANALYSIS_CONFIG = {
+    # Create the full backtest configuration
+    port_analysis_config = {
         "executor": {
             "class": "SimulatorExecutor", "module_path": "qlib.backtest.executor",
             "kwargs": {"time_per_step": "day", "generate_portfolio_metrics": True},
         },
         "strategy": {
             "class": "TopkDropoutStrategy", "module_path": "qlib.contrib.strategy.signal_strategy",
-            "kwargs": {"model": model, "dataset": config["dataset"], "topk": 50, "n_drop": 5},
+            "kwargs": {
+                "model": model,
+                "dataset": config["dataset"],
+                **strategy_kwargs, # Unpack user-defined strategy kwargs
+            },
         },
         "backtest": {
             "start_time": start_time, "end_time": end_time, "account": 100000000,
             "benchmark": "SH000300",
-            "exchange_kwargs": {
-                "freq": "day", "limit_threshold": 0.095, "deal_price": "close",
-                "open_cost": 0.0005, "close_cost": 0.0015, "min_cost": 5,
-            },
+            "exchange_kwargs": exchange_kwargs, # Use user-defined exchange kwargs
         },
     }
 
     with R.start(experiment_name="streamlit_backtest_final"):
         recorder = R.get_recorder()
-        backtest_record = PortAnaRecord(recorder, **PORTFOLIO_ANALYSIS_CONFIG)
+        backtest_record = PortAnaRecord(recorder, **port_analysis_config)
         backtest_record.generate()
         return recorder.load_object("portfolio_analysis.pkl")
