@@ -18,6 +18,7 @@ dist/
 .vim
 .nvimrc
 .vscode
+.DS_Store
 
 qlib/VERSION.txt
 qlib/data/_libs/expanding.cpp
