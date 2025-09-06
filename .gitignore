@@ -51,3 +51,5 @@ tags
 ./pretrain
 .idea/
 .aider*
+*.bin
+data/

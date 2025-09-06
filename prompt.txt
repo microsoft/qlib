@@ -1,0 +1,62 @@
+# Claude Code Prompt: Qlib Data Preparation and Analysis
+
+You are a quantitative finance data engineer. I need you to set up Qlib (Microsoft's AI-oriented quantitative investment platform) on my machine and prepare financial data for analysis.
+
+## Your Tasks:
+
+### 1. Install Dependencies
+First, install the required packages:
+
+- pyqlib (the main Qlib package) I have already created a conda environment named qlib, and installed the repo
+- Required dependencies: numpy, cython
+- Visualization libraries: matplotlib, seaborn, plotly
+- Data processing: pandas
+
+### 2. Download and Prepare Data
+Since the official dataset is temporarily disabled, use the community-contributed dataset:
+- Download from: https://github.com/chenditc/investment_data/releases/latest/download/qlib_bin.tar.gz
+- Extract to: ~/.qlib/qlib_data/cn_data
+- Clean up the downloaded archive
+
+### 3. Verify Data Setup
+- Check if the data directory structure is correct
+- Run data health checks using Qlib's built-in tools
+- Verify that the data can be loaded properly
+
+### 4. Dataset Structure Analysis
+Create a comprehensive analysis that includes:
+- Initialize Qlib with the downloaded data
+- Explore the trading calendar (show available date ranges)
+- List available instruments (stocks) in the dataset
+- Examine the data fields available (OHLCV and derived features)
+- Show sample data for a few popular stocks
+
+### 5. Data Visualization
+Create visualizations including:
+- K-line (candlestick) charts for selected stocks
+- Volume analysis charts
+- Price trend analysis for multiple stocks
+- Trading calendar visualization
+
+### 5. Dataset Documentation
+Generate a summary report that explains:
+- What data is available (time range, number of stocks, features)
+- Data quality metrics
+- How the data is structured in Qlib format
+- Examples of how to access different types of data
+
+## Requirements:
+- Handle any errors gracefully and provide clear error messages
+- Add detailed comments explaining each step
+- Create modular code that can be easily modified
+- Include examples of accessing data for different time periods and stocks
+- Verify each step works before proceeding to the next
+
+## Expected Output:
+- Successfully installed and configured Qlib environment
+- Downloaded and verified financial dataset
+- Clear documentation of dataset structure and capabilities
+- Multiple visualization examples showing the data
+- Ready-to-use setup for quantitative analysis
+
+Please proceed step by step, checking each component works before moving to the next task.
