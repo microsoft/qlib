@@ -53,3 +53,12 @@ tags
 .aider*
 *.bin
 data/
+envs/
+*.tsv
+*.out
+*.csv
+*.log
+*.json
+*.png
+*.html
+*.tfevents
