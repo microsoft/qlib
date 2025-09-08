@@ -8,5 +8,12 @@
 
     * 可选，如果没有my_env文件夹，先创建独立环境
     ```
+    conda clean --all --yes
+
     conda env create -p ./my_env -f environment.yml
+    ```
+
+3. 更新环境
+    ```bash
+    conda env update --file environment.yml --name my_env
     ```
