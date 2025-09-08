@@ -5,34 +5,33 @@ channels:
 dependencies:
   - python=3.11
   - pip
-  - pip:
-    # Core dependencies from pyproject.toml
-    - pyyaml
-    - numpy
-    - "pandas>=1.1"
-    - mlflow
-    - "filelock>=3.16.0"
-    - redis
-    - dill
-    - fire
-    - "ruamel.yaml>=0.17.38"
-    - python-redis-lock
-    - tqdm
-    - pymongo
-    - loguru
-    - lightgbm
-    - gym
-    - cvxpy
-    - joblib
-    - matplotlib
-    - jupyter
-    - nbconvert
-    - pyarrow
-    - pydantic-settings
-    - setuptools-scm
-    # Development dependencies
-    - pytest
-    - statsmodels
-    # Build dependencies
-    - cython
-    - "numpy>=1.24.0"
+  # Core dependencies from pyproject.toml
+  - pyyaml
+  - numpy
+  - "pandas>=1.1"
+  - mlflow
+  - "filelock>=3.16.0"
+  - redis
+  - dill
+  - fire
+  - "ruamel.yaml>=0.17.38"
+  - python-redis-lock
+  - tqdm
+  - pymongo
+  - loguru
+  - lightgbm
+  - gym
+  - cvxpy
+  - joblib
+  - matplotlib
+  - jupyter
+  - nbconvert
+  - pyarrow
+  - pydantic-settings
+  - setuptools-scm
+  # Development dependencies
+  - pytest
+  - statsmodels
+  # Build dependencies
+  - cython
+  - "numpy>=1.24.0"

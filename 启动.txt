@@ -1,6 +1,12 @@
 1. 安装minconda：
     Miniconda3-latest-Windows-x86_64.exe
+
 2. 启动本项目环境
     ```bash
     conda activate ./my_env
+    ```
+
+    * 可选，如果没有my_env文件夹，先创建独立环境
+    ```
+    conda env create -p ./my_env -f environment.yml
     ```
