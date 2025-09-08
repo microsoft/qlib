@@ -50,3 +50,7 @@ tags
 ./pretrain
 .idea/
 .aider*
+
+my_env/
+Miniconda3-latest-Windows-x86_64.exe
+qlib_data/

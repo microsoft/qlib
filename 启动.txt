@@ -1,0 +1,6 @@
+1. 安装minconda：
+    Miniconda3-latest-Windows-x86_64.exe
+2. 启动本项目环境
+    ```bash
+    conda activate ./my_env
+    ```
