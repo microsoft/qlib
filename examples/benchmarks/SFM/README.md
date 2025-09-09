@@ -1,3 +1,0 @@
-# State-Frequency-Memory
-- State Frequency Memory (SFM) is a novel recurrent network that uses Discrete Fourier Transform to decompose the hidden states of memory cells and capture the multi-frequency trading patterns from past market data to make stock price predictions. 
-- Paper: Stock Price Prediction via Discovering Multi-Frequency Trading Patterns. [http://www.eecs.ucf.edu/~gqi/publications/kdd2017_stock.pdf.](http://www.eecs.ucf.edu/~gqi/publications/kdd2017_stock.pdf)

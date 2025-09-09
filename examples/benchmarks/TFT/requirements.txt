@@ -1,2 +1,0 @@
-tensorflow-gpu==1.15.0
-pandas==1.1.0

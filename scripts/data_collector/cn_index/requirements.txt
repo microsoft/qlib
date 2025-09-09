@@ -1,9 +1,0 @@
-baostock
-fire
-requests
-pandas
-lxml
-loguru
-tqdm
-yahooquery
-openpyxl
