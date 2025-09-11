@@ -140,7 +140,10 @@ def _mount_nfs_uri(provider_uri, mount_path, auto_mount: bool = False):
                     _command_log = [line for line in _command_log if _remote_uri in line]
                 if len(_command_log) > 0:
                     for _c in _command_log:
-                        _temp_mount = _c.split(" ")[2]
+                        if isinstance(_c, str):
+                            _temp_mount = _c.split(" ")[2]
+                        else:
+                            _temp_mount = _c.decode("utf-8").split(" ")[2]
                         _temp_mount = _temp_mount[:-1] if _temp_mount.endswith("/") else _temp_mount
                         if _temp_mount == _mount_path:
                             _is_mount = True
