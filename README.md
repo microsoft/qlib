@@ -324,7 +324,7 @@ We recommend users to prepare their own data if they have a high-quality dataset
     ```
 2. Start a new Docker container
     ```bash
-    docker run -it --name <container name> -v <Mounted local directory>:/app qlib_image_stable
+    docker run -it --name <container name> -v <Mounted local directory>:/app pyqlib/qlib_image_stable:stable
     ```
 3. At this point you are in the docker environment and can run the qlib scripts. An example:
     ```bash
