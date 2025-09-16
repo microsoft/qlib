@@ -275,7 +275,7 @@ MODE_CONF = {
         # serversS(such as PAI) [auto_mount:True]
         "timeout": 100,
         "logging_level": logging.INFO,
-        "region": REG_CRYPTO,
+        "region": REG_CN,
         # custom operator
         # each element of custom_ops should be Type[ExpressionOps] or dict
         # if element of custom_ops is Type[ExpressionOps], it represents the custom operator class

@@ -13,6 +13,7 @@ import multiprocessing as mp
 import os
 import qlib
 from qlib.utils import init_instance_by_config, flatten_dict
+from qlib.constant import REG_CRYPTO
 
 
 if __name__ == "__main__":
@@ -32,7 +33,8 @@ if __name__ == "__main__":
 
     # Initialize with crypto perp data provider (ensure this path exists in your env)
     PROVIDER_URI = "~/.qlib/qlib_data/crypto_data_perp"
-    qlib.init(provider_uri=PROVIDER_URI, kernels=1)
+    # Use crypto-specific region to align trading rules/calendars with provider data
+    qlib.init(provider_uri=PROVIDER_URI, region=REG_CRYPTO, kernels=1)
 
     # Auto-select benchmark by data source: cn_data -> SH000300; crypto -> BTCUSDT
     # Fallback: if path not resolvable, default to SH000300 for safety
