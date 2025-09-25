@@ -2,9 +2,34 @@
 # Licensed under the MIT License.
 from pathlib import Path
 
-from setuptools_scm import get_version
+try:
+    from setuptools_scm import get_version
+except ImportError:  # pragma: no cover - setuptools_scm should be present during dev installs
+    get_version = None
 
-__version__ = get_version(root="..", relative_to=__file__)
+
+def _detect_version() -> str:
+    """Resolve the installed package version without requiring an SCM checkout."""
+
+    if get_version is not None:
+        try:
+            return get_version(root="..", relative_to=__file__)
+        except LookupError:
+            # Installed wheels do not ship .git metadata; fall back to package metadata.
+            pass
+
+    try:
+        from importlib.metadata import version as pkg_version  # type: ignore
+    except ImportError:  # pragma: no cover - Python < 3.8
+        from importlib_metadata import version as pkg_version  # type: ignore
+
+    try:
+        return pkg_version("pyqlib")
+    except Exception:
+        return "0.0.0"
+
+
+__version__ = _detect_version()
 __version__bak = __version__  # This version is backup for QlibConfig.reset_qlib_version
 import logging
 import os
