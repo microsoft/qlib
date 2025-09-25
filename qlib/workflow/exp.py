@@ -4,8 +4,9 @@
 from typing import Dict, List, Union
 from qlib.typehint import Literal
 import mlflow
-from mlflow.entities import ViewType
 from mlflow.exceptions import MlflowException
+
+from .mlflow_compat import ViewType
 from .recorder import Recorder, MLflowRecorder
 from ..log import get_module_logger
 

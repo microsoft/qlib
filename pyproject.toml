@@ -31,10 +31,9 @@ dependencies = [
   # Since version 2.1.0, pandas has deprecated the method parameter of the fillna method. 
   # qlib has updated the fillna method in PR 1987 and limited the minimum version of pandas.
   "pandas>=1.1",
-  # I encoutered an Error that the set_uri does not work when downloading artifacts in mlflow 3.1.1;
-  # But earlier versions of mlflow does not have this problem.
-  # But when I switch to 2.*.* version, another error occurs, which is even more strange...
-  "mlflow",
+  # Require an MLflow release that publishes Python 3.12 wheels while keeping compatibility with
+  # Qlib's tracking helpers. Revisit the upper bound once MLflow 3.x support is verified.
+  "mlflow>=2.12,<3",
   "filelock>=3.16.0",
   "redis",
   "dill",

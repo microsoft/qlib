@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 import mlflow
 from filelock import FileLock
 from mlflow.exceptions import MlflowException, RESOURCE_ALREADY_EXISTS, ErrorCode
-from mlflow.entities import ViewType
+from .mlflow_compat import ViewType
 import os
 from typing import Optional, Text
 from pathlib import Path

@@ -179,6 +179,7 @@ This table demonstrates the supported Python version of `Qlib`:
 **Note**: 
 1. **Conda** is suggested for managing your Python environment. In some cases, using Python outside of a `conda` environment may result in missing header files, causing the installation failure of certain packages.
 2. Please pay attention that installing cython in Python 3.6 will raise some error when installing ``Qlib`` from source. If users use Python 3.6 on their machines, it is recommended to *upgrade* Python to version 3.8 or higher, or use `conda`'s Python to install ``Qlib`` from source.
+3. ``pyqlib`` depends on ``mlflow>=2.12,<3``. Install the optional Azure extras (`pip install "mlflow[azure]"`) when you need Azure Blob Storage as the artifact backend.
 
 ### Install with pip
 Users can easily install ``Qlib`` by pip according to the following command.

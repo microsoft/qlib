@@ -2,10 +2,13 @@
 # Licensed under the MIT License.
 import unittest
 import platform
-import mlflow
 import time
 from pathlib import Path
 import shutil
+
+import mlflow
+
+from qlib.workflow.mlflow_compat import ensure_min_param_value_limit
 
 
 class MLflowTest(unittest.TestCase):
@@ -32,6 +35,12 @@ class MLflowTest(unittest.TestCase):
         else:
             self.assertLess(elapsed, 2e-2)
         print(elapsed)
+
+    def test_param_value_limit_patch(self):
+        ensure_min_param_value_limit(1000)
+        from mlflow.utils import validation  # pylint: disable=import-outside-toplevel
+
+        self.assertGreaterEqual(validation.MAX_PARAM_VAL_LENGTH, 1000)
 
 
 if __name__ == "__main__":

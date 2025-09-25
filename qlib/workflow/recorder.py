@@ -18,11 +18,12 @@ from qlib.utils.exceptions import LoadObjectError
 from qlib.utils.paral import AsyncCaller
 
 from ..log import TimeInspector, get_module_logger
-from mlflow.store.artifact.azure_blob_artifact_repo import AzureBlobArtifactRepository
+from .mlflow_compat import AzureBlobArtifactRepository, ensure_min_param_value_limit
 
 logger = get_module_logger("workflow")
-# mlflow limits the length of log_param to 500, but this caused errors when using qrun, so we extended the mlflow limit.
-mlflow.utils.validation.MAX_PARAM_VAL_LENGTH = 1000
+# mlflow limits the length of log_param to 500, but this caused errors when using qrun,
+# so we extended the mlflow limit (without reducing the upstream default when larger).
+ensure_min_param_value_limit(1000)
 
 
 class Recorder:
@@ -437,7 +438,11 @@ class MLflowRecorder(Recorder):
             raise LoadObjectError(str(e)) from e
         finally:
             ar = self.client._tracking_client._get_artifact_repo(self.id)
-            if isinstance(ar, AzureBlobArtifactRepository) and path is not None:
+            if (
+                AzureBlobArtifactRepository is not None
+                and isinstance(ar, AzureBlobArtifactRepository)
+                and path is not None
+            ):
                 # for saving disk space
                 # For safety, only remove redundant file for specific ArtifactRepository
                 shutil.rmtree(Path(path).absolute().parent)
