@@ -6,8 +6,8 @@ from __future__ import annotations
 import weakref
 from typing import Any, Callable, cast, Dict, Generic, Iterable, Iterator, Optional, Tuple
 
-import gym
-from gym import Space
+import gymnasium as gymnasium
+from gymnasium import Space
 
 from qlib.rl.aux_info import AuxiliaryInfoCollector
 from qlib.rl.interpreter import ActionInterpreter, ObsType, PolicyActType, StateInterpreter
@@ -49,10 +49,10 @@ class EnvWrapperStatus(TypedDict):
 
 
 class EnvWrapper(
-    gym.Env[ObsType, PolicyActType],
+    gymnasium.Env[ObsType, PolicyActType],
     Generic[InitialStateType, StateType, ActType, ObsType, PolicyActType],
 ):
-    """Qlib-based RL environment, subclassing ``gym.Env``.
+    """Qlib-based RL environment, subclassing ``gymnasium.Env``.
     A wrapper of components, including simulator, state-interpreter, action-interpreter, reward.
 
     This is what the framework of simulator - interpreter - policy looks like in RL training.

@@ -6,11 +6,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Dict, Generator, Iterable, Optional, OrderedDict, Tuple, cast
 
-import gym
+import gymnasium as gymnasium
 import numpy as np
 import torch
 import torch.nn as nn
-from gym.spaces import Discrete
+from gymnasium.spaces import Discrete
 from tianshou.data import Batch, ReplayBuffer, to_torch
 from tianshou.policy import BasePolicy, PPOPolicy, DQNPolicy
 
@@ -28,7 +28,7 @@ class NonLearnablePolicy(BasePolicy):
     This could be moved outside in future.
     """
 
-    def __init__(self, obs_space: gym.Space, action_space: gym.Space) -> None:
+    def __init__(self, obs_space: gymnasium.Space, action_space: gymnasium.Space) -> None:
         super().__init__()
 
     def learn(self, batch: Batch, **kwargs: Any) -> Dict[str, Any]:
@@ -49,7 +49,7 @@ class AllOne(NonLearnablePolicy):
     Useful when implementing some baselines (e.g., TWAP).
     """
 
-    def __init__(self, obs_space: gym.Space, action_space: gym.Space, fill_value: float | int = 1.0) -> None:
+    def __init__(self, obs_space: gymnasium.Space, action_space: gymnasium.Space, fill_value: float | int = 1.0) -> None:
         super().__init__(obs_space, action_space)
 
         self.fill_value = fill_value
@@ -114,8 +114,8 @@ class PPO(PPOPolicy):
     def __init__(
         self,
         network: nn.Module,
-        obs_space: gym.Space,
-        action_space: gym.Space,
+        obs_space: gymnasium.Space,
+        action_space: gymnasium.Space,
         lr: float,
         weight_decay: float = 0.0,
         discount_factor: float = 1.0,
@@ -173,8 +173,8 @@ class DQN(DQNPolicy):
     def __init__(
         self,
         network: nn.Module,
-        obs_space: gym.Space,
-        action_space: gym.Space,
+        obs_space: gymnasium.Space,
+        action_space: gymnasium.Space,
         lr: float,
         weight_decay: float = 0.0,
         discount_factor: float = 0.99,
