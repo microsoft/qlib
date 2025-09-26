@@ -91,7 +91,9 @@ class LazyLoadDataset(Dataset):
             amount=row["amount"],
             direction=OrderDir(int(row["order_type"])),
             start_time=date + self._ticks_index[self._default_start_time_index],
-            end_time=date + self._ticks_index[self._default_end_time_index - 1] + ONE_MIN,
+            end_time=date
+            + self._ticks_index[self._default_end_time_index - 1]
+            + ONE_MIN,
         )
 
         return order
@@ -118,7 +120,9 @@ def train_and_test(
             order=order,
             data_dir=data_config["source"]["feature_root_dir"],
             feature_columns_today=data_config["source"]["feature_columns_today"],
-            feature_columns_yesterday=data_config["source"]["feature_columns_yesterday"],
+            feature_columns_yesterday=data_config["source"][
+                "feature_columns_yesterday"
+            ],
             data_granularity=data_granularity,
             ticks_per_step=simulator_config["time_per_step"],
             vol_threshold=simulator_config["vol_limit"],
@@ -132,15 +136,21 @@ def train_and_test(
             LazyLoadDataset(
                 data_dir=data_config["source"]["feature_root_dir"],
                 order_file_path=order_root_path / tag,
-                default_start_time_index=data_config["source"]["default_start_time_index"] // data_granularity,
-                default_end_time_index=data_config["source"]["default_end_time_index"] // data_granularity,
+                default_start_time_index=data_config["source"][
+                    "default_start_time_index"
+                ]
+                // data_granularity,
+                default_end_time_index=data_config["source"]["default_end_time_index"]
+                // data_granularity,
             )
             for tag in ("train", "valid")
         ]
 
         callbacks: List[Callback] = []
         if "checkpoint_path" in trainer_config:
-            callbacks.append(MetricsWriter(dirpath=Path(trainer_config["checkpoint_path"])))
+            callbacks.append(
+                MetricsWriter(dirpath=Path(trainer_config["checkpoint_path"]))
+            )
             callbacks.append(
                 Checkpoint(
                     dirpath=Path(trainer_config["checkpoint_path"]) / "checkpoints",
@@ -184,8 +194,10 @@ def train_and_test(
         test_dataset = LazyLoadDataset(
             data_dir=data_config["source"]["feature_root_dir"],
             order_file_path=order_root_path / "test",
-            default_start_time_index=data_config["source"]["default_start_time_index"] // data_granularity,
-            default_end_time_index=data_config["source"]["default_end_time_index"] // data_granularity,
+            default_start_time_index=data_config["source"]["default_start_time_index"]
+            // data_granularity,
+            default_end_time_index=data_config["source"]["default_end_time_index"]
+            // data_granularity,
         )
 
         backtest(
@@ -203,7 +215,9 @@ def train_and_test(
 
 def main(config: dict, run_training: bool, run_backtest: bool) -> None:
     if not run_training and not run_backtest:
-        warnings.warn("Skip the entire job since training and backtest are both skipped.")
+        warnings.warn(
+            "Skip the entire job since training and backtest are both skipped."
+        )
         return
 
     if "seed" in config["runtime"]:
@@ -212,8 +226,12 @@ def main(config: dict, run_training: bool, run_backtest: bool) -> None:
     for extra_module_path in config["env"].get("extra_module_paths", []):
         sys.path.append(extra_module_path)
 
-    state_interpreter: StateInterpreter = init_instance_by_config(config["state_interpreter"])
-    action_interpreter: ActionInterpreter = init_instance_by_config(config["action_interpreter"])
+    state_interpreter: StateInterpreter = init_instance_by_config(
+        config["state_interpreter"]
+    )
+    action_interpreter: ActionInterpreter = init_instance_by_config(
+        config["action_interpreter"]
+    )
     reward: Reward = init_instance_by_config(config["reward"])
 
     additional_policy_kwargs = {
@@ -225,7 +243,9 @@ def main(config: dict, run_training: bool, run_backtest: bool) -> None:
     if "network" in config:
         if "kwargs" not in config["network"]:
             config["network"]["kwargs"] = {}
-        config["network"]["kwargs"].update({"obs_space": state_interpreter.observation_space})
+        config["network"]["kwargs"].update(
+            {"obs_space": state_interpreter.observation_space}
+        )
         additional_policy_kwargs["network"] = init_instance_by_config(config["network"])
 
     # Create policy
@@ -257,9 +277,15 @@ if __name__ == "__main__":
     warnings.filterwarnings("ignore", category=RuntimeWarning)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config_path", type=str, required=True, help="Path to the config file")
-    parser.add_argument("--no_training", action="store_true", help="Skip training workflow.")
-    parser.add_argument("--run_backtest", action="store_true", help="Run backtest workflow.")
+    parser.add_argument(
+        "--config_path", type=str, required=True, help="Path to the config file"
+    )
+    parser.add_argument(
+        "--no_training", action="store_true", help="Skip training workflow."
+    )
+    parser.add_argument(
+        "--run_backtest", action="store_true", help="Run backtest workflow."
+    )
     args = parser.parse_args()
 
     with open(args.config_path, "r") as input_stream:

@@ -93,14 +93,18 @@ class PitCollector(BaseCollector):
         return f"{exchange}{symbol}"
 
     @staticmethod
-    def get_performance_express_report_df(code: str, start_date: str, end_date: str) -> pd.DataFrame:
+    def get_performance_express_report_df(
+        code: str, start_date: str, end_date: str
+    ) -> pd.DataFrame:
         column_mapping = {
             "performanceExpPubDate": "date",
             "performanceExpStatDate": "period",
             "performanceExpressROEWa": "value",
         }
 
-        resp = bs.query_performance_express_report(code=code, start_date=start_date, end_date=end_date)
+        resp = bs.query_performance_express_report(
+            code=code, start_date=start_date, end_date=end_date
+        )
         report_list = []
         while (resp.error_code == "0") and resp.next():
             report_list.append(resp.get_row_data())
@@ -121,7 +125,11 @@ class PitCollector(BaseCollector):
         fields = bs.query_profit_data(code="sh.600519", year=2020, quarter=1).fields
         start_date = datetime.strptime(start_date, "%Y-%m-%d")
         end_date = datetime.strptime(end_date, "%Y-%m-%d")
-        args = [(year, quarter) for quarter in range(1, 5) for year in range(start_date.year - 1, end_date.year + 1)]
+        args = [
+            (year, quarter)
+            for quarter in range(1, 5)
+            for year in range(start_date.year - 1, end_date.year + 1)
+        ]
         profit_list = []
         for year, quarter in args:
             resp = bs.query_profit_data(code=code, year=year, quarter=quarter)
@@ -143,23 +151,31 @@ class PitCollector(BaseCollector):
         return profit_df
 
     @staticmethod
-    def get_forecast_report_df(code: str, start_date: str, end_date: str) -> pd.DataFrame:
+    def get_forecast_report_df(
+        code: str, start_date: str, end_date: str
+    ) -> pd.DataFrame:
         column_mapping = {
             "profitForcastExpPubDate": "date",
             "profitForcastExpStatDate": "period",
             "value": "value",
         }
-        resp = bs.query_forecast_report(code=code, start_date=start_date, end_date=end_date)
+        resp = bs.query_forecast_report(
+            code=code, start_date=start_date, end_date=end_date
+        )
         forecast_list = []
         while (resp.error_code == "0") and resp.next():
             forecast_list.append(resp.get_row_data())
         forecast_df = pd.DataFrame(forecast_list, columns=resp.fields)
         numeric_fields = ["profitForcastChgPctUp", "profitForcastChgPctDwn"]
         try:
-            forecast_df[numeric_fields] = forecast_df[numeric_fields].apply(pd.to_numeric, errors="ignore")
+            forecast_df[numeric_fields] = forecast_df[numeric_fields].apply(
+                pd.to_numeric, errors="ignore"
+            )
         except KeyError:
             return pd.DataFrame()
-        forecast_df["value"] = (forecast_df["profitForcastChgPctUp"] + forecast_df["profitForcastChgPctDwn"]) / 200
+        forecast_df["value"] = (
+            forecast_df["profitForcastChgPctUp"] + forecast_df["profitForcastChgPctDwn"]
+        ) / 200
         forecast_df = forecast_df[list(column_mapping.keys())]
         forecast_df.rename(columns=column_mapping, inplace=True)
         forecast_df["field"] = "YOYNI"
@@ -171,7 +187,11 @@ class PitCollector(BaseCollector):
         fields = bs.query_growth_data(code="sh.600519", year=2020, quarter=1).fields
         start_date = datetime.strptime(start_date, "%Y-%m-%d")
         end_date = datetime.strptime(end_date, "%Y-%m-%d")
-        args = [(year, quarter) for quarter in range(1, 5) for year in range(start_date.year - 1, end_date.year + 1)]
+        args = [
+            (year, quarter)
+            for quarter in range(1, 5)
+            for year in range(start_date.year - 1, end_date.year + 1)
+        ]
         growth_list = []
         for year, quarter in args:
             resp = bs.query_growth_data(code=code, year=year, quarter=quarter)
@@ -207,7 +227,9 @@ class PitCollector(BaseCollector):
         start_date = start_datetime.strftime("%Y-%m-%d")
         end_date = end_datetime.strftime("%Y-%m-%d")
 
-        performance_express_report_df = self.get_performance_express_report_df(code, start_date, end_date)
+        performance_express_report_df = self.get_performance_express_report_df(
+            code, start_date, end_date
+        )
         profit_df = self.get_profit_df(code, start_date, end_date)
         forecast_report_df = self.get_forecast_report_df(code, start_date, end_date)
         growth_df = self.get_growth_df(code, start_date, end_date)
@@ -227,14 +249,23 @@ class PitNormalize(BaseNormalize):
     def normalize(self, df: pd.DataFrame) -> pd.DataFrame:
         dt = df["period"].apply(
             lambda x: (
-                pd.to_datetime(x) + pd.DateOffset(days=(45 if self.interval == PitCollector.INTERVAL_QUARTERLY else 90))
+                pd.to_datetime(x)
+                + pd.DateOffset(
+                    days=(
+                        45 if self.interval == PitCollector.INTERVAL_QUARTERLY else 90
+                    )
+                )
             ).date()
         )
         df["date"] = df["date"].fillna(dt.astype(str))
 
         df["period"] = pd.to_datetime(df["period"])
         df["period"] = df["period"].apply(
-            lambda x: x.year if self.interval == PitCollector.INTERVAL_ANNUAL else x.year * 100 + (x.month - 1) // 3 + 1
+            lambda x: (
+                x.year
+                if self.interval == PitCollector.INTERVAL_ANNUAL
+                else x.year * 100 + (x.month - 1) // 3 + 1
+            )
         )
         return df
 

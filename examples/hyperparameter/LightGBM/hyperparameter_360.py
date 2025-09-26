@@ -5,7 +5,9 @@ from qlib.utils import init_instance_by_config
 from qlib.tests.data import GetData
 from qlib.tests.config import get_dataset_config, CSI300_MARKET, DATASET_ALPHA360_CLASS
 
-DATASET_CONFIG = get_dataset_config(market=CSI300_MARKET, dataset_class=DATASET_ALPHA360_CLASS)
+DATASET_CONFIG = get_dataset_config(
+    market=CSI300_MARKET, dataset_class=DATASET_ALPHA360_CLASS
+)
 
 
 def objective(trial):

@@ -25,7 +25,11 @@ class MultiSegRecord(RecordTemp):
     def __init__(self, model, dataset, recorder=None):
         super().__init__(recorder=recorder)
         if not isinstance(dataset, qlib_dataset.DatasetH):
-            raise ValueError("The type of dataset is not DatasetH instead of {:}".format(type(dataset)))
+            raise ValueError(
+                "The type of dataset is not DatasetH instead of {:}".format(
+                    type(dataset)
+                )
+            )
         self.model = model
         self.dataset = dataset
 
@@ -35,11 +39,18 @@ class MultiSegRecord(RecordTemp):
             if isinstance(predics, pd.Series):
                 predics = predics.to_frame("score")
             labels = self.dataset.prepare(
-                segments=segment, col_set="label", data_key=qlib_dataset.handler.DataHandlerLP.DK_R
+                segments=segment,
+                col_set="label",
+                data_key=qlib_dataset.handler.DataHandlerLP.DK_R,
             )
             # Compute the IC and Rank IC
             ic, ric = calc_ic(predics.iloc[:, 0], labels.iloc[:, 0])
-            results = {"all-IC": ic, "mean-IC": ic.mean(), "all-Rank-IC": ric, "mean-Rank-IC": ric.mean()}
+            results = {
+                "all-IC": ic,
+                "mean-IC": ic.mean(),
+                "all-Rank-IC": ric,
+                "mean-Rank-IC": ric.mean(),
+            }
             logger.info("--- Results for {:} ({:}) ---".format(key, segment))
             ic_x100, ric_x100 = ic * 100, ric * 100
             logger.info("IC: {:.4f}%".format(ic_x100.mean()))

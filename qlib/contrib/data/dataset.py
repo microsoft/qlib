@@ -17,7 +17,9 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 def _to_tensor(x):
     if not isinstance(x, torch.Tensor):
-        return torch.tensor(x, dtype=torch.float, device=device)  # pylint: disable=E1101
+        return torch.tensor(
+            x, dtype=torch.float, device=device
+        )  # pylint: disable=E1101
     return x
 
 
@@ -34,7 +36,9 @@ def _create_ts_slices(index, seq_len):
     assert index.is_monotonic_increasing, "index should be sorted"
 
     # number of dates for each instrument
-    sample_count_by_insts = index.to_series().groupby(level=0, group_keys=False).size().values
+    sample_count_by_insts = (
+        index.to_series().groupby(level=0, group_keys=False).size().values
+    )
 
     # start index for each instrument
     start_index_of_insts = np.roll(np.cumsum(sample_count_by_insts), 1)
@@ -140,13 +144,19 @@ class MTSDatasetH(DatasetH):
             label = handler.data_loader.fields["label"][0][0]
             horizon = guess_horizon([label])
 
-        assert num_states == 0 or horizon > 0, "please specify `horizon` to avoid data leakage"
+        assert (
+            num_states == 0 or horizon > 0
+        ), "please specify `horizon` to avoid data leakage"
         assert memory_mode in ["sample", "daily"], "unsupported memory mode"
-        assert memory_mode == "sample" or batch_size < 0, "daily memory requires daily sampling (`batch_size < 0`)"
+        assert (
+            memory_mode == "sample" or batch_size < 0
+        ), "daily memory requires daily sampling (`batch_size < 0`)"
         assert batch_size != 0, "invalid batch size"
 
         if batch_size > 0 and n_samples is not None:
-            warnings.warn("`n_samples` can only be used for daily sampling (`batch_size < 0`)")
+            warnings.warn(
+                "`n_samples` can only be used for daily sampling (`batch_size < 0`)"
+            )
 
         self.seq_len = seq_len
         self.horizon = horizon
@@ -157,7 +167,12 @@ class MTSDatasetH(DatasetH):
         self.shuffle = shuffle
         self.drop_last = drop_last
         self.input_size = input_size
-        self.params = (batch_size, n_samples, drop_last, shuffle)  # for train/eval switch
+        self.params = (
+            batch_size,
+            n_samples,
+            drop_last,
+            shuffle,
+        )  # for train/eval switch
 
         super().__init__(handler, segments, **kwargs)
 
@@ -180,34 +195,50 @@ class MTSDatasetH(DatasetH):
 
         # convert to numpy
         self._data = df["feature"].values.astype("float32")
-        np.nan_to_num(self._data, copy=False)  # NOTE: fillna in case users forget using the fillna processor
+        np.nan_to_num(
+            self._data, copy=False
+        )  # NOTE: fillna in case users forget using the fillna processor
         self._label = df["label"].squeeze().values.astype("float32")
         self._index = df.index
 
         if self.input_size is not None and self.input_size != self._data.shape[1]:
-            warnings.warn("the data has different shape from input_size and the data will be reshaped")
-            assert self._data.shape[1] % self.input_size == 0, "data mismatch, please check `input_size`"
+            warnings.warn(
+                "the data has different shape from input_size and the data will be reshaped"
+            )
+            assert (
+                self._data.shape[1] % self.input_size == 0
+            ), "data mismatch, please check `input_size`"
 
         # create batch slices
         self._batch_slices = _create_ts_slices(self._index, self.seq_len)
 
         # create daily slices
-        daily_slices = {date: [] for date in sorted(self._index.unique(level=1))}  # sorted by date
+        daily_slices = {
+            date: [] for date in sorted(self._index.unique(level=1))
+        }  # sorted by date
         for i, (code, date) in enumerate(self._index):
             daily_slices[date].append(self._batch_slices[i])
         self._daily_slices = np.array(list(daily_slices.values()), dtype="object")
-        self._daily_index = pd.Series(list(daily_slices.keys()))  # index is the original date index
+        self._daily_index = pd.Series(
+            list(daily_slices.keys())
+        )  # index is the original date index
 
         # add memory (sample wise and daily)
         if self.memory_mode == "sample":
-            self._memory = np.zeros((len(self._data), self.num_states), dtype=np.float32)
+            self._memory = np.zeros(
+                (len(self._data), self.num_states), dtype=np.float32
+            )
         elif self.memory_mode == "daily":
-            self._memory = np.zeros((len(self._daily_index), self.num_states), dtype=np.float32)
+            self._memory = np.zeros(
+                (len(self._daily_index), self.num_states), dtype=np.float32
+            )
         else:
             raise ValueError(f"invalid memory_mode `{self.memory_mode}`")
 
         # padding tensor
-        self._zeros = np.zeros((self.seq_len, max(self.num_states, self._data.shape[1])), dtype=np.float32)
+        self._zeros = np.zeros(
+            (self.seq_len, max(self.num_states, self._data.shape[1])), dtype=np.float32
+        )
 
     def _prepare_seg(self, slc, **kwargs):
         fn = _get_date_parse_fn(self._index[0][1])
@@ -228,8 +259,12 @@ class MTSDatasetH(DatasetH):
         obj._zeros = self._zeros
         # update index for this batch
         date_index = self._index.get_level_values(1)
-        obj._batch_slices = self._batch_slices[(date_index >= start_date) & (date_index <= end_date)]
-        mask = (self._daily_index.values >= start_date) & (self._daily_index.values <= end_date)
+        obj._batch_slices = self._batch_slices[
+            (date_index >= start_date) & (date_index <= end_date)
+        ]
+        mask = (self._daily_index.values >= start_date) & (
+            self._daily_index.values <= end_date
+        )
         obj._daily_slices = self._daily_slices[mask]
         obj._daily_index = self._daily_index[mask]
         return obj
@@ -305,18 +340,29 @@ class MTSDatasetH(DatasetH):
                 # NOTE: daily sampling is used in 1) eval mode, 2) train mode with self.batch_size < 0
                 if self.batch_size < 0:
                     # store daily index
-                    idx = self._daily_index.index[j]  # daily_index.index is the index of the original data
+                    idx = self._daily_index.index[
+                        j
+                    ]  # daily_index.index is the index of the original data
                     daily_index.append(idx)
 
                     # store daily memory if specified
                     # NOTE: daily memory always requires daily sampling (self.batch_size < 0)
                     if self.memory_mode == "daily":
-                        slc = slice(max(idx - self.seq_len - self.horizon, 0), max(idx - self.horizon, 0))
-                        state.append(_maybe_padding(self._memory[slc], self.seq_len, self._zeros))
+                        slc = slice(
+                            max(idx - self.seq_len - self.horizon, 0),
+                            max(idx - self.horizon, 0),
+                        )
+                        state.append(
+                            _maybe_padding(self._memory[slc], self.seq_len, self._zeros)
+                        )
 
                     # down-sample stocks and store count
-                    if self.n_samples and 0 < self.n_samples < len(slices_subset):  # intraday subsample
-                        slices_subset = np.random.choice(slices_subset, self.n_samples, replace=False)
+                    if self.n_samples and 0 < self.n_samples < len(
+                        slices_subset
+                    ):  # intraday subsample
+                        slices_subset = np.random.choice(
+                            slices_subset, self.n_samples, replace=False
+                        )
                     daily_count.append(len(slices_subset))
 
                 # normal sampling
@@ -328,12 +374,20 @@ class MTSDatasetH(DatasetH):
                 for slc in slices_subset:
                     # legacy support for Alpha360 data by `input_size`
                     if self.input_size:
-                        data.append(self._data[slc.stop - 1].reshape(self.input_size, -1).T)
+                        data.append(
+                            self._data[slc.stop - 1].reshape(self.input_size, -1).T
+                        )
                     else:
-                        data.append(_maybe_padding(self._data[slc], self.seq_len, self._zeros))
+                        data.append(
+                            _maybe_padding(self._data[slc], self.seq_len, self._zeros)
+                        )
 
                     if self.memory_mode == "sample":
-                        state.append(_maybe_padding(self._memory[slc], self.seq_len, self._zeros)[: -self.horizon])
+                        state.append(
+                            _maybe_padding(
+                                self._memory[slc], self.seq_len, self._zeros
+                            )[: -self.horizon]
+                        )
 
                     label.append(self._label[slc.stop - 1])
                     index.append(slc.stop - 1)

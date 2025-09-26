@@ -12,7 +12,17 @@ from pathlib import Path
 
 import qlib
 from qlib.constant import REG_CN
-from qlib.contrib.ops.high_freq import BFillNan, Cut, Date, DayCumsum, DayLast, FFillNan, IsInf, IsNull, Select
+from qlib.contrib.ops.high_freq import (
+    BFillNan,
+    Cut,
+    Date,
+    DayCumsum,
+    DayLast,
+    FFillNan,
+    IsInf,
+    IsNull,
+    Select,
+)
 
 
 def init_qlib(qlib_config: dict) -> None:
@@ -46,12 +56,24 @@ def init_qlib(qlib_config: dict) -> None:
     provider_uri_map = {}
     for granularity in ["1min", "5min", "day"]:
         if f"provider_uri_{granularity}" in qlib_config:
-            provider_uri_map[f"{granularity}"] = _convert_to_path(qlib_config[f"provider_uri_{granularity}"]).as_posix()
+            provider_uri_map[f"{granularity}"] = _convert_to_path(
+                qlib_config[f"provider_uri_{granularity}"]
+            ).as_posix()
 
     qlib.init(
         region=REG_CN,
         auto_mount=False,
-        custom_ops=[DayLast, FFillNan, BFillNan, Date, Select, IsNull, IsInf, Cut, DayCumsum],
+        custom_ops=[
+            DayLast,
+            FFillNan,
+            BFillNan,
+            Date,
+            Select,
+            IsNull,
+            IsInf,
+            Cut,
+            DayCumsum,
+        ],
         expression_cache=None,
         calendar_provider={
             "class": "LocalCalendarProvider",

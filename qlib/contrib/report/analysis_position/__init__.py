@@ -8,4 +8,10 @@ from .rank_label import rank_label_graph
 from .risk_analysis import risk_analysis_graph
 
 
-__all__ = ["cumulative_return_graph", "score_ic_graph", "report_graph", "rank_label_graph", "risk_analysis_graph"]
+__all__ = [
+    "cumulative_return_graph",
+    "score_ic_graph",
+    "report_graph",
+    "rank_label_graph",
+    "risk_analysis_graph",
+]

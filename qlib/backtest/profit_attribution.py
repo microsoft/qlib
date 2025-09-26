@@ -39,7 +39,12 @@ def get_benchmark_weight(
 
     """
     if not path:
-        path = Path(C.dpm.get_data_uri(freq)).expanduser() / "raw" / "AIndexMembers" / "weights.csv"
+        path = (
+            Path(C.dpm.get_data_uri(freq)).expanduser()
+            / "raw"
+            / "AIndexMembers"
+            / "weights.csv"
+        )
     # TODO: the storage of weights should be implemented in a more elegent way
     # TODO: The benchmark is not consistent with the filename in instruments.
     bench_weight_df = pd.read_csv(path, usecols=["code", "date", "index", "weight"])
@@ -49,7 +54,10 @@ def get_benchmark_weight(
         bench_weight_df = bench_weight_df[bench_weight_df.date >= start_date]
     if end_date is not None:
         bench_weight_df = bench_weight_df[bench_weight_df.date <= end_date]
-    bench_stock_weight = bench_weight_df.pivot_table(index="date", columns="code", values="weight") / 100.0
+    bench_stock_weight = (
+        bench_weight_df.pivot_table(index="date", columns="code", values="weight")
+        / 100.0
+    )
     return bench_stock_weight
 
 
@@ -103,7 +111,9 @@ def decompose_portofolio_weight(stock_weight_df, stock_group_df):
     for group_key in all_group:
         group_mask = stock_group_df == group_key
         group_weight[group_key] = stock_weight_df[group_mask].sum(axis=1)
-        stock_weight_in_group[group_key] = stock_weight_df[group_mask].divide(group_weight[group_key], axis=0)
+        stock_weight_in_group[group_key] = stock_weight_df[group_mask].divide(
+            group_weight[group_key], axis=0
+        )
     return group_weight, stock_weight_in_group
 
 
@@ -155,7 +165,9 @@ def decompose_portofolio(stock_weight_df, stock_group_df, stock_ret_df):
     all_group = np.unique(stock_group_df.values.flatten())
     all_group = all_group[~np.isnan(all_group)]
 
-    group_weight, stock_weight_in_group = decompose_portofolio_weight(stock_weight_df, stock_group_df)
+    group_weight, stock_weight_in_group = decompose_portofolio_weight(
+        stock_weight_df, stock_group_df
+    )
 
     group_ret = {}
     for group_key, val in stock_weight_in_group.items():
@@ -194,15 +206,21 @@ def get_daily_bin_group(bench_values, stock_values, group_n):
     stock_group = stock_values.copy()
 
     # get the bin split points based on the daily proportion of benchmark
-    split_points = np.percentile(bench_values[~bench_values.isna()], np.linspace(0, 100, group_n + 1))
+    split_points = np.percentile(
+        bench_values[~bench_values.isna()], np.linspace(0, 100, group_n + 1)
+    )
     # Modify the biggest uppper bound and smallest lowerbound
     split_points[0], split_points[-1] = -np.inf, np.inf
     for i, (lb, up) in enumerate(zip(split_points, split_points[1:])):
-        stock_group.loc[stock_values[(stock_values >= lb) & (stock_values < up)].index] = group_n - i
+        stock_group.loc[
+            stock_values[(stock_values >= lb) & (stock_values < up)].index
+        ] = (group_n - i)
     return stock_group
 
 
-def get_stock_group(stock_group_field_df, bench_stock_weight_df, group_method, group_n=None):
+def get_stock_group(
+    stock_group_field_df, bench_stock_weight_df, group_method, group_n=None
+):
     if group_method == "category":
         # use the value of the benchmark as the category
         return stock_group_field_df
@@ -284,7 +302,9 @@ def brinson_pa(
     stock_group_field = stock_group_field.ffill()
     stock_group_field = stock_group_field.loc[start_date:end_date]
 
-    stock_group = get_stock_group(stock_group_field, bench_stock_weight, group_method, group_n)
+    stock_group = get_stock_group(
+        stock_group_field, bench_stock_weight, group_method, group_n
+    )
 
     deal_price_df = stock_df["deal_price"].unstack().T
     deal_price_df = deal_price_df.ffill()
@@ -298,8 +318,12 @@ def brinson_pa(
     port_stock_weight_df = get_stock_weight_df(positions)
 
     # decomposing the portofolio
-    port_group_weight_df, port_group_ret_df = decompose_portofolio(port_stock_weight_df, stock_group, stock_ret)
-    bench_group_weight_df, bench_group_ret_df = decompose_portofolio(bench_stock_weight, stock_group, stock_ret)
+    port_group_weight_df, port_group_ret_df = decompose_portofolio(
+        port_stock_weight_df, stock_group, stock_ret
+    )
+    bench_group_weight_df, bench_group_ret_df = decompose_portofolio(
+        bench_stock_weight, stock_group, stock_ret
+    )
 
     # if the group return of the portofolio is NaN, replace it with the market
     # value

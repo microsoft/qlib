@@ -100,13 +100,19 @@ class CalendarStorage(BaseStorage):
         ValueError
             If the data(storage) does not exist, raise ValueError
         """
-        raise NotImplementedError("Subclass of CalendarStorage must implement `data` method")
+        raise NotImplementedError(
+            "Subclass of CalendarStorage must implement `data` method"
+        )
 
     def clear(self) -> None:
-        raise NotImplementedError("Subclass of CalendarStorage must implement `clear` method")
+        raise NotImplementedError(
+            "Subclass of CalendarStorage must implement `clear` method"
+        )
 
     def extend(self, iterable: Iterable[CalVT]) -> None:
-        raise NotImplementedError("Subclass of CalendarStorage must implement `extend` method")
+        raise NotImplementedError(
+            "Subclass of CalendarStorage must implement `extend` method"
+        )
 
     def index(self, value: CalVT) -> int:
         """
@@ -115,13 +121,19 @@ class CalendarStorage(BaseStorage):
         ValueError
             If the data(storage) does not exist, raise ValueError
         """
-        raise NotImplementedError("Subclass of CalendarStorage must implement `index` method")
+        raise NotImplementedError(
+            "Subclass of CalendarStorage must implement `index` method"
+        )
 
     def insert(self, index: int, value: CalVT) -> None:
-        raise NotImplementedError("Subclass of CalendarStorage must implement `insert` method")
+        raise NotImplementedError(
+            "Subclass of CalendarStorage must implement `insert` method"
+        )
 
     def remove(self, value: CalVT) -> None:
-        raise NotImplementedError("Subclass of CalendarStorage must implement `remove` method")
+        raise NotImplementedError(
+            "Subclass of CalendarStorage must implement `remove` method"
+        )
 
     @overload
     def __setitem__(self, i: int, value: CalVT) -> None:
@@ -185,7 +197,9 @@ class CalendarStorage(BaseStorage):
             If the data(storage) does not exist, raise ValueError
 
         """
-        raise NotImplementedError("Subclass of CalendarStorage must implement `__len__`  method")
+        raise NotImplementedError(
+            "Subclass of CalendarStorage must implement `__len__`  method"
+        )
 
 
 class InstrumentStorage(BaseStorage):
@@ -203,10 +217,14 @@ class InstrumentStorage(BaseStorage):
         ValueError
             If the data(storage) does not exist, raise ValueError
         """
-        raise NotImplementedError("Subclass of InstrumentStorage must implement `data` method")
+        raise NotImplementedError(
+            "Subclass of InstrumentStorage must implement `data` method"
+        )
 
     def clear(self) -> None:
-        raise NotImplementedError("Subclass of InstrumentStorage must implement `clear` method")
+        raise NotImplementedError(
+            "Subclass of InstrumentStorage must implement `clear` method"
+        )
 
     def update(self, *args, **kwargs) -> None:
         """D.update([E, ]**F) -> None.  Update D from mapping/iterable E and F.
@@ -220,11 +238,15 @@ class InstrumentStorage(BaseStorage):
             In either case, this is followed by: for k, v in F.items(): D[k] = v
 
         """
-        raise NotImplementedError("Subclass of InstrumentStorage must implement `update` method")
+        raise NotImplementedError(
+            "Subclass of InstrumentStorage must implement `update` method"
+        )
 
     def __setitem__(self, k: InstKT, v: InstVT) -> None:
         """Set self[key] to value."""
-        raise NotImplementedError("Subclass of InstrumentStorage must implement `__setitem__` method")
+        raise NotImplementedError(
+            "Subclass of InstrumentStorage must implement `__setitem__` method"
+        )
 
     def __delitem__(self, k: InstKT) -> None:
         """Delete self[key].
@@ -234,11 +256,15 @@ class InstrumentStorage(BaseStorage):
         ValueError
             If the data(storage) does not exist, raise ValueError
         """
-        raise NotImplementedError("Subclass of InstrumentStorage must implement `__delitem__` method")
+        raise NotImplementedError(
+            "Subclass of InstrumentStorage must implement `__delitem__` method"
+        )
 
     def __getitem__(self, k: InstKT) -> InstVT:
         """x.__getitem__(k) <==> x[k]"""
-        raise NotImplementedError("Subclass of InstrumentStorage must implement `__getitem__` method")
+        raise NotImplementedError(
+            "Subclass of InstrumentStorage must implement `__getitem__` method"
+        )
 
     def __len__(self) -> int:
         """
@@ -249,7 +275,9 @@ class InstrumentStorage(BaseStorage):
             If the data(storage) does not exist, raise ValueError
 
         """
-        raise NotImplementedError("Subclass of InstrumentStorage must implement `__len__`  method")
+        raise NotImplementedError(
+            "Subclass of InstrumentStorage must implement `__len__`  method"
+        )
 
 
 class FeatureStorage(BaseStorage):
@@ -267,7 +295,9 @@ class FeatureStorage(BaseStorage):
         ------
         if data(storage) does not exist, return empty pd.Series: `return pd.Series(dtype=np.float32)`
         """
-        raise NotImplementedError("Subclass of FeatureStorage must implement `data` method")
+        raise NotImplementedError(
+            "Subclass of FeatureStorage must implement `data` method"
+        )
 
     @property
     def start_index(self) -> Union[int, None]:
@@ -277,7 +307,9 @@ class FeatureStorage(BaseStorage):
         -----
         If the data(storage) does not exist, return None
         """
-        raise NotImplementedError("Subclass of FeatureStorage must implement `start_index` method")
+        raise NotImplementedError(
+            "Subclass of FeatureStorage must implement `start_index` method"
+        )
 
     @property
     def end_index(self) -> Union[int, None]:
@@ -291,10 +323,14 @@ class FeatureStorage(BaseStorage):
 
         If the data(storage) does not exist, return None
         """
-        raise NotImplementedError("Subclass of FeatureStorage must implement `end_index` method")
+        raise NotImplementedError(
+            "Subclass of FeatureStorage must implement `end_index` method"
+        )
 
     def clear(self) -> None:
-        raise NotImplementedError("Subclass of FeatureStorage must implement `clear` method")
+        raise NotImplementedError(
+            "Subclass of FeatureStorage must implement `clear` method"
+        )
 
     def write(self, data_array: Union[List, np.ndarray, Tuple], index: int = None):
         """Write data_array to FeatureStorage starting from index.
@@ -349,7 +385,9 @@ class FeatureStorage(BaseStorage):
                     9   8
 
         """
-        raise NotImplementedError("Subclass of FeatureStorage must implement `write` method")
+        raise NotImplementedError(
+            "Subclass of FeatureStorage must implement `write` method"
+        )
 
     def rebase(self, start_index: int = None, end_index: int = None):
         """Rebase the start_index and end_index of the FeatureStorage.
@@ -411,13 +449,17 @@ class FeatureStorage(BaseStorage):
         storage_si = self.start_index
         storage_ei = self.end_index
         if storage_si is None or storage_ei is None:
-            raise ValueError("storage.start_index or storage.end_index is None, storage may not exist")
+            raise ValueError(
+                "storage.start_index or storage.end_index is None, storage may not exist"
+            )
 
         start_index = storage_si if start_index is None else start_index
         end_index = storage_ei if end_index is None else end_index
 
         if start_index is None or end_index is None:
-            logger.warning("both start_index and end_index are None, or storage does not exist; rebase is ignored")
+            logger.warning(
+                "both start_index and end_index are None, or storage does not exist; rebase is ignored"
+            )
             return
 
         if start_index < 0 or end_index < 0:
@@ -491,4 +533,6 @@ class FeatureStorage(BaseStorage):
             If the data(storage) does not exist, raise ValueError
 
         """
-        raise NotImplementedError("Subclass of FeatureStorage must implement `__len__`  method")
+        raise NotImplementedError(
+            "Subclass of FeatureStorage must implement `__len__`  method"
+        )

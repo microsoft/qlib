@@ -23,7 +23,9 @@ def read_order_file(order_file: Path | pd.DataFrame) -> pd.DataFrame:
 
     if "date" in order_df.columns:
         # legacy dataframe columns
-        order_df = order_df.rename(columns={"date": "datetime", "order_type": "direction"})
+        order_df = order_df.rename(
+            columns={"date": "datetime", "order_type": "direction"}
+        )
     order_df["datetime"] = order_df["datetime"].astype(str)
 
     return order_df

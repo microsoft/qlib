@@ -73,7 +73,9 @@ class TCTS(Model):
         self.batch_size = batch_size
         self.early_stop = early_stop
         self.loss = loss
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() else "cpu")
+        self.device = torch.device(
+            "cuda:%d" % (GPU) if torch.cuda.is_available() else "cpu"
+        )
         self.use_gpu = torch.cuda.is_available()
         self.seed = seed
         self.input_dim = input_dim
@@ -159,14 +161,29 @@ class TCTS(Model):
                 if len(indices) - i < self.batch_size:
                     break
 
-                feature = torch.from_numpy(x_train_values[indices[i : i + self.batch_size]]).float().to(self.device)
-                label = torch.from_numpy(y_train_values[indices[i : i + self.batch_size]]).float().to(self.device)
+                feature = (
+                    torch.from_numpy(x_train_values[indices[i : i + self.batch_size]])
+                    .float()
+                    .to(self.device)
+                )
+                label = (
+                    torch.from_numpy(y_train_values[indices[i : i + self.batch_size]])
+                    .float()
+                    .to(self.device)
+                )
 
                 init_pred = init_fore_model(feature)
                 pred = self.fore_model(feature)
                 dis = init_pred - label.transpose(0, 1)
                 weight_feature = torch.cat(
-                    (feature, dis.transpose(0, 1), label, init_pred.view(-1, 1), task_embedding), 1
+                    (
+                        feature,
+                        dis.transpose(0, 1),
+                        label,
+                        init_pred.view(-1, 1),
+                        task_embedding,
+                    ),
+                    1,
                 )
                 weight = self.weight_model(weight_feature)
 
@@ -192,16 +209,29 @@ class TCTS(Model):
             if len(indices) - i < self.batch_size:
                 break
 
-            feature = torch.from_numpy(x_valid_values[indices[i : i + self.batch_size]]).float().to(self.device)
-            label = torch.from_numpy(y_valid_values[indices[i : i + self.batch_size]]).float().to(self.device)
+            feature = (
+                torch.from_numpy(x_valid_values[indices[i : i + self.batch_size]])
+                .float()
+                .to(self.device)
+            )
+            label = (
+                torch.from_numpy(y_valid_values[indices[i : i + self.batch_size]])
+                .float()
+                .to(self.device)
+            )
 
             pred = self.fore_model(feature)
             dis = pred - label.transpose(0, 1)
-            weight_feature = torch.cat((feature, dis.transpose(0, 1), label, pred.view(-1, 1), task_embedding), 1)
+            weight_feature = torch.cat(
+                (feature, dis.transpose(0, 1), label, pred.view(-1, 1), task_embedding),
+                1,
+            )
             weight = self.weight_model(weight_feature)
             loc = torch.argmax(weight, 1)
             valid_loss = torch.mean((pred - label[:, abs(self.target_label)]) ** 2)
-            loss = torch.mean(valid_loss * torch.log(weight[np.arange(weight.shape[0]), loc]))
+            loss = torch.mean(
+                valid_loss * torch.log(weight[np.arange(weight.shape[0]), loc])
+            )
 
             self.weight_optimizer.zero_grad()
             loss.backward()
@@ -223,8 +253,16 @@ class TCTS(Model):
             if len(indices) - i < self.batch_size:
                 break
 
-            feature = torch.from_numpy(x_values[indices[i : i + self.batch_size]]).float().to(self.device)
-            label = torch.from_numpy(y_values[indices[i : i + self.batch_size]]).float().to(self.device)
+            feature = (
+                torch.from_numpy(x_values[indices[i : i + self.batch_size]])
+                .float()
+                .to(self.device)
+            )
+            label = (
+                torch.from_numpy(y_values[indices[i : i + self.batch_size]])
+                .float()
+                .to(self.device)
+            )
 
             pred = self.fore_model(feature)
             loss = torch.mean((pred - label[:, abs(self.target_label)]) ** 2)
@@ -244,7 +282,9 @@ class TCTS(Model):
             data_key=DataHandlerLP.DK_L,
         )
         if df_train.empty or df_valid.empty:
-            raise ValueError("Empty data from dataset, please check your dataset config.")
+            raise ValueError(
+                "Empty data from dataset, please check your dataset config."
+            )
 
         x_train, y_train = df_train["feature"], df_train["label"]
         x_valid, y_valid = df_valid["feature"], df_valid["label"]
@@ -263,7 +303,14 @@ class TCTS(Model):
                 torch.manual_seed(self.seed)
 
             best_loss = self.training(
-                x_train, y_train, x_valid, y_valid, x_test, y_test, verbose=verbose, save_path=save_path
+                x_train,
+                y_train,
+                x_valid,
+                y_valid,
+                x_test,
+                y_test,
+                verbose=verbose,
+                save_path=save_path,
             )
 
     def training(
@@ -291,17 +338,29 @@ class TCTS(Model):
             output_dim=self.output_dim,
         )
         if self._fore_optimizer.lower() == "adam":
-            self.fore_optimizer = optim.Adam(self.fore_model.parameters(), lr=self.fore_lr)
+            self.fore_optimizer = optim.Adam(
+                self.fore_model.parameters(), lr=self.fore_lr
+            )
         elif self._fore_optimizer.lower() == "gd":
-            self.fore_optimizer = optim.SGD(self.fore_model.parameters(), lr=self.fore_lr)
+            self.fore_optimizer = optim.SGD(
+                self.fore_model.parameters(), lr=self.fore_lr
+            )
         else:
-            raise NotImplementedError("optimizer {} is not supported!".format(self._fore_optimizer))
+            raise NotImplementedError(
+                "optimizer {} is not supported!".format(self._fore_optimizer)
+            )
         if self._weight_optimizer.lower() == "adam":
-            self.weight_optimizer = optim.Adam(self.weight_model.parameters(), lr=self.weight_lr)
+            self.weight_optimizer = optim.Adam(
+                self.weight_model.parameters(), lr=self.weight_lr
+            )
         elif self._weight_optimizer.lower() == "gd":
-            self.weight_optimizer = optim.SGD(self.weight_model.parameters(), lr=self.weight_lr)
+            self.weight_optimizer = optim.SGD(
+                self.weight_model.parameters(), lr=self.weight_lr
+            )
         else:
-            raise NotImplementedError("optimizer {} is not supported!".format(self._weight_optimizer))
+            raise NotImplementedError(
+                "optimizer {} is not supported!".format(self._weight_optimizer)
+            )
 
         self.fitted = False
         self.fore_model.to(self.device)
@@ -327,8 +386,14 @@ class TCTS(Model):
                 best_loss = val_loss
                 stop_round = 0
                 best_epoch = epoch
-                torch.save(copy.deepcopy(self.fore_model.state_dict()), save_path + "_fore_model.bin")
-                torch.save(copy.deepcopy(self.weight_model.state_dict()), save_path + "_weight_model.bin")
+                torch.save(
+                    copy.deepcopy(self.fore_model.state_dict()),
+                    save_path + "_fore_model.bin",
+                )
+                torch.save(
+                    copy.deepcopy(self.weight_model.state_dict()),
+                    save_path + "_weight_model.bin",
+                )
 
             else:
                 stop_round += 1
@@ -339,7 +404,9 @@ class TCTS(Model):
         print("best loss:", best_loss, "@", best_epoch)
         best_param = torch.load(save_path + "_fore_model.bin", map_location=self.device)
         self.fore_model.load_state_dict(best_param)
-        best_param = torch.load(save_path + "_weight_model.bin", map_location=self.device)
+        best_param = torch.load(
+            save_path + "_weight_model.bin", map_location=self.device
+        )
         self.weight_model.load_state_dict(best_param)
         self.fitted = True
 
@@ -379,7 +446,9 @@ class TCTS(Model):
 
 
 class MLPModel(nn.Module):
-    def __init__(self, d_feat, hidden_size=256, num_layers=3, dropout=0.0, output_dim=1):
+    def __init__(
+        self, d_feat, hidden_size=256, num_layers=3, dropout=0.0, output_dim=1
+    ):
         super().__init__()
 
         self.mlp = nn.Sequential()
@@ -388,7 +457,9 @@ class MLPModel(nn.Module):
         for i in range(num_layers):
             if i > 0:
                 self.mlp.add_module("drop_%d" % i, nn.Dropout(dropout))
-            self.mlp.add_module("fc_%d" % i, nn.Linear(d_feat if i == 0 else hidden_size, hidden_size))
+            self.mlp.add_module(
+                "fc_%d" % i, nn.Linear(d_feat if i == 0 else hidden_size, hidden_size)
+            )
             self.mlp.add_module("relu_%d" % i, nn.ReLU())
 
         self.mlp.add_module("fc_out", nn.Linear(hidden_size, output_dim))

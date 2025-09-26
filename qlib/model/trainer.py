@@ -43,7 +43,9 @@ def _exe_task(task_config: dict):
     rec = R.get_recorder()
     # model & dataset initialization
     model: Model = init_instance_by_config(task_config["model"], accept_types=Model)
-    dataset: Dataset = init_instance_by_config(task_config["dataset"], accept_types=Dataset)
+    dataset: Dataset = init_instance_by_config(
+        task_config["dataset"], accept_types=Dataset
+    )
     reweighter: Reweighter = task_config.get("reweighter", None)
     # model training
     auto_filter_kwargs(model.fit)(dataset, reweighter=reweighter)
@@ -71,7 +73,9 @@ def _exe_task(task_config: dict):
         r.generate()
 
 
-def begin_task_train(task_config: dict, experiment_name: str, recorder_name: str = None) -> Recorder:
+def begin_task_train(
+    task_config: dict, experiment_name: str, recorder_name: str = None
+) -> Recorder:
     """
     Begin task training to start a recorder and save the task config.
 
@@ -99,13 +103,17 @@ def end_task_train(rec: Recorder, experiment_name: str) -> Recorder:
     Returns:
         Recorder: the model recorder
     """
-    with R.start(experiment_name=experiment_name, recorder_id=rec.info["id"], resume=True):
+    with R.start(
+        experiment_name=experiment_name, recorder_id=rec.info["id"], resume=True
+    ):
         task_config = R.load_object("task")
         _exe_task(task_config)
     return rec
 
 
-def task_train(task_config: dict, experiment_name: str, recorder_name: str = None) -> Recorder:
+def task_train(
+    task_config: dict, experiment_name: str, recorder_name: str = None
+) -> Recorder:
     """
     Task based training, will be divided into two steps.
 
@@ -241,7 +249,11 @@ class TrainerR(Trainer):
         self._call_in_subproc = call_in_subproc
 
     def train(
-        self, tasks: list, train_func: Optional[Callable] = None, experiment_name: Optional[str] = None, **kwargs
+        self,
+        tasks: list,
+        train_func: Optional[Callable] = None,
+        experiment_name: Optional[str] = None,
+        **kwargs,
     ) -> List[Recorder]:
         """
         Given a list of `tasks` and return a list of trained Recorder. The order can be guaranteed.
@@ -266,9 +278,13 @@ class TrainerR(Trainer):
         recs = []
         for task in tqdm(tasks, desc="train tasks"):
             if self._call_in_subproc:
-                get_module_logger("TrainerR").info("running models in sub process (for forcing release memroy).")
+                get_module_logger("TrainerR").info(
+                    "running models in sub process (for forcing release memroy)."
+                )
                 train_func = call_in_subproc(train_func, C)
-            rec = train_func(task, experiment_name, recorder_name=self.default_rec_name, **kwargs)
+            rec = train_func(
+                task, experiment_name, recorder_name=self.default_rec_name, **kwargs
+            )
             rec.set_tags(**{self.STATUS_KEY: self.STATUS_BEGIN})
             recs.append(rec)
         return recs
@@ -296,7 +312,11 @@ class DelayTrainerR(TrainerR):
     """
 
     def __init__(
-        self, experiment_name: str = None, train_func=begin_task_train, end_train_func=end_task_train, **kwargs
+        self,
+        experiment_name: str = None,
+        train_func=begin_task_train,
+        end_train_func=end_task_train,
+        **kwargs,
     ):
         """
         Init TrainerRM.
@@ -310,7 +330,9 @@ class DelayTrainerR(TrainerR):
         self.end_train_func = end_train_func
         self.delay = True
 
-    def end_train(self, models, end_train_func=None, experiment_name: str = None, **kwargs) -> List[Recorder]:
+    def end_train(
+        self, models, end_train_func=None, experiment_name: str = None, **kwargs
+    ) -> List[Recorder]:
         """
         Given a list of Recorder and return a list of trained Recorder.
         This class will finish real data loading and model fitting.
@@ -521,7 +543,9 @@ class DelayTrainerRM(TrainerRM):
         self.delay = True
         self.skip_run_task = skip_run_task
 
-    def train(self, tasks: list, train_func=None, experiment_name: str = None, **kwargs) -> List[Recorder]:
+    def train(
+        self, tasks: list, train_func=None, experiment_name: str = None, **kwargs
+    ) -> List[Recorder]:
         """
         Same as `train` of TrainerRM, after_status will be STATUS_PART_DONE.
 
@@ -549,7 +573,9 @@ class DelayTrainerRM(TrainerRM):
         self.skip_run_task = _skip_run_task
         return res
 
-    def end_train(self, recs, end_train_func=None, experiment_name: str = None, **kwargs) -> List[Recorder]:
+    def end_train(
+        self, recs, end_train_func=None, experiment_name: str = None, **kwargs
+    ) -> List[Recorder]:
         """
         Given a list of Recorder and return a list of trained Recorder.
         This class will finish real data loading and model fitting.

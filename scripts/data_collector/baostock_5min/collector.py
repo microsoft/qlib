@@ -20,7 +20,10 @@ CUR_DIR = Path(__file__).resolve().parent
 sys.path.append(str(CUR_DIR.parent.parent))
 
 from data_collector.base import BaseCollector, BaseNormalize, BaseRun
-from data_collector.utils import generate_minutes_calendar_from_daily, calc_adjusted_price
+from data_collector.utils import (
+    generate_minutes_calendar_from_daily,
+    calc_adjusted_price,
+)
 
 
 class BaostockCollectorHS3005min(BaseCollector):
@@ -87,17 +90,41 @@ class BaostockCollectorHS3005min(BaseCollector):
     @staticmethod
     def process_interval(interval: str):
         if interval == "1d":
-            return {"interval": "d", "fields": "date,code,open,high,low,close,volume,amount,adjustflag"}
+            return {
+                "interval": "d",
+                "fields": "date,code,open,high,low,close,volume,amount,adjustflag",
+            }
         if interval == "5min":
-            return {"interval": "5", "fields": "date,time,code,open,high,low,close,volume,amount,adjustflag"}
+            return {
+                "interval": "5",
+                "fields": "date,time,code,open,high,low,close,volume,amount,adjustflag",
+            }
 
     def get_data(
-        self, symbol: str, interval: str, start_datetime: pd.Timestamp, end_datetime: pd.Timestamp
+        self,
+        symbol: str,
+        interval: str,
+        start_datetime: pd.Timestamp,
+        end_datetime: pd.Timestamp,
     ) -> pd.DataFrame:
         df = self.get_data_from_remote(
-            symbol=symbol, interval=interval, start_datetime=start_datetime, end_datetime=end_datetime
+            symbol=symbol,
+            interval=interval,
+            start_datetime=start_datetime,
+            end_datetime=end_datetime,
         )
-        df.columns = ["date", "time", "symbol", "open", "high", "low", "close", "volume", "amount", "adjustflag"]
+        df.columns = [
+            "date",
+            "time",
+            "symbol",
+            "open",
+            "high",
+            "low",
+            "close",
+            "volume",
+            "amount",
+            "adjustflag",
+        ]
         df["time"] = pd.to_datetime(df["time"], format="%Y%m%d%H%M%S%f")
         df["date"] = df["time"].dt.strftime("%Y-%m-%d %H:%M:%S")
         df["date"] = df["date"].map(lambda x: pd.Timestamp(x) - pd.Timedelta(minutes=5))
@@ -107,7 +134,10 @@ class BaostockCollectorHS3005min(BaseCollector):
 
     @staticmethod
     def get_data_from_remote(
-        symbol: str, interval: str, start_datetime: pd.Timestamp, end_datetime: pd.Timestamp
+        symbol: str,
+        interval: str,
+        start_datetime: pd.Timestamp,
+        end_datetime: pd.Timestamp,
     ) -> pd.DataFrame:
         df = pd.DataFrame()
         rs = bs.query_history_k_data_plus(
@@ -115,7 +145,9 @@ class BaostockCollectorHS3005min(BaseCollector):
             BaostockCollectorHS3005min.process_interval(interval=interval)["fields"],
             start_date=str(start_datetime.strftime("%Y-%m-%d")),
             end_date=str(end_datetime.strftime("%Y-%m-%d")),
-            frequency=BaostockCollectorHS3005min.process_interval(interval=interval)["interval"],
+            frequency=BaostockCollectorHS3005min.process_interval(interval=interval)[
+                "interval"
+            ],
             adjustflag="3",
         )
         if rs.error_code == "0" and len(rs.data) > 0:
@@ -151,7 +183,11 @@ class BaostockNormalizeHS3005min(BaseNormalize):
     PM_RANGE = ("13:00:00", "14:59:00")
 
     def __init__(
-        self, qlib_data_1d_dir: [str, Path], date_field_name: str = "date", symbol_field_name: str = "symbol", **kwargs
+        self,
+        qlib_data_1d_dir: [str, Path],
+        date_field_name: str = "date",
+        symbol_field_name: str = "symbol",
+        **kwargs,
     ):
         """
 
@@ -166,8 +202,14 @@ class BaostockNormalizeHS3005min(BaseNormalize):
         """
         bs.login()
         qlib.init(provider_uri=qlib_data_1d_dir)
-        self.all_1d_data = D.features(D.instruments("all"), ["$paused", "$volume", "$factor", "$close"], freq="day")
-        super(BaostockNormalizeHS3005min, self).__init__(date_field_name, symbol_field_name)
+        self.all_1d_data = D.features(
+            D.instruments("all"),
+            ["$paused", "$volume", "$factor", "$close"],
+            freq="day",
+        )
+        super(BaostockNormalizeHS3005min, self).__init__(
+            date_field_name, symbol_field_name
+        )
 
     @staticmethod
     def calc_change(df: pd.DataFrame, last_close: float) -> pd.Series:
@@ -209,11 +251,19 @@ class BaostockNormalizeHS3005min(BaseNormalize):
         if calendar_list is not None:
             df = df.reindex(
                 pd.DataFrame(index=calendar_list)
-                .loc[pd.Timestamp(df.index.min()).date() : pd.Timestamp(df.index.max()).date() + pd.Timedelta(days=1)]
+                .loc[
+                    pd.Timestamp(df.index.min())
+                    .date() : pd.Timestamp(df.index.max())
+                    .date()
+                    + pd.Timedelta(days=1)
+                ]
                 .index
             )
         df.sort_index(inplace=True)
-        df.loc[(df["volume"] <= 0) | np.isnan(df["volume"]), list(set(df.columns) - {symbol_field_name})] = np.nan
+        df.loc[
+            (df["volume"] <= 0) | np.isnan(df["volume"]),
+            list(set(df.columns) - {symbol_field_name}),
+        ] = np.nan
 
         df["change"] = BaostockNormalizeHS3005min.calc_change(df, last_close)
 
@@ -244,14 +294,23 @@ class BaostockNormalizeHS3005min(BaseNormalize):
 
     def normalize(self, df: pd.DataFrame) -> pd.DataFrame:
         # normalize
-        df = self.normalize_baostock(df, self._calendar_list, self._date_field_name, self._symbol_field_name)
+        df = self.normalize_baostock(
+            df, self._calendar_list, self._date_field_name, self._symbol_field_name
+        )
         # adjusted price
         df = self.adjusted_price(df)
         return df
 
 
 class Run(BaseRun):
-    def __init__(self, source_dir=None, normalize_dir=None, max_workers=1, interval="5min", region="HS300"):
+    def __init__(
+        self,
+        source_dir=None,
+        normalize_dir=None,
+        max_workers=1,
+        interval="5min",
+        region="HS300",
+    ):
         """
         Changed the default value of: scripts.data_collector.base.BaseRun.
         """
@@ -291,7 +350,9 @@ class Run(BaseRun):
             # get hs300 5min data
             $ python collector.py download_data --source_dir ~/.qlib/stock_data/source/hs300_5min_original --start 2022-01-01 --end 2022-01-30 --interval 5min --region HS300
         """
-        super(Run, self).download_data(max_collector_count, delay, start, end, check_data_length, limit_nums)
+        super(Run, self).download_data(
+            max_collector_count, delay, start, end, check_data_length, limit_nums
+        )
 
     def normalize_data(
         self,
@@ -320,7 +381,10 @@ class Run(BaseRun):
                 "If normalize 5min, the qlib_data_1d_dir parameter must be set: --qlib_data_1d_dir <user qlib 1d data >, Reference: https://github.com/microsoft/qlib/tree/main/scripts/data_collector/yahoo#automatic-update-of-daily-frequency-datafrom-yahoo-finance"
             )
         super(Run, self).normalize_data(
-            date_field_name, symbol_field_name, end_date=end_date, qlib_data_1d_dir=qlib_data_1d_dir
+            date_field_name,
+            symbol_field_name,
+            end_date=end_date,
+            qlib_data_1d_dir=qlib_data_1d_dir,
         )
 
 

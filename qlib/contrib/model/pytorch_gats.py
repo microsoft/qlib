@@ -75,7 +75,9 @@ class GATs(Model):
         self.loss = loss
         self.base_model = base_model
         self.model_path = model_path
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        self.device = torch.device(
+            "cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu"
+        )
         self.seed = seed
 
         self.logger.info(
@@ -125,14 +127,18 @@ class GATs(Model):
             base_model=self.base_model,
         )
         self.logger.info("model:\n{:}".format(self.GAT_model))
-        self.logger.info("model size: {:.4f} MB".format(count_parameters(self.GAT_model)))
+        self.logger.info(
+            "model size: {:.4f} MB".format(count_parameters(self.GAT_model))
+        )
 
         if optimizer.lower() == "adam":
             self.train_optimizer = optim.Adam(self.GAT_model.parameters(), lr=self.lr)
         elif optimizer.lower() == "gd":
             self.train_optimizer = optim.SGD(self.GAT_model.parameters(), lr=self.lr)
         else:
-            raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
+            raise NotImplementedError(
+                "optimizer {} is not supported!".format(optimizer)
+            )
 
         self.fitted = False
         self.GAT_model.to(self.device)
@@ -233,7 +239,9 @@ class GATs(Model):
             data_key=DataHandlerLP.DK_L,
         )
         if df_train.empty or df_valid.empty:
-            raise ValueError("Empty data from dataset, please check your dataset config.")
+            raise ValueError(
+                "Empty data from dataset, please check your dataset config."
+            )
 
         x_train, y_train = df_train["feature"], df_train["label"]
         x_valid, y_valid = df_valid["feature"], df_valid["label"]
@@ -255,11 +263,15 @@ class GATs(Model):
 
         if self.model_path is not None:
             self.logger.info("Loading pretrained model...")
-            pretrained_model.load_state_dict(torch.load(self.model_path, map_location=self.device))
+            pretrained_model.load_state_dict(
+                torch.load(self.model_path, map_location=self.device)
+            )
 
         model_dict = self.GAT_model.state_dict()
         pretrained_dict = {
-            k: v for k, v in pretrained_model.state_dict().items() if k in model_dict  # pylint: disable=E1135
+            k: v
+            for k, v in pretrained_model.state_dict().items()
+            if k in model_dict  # pylint: disable=E1135
         }
         model_dict.update(pretrained_dict)
         self.GAT_model.load_state_dict(model_dict)
@@ -324,7 +336,9 @@ class GATs(Model):
 
 
 class GATModel(nn.Module):
-    def __init__(self, d_feat=6, hidden_size=64, num_layers=2, dropout=0.0, base_model="GRU"):
+    def __init__(
+        self, d_feat=6, hidden_size=64, num_layers=2, dropout=0.0, base_model="GRU"
+    ):
         super().__init__()
 
         if base_model == "GRU":

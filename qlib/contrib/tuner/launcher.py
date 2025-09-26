@@ -30,7 +30,9 @@ TUNER_CONFIG_MANAGER = TunerConfigManager(args.config_path)
 
 def run():
     # 1. Get pipeline class.
-    tuner_pipeline_class = getattr(importlib.import_module(".pipeline", package="qlib.contrib.tuner"), "Pipeline")
+    tuner_pipeline_class = getattr(
+        importlib.import_module(".pipeline", package="qlib.contrib.tuner"), "Pipeline"
+    )
     # 2. Init tuner pipeline.
     tuner_pipeline = tuner_pipeline_class(TUNER_CONFIG_MANAGER)
     # 3. Begin to tune

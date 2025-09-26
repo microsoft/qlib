@@ -32,7 +32,9 @@ class QlibRecorder:
         self.exp_manager: ExpManager = exp_manager
 
     def __repr__(self):
-        return "{name}(manager={manager})".format(name=self.__class__.__name__, manager=self.exp_manager)
+        return "{name}(manager={manager})".format(
+            name=self.__class__.__name__, manager=self.exp_manager
+        )
 
     @contextmanager
     def start(
@@ -90,7 +92,9 @@ class QlibRecorder:
         try:
             yield run
         except Exception as e:
-            self.end_exp(Recorder.STATUS_FA)  # end the experiment if something went wrong
+            self.end_exp(
+                Recorder.STATUS_FA
+            )  # end the experiment if something went wrong
             raise e
         self.end_exp(Recorder.STATUS_FI)
 
@@ -237,10 +241,17 @@ class QlibRecorder:
         -------
         A dictionary (id -> recorder) of recorder information that being stored.
         """
-        return self.get_exp(experiment_id=experiment_id, experiment_name=experiment_name).list_recorders()
+        return self.get_exp(
+            experiment_id=experiment_id, experiment_name=experiment_name
+        ).list_recorders()
 
     def get_exp(
-        self, *, experiment_id=None, experiment_name=None, create: bool = True, start: bool = False
+        self,
+        *,
+        experiment_id=None,
+        experiment_name=None,
+        create: bool = True,
+        start: bool = False,
     ) -> Experiment:
         """
         Method for retrieving an experiment with given id or name. Once the `create` argument is set to
@@ -454,9 +465,9 @@ class QlibRecorder:
         -------
         A recorder instance.
         """
-        return self.get_exp(experiment_name=experiment_name, experiment_id=experiment_id, create=False).get_recorder(
-            recorder_id, recorder_name, create=False, start=False
-        )
+        return self.get_exp(
+            experiment_name=experiment_name, experiment_id=experiment_id, create=False
+        ).get_recorder(recorder_id, recorder_name, create=False, start=False)
 
     def delete_recorder(self, recorder_id=None, recorder_name=None):
         """
@@ -478,7 +489,9 @@ class QlibRecorder:
         """
         self.get_exp().delete_recorder(recorder_id, recorder_name)
 
-    def save_objects(self, local_path=None, artifact_path=None, **kwargs: Dict[Text, Any]):
+    def save_objects(
+        self, local_path=None, artifact_path=None, **kwargs: Dict[Text, Any]
+    ):
         """
         Method for saving objects as artifacts in the experiment to the uri. It supports either saving
         from a local file/directory, or directly saving objects. User can use valid python's keywords arguments
@@ -531,7 +544,9 @@ class QlibRecorder:
             raise ValueError(
                 "You can choose only one of `local_path`(save the files in a path) or `kwargs`(pass in the objects directly)"
             )
-        self.get_exp().get_recorder(start=True).save_objects(local_path, artifact_path, **kwargs)
+        self.get_exp().get_recorder(start=True).save_objects(
+            local_path, artifact_path, **kwargs
+        )
 
     def load_object(self, name: Text):
         """
@@ -603,7 +618,9 @@ class QlibRecorder:
         artifact_path : Optional[str]
             If provided, the directory in ``artifact_uri`` to write to.
         """
-        self.get_exp(start=True).get_recorder(start=True).log_artifact(local_path, artifact_path)
+        self.get_exp(start=True).get_recorder(start=True).log_artifact(
+            local_path, artifact_path
+        )
 
     def download_artifact(self, path: str, dst_path: Optional[str] = None) -> str:
         """
@@ -625,7 +642,9 @@ class QlibRecorder:
         str
             Local path of desired artifact.
         """
-        self.get_exp(start=True).get_recorder(start=True).download_artifact(path, dst_path)
+        self.get_exp(start=True).get_recorder(start=True).download_artifact(
+            path, dst_path
+        )
 
     def set_tags(self, **kwargs):
         """

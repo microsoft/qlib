@@ -19,7 +19,11 @@ VERSION = get_version(root=".", relative_to=__file__)
 # Define base requirements
 install_requires = [
     "numpy>=1.12.0",
+<<<<<<< HEAD
     "pandas>=0.25.1", 
+=======
+    "pandas>=0.25.1",
+>>>>>>> f180e36a (fix: migrate from gym to gymnasium for NumPy 2.0+ compatibility)
     "scipy>=1.0.0",
     "scikit-learn>=0.22.0",
     "matplotlib>=3.0.0",
@@ -40,7 +44,11 @@ install_requires = [
     "pyarrow>=6.0.0",
 ]
 
+<<<<<<< HEAD
 # Define RL-specific optional requirements  
+=======
+# Define RL-specific optional requirements
+>>>>>>> f180e36a (fix: migrate from gym to gymnasium for NumPy 2.0+ compatibility)
 extras_require = {
     "rl": [
         "gymnasium>=0.28.0",  # gymnasium
@@ -49,11 +57,19 @@ extras_require = {
     ],
     "dev": [
         "black",
+<<<<<<< HEAD
         "flake8", 
         "pytest",
         "pytest-cov",
         "sphinx",
     ]
+=======
+        "flake8",
+        "pytest",
+        "pytest-cov",
+        "sphinx",
+    ],
+>>>>>>> f180e36a (fix: migrate from gym to gymnasium for NumPy 2.0+ compatibility)
 }
 
 setup(

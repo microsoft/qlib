@@ -15,14 +15,18 @@ def _get_score_ic(pred_label: pd.DataFrame):
     """
     concat_data = pred_label.copy()
     concat_data.dropna(axis=0, how="any", inplace=True)
-    _ic = concat_data.groupby(level="datetime", group_keys=False).apply(lambda x: x["label"].corr(x["score"]))
+    _ic = concat_data.groupby(level="datetime", group_keys=False).apply(
+        lambda x: x["label"].corr(x["score"])
+    )
     _rank_ic = concat_data.groupby(level="datetime", group_keys=False).apply(
         lambda x: x["label"].corr(x["score"], method="spearman")
     )
     return pd.DataFrame({"ic": _ic, "rank_ic": _rank_ic})
 
 
-def score_ic_graph(pred_label: pd.DataFrame, show_notebook: bool = True, **kwargs) -> [list, tuple]:
+def score_ic_graph(
+    pred_label: pd.DataFrame, show_notebook: bool = True, **kwargs
+) -> [list, tuple]:
     """score IC
 
         Example:
@@ -61,7 +65,12 @@ def score_ic_graph(pred_label: pd.DataFrame, show_notebook: bool = True, **kwarg
         _ic_df,
         layout=dict(
             title="Score IC",
-            xaxis=dict(tickangle=45, rangebreaks=kwargs.get("rangebreaks", guess_plotly_rangebreaks(_ic_df.index))),
+            xaxis=dict(
+                tickangle=45,
+                rangebreaks=kwargs.get(
+                    "rangebreaks", guess_plotly_rangebreaks(_ic_df.index)
+                ),
+            ),
         ),
         graph_kwargs={"mode": "lines+markers"},
     ).figure

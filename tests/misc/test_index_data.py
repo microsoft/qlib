@@ -45,7 +45,9 @@ class IndexDataTest(unittest.TestCase):
             idd.MultiData(range(10), index=["foo", "bar"], columns=["f", "g"])
 
         # test indexing
-        sd = idd.MultiData(np.arange(4).reshape(2, 2), index=["foo", "bar"], columns=["f", "g"])
+        sd = idd.MultiData(
+            np.arange(4).reshape(2, 2), index=["foo", "bar"], columns=["f", "g"]
+        )
         print(sd)
         print(sd.iloc[1])  # get second row
 
@@ -62,7 +64,9 @@ class IndexDataTest(unittest.TestCase):
         print(sd.loc[:, "g":])
 
     def test_sorting(self):
-        sd = idd.MultiData(np.arange(4).reshape(2, 2), index=["foo", "bar"], columns=["f", "g"])
+        sd = idd.MultiData(
+            np.arange(4).reshape(2, 2), index=["foo", "bar"], columns=["f", "g"]
+        )
         print(sd)
         sd.sort_index()
 
@@ -70,7 +74,9 @@ class IndexDataTest(unittest.TestCase):
         print(sd.loc[:"c"])
 
     def test_corner_cases(self):
-        sd = idd.MultiData([[1, 2], [3, np.nan]], index=["foo", "bar"], columns=["f", "g"])
+        sd = idd.MultiData(
+            [[1, 2], [3, np.nan]], index=["foo", "bar"], columns=["f", "g"]
+        )
         print(sd)
 
         self.assertTrue(np.isnan(sd.loc["bar", "g"]))
@@ -124,7 +130,9 @@ class IndexDataTest(unittest.TestCase):
         self.assertTrue(np.isnan((sd1 + sd2).iloc[3]))
         self.assertTrue(sd1.add(sd2).sum() == 13)
 
-        self.assertTrue(idd.sum_by_index([sd1, sd2], sd1.index, fill_value=0.0).sum() == 13)
+        self.assertTrue(
+            idd.sum_by_index([sd1, sd2], sd1.index, fill_value=0.0).sum() == 13
+        )
 
     def test_todo(self):
         pass

@@ -83,7 +83,9 @@ class ADD(Model):
         self.optimizer = optimizer.lower()
         self.base_model = base_model
         self.model_path = model_path
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        self.device = torch.device(
+            "cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu"
+        )
         self.seed = seed
 
         self.gamma = gamma
@@ -148,14 +150,18 @@ class ADD(Model):
             gamma_clip=self.gamma_clip,
         )
         self.logger.info("model:\n{:}".format(self.ADD_model))
-        self.logger.info("model size: {:.4f} MB".format(count_parameters(self.ADD_model)))
+        self.logger.info(
+            "model size: {:.4f} MB".format(count_parameters(self.ADD_model))
+        )
 
         if optimizer.lower() == "adam":
             self.train_optimizer = optim.Adam(self.ADD_model.parameters(), lr=self.lr)
         elif optimizer.lower() == "gd":
             self.train_optimizer = optim.SGD(self.ADD_model.parameters(), lr=self.lr)
         else:
-            raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
+            raise NotImplementedError(
+                "optimizer {} is not supported!".format(optimizer)
+            )
 
         self.fitted = False
         self.ADD_model.to(self.device)
@@ -177,10 +183,12 @@ class ADD(Model):
             record["pre_market_loss"] = pre_market_loss.item()
         return pre_market_loss
 
-    def loss_pre(self, pred_excess, label_excess, pred_market, label_market, record=None):
-        pre_loss = self.loss_pre_excess(pred_excess, label_excess, record) + self.loss_pre_market(
-            pred_market, label_market, record
-        )
+    def loss_pre(
+        self, pred_excess, label_excess, pred_market, label_market, record=None
+    ):
+        pre_loss = self.loss_pre_excess(
+            pred_excess, label_excess, record
+        ) + self.loss_pre_market(pred_market, label_market, record)
         if record is not None:
             record["pre_loss"] = pre_loss.item()
         return pre_loss
@@ -199,17 +207,25 @@ class ADD(Model):
         return adv_market_loss
 
     def loss_adv(self, adv_excess, label_excess, adv_market, label_market, record=None):
-        adv_loss = self.loss_adv_excess(adv_excess, label_excess, record) + self.loss_adv_market(
-            adv_market, label_market, record
-        )
+        adv_loss = self.loss_adv_excess(
+            adv_excess, label_excess, record
+        ) + self.loss_adv_market(adv_market, label_market, record)
         if record is not None:
             record["adv_loss"] = adv_loss.item()
         return adv_loss
 
     def loss_fn(self, x, preds, label_excess, label_market, record=None):
         loss = (
-            self.loss_pre(preds["excess"], label_excess, preds["market"], label_market, record)
-            + self.loss_adv(preds["adv_excess"], label_excess, preds["adv_market"], label_market, record)
+            self.loss_pre(
+                preds["excess"], label_excess, preds["market"], label_market, record
+            )
+            + self.loss_adv(
+                preds["adv_excess"],
+                label_excess,
+                preds["adv_market"],
+                label_market,
+                record,
+            )
             + self.mu * self.loss_rec(x, preds["reconstructed_feature"], record)
         )
         if record is not None:
@@ -288,8 +304,12 @@ class ADD(Model):
                 break
             batch = indices[i : i + self.batch_size]
             feature = torch.from_numpy(x_train_values[batch]).float().to(self.device)
-            label_excess = torch.from_numpy(y_train_values[batch]).float().to(self.device)
-            label_market = torch.from_numpy(m_train_values[batch]).long().to(self.device)
+            label_excess = (
+                torch.from_numpy(y_train_values[batch]).float().to(self.device)
+            )
+            label_market = (
+                torch.from_numpy(m_train_values[batch]).long().to(self.device)
+            )
 
             preds = self.ADD_model(feature)
 
@@ -344,7 +364,9 @@ class ADD(Model):
                     break
             self.ADD_model.before_adv_excess.step_alpha()
             self.ADD_model.before_adv_market.step_alpha()
-        self.logger.info("bootstrap_fit best score: {:.6f} @ {}".format(best_score, best_epoch))
+        self.logger.info(
+            "bootstrap_fit best score: {:.6f} @ {}".format(best_score, best_epoch)
+        )
         self.ADD_model.load_state_dict(best_param)
         return best_score
 
@@ -357,7 +379,9 @@ class ADD(Model):
         return df
 
     def fit_thresh(self, train_label):
-        market_label = train_label.groupby("datetime", group_keys=False).mean().squeeze()
+        market_label = (
+            train_label.groupby("datetime", group_keys=False).mean().squeeze()
+        )
         self.lo, self.hi = market_label.quantile([1 / 3, 2 / 3])
 
     def fit(
@@ -380,8 +404,16 @@ class ADD(Model):
         df_train = self.gen_market_label(df_train, label_train)
         df_valid = self.gen_market_label(df_valid, label_valid)
 
-        x_train, y_train, m_train = df_train["feature"], df_train["label"], df_train["market_return"]
-        x_valid, y_valid, m_valid = df_valid["feature"], df_valid["label"], df_valid["market_return"]
+        x_train, y_train, m_train = (
+            df_train["feature"],
+            df_train["label"],
+            df_train["market_return"],
+        )
+        x_valid, y_valid, m_valid = (
+            df_valid["feature"],
+            df_valid["label"],
+            df_valid["market_return"],
+        )
 
         evals_result["train"] = []
         evals_result["valid"] = []
@@ -396,14 +428,24 @@ class ADD(Model):
 
         if self.model_path is not None:
             self.logger.info("Loading pretrained model...")
-            pretrained_model.load_state_dict(torch.load(self.model_path, map_location=self.device))
+            pretrained_model.load_state_dict(
+                torch.load(self.model_path, map_location=self.device)
+            )
 
             model_dict = self.ADD_model.enc_excess.state_dict()
-            pretrained_dict = {k: v for k, v in pretrained_model.rnn.state_dict().items() if k in model_dict}
+            pretrained_dict = {
+                k: v
+                for k, v in pretrained_model.rnn.state_dict().items()
+                if k in model_dict
+            }
             model_dict.update(pretrained_dict)
             self.ADD_model.enc_excess.load_state_dict(model_dict)
             model_dict = self.ADD_model.enc_market.state_dict()
-            pretrained_dict = {k: v for k, v in pretrained_model.rnn.state_dict().items() if k in model_dict}
+            pretrained_dict = {
+                k: v
+                for k, v in pretrained_model.rnn.state_dict().items()
+                if k in model_dict
+            }
             model_dict.update(pretrained_dict)
             self.ADD_model.enc_market.load_state_dict(model_dict)
             self.logger.info("Loading pretrained model Done...")
@@ -417,7 +459,9 @@ class ADD(Model):
             torch.cuda.empty_cache()
 
     def predict(self, dataset: DatasetH, segment: Union[Text, slice] = "test"):
-        x_test = dataset.prepare(segment, col_set="feature", data_key=DataHandlerLP.DK_I)
+        x_test = dataset.prepare(
+            segment, col_set="feature", data_key=DataHandlerLP.DK_I
+        )
         index = x_test.index
         self.ADD_model.eval()
         x_values = x_test.values
@@ -482,14 +526,26 @@ class ADDModel(nn.Module):
 
         ctx_size = hidden_size * num_layers
         self.pred_excess, self.adv_excess = [
-            nn.Sequential(nn.Linear(ctx_size, ctx_size), nn.BatchNorm1d(ctx_size), nn.Tanh(), nn.Linear(ctx_size, 1))
+            nn.Sequential(
+                nn.Linear(ctx_size, ctx_size),
+                nn.BatchNorm1d(ctx_size),
+                nn.Tanh(),
+                nn.Linear(ctx_size, 1),
+            )
             for _ in range(2)
         ]
         self.adv_market, self.pred_market = [
-            nn.Sequential(nn.Linear(ctx_size, ctx_size), nn.BatchNorm1d(ctx_size), nn.Tanh(), nn.Linear(ctx_size, 3))
+            nn.Sequential(
+                nn.Linear(ctx_size, ctx_size),
+                nn.BatchNorm1d(ctx_size),
+                nn.Tanh(),
+                nn.Linear(ctx_size, 3),
+            )
             for _ in range(2)
         ]
-        self.before_adv_market, self.before_adv_excess = [RevGrad(gamma, gamma_clip) for _ in range(2)]
+        self.before_adv_market, self.before_adv_excess = [
+            RevGrad(gamma, gamma_clip) for _ in range(2)
+        ]
 
     def forward(self, x):
         x = x.reshape(len(x), self.d_feat, -1)
@@ -509,9 +565,13 @@ class ADDModel(nn.Module):
         predicts["excess"] = self.pred_excess(feature_excess).squeeze(1)
         predicts["market"] = self.pred_market(feature_market)
         predicts["adv_market"] = self.adv_market(self.before_adv_market(feature_excess))
-        predicts["adv_excess"] = self.adv_excess(self.before_adv_excess(feature_market).squeeze(1))
+        predicts["adv_excess"] = self.adv_excess(
+            self.before_adv_excess(feature_market).squeeze(1)
+        )
         if self.base_model == "LSTM":
-            hidden = [torch.cat([hidden_excess[i], hidden_market[i]], -1) for i in range(2)]
+            hidden = [
+                torch.cat([hidden_excess[i], hidden_market[i]], -1) for i in range(2)
+            ]
         else:
             hidden = torch.cat([hidden_excess, hidden_market], -1)
         x = torch.zeros_like(x[:, 1, :])
@@ -525,7 +585,9 @@ class ADDModel(nn.Module):
 
 
 class Decoder(nn.Module):
-    def __init__(self, d_feat=6, hidden_size=128, num_layers=1, dropout=0.5, base_model="GRU"):
+    def __init__(
+        self, d_feat=6, hidden_size=128, num_layers=1, dropout=0.5, base_model="GRU"
+    ):
         super().__init__()
         self.base_model = base_model
         if base_model == "GRU":
@@ -590,7 +652,10 @@ class RevGrad(nn.Module):
     def step_alpha(self):
         self._p += 1
         self._alpha = min(
-            self.gamma_clip, torch.tensor(2 / (1 + math.exp(-self.gamma * self._p)) - 1, requires_grad=False)
+            self.gamma_clip,
+            torch.tensor(
+                2 / (1 + math.exp(-self.gamma * self._p)) - 1, requires_grad=False
+            ),
         )
 
     def forward(self, input_):

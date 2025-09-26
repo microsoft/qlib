@@ -28,7 +28,9 @@ class DataHealthChecker:
         missing_data_num=0,
     ):
         assert csv_path or qlib_dir, "One of csv_path or qlib_dir should be provided."
-        assert not (csv_path and qlib_dir), "Only one of csv_path or qlib_dir should be provided."
+        assert not (
+            csv_path and qlib_dir
+        ), "Only one of csv_path or qlib_dir should be provided."
 
         self.data = {}
         self.problems = {}
@@ -50,7 +52,9 @@ class DataHealthChecker:
 
     def load_qlib_data(self):
         instruments = D.instruments(market="all")
-        instrument_list = D.list_instruments(instruments=instruments, as_list=True, freq=self.freq)
+        instrument_list = D.list_instruments(
+            instruments=instruments, as_list=True, freq=self.freq
+        )
         required_fields = ["$open", "$close", "$low", "$high", "$volume", "$factor"]
         for instrument in instrument_list:
             df = D.features([instrument], required_fields, freq=self.freq)
@@ -79,7 +83,11 @@ class DataHealthChecker:
             "volume": [],
         }
         for filename, df in self.data.items():
-            missing_data_columns = df.isnull().sum()[df.isnull().sum() > self.missing_data_num].index.tolist()
+            missing_data_columns = (
+                df.isnull()
+                .sum()[df.isnull().sum() > self.missing_data_num]
+                .index.tolist()
+            )
             if len(missing_data_columns) > 0:
                 result_dict["instruments"].append(filename)
                 result_dict["open"].append(df.isnull().sum()["open"])
@@ -108,12 +116,18 @@ class DataHealthChecker:
             for col in ["open", "high", "low", "close", "volume"]:
                 if col in df.columns:
                     pct_change = df[col].pct_change(fill_method=None).abs()
-                    threshold = self.large_step_threshold_volume if col == "volume" else self.large_step_threshold_price
+                    threshold = (
+                        self.large_step_threshold_volume
+                        if col == "volume"
+                        else self.large_step_threshold_price
+                    )
                     if pct_change.max() > threshold:
                         large_steps = pct_change[pct_change > threshold]
                         result_dict["instruments"].append(filename)
                         result_dict["col_name"].append(col)
-                        result_dict["date"].append(large_steps.index.to_list()[0][1].strftime("%Y-%m-%d"))
+                        result_dict["date"].append(
+                            large_steps.index.to_list()[0][1].strftime("%Y-%m-%d")
+                        )
                         result_dict["pct_change"].append(pct_change.max())
                         affected_columns.append(col)
 
@@ -121,7 +135,9 @@ class DataHealthChecker:
         if not result_df.empty:
             return result_df
         else:
-            logger.info(f"✅ There are no large step changes in the OHLCV column above the threshold.")
+            logger.info(
+                f"✅ There are no large step changes in the OHLCV column above the threshold."
+            )
             return None
 
     def check_required_columns(self) -> Optional[pd.DataFrame]:
@@ -133,7 +149,9 @@ class DataHealthChecker:
         }
         for filename, df in self.data.items():
             if not all(column in df.columns for column in required_columns):
-                missing_required_columns = [column for column in required_columns if column not in df.columns]
+                missing_required_columns = [
+                    column for column in required_columns if column not in df.columns
+                ]
                 result_dict["instruments"].append(filename)
                 result_dict["missing_col"] += missing_required_columns
 

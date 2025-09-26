@@ -18,7 +18,10 @@ from qlib.data.data import FeatureProvider
 
 class ArcticFeatureProvider(FeatureProvider):
     def __init__(
-        self, uri="127.0.0.1", retry_time=0, market_transaction_time_list=[("09:15", "11:30"), ("13:00", "15:00")]
+        self,
+        uri="127.0.0.1",
+        retry_time=0,
+        market_transaction_time_list=[("09:15", "11:30"), ("13:00", "15:00")],
     ):
         super().__init__()
         self.uri = uri
@@ -42,7 +45,9 @@ class ArcticFeatureProvider(FeatureProvider):
                 # instruments does not exist
                 return pd.Series()
             else:
-                df = arctic[freq].read(instrument, columns=[field], chunk_range=(start_index, end_index))
+                df = arctic[freq].read(
+                    instrument, columns=[field], chunk_range=(start_index, end_index)
+                )
                 s = df[field]
 
                 if not s.empty:

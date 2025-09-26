@@ -48,19 +48,29 @@ class InternalData:
         """
 
         # 1) prepare the prediction of proxy models
-        perf_task_tpl = deepcopy(self.task_tpl)  # this task is supposed to contains no complicated objects
+        perf_task_tpl = deepcopy(
+            self.task_tpl
+        )  # this task is supposed to contains no complicated objects
         # The only thing we want to save is the prediction
         perf_task_tpl["record"] = ["qlib.workflow.record_temp.SignalRecord"]
 
-        trainer = auto_filter_kwargs(trainer)(experiment_name=self.exp_name, **trainer_kwargs)
+        trainer = auto_filter_kwargs(trainer)(
+            experiment_name=self.exp_name, **trainer_kwargs
+        )
         # NOTE:
         # The handler is initialized for only once.
         if not trainer.has_worker():
             self.dh = init_task_handler(perf_task_tpl)
-            self.dh.config(dump_all=False)  # in some cases, the data handler are saved to disk with `dump_all=True`
+            self.dh.config(
+                dump_all=False
+            )  # in some cases, the data handler are saved to disk with `dump_all=True`
         else:
-            self.dh = init_instance_by_config(perf_task_tpl["dataset"]["kwargs"]["handler"])
-        assert self.dh.dump_all is False  # otherwise, it will save all the detailed data
+            self.dh = init_instance_by_config(
+                perf_task_tpl["dataset"]["kwargs"]["handler"]
+            )
+        assert (
+            self.dh.dump_all is False
+        )  # otherwise, it will save all the detailed data
 
         seg = perf_task_tpl["dataset"]["kwargs"]["segments"]
 
@@ -73,7 +83,12 @@ class InternalData:
         # NOTE:
         # we play a trick here
         # treat the training segments as test to create the rolling tasks
-        rg = RollingGen(step=self.step, test_key="train", train_key=None, task_copy_func=deepcopy_basic_type)
+        rg = RollingGen(
+            step=self.step,
+            test_key="train",
+            train_key=None,
+            task_copy_func=deepcopy_basic_type,
+        )
         gen_task = task_generator(perf_task_tpl, [rg])
 
         recorders = R.list_recorders(experiment_name=self.exp_name)
@@ -81,7 +96,9 @@ class InternalData:
             get_module_logger("Internal Data").info("the data has been initialized")
         else:
             # train new models
-            assert 0 == len(recorders), "An empty experiment is required for setup `InternalData`"
+            assert 0 == len(
+                recorders
+            ), "An empty experiment is required for setup `InternalData`"
             trainer.train(gen_task)
 
         # 2) extract the similarity matrix
@@ -121,7 +138,13 @@ class InternalData:
 class MetaTaskDS(MetaTask):
     """Meta Task for Data Selection"""
 
-    def __init__(self, task: dict, meta_info: pd.DataFrame, mode: str = MetaTask.PROC_MODE_FULL, fill_method="max"):
+    def __init__(
+        self,
+        task: dict,
+        meta_info: pd.DataFrame,
+        mode: str = MetaTask.PROC_MODE_FULL,
+        fill_method="max",
+    ):
         """
 
         The description of the processed data
@@ -153,12 +176,16 @@ class MetaTaskDS(MetaTask):
             ds = self.get_dataset()
 
             # these three lines occupied 70% of the time of initializing MetaTaskDS
-            d_train, d_test = ds.prepare(["train", "test"], col_set=["feature", "label"])
+            d_train, d_test = ds.prepare(
+                ["train", "test"], col_set=["feature", "label"]
+            )
             prev_size = d_test.shape[0]
             d_train = d_train.dropna(axis=0)
             d_test = d_test.dropna(axis=0)
             if prev_size == 0 or d_test.shape[0] / prev_size <= 0.1:
-                raise ValueError(f"Most of samples are dropped. Please check this task: {task}")
+                raise ValueError(
+                    f"Most of samples are dropped. Please check this task: {task}"
+                )
 
             assert (
                 d_test.groupby("datetime", group_keys=False).size().shape[0] >= 5
@@ -195,7 +222,12 @@ class MetaTaskDS(MetaTask):
             if suffix == "seg":
                 fill_value = {}
                 for col in meta_info_norm.columns:
-                    fill_value[col] = meta_info_norm.loc[meta_info_norm[col].isna(), :].dropna(axis=1).mean().max()
+                    fill_value[col] = (
+                        meta_info_norm.loc[meta_info_norm[col].isna(), :]
+                        .dropna(axis=1)
+                        .mean()
+                        .max()
+                    )
                 fill_value = pd.Series(fill_value).sort_index()
                 # The NaN Values are filled segment-wise. Below is an exampleof fill_value
                 # 2009-01-05  2009-02-06    0.145809
@@ -290,7 +322,9 @@ class MetaDatasetDS(MetaTaskDataset):
         else:
             self.internal_data = InternalData(task_tpl, step=step, exp_name=exp_name)
             self.internal_data.setup()
-        self.task_tpl = deepcopy(task_tpl)  # FIXME: if the handler is shared, how to avoid the explosion of the memroy.
+        self.task_tpl = deepcopy(
+            task_tpl
+        )  # FIXME: if the handler is shared, how to avoid the explosion of the memroy.
         self.trunc_days = trunc_days
         self.hist_step_n = hist_step_n
         self.step = step
@@ -304,7 +338,9 @@ class MetaDatasetDS(MetaTaskDataset):
                 self.ta = TimeAdjuster(future=True)
                 for t in task_iter:
                     t["dataset"]["kwargs"]["segments"]["test"] = self.ta.shift(
-                        t["dataset"]["kwargs"]["segments"]["test"], step=rolling_ext_days, rtype=RollingGen.ROLL_EX
+                        t["dataset"]["kwargs"]["segments"]["test"],
+                        step=rolling_ext_days,
+                        rtype=RollingGen.ROLL_EX,
                     )
             if task_mode == MetaTask.PROC_MODE_FULL:
                 # Only pre initializing the task when full task is req
@@ -321,12 +357,19 @@ class MetaDatasetDS(MetaTaskDataset):
         for t in tqdm(task_iter, desc="creating meta tasks"):
             try:
                 self.meta_task_l.append(
-                    MetaTaskDS(t, meta_info=self._prepare_meta_ipt(t), mode=task_mode, fill_method=fill_method)
+                    MetaTaskDS(
+                        t,
+                        meta_info=self._prepare_meta_ipt(t),
+                        mode=task_mode,
+                        fill_method=fill_method,
+                    )
                 )
                 self.task_list.append(t)
             except ValueError as e:
                 logger.warning(f"ValueError: {e}")
-        assert len(self.meta_task_l) > 0, "No meta tasks found. Please check the data and setting"
+        assert (
+            len(self.meta_task_l) > 0
+        ), "No meta tasks found. Please check the data and setting"
 
     def _prepare_meta_ipt(self, task) -> pd.DataFrame:
         """
@@ -371,7 +414,9 @@ class MetaDatasetDS(MetaTaskDataset):
             Approximately the diagnal + horizon length of data are masked.
             """
             start, end = s.name
-            end = get_date_by_shift(trading_date=end, shift=self.trunc_days - 1, future=True)
+            end = get_date_by_shift(
+                trading_date=end, shift=self.trunc_days - 1, future=True
+            )
             return s.mask((s.index >= start) & (s.index <= end))
 
         ic_df_avail = ic_df_avail.apply(mask_overlap)  # apply to each col
@@ -388,11 +433,15 @@ class MetaDatasetDS(MetaTaskDataset):
             train_task_n = int(len(self.meta_task_l) * self.segments)
             if segment == "train":
                 train_tasks = self.meta_task_l[:train_task_n]
-                get_module_logger("MetaDatasetDS").info(f"The first train meta task: {train_tasks[0]}")
+                get_module_logger("MetaDatasetDS").info(
+                    f"The first train meta task: {train_tasks[0]}"
+                )
                 return train_tasks
             elif segment == "test":
                 test_tasks = self.meta_task_l[train_task_n:]
-                get_module_logger("MetaDatasetDS").info(f"The first test meta task: {test_tasks[0]}")
+                get_module_logger("MetaDatasetDS").info(
+                    f"The first test meta task: {test_tasks[0]}"
+                )
                 return test_tasks
             else:
                 raise NotImplementedError(f"This type of input is not supported")
@@ -401,12 +450,18 @@ class MetaDatasetDS(MetaTaskDataset):
             test_tasks = []
             for t in self.meta_task_l:
                 test_end = t.task["dataset"]["kwargs"]["segments"]["test"][1]
-                if test_end is None or pd.Timestamp(test_end) < pd.Timestamp(self.segments):
+                if test_end is None or pd.Timestamp(test_end) < pd.Timestamp(
+                    self.segments
+                ):
                     train_tasks.append(t)
                 else:
                     test_tasks.append(t)
-            get_module_logger("MetaDatasetDS").info(f"The first train meta task: {train_tasks[0]}")
-            get_module_logger("MetaDatasetDS").info(f"The first test meta task: {test_tasks[0]}")
+            get_module_logger("MetaDatasetDS").info(
+                f"The first train meta task: {train_tasks[0]}"
+            )
+            get_module_logger("MetaDatasetDS").info(
+                f"The first test meta task: {test_tasks[0]}"
+            )
             if segment == "train":
                 return train_tasks
             elif segment == "test":

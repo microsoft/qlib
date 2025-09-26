@@ -47,7 +47,9 @@ class CNNEncoderBase(nn.Module):
 
         # set padding to ensure the same length
         # it is correct only when kernel_size is odd, dilation is 1, stride is 1
-        self.conv = nn.Conv1d(input_dim, output_dim, kernel_size, padding=(kernel_size - 1) // 2)
+        self.conv = nn.Conv1d(
+            input_dim, output_dim, kernel_size, padding=(kernel_size - 1) // 2
+        )
 
     def forward(self, x):
         """
@@ -97,7 +99,11 @@ class KRNNEncoderBase(nn.Module):
 
         self.rnn_modules = nn.ModuleList()
         for _ in range(dup_num):
-            self.rnn_modules.append(nn.GRU(input_dim, output_dim, num_layers=self.rnn_layers, dropout=dropout))
+            self.rnn_modules.append(
+                nn.GRU(
+                    input_dim, output_dim, num_layers=self.rnn_layers, dropout=dropout
+                )
+            )
 
     def forward(self, x):
         """
@@ -135,7 +141,15 @@ class KRNNEncoderBase(nn.Module):
 
 class CNNKRNNEncoder(nn.Module):
     def __init__(
-        self, cnn_input_dim, cnn_output_dim, cnn_kernel_size, rnn_output_dim, rnn_dup_num, rnn_layers, dropout, device
+        self,
+        cnn_input_dim,
+        cnn_output_dim,
+        cnn_kernel_size,
+        rnn_output_dim,
+        rnn_dup_num,
+        rnn_layers,
+        dropout,
+        device,
     ):
         """Build an encoder composed of CNN and KRNN
 
@@ -156,8 +170,12 @@ class CNNKRNNEncoder(nn.Module):
         """
         super().__init__()
 
-        self.cnn_encoder = CNNEncoderBase(cnn_input_dim, cnn_output_dim, cnn_kernel_size, device)
-        self.krnn_encoder = KRNNEncoderBase(cnn_output_dim, rnn_output_dim, rnn_dup_num, rnn_layers, dropout, device)
+        self.cnn_encoder = CNNEncoderBase(
+            cnn_input_dim, cnn_output_dim, cnn_kernel_size, device
+        )
+        self.krnn_encoder = KRNNEncoderBase(
+            cnn_output_dim, rnn_output_dim, rnn_dup_num, rnn_layers, dropout, device
+        )
 
     def forward(self, x):
         """
@@ -180,7 +198,18 @@ class CNNKRNNEncoder(nn.Module):
 
 
 class KRNNModel(nn.Module):
-    def __init__(self, fea_dim, cnn_dim, cnn_kernel_size, rnn_dim, rnn_dups, rnn_layers, dropout, device, **params):
+    def __init__(
+        self,
+        fea_dim,
+        cnn_dim,
+        cnn_kernel_size,
+        rnn_dim,
+        rnn_dups,
+        rnn_layers,
+        dropout,
+        device,
+        **params,
+    ):
         """Build a KRNN model
 
         Parameters
@@ -276,7 +305,9 @@ class KRNN(Model):
         self.early_stop = early_stop
         self.optimizer = optimizer.lower()
         self.loss = loss
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        self.device = torch.device(
+            "cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu"
+        )
         self.seed = seed
 
         self.logger.info(
@@ -337,7 +368,9 @@ class KRNN(Model):
         elif optimizer.lower() == "gd":
             self.train_optimizer = optim.SGD(self.krnn_model.parameters(), lr=self.lr)
         else:
-            raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
+            raise NotImplementedError(
+                "optimizer {} is not supported!".format(optimizer)
+            )
 
         self.fitted = False
         self.krnn_model.to(self.device)
@@ -390,8 +423,16 @@ class KRNN(Model):
             if len(indices) - i < self.batch_size:
                 break
 
-            feature = torch.from_numpy(x_train_values[indices[i : i + self.batch_size]]).float().to(self.device)
-            label = torch.from_numpy(y_train_values[indices[i : i + self.batch_size]]).float().to(self.device)
+            feature = (
+                torch.from_numpy(x_train_values[indices[i : i + self.batch_size]])
+                .float()
+                .to(self.device)
+            )
+            label = (
+                torch.from_numpy(y_train_values[indices[i : i + self.batch_size]])
+                .float()
+                .to(self.device)
+            )
 
             pred = self.krnn_model(feature)
             loss = self.loss_fn(pred, label)
@@ -417,8 +458,16 @@ class KRNN(Model):
             if len(indices) - i < self.batch_size:
                 break
 
-            feature = torch.from_numpy(x_values[indices[i : i + self.batch_size]]).float().to(self.device)
-            label = torch.from_numpy(y_values[indices[i : i + self.batch_size]]).float().to(self.device)
+            feature = (
+                torch.from_numpy(x_values[indices[i : i + self.batch_size]])
+                .float()
+                .to(self.device)
+            )
+            label = (
+                torch.from_numpy(y_values[indices[i : i + self.batch_size]])
+                .float()
+                .to(self.device)
+            )
 
             pred = self.krnn_model(feature)
             loss = self.loss_fn(pred, label)
@@ -441,7 +490,9 @@ class KRNN(Model):
             data_key=DataHandlerLP.DK_L,
         )
         if df_train.empty or df_valid.empty:
-            raise ValueError("Empty data from dataset, please check your dataset config.")
+            raise ValueError(
+                "Empty data from dataset, please check your dataset config."
+            )
 
         x_train, y_train = df_train["feature"], df_train["label"]
         x_valid, y_valid = df_valid["feature"], df_valid["label"]
@@ -491,7 +542,9 @@ class KRNN(Model):
         if not self.fitted:
             raise ValueError("model is not fitted yet!")
 
-        x_test = dataset.prepare(segment, col_set="feature", data_key=DataHandlerLP.DK_I)
+        x_test = dataset.prepare(
+            segment, col_set="feature", data_key=DataHandlerLP.DK_I
+        )
         index = x_test.index
         self.krnn_model.eval()
         x_values = x_test.values

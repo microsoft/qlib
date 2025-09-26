@@ -54,7 +54,9 @@ class ExperimentConfig:
 
         # Defines all relevant paths
         if root_folder is None:
-            root_folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "outputs")
+            root_folder = os.path.join(
+                os.path.dirname(os.path.realpath(__file__)), "..", "outputs"
+            )
             print("Using root folder {}".format(root_folder))
 
         self.root_folder = root_folder
@@ -64,7 +66,12 @@ class ExperimentConfig:
         self.results_folder = os.path.join(root_folder, "results", experiment)
 
         # Creates folders if they don't exist
-        for relevant_directory in [self.root_folder, self.data_folder, self.model_folder, self.results_folder]:
+        for relevant_directory in [
+            self.root_folder,
+            self.data_folder,
+            self.model_folder,
+            self.results_folder,
+        ]:
             if not os.path.exists(relevant_directory):
                 os.makedirs(relevant_directory)
 

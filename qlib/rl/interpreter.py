@@ -106,6 +106,7 @@ def _gymnasium_space_contains(space: gymnasium.Space, x: Any) -> None:
     """
     if isinstance(space, spaces.Dict):
         if not isinstance(x, dict) or len(x) != len(space):
+<<<<<<< HEAD
             raise gymnasiumSpaceValidationError("Sample must be a dict with same length as space.", space, x)
         for k, subspace in space.spaces.items():
             if k not in x:
@@ -114,21 +115,55 @@ def _gymnasium_space_contains(space: gymnasium.Space, x: Any) -> None:
                 _gymnasium_space_contains(subspace, x[k])
             except gymnasiumSpaceValidationError as e:
                 raise gymnasiumSpaceValidationError(f"Subspace of key {k} validation error.", space, x) from e
+=======
+            raise gymnasiumSpaceValidationError(
+                "Sample must be a dict with same length as space.", space, x
+            )
+        for k, subspace in space.spaces.items():
+            if k not in x:
+                raise gymnasiumSpaceValidationError(
+                    f"Key {k} not found in sample.", space, x
+                )
+            try:
+                _gymnasium_space_contains(subspace, x[k])
+            except gymnasiumSpaceValidationError as e:
+                raise gymnasiumSpaceValidationError(
+                    f"Subspace of key {k} validation error.", space, x
+                ) from e
+>>>>>>> f180e36a (fix: migrate from gym to gymnasium for NumPy 2.0+ compatibility)
 
     elif isinstance(space, spaces.Tuple):
         if isinstance(x, (list, np.ndarray)):
             x = tuple(x)  # Promote list and ndarray to tuple for contains check
         if not isinstance(x, tuple) or len(x) != len(space):
+<<<<<<< HEAD
             raise gymnasiumSpaceValidationError("Sample must be a tuple with same length as space.", space, x)
+=======
+            raise gymnasiumSpaceValidationError(
+                "Sample must be a tuple with same length as space.", space, x
+            )
+>>>>>>> f180e36a (fix: migrate from gym to gymnasium for NumPy 2.0+ compatibility)
         for i, (subspace, part) in enumerate(zip(space, x)):
             try:
                 _gymnasium_space_contains(subspace, part)
             except gymnasiumSpaceValidationError as e:
+<<<<<<< HEAD
                 raise gymnasiumSpaceValidationError(f"Subspace of index {i} validation error.", space, x) from e
 
     else:
         if not space.contains(x):
             raise gymnasiumSpaceValidationError("Validation error reported by gymnasium.", space, x)
+=======
+                raise gymnasiumSpaceValidationError(
+                    f"Subspace of index {i} validation error.", space, x
+                ) from e
+
+    else:
+        if not space.contains(x):
+            raise gymnasiumSpaceValidationError(
+                "Validation error reported by gymnasium.", space, x
+            )
+>>>>>>> f180e36a (fix: migrate from gym to gymnasium for NumPy 2.0+ compatibility)
 
 
 class gymnasiumSpaceValidationError(Exception):

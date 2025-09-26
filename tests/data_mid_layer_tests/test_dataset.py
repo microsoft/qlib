@@ -26,13 +26,25 @@ class TestDataset(TestAutoData):
                     "fit_end_time": "2017-12-31",
                     "instruments": "csi300",
                     "infer_processors": [
-                        {"class": "FilterCol", "kwargs": {"col_list": ["RESI5", "WVMA5", "RSQR5"]}},
-                        {"class": "RobustZScoreNorm", "kwargs": {"fields_group": "feature", "clip_outlier": "true"}},
+                        {
+                            "class": "FilterCol",
+                            "kwargs": {"col_list": ["RESI5", "WVMA5", "RSQR5"]},
+                        },
+                        {
+                            "class": "RobustZScoreNorm",
+                            "kwargs": {
+                                "fields_group": "feature",
+                                "clip_outlier": "true",
+                            },
+                        },
                         {"class": "Fillna", "kwargs": {"fields_group": "feature"}},
                     ],
                     "learn_processors": [
                         "DropnaLabel",
-                        {"class": "CSRankNorm", "kwargs": {"fields_group": "label"}},  # CSRankNorm
+                        {
+                            "class": "CSRankNorm",
+                            "kwargs": {"fields_group": "label"},
+                        },  # CSRankNorm
                     ],
                 },
             },
@@ -42,7 +54,9 @@ class TestDataset(TestAutoData):
                 "test": ("2019-01-01", "2020-08-01"),
             },
         )
-        tsds_train = tsdh.prepare("train", data_key=DataHandlerLP.DK_L)  # Test the correctness
+        tsds_train = tsdh.prepare(
+            "train", data_key=DataHandlerLP.DK_L
+        )  # Test the correctness
         tsds = tsdh.prepare("valid", data_key=DataHandlerLP.DK_L)
 
         t = time.time()
@@ -104,14 +118,23 @@ class TestTSDataSampler(unittest.TestCase):
         """
         Test TSDataSampler for issue #1716
         """
-        datetime_list = ["2000-01-31", "2000-02-29", "2000-03-31", "2000-04-30", "2000-05-31"]
+        datetime_list = [
+            "2000-01-31",
+            "2000-02-29",
+            "2000-03-31",
+            "2000-04-30",
+            "2000-05-31",
+        ]
         instruments = ["000001", "000002", "000003", "000004", "000005"]
         index = pd.MultiIndex.from_product(
-            [pd.to_datetime(datetime_list), instruments], names=["datetime", "instrument"]
+            [pd.to_datetime(datetime_list), instruments],
+            names=["datetime", "instrument"],
         )
         data = np.random.randn(len(datetime_list) * len(instruments))
         test_df = pd.DataFrame(data=data, index=index, columns=["factor"])
-        dataset = TSDataSampler(test_df, datetime_list[0], datetime_list[-1], step_len=2)
+        dataset = TSDataSampler(
+            test_df, datetime_list[0], datetime_list[-1], step_len=2
+        )
         print()
         print("--------------dataset[0]--------------")
         print(dataset[0])
@@ -127,14 +150,23 @@ class TestTSDataSampler(unittest.TestCase):
         """
         Extra test TSDataSampler to prevent incorrect filling of nan for the values at the front
         """
-        datetime_list = ["2000-01-31", "2000-02-29", "2000-03-31", "2000-04-30", "2000-05-31"]
+        datetime_list = [
+            "2000-01-31",
+            "2000-02-29",
+            "2000-03-31",
+            "2000-04-30",
+            "2000-05-31",
+        ]
         instruments = ["000001", "000002", "000003", "000004", "000005"]
         index = pd.MultiIndex.from_product(
-            [pd.to_datetime(datetime_list), instruments], names=["datetime", "instrument"]
+            [pd.to_datetime(datetime_list), instruments],
+            names=["datetime", "instrument"],
         )
         data = np.random.randn(len(datetime_list) * len(instruments))
         test_df = pd.DataFrame(data=data, index=index, columns=["factor"])
-        dataset = TSDataSampler(test_df, datetime_list[2], datetime_list[-1], step_len=3)
+        dataset = TSDataSampler(
+            test_df, datetime_list[2], datetime_list[-1], step_len=3
+        )
         print()
         print("--------------dataset[0]--------------")
         print(dataset[0])

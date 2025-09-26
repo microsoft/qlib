@@ -142,7 +142,11 @@ class GenericDataFormatter(abc.ABC):
             length = len([tup for tup in column_definition if tup[2] == input_type])
 
             if length != 1:
-                raise ValueError("Illegal number of inputs ({}) of type {}".format(length, input_type))
+                raise ValueError(
+                    "Illegal number of inputs ({}) of type {}".format(
+                        length, input_type
+                    )
+                )
 
         _check_single_column(InputTypes.ID)
         _check_single_column(InputTypes.TIME)
@@ -152,45 +156,66 @@ class GenericDataFormatter(abc.ABC):
         real_inputs = [
             tup
             for tup in column_definition
-            if tup[1] == DataTypes.REAL_VALUED and tup[2] not in {InputTypes.ID, InputTypes.TIME}
+            if tup[1] == DataTypes.REAL_VALUED
+            and tup[2] not in {InputTypes.ID, InputTypes.TIME}
         ]
         categorical_inputs = [
             tup
             for tup in column_definition
-            if tup[1] == DataTypes.CATEGORICAL and tup[2] not in {InputTypes.ID, InputTypes.TIME}
+            if tup[1] == DataTypes.CATEGORICAL
+            and tup[2] not in {InputTypes.ID, InputTypes.TIME}
         ]
 
         return identifier + time + real_inputs + categorical_inputs
 
     def _get_input_columns(self):
         """Returns names of all input columns."""
-        return [tup[0] for tup in self.get_column_definition() if tup[2] not in {InputTypes.ID, InputTypes.TIME}]
+        return [
+            tup[0]
+            for tup in self.get_column_definition()
+            if tup[2] not in {InputTypes.ID, InputTypes.TIME}
+        ]
 
     def _get_tft_input_indices(self):
         """Returns the relevant indexes and input sizes required by TFT."""
 
         # Functions
         def _extract_tuples_from_data_type(data_type, defn):
-            return [tup for tup in defn if tup[1] == data_type and tup[2] not in {InputTypes.ID, InputTypes.TIME}]
+            return [
+                tup
+                for tup in defn
+                if tup[1] == data_type
+                and tup[2] not in {InputTypes.ID, InputTypes.TIME}
+            ]
 
         def _get_locations(input_types, defn):
             return [i for i, tup in enumerate(defn) if tup[2] in input_types]
 
         # Start extraction
         column_definition = [
-            tup for tup in self.get_column_definition() if tup[2] not in {InputTypes.ID, InputTypes.TIME}
+            tup
+            for tup in self.get_column_definition()
+            if tup[2] not in {InputTypes.ID, InputTypes.TIME}
         ]
 
-        categorical_inputs = _extract_tuples_from_data_type(DataTypes.CATEGORICAL, column_definition)
-        real_inputs = _extract_tuples_from_data_type(DataTypes.REAL_VALUED, column_definition)
+        categorical_inputs = _extract_tuples_from_data_type(
+            DataTypes.CATEGORICAL, column_definition
+        )
+        real_inputs = _extract_tuples_from_data_type(
+            DataTypes.REAL_VALUED, column_definition
+        )
 
         locations = {
             "input_size": len(self._get_input_columns()),
             "output_size": len(_get_locations({InputTypes.TARGET}, column_definition)),
             "category_counts": self.num_classes_per_cat_input,
             "input_obs_loc": _get_locations({InputTypes.TARGET}, column_definition),
-            "static_input_loc": _get_locations({InputTypes.STATIC_INPUT}, column_definition),
-            "known_regular_inputs": _get_locations({InputTypes.STATIC_INPUT, InputTypes.KNOWN_INPUT}, real_inputs),
+            "static_input_loc": _get_locations(
+                {InputTypes.STATIC_INPUT}, column_definition
+            ),
+            "known_regular_inputs": _get_locations(
+                {InputTypes.STATIC_INPUT, InputTypes.KNOWN_INPUT}, real_inputs
+            ),
             "known_categorical_inputs": _get_locations(
                 {InputTypes.STATIC_INPUT, InputTypes.KNOWN_INPUT}, categorical_inputs
             ),
@@ -213,7 +238,9 @@ class GenericDataFormatter(abc.ABC):
 
         for k in required_keys:
             if k not in fixed_params:
-                raise ValueError("Field {}".format(k) + " missing from fixed parameter definitions!")
+                raise ValueError(
+                    "Field {}".format(k) + " missing from fixed parameter definitions!"
+                )
 
         fixed_params["column_definition"] = self.get_column_definition()
 

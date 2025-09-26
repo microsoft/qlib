@@ -18,7 +18,9 @@ from ..graph import ScatterGraph, SubplotsGraph, BarGraph, HeatmapGraph
 from ..utils import guess_plotly_rangebreaks
 
 
-def _group_return(pred_label: pd.DataFrame = None, reverse: bool = False, N: int = 5, **kwargs) -> tuple:
+def _group_return(
+    pred_label: pd.DataFrame = None, reverse: bool = False, N: int = 5, **kwargs
+) -> tuple:
     """
 
     :param pred_label:
@@ -38,8 +40,12 @@ def _group_return(pred_label: pd.DataFrame = None, reverse: bool = False, N: int
     t_df = pd.DataFrame(
         {
             "Group%d"
-            % (i + 1): pred_label_drop.groupby(level="datetime", group_keys=False)["label"].apply(
-                lambda x: x[len(x) // N * i : len(x) // N * (i + 1)].mean()  # pylint: disable=W0640
+            % (i + 1): pred_label_drop.groupby(level="datetime", group_keys=False)[
+                "label"
+            ].apply(
+                lambda x: x[
+                    len(x) // N * i : len(x) // N * (i + 1)
+                ].mean()  # pylint: disable=W0640
             )
             for i in range(N)
         }
@@ -50,7 +56,10 @@ def _group_return(pred_label: pd.DataFrame = None, reverse: bool = False, N: int
     t_df["long-short"] = t_df["Group1"] - t_df["Group%d" % N]
 
     # Long-Average
-    t_df["long-average"] = t_df["Group1"] - pred_label.groupby(level="datetime", group_keys=False)["label"].mean()
+    t_df["long-average"] = (
+        t_df["Group1"]
+        - pred_label.groupby(level="datetime", group_keys=False)["label"].mean()
+    )
 
     t_df = t_df.dropna(how="all")  # for days which does not contain label
     # Cumulative Return By Group
@@ -58,7 +67,12 @@ def _group_return(pred_label: pd.DataFrame = None, reverse: bool = False, N: int
         t_df.cumsum(),
         layout=dict(
             title="Cumulative Return",
-            xaxis=dict(tickangle=45, rangebreaks=kwargs.get("rangebreaks", guess_plotly_rangebreaks(t_df.index))),
+            xaxis=dict(
+                tickangle=45,
+                rangebreaks=kwargs.get(
+                    "rangebreaks", guess_plotly_rangebreaks(t_df.index)
+                ),
+            ),
         ),
     ).figure
 
@@ -117,7 +131,9 @@ def _plot_qq(data: pd.Series = None, dist=stats.norm) -> go.Figure:
 
 
 def _pred_ic(
-    pred_label: pd.DataFrame = None, methods: Sequence[Literal["IC", "Rank IC"]] = ("IC", "Rank IC"), **kwargs
+    pred_label: pd.DataFrame = None,
+    methods: Sequence[Literal["IC", "Rank IC"]] = ("IC", "Rank IC"),
+    **kwargs,
 ) -> tuple:
     """
 
@@ -146,7 +162,9 @@ def _pred_ic(
     )
     _ic = ic_df.iloc(axis=1)[0]
 
-    _index = _ic.index.get_level_values(0).astype("str").str.replace("-", "").str.slice(0, 6)
+    _index = (
+        _ic.index.get_level_values(0).astype("str").str.replace("-", "").str.slice(0, 6)
+    )
     _monthly_ic = _ic.groupby(_index, group_keys=False).mean()
     _monthly_ic.index = pd.MultiIndex.from_arrays(
         [_monthly_ic.index.str.slice(0, 4), _monthly_ic.index.str.slice(4, 6)],
@@ -174,7 +192,11 @@ def _pred_ic(
 
     ic_heatmap_figure = HeatmapGraph(
         _monthly_ic.unstack(),
-        layout=dict(title="Monthly IC", xaxis=dict(dtick=1), yaxis=dict(tickformat="04d", dtick=1)),
+        layout=dict(
+            title="Monthly IC",
+            xaxis=dict(dtick=1),
+            yaxis=dict(tickformat="04d", dtick=1),
+        ),
         graph_kwargs=dict(xtype="array", ytype="array"),
     ).figure
 
@@ -222,7 +244,9 @@ def _pred_ic(
 
 def _pred_autocorr(pred_label: pd.DataFrame, lag=1, **kwargs) -> tuple:
     pred = pred_label.copy()
-    pred["score_last"] = pred.groupby(level="instrument", group_keys=False)["score"].shift(lag)
+    pred["score_last"] = pred.groupby(level="instrument", group_keys=False)[
+        "score"
+    ].shift(lag)
     ac = pred.groupby(level="datetime", group_keys=False).apply(
         lambda x: x["score"].rank(pct=True).corr(x["score_last"].rank(pct=True))
     )
@@ -231,7 +255,12 @@ def _pred_autocorr(pred_label: pd.DataFrame, lag=1, **kwargs) -> tuple:
         _df,
         layout=dict(
             title="Auto Correlation",
-            xaxis=dict(tickangle=45, rangebreaks=kwargs.get("rangebreaks", guess_plotly_rangebreaks(_df.index))),
+            xaxis=dict(
+                tickangle=45,
+                rangebreaks=kwargs.get(
+                    "rangebreaks", guess_plotly_rangebreaks(_df.index)
+                ),
+            ),
         ),
     ).figure
     return (ac_figure,)
@@ -239,10 +268,14 @@ def _pred_autocorr(pred_label: pd.DataFrame, lag=1, **kwargs) -> tuple:
 
 def _pred_turnover(pred_label: pd.DataFrame, N=5, lag=1, **kwargs) -> tuple:
     pred = pred_label.copy()
-    pred["score_last"] = pred.groupby(level="instrument", group_keys=False)["score"].shift(lag)
+    pred["score_last"] = pred.groupby(level="instrument", group_keys=False)[
+        "score"
+    ].shift(lag)
     top = pred.groupby(level="datetime", group_keys=False).apply(
         lambda x: 1
-        - x.nlargest(len(x) // N, columns="score").index.isin(x.nlargest(len(x) // N, columns="score_last").index).sum()
+        - x.nlargest(len(x) // N, columns="score")
+        .index.isin(x.nlargest(len(x) // N, columns="score_last").index)
+        .sum()
         / (len(x) // N)
     )
     bottom = pred.groupby(level="datetime", group_keys=False).apply(
@@ -262,7 +295,12 @@ def _pred_turnover(pred_label: pd.DataFrame, N=5, lag=1, **kwargs) -> tuple:
         r_df,
         layout=dict(
             title="Top-Bottom Turnover",
-            xaxis=dict(tickangle=45, rangebreaks=kwargs.get("rangebreaks", guess_plotly_rangebreaks(r_df.index))),
+            xaxis=dict(
+                tickangle=45,
+                rangebreaks=kwargs.get(
+                    "rangebreaks", guess_plotly_rangebreaks(r_df.index)
+                ),
+            ),
         ),
     ).figure
     return (turnover_figure,)
@@ -284,7 +322,12 @@ def ic_figure(ic_df: pd.DataFrame, show_nature_day=True, **kwargs) -> go.Figure:
         ic_df,
         layout=dict(
             title="Information Coefficient (IC)",
-            xaxis=dict(tickangle=45, rangebreaks=kwargs.get("rangebreaks", guess_plotly_rangebreaks(ic_df.index))),
+            xaxis=dict(
+                tickangle=45,
+                rangebreaks=kwargs.get(
+                    "rangebreaks", guess_plotly_rangebreaks(ic_df.index)
+                ),
+            ),
         ),
     ).figure
     return ic_bar_figure
@@ -331,7 +374,13 @@ def model_performance_graph(
     figure_list = []
     for graph_name in graph_names:
         fun_res = eval(f"_{graph_name}")(
-            pred_label=pred_label, lag=lag, N=N, reverse=reverse, rank=rank, show_nature_day=show_nature_day, **kwargs
+            pred_label=pred_label,
+            lag=lag,
+            N=N,
+            reverse=reverse,
+            rank=rank,
+            show_nature_day=show_nature_day,
+            **kwargs,
         )
         figure_list += fun_res
 

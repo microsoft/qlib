@@ -109,7 +109,11 @@ class CalendarProvider(abc.ABC):
         return _calendar[si : ei + 1]
 
     def locate_index(
-        self, start_time: Union[pd.Timestamp, str], end_time: Union[pd.Timestamp, str], freq: str, future: bool = False
+        self,
+        start_time: Union[pd.Timestamp, str],
+        end_time: Union[pd.Timestamp, str],
+        freq: str,
+        future: bool = False,
     ):
         """Locate the start time index and end time index in a calendar under certain frequency.
 
@@ -193,7 +197,9 @@ class CalendarProvider(abc.ABC):
         list
             list of timestamps
         """
-        raise NotImplementedError("Subclass of CalendarProvider must implement `load_calendar` method")
+        raise NotImplementedError(
+            "Subclass of CalendarProvider must implement `load_calendar` method"
+        )
 
 
 class InstrumentProvider(abc.ABC):
@@ -203,7 +209,9 @@ class InstrumentProvider(abc.ABC):
     """
 
     @staticmethod
-    def instruments(market: Union[List, str] = "all", filter_pipe: Union[List, None] = None):
+    def instruments(
+        market: Union[List, str] = "all", filter_pipe: Union[List, None] = None
+    ):
         """Get the general config dictionary for a base market adding several dynamic filters.
 
         Parameters
@@ -264,7 +272,9 @@ class InstrumentProvider(abc.ABC):
         return config
 
     @abc.abstractmethod
-    def list_instruments(self, instruments, start_time=None, end_time=None, freq="day", as_list=False):
+    def list_instruments(
+        self, instruments, start_time=None, end_time=None, freq="day", as_list=False
+    ):
         """List the instruments based on a certain stockpool config.
 
         Parameters
@@ -283,9 +293,13 @@ class InstrumentProvider(abc.ABC):
         dict or list
             instruments list or dictionary with time spans
         """
-        raise NotImplementedError("Subclass of InstrumentProvider must implement `list_instruments` method")
+        raise NotImplementedError(
+            "Subclass of InstrumentProvider must implement `list_instruments` method"
+        )
 
-    def _uri(self, instruments, start_time=None, end_time=None, freq="day", as_list=False):
+    def _uri(
+        self, instruments, start_time=None, end_time=None, freq="day", as_list=False
+    ):
         return hash_args(instruments, start_time, end_time, freq, as_list)
 
     # instruments type
@@ -332,7 +346,9 @@ class FeatureProvider(abc.ABC):
         pd.Series
             data of a certain feature
         """
-        raise NotImplementedError("Subclass of FeatureProvider must implement `feature` method")
+        raise NotImplementedError(
+            "Subclass of FeatureProvider must implement `feature` method"
+        )
 
 
 class PITProvider(abc.ABC):
@@ -398,16 +414,21 @@ class ExpressionProvider(abc.ABC):
                 self.expression_instance_cache[field] = expression
         except NameError as e:
             get_module_logger("data").exception(
-                "ERROR: field [%s] contains invalid operator/variable [%s]" % (str(field), str(e).split()[1])
+                "ERROR: field [%s] contains invalid operator/variable [%s]"
+                % (str(field), str(e).split()[1])
             )
             raise
         except SyntaxError:
-            get_module_logger("data").exception("ERROR: field [%s] contains invalid syntax" % str(field))
+            get_module_logger("data").exception(
+                "ERROR: field [%s] contains invalid syntax" % str(field)
+            )
             raise
         return expression
 
     @abc.abstractmethod
-    def expression(self, instrument, field, start_time=None, end_time=None, freq="day") -> pd.Series:
+    def expression(
+        self, instrument, field, start_time=None, end_time=None, freq="day"
+    ) -> pd.Series:
         """Get Expression data.
 
         The responsibility of `expression`
@@ -440,7 +461,9 @@ class ExpressionProvider(abc.ABC):
 
                 - because the datetime is not as good as
         """
-        raise NotImplementedError("Subclass of ExpressionProvider must implement `Expression` method")
+        raise NotImplementedError(
+            "Subclass of ExpressionProvider must implement `Expression` method"
+        )
 
 
 class DatasetProvider(abc.ABC):
@@ -450,7 +473,15 @@ class DatasetProvider(abc.ABC):
     """
 
     @abc.abstractmethod
-    def dataset(self, instruments, fields, start_time=None, end_time=None, freq="day", inst_processors=[]):
+    def dataset(
+        self,
+        instruments,
+        fields,
+        start_time=None,
+        end_time=None,
+        freq="day",
+        inst_processors=[],
+    ):
         """Get dataset data.
 
         Parameters
@@ -473,7 +504,9 @@ class DatasetProvider(abc.ABC):
         pd.DataFrame
             a pandas dataframe with <instrument, datetime> index.
         """
-        raise NotImplementedError("Subclass of DatasetProvider must implement `Dataset` method")
+        raise NotImplementedError(
+            "Subclass of DatasetProvider must implement `Dataset` method"
+        )
 
     def _uri(
         self,
@@ -505,7 +538,9 @@ class DatasetProvider(abc.ABC):
 
         """
         # TODO: qlib-server support inst_processors
-        return DiskDatasetCache._uri(instruments, fields, start_time, end_time, freq, disk_cache, inst_processors)
+        return DiskDatasetCache._uri(
+            instruments, fields, start_time, end_time, freq, disk_cache, inst_processors
+        )
 
     @staticmethod
     def get_instruments_d(instruments, freq):
@@ -517,7 +552,9 @@ class DatasetProvider(abc.ABC):
         if isinstance(instruments, dict):
             if "market" in instruments:
                 # dict of stockpool config
-                instruments_d = Inst.list_instruments(instruments=instruments, freq=freq, as_list=False)
+                instruments_d = Inst.list_instruments(
+                    instruments=instruments, freq=freq, as_list=False
+                )
             else:
                 # dict of instruments and timestamp
                 instruments_d = instruments
@@ -545,7 +582,9 @@ class DatasetProvider(abc.ABC):
         return [ExpressionD.get_expression_instance(f) for f in fields]
 
     @staticmethod
-    def dataset_processor(instruments_d, column_names, start_time, end_time, freq, inst_processors=[]):
+    def dataset_processor(
+        instruments_d, column_names, start_time, end_time, freq, inst_processors=[]
+    ):
         """
         Load and process the data, return the data set.
         - default using multi-kernel method.
@@ -567,14 +606,25 @@ class DatasetProvider(abc.ABC):
             inst_l.append(inst)
             task_l.append(
                 delayed(DatasetProvider.inst_calculator)(
-                    inst, start_time, end_time, freq, normalize_column_names, spans, C, inst_processors
+                    inst,
+                    start_time,
+                    end_time,
+                    freq,
+                    normalize_column_names,
+                    spans,
+                    C,
+                    inst_processors,
                 )
             )
 
         data = dict(
             zip(
                 inst_l,
-                ParallelExt(n_jobs=workers, backend=C.joblib_backend, maxtasksperchild=C.maxtasksperchild)(task_l),
+                ParallelExt(
+                    n_jobs=workers,
+                    backend=C.joblib_backend,
+                    maxtasksperchild=C.maxtasksperchild,
+                )(task_l),
             )
         )
 
@@ -589,7 +639,9 @@ class DatasetProvider(abc.ABC):
             data = DiskDatasetCache.cache_to_origin_data(data, column_names)
         else:
             data = pd.DataFrame(
-                index=pd.MultiIndex.from_arrays([[], []], names=("instrument", "datetime")),
+                index=pd.MultiIndex.from_arrays(
+                    [[], []], names=("instrument", "datetime")
+                ),
                 columns=column_names,
                 dtype=np.float32,
             )
@@ -597,7 +649,16 @@ class DatasetProvider(abc.ABC):
         return data
 
     @staticmethod
-    def inst_calculator(inst, start_time, end_time, freq, column_names, spans=None, g_config=None, inst_processors=[]):
+    def inst_calculator(
+        inst,
+        start_time,
+        end_time,
+        freq,
+        column_names,
+        spans=None,
+        g_config=None,
+        inst_processors=[],
+    ):
         """
         Calculate the expressions for **one** instrument, return a df result.
         If the expression has been calculated before, load from cache.
@@ -629,7 +690,9 @@ class DatasetProvider(abc.ABC):
 
         for _processor in inst_processors:
             if _processor:
-                _processor_obj = init_instance_by_config(_processor, accept_types=InstProcessor)
+                _processor_obj = init_instance_by_config(
+                    _processor, accept_types=InstProcessor
+                )
                 data = _processor_obj(data, instrument=inst)
         return data
 
@@ -688,7 +751,9 @@ class LocalInstrumentProvider(InstrumentProvider, ProviderBackendMixin):
     def _load_instruments(self, market, freq):
         return self.backend_obj(market=market, freq=freq).data
 
-    def list_instruments(self, instruments, start_time=None, end_time=None, freq="day", as_list=False):
+    def list_instruments(
+        self, instruments, start_time=None, end_time=None, freq="day", as_list=False
+    ):
         market = instruments["market"]
         if market in H["i"]:
             _instruments = H["i"][market]
@@ -704,19 +769,31 @@ class LocalInstrumentProvider(InstrumentProvider, ProviderBackendMixin):
             inst: list(
                 filter(
                     lambda x: x[0] <= x[1],
-                    [(max(start_time, pd.Timestamp(x[0])), min(end_time, pd.Timestamp(x[1]))) for x in spans],
+                    [
+                        (
+                            max(start_time, pd.Timestamp(x[0])),
+                            min(end_time, pd.Timestamp(x[1])),
+                        )
+                        for x in spans
+                    ],
                 )
             )
             for inst, spans in _instruments.items()
         }
-        _instruments_filtered = {key: value for key, value in _instruments_filtered.items() if value}
+        _instruments_filtered = {
+            key: value for key, value in _instruments_filtered.items() if value
+        }
         # filter
         filter_pipe = instruments["filter_pipe"]
         for filter_config in filter_pipe:
             from . import filter as F  # pylint: disable=C0415
 
-            filter_t = getattr(F, filter_config["filter_type"]).from_config(filter_config)
-            _instruments_filtered = filter_t(_instruments_filtered, start_time, end_time, freq)
+            filter_t = getattr(F, filter_config["filter_type"]).from_config(
+                filter_config
+            )
+            _instruments_filtered = filter_t(
+                _instruments_filtered, start_time, end_time, freq
+            )
         # as list
         if as_list:
             return list(_instruments_filtered)
@@ -738,14 +815,18 @@ class LocalFeatureProvider(FeatureProvider, ProviderBackendMixin):
         # validate
         field = str(field)[1:]
         instrument = code_to_fname(instrument)
-        return self.backend_obj(instrument=instrument, field=field, freq=freq)[start_index : end_index + 1]
+        return self.backend_obj(instrument=instrument, field=field, freq=freq)[
+            start_index : end_index + 1
+        ]
 
 
 class LocalPITProvider(PITProvider):
     # TODO: Add PIT backend file storage
     # NOTE: This class is not multi-threading-safe!!!!
 
-    def period_feature(self, instrument, field, start_index, end_index, cur_time, period=None):
+    def period_feature(
+        self, instrument, field, start_index, end_index, cur_time, period=None
+    ):
         if not isinstance(cur_time, pd.Timestamp):
             raise ValueError(
                 f"Expected pd.Timestamp for `cur_time`, got '{cur_time}'. Advices: you can't query PIT data directly(e.g. '$$roewa_q'), you must use `P` operator to convert data to each day (e.g. 'P($$roewa_q)')"
@@ -779,8 +860,12 @@ class LocalPITProvider(PITProvider):
         if not field.endswith("_q") and not field.endswith("_a"):
             raise ValueError("period field must ends with '_q' or '_a'")
         quarterly = field.endswith("_q")
-        index_path = C.dpm.get_data_uri() / "financial" / instrument.lower() / f"{field}.index"
-        data_path = C.dpm.get_data_uri() / "financial" / instrument.lower() / f"{field}.data"
+        index_path = (
+            C.dpm.get_data_uri() / "financial" / instrument.lower() / f"{field}.index"
+        )
+        data_path = (
+            C.dpm.get_data_uri() / "financial" / instrument.lower() / f"{field}.data"
+        )
         if not (index_path.exists() and data_path.exists()):
             raise FileNotFoundError("No file is found.")
         # NOTE: The most significant performance loss is here.
@@ -793,7 +878,9 @@ class LocalPITProvider(PITProvider):
         data = np.fromfile(data_path, dtype=DATA_RECORDS)
 
         # find all revision periods before `cur_time`
-        cur_time_int = int(cur_time.year) * 10000 + int(cur_time.month) * 100 + int(cur_time.day)
+        cur_time_int = (
+            int(cur_time.year) * 10000 + int(cur_time.month) * 100 + int(cur_time.day)
+        )
         loc = np.searchsorted(data["date"], cur_time_int, side="right")
         if loc <= 0:
             return pd.Series(dtype=C.pit_record_type["value"])
@@ -807,12 +894,19 @@ class LocalPITProvider(PITProvider):
             else:
                 period_list = [period]
         else:
-            period_list = period_list[max(0, len(period_list) + start_index - 1) : len(period_list) + end_index]
+            period_list = period_list[
+                max(0, len(period_list) + start_index - 1) : len(period_list)
+                + end_index
+            ]
         value = np.full((len(period_list),), np.nan, dtype=VALUE_DTYPE)
         for i, p in enumerate(period_list):
             # last_period_index = self.period_index[field].get(period)  # For acceleration
             value[i], now_period_index = read_period_data(
-                index_path, data_path, p, cur_time_int, quarterly  # , last_period_index  # For acceleration
+                index_path,
+                data_path,
+                p,
+                cur_time_int,
+                quarterly,  # , last_period_index  # For acceleration
             )
             # self.period_index[field].update({period: now_period_index})  # For acceleration
         # NOTE: the index is period_list; So it may result in unexpected values(e.g. nan)
@@ -849,7 +943,9 @@ class LocalExpressionProvider(ExpressionProvider):
         # - Index-based expression: this may save a lot of memory because the datetime index is not saved on the disk
         # - Data with datetime index expression: this will make it more convenient to integrating with some existing databases
         if self.time2idx:
-            _, _, start_index, end_index = Cal.locate_index(start_time, end_time, freq=freq, future=False)
+            _, _, start_index, end_index = Cal.locate_index(
+                start_time, end_time, freq=freq, future=False
+            )
             lft_etd, rght_etd = expression.get_extended_window_size()
             query_start, query_end = max(0, start_index - lft_etd), end_index + rght_etd
         else:
@@ -916,18 +1012,28 @@ class LocalDatasetProvider(DatasetProvider):
             cal = Cal.calendar(start_time, end_time, freq)
             if len(cal) == 0:
                 return pd.DataFrame(
-                    index=pd.MultiIndex.from_arrays([[], []], names=("instrument", "datetime")), columns=column_names
+                    index=pd.MultiIndex.from_arrays(
+                        [[], []], names=("instrument", "datetime")
+                    ),
+                    columns=column_names,
                 )
             start_time = cal[0]
             end_time = cal[-1]
         data = self.dataset_processor(
-            instruments_d, column_names, start_time, end_time, freq, inst_processors=inst_processors
+            instruments_d,
+            column_names,
+            start_time,
+            end_time,
+            freq,
+            inst_processors=inst_processors,
         )
 
         return data
 
     @staticmethod
-    def multi_cache_walker(instruments, fields, start_time=None, end_time=None, freq="day"):
+    def multi_cache_walker(
+        instruments, fields, start_time=None, end_time=None, freq="day"
+    ):
         """
         This method is used to prepare the expression cache for the client.
         Then the client will load the data from expression cache by itself.
@@ -942,8 +1048,14 @@ class LocalDatasetProvider(DatasetProvider):
         end_time = cal[-1]
         workers = max(min(C.kernels, len(instruments_d)), 1)
 
-        ParallelExt(n_jobs=workers, backend=C.joblib_backend, maxtasksperchild=C.maxtasksperchild)(
-            delayed(LocalDatasetProvider.cache_walker)(inst, start_time, end_time, freq, column_names)
+        ParallelExt(
+            n_jobs=workers,
+            backend=C.joblib_backend,
+            maxtasksperchild=C.maxtasksperchild,
+        )(
+            delayed(LocalDatasetProvider.cache_walker)(
+                inst, start_time, end_time, freq, column_names
+            )
             for inst in instruments_d
         )
 
@@ -974,9 +1086,16 @@ class ClientCalendarProvider(CalendarProvider):
     def calendar(self, start_time=None, end_time=None, freq="day", future=False):
         self.conn.send_request(
             request_type="calendar",
-            request_content={"start_time": str(start_time), "end_time": str(end_time), "freq": freq, "future": future},
+            request_content={
+                "start_time": str(start_time),
+                "end_time": str(end_time),
+                "freq": freq,
+                "future": future,
+            },
             msg_queue=self.queue,
-            msg_proc_func=lambda response_content: [pd.Timestamp(c) for c in response_content],
+            msg_proc_func=lambda response_content: [
+                pd.Timestamp(c) for c in response_content
+            ],
         )
         result = self.queue.get(timeout=C["timeout"])
         return result
@@ -995,11 +1114,14 @@ class ClientInstrumentProvider(InstrumentProvider):
     def set_conn(self, conn):
         self.conn = conn
 
-    def list_instruments(self, instruments, start_time=None, end_time=None, freq="day", as_list=False):
+    def list_instruments(
+        self, instruments, start_time=None, end_time=None, freq="day", as_list=False
+    ):
         def inst_msg_proc_func(response_content):
             if isinstance(response_content, dict):
                 instrument = {
-                    i: [(pd.Timestamp(s), pd.Timestamp(e)) for s, e in t] for i, t in response_content.items()
+                    i: [(pd.Timestamp(s), pd.Timestamp(e)) for s, e in t]
+                    for i, t in response_content.items()
                 }
             else:
                 instrument = response_content
@@ -1083,13 +1205,22 @@ class ClientDatasetProvider(DatasetProvider):
                 cal = Cal.calendar(start_time, end_time, freq)
                 if len(cal) == 0:
                     return pd.DataFrame(
-                        index=pd.MultiIndex.from_arrays([[], []], names=("instrument", "datetime")),
+                        index=pd.MultiIndex.from_arrays(
+                            [[], []], names=("instrument", "datetime")
+                        ),
                         columns=column_names,
                     )
                 start_time = cal[0]
                 end_time = cal[-1]
 
-                data = self.dataset_processor(instruments_d, column_names, start_time, end_time, freq, inst_processors)
+                data = self.dataset_processor(
+                    instruments_d,
+                    column_names,
+                    start_time,
+                    end_time,
+                    freq,
+                    inst_processors,
+                )
                 if return_uri:
                     return data, feature_uri
                 else:
@@ -1127,14 +1258,20 @@ class ClientDatasetProvider(DatasetProvider):
             get_module_logger("data").debug("get result")
             try:
                 # pre-mound nfs, used for demo
-                mnt_feature_uri = C.dpm.get_data_uri(freq).joinpath(C.dataset_cache_dir_name, feature_uri)
-                df = DiskDatasetCache.read_data_from_cache(mnt_feature_uri, start_time, end_time, fields)
+                mnt_feature_uri = C.dpm.get_data_uri(freq).joinpath(
+                    C.dataset_cache_dir_name, feature_uri
+                )
+                df = DiskDatasetCache.read_data_from_cache(
+                    mnt_feature_uri, start_time, end_time, fields
+                )
                 get_module_logger("data").debug("finish slicing data")
                 if return_uri:
                     return df, feature_uri
                 return df
             except AttributeError as attribute_e:
-                raise IOError("Unable to fetch instruments from remote server!") from attribute_e
+                raise IOError(
+                    "Unable to fetch instruments from remote server!"
+                ) from attribute_e
 
 
 class BaseProvider:
@@ -1148,7 +1285,9 @@ class BaseProvider:
     def calendar(self, start_time=None, end_time=None, freq="day", future=False):
         return Cal.calendar(start_time, end_time, freq, future=future)
 
-    def instruments(self, market="all", filter_pipe=None, start_time=None, end_time=None):
+    def instruments(
+        self, market="all", filter_pipe=None, start_time=None, end_time=None
+    ):
         if start_time is not None or end_time is not None:
             get_module_logger("Provider").warning(
                 "The instruments corresponds to a stock pool. "
@@ -1156,7 +1295,9 @@ class BaseProvider:
             )
         return InstrumentProvider.instruments(market, filter_pipe)
 
-    def list_instruments(self, instruments, start_time=None, end_time=None, freq="day", as_list=False):
+    def list_instruments(
+        self, instruments, start_time=None, end_time=None, freq="day", as_list=False
+    ):
         return Inst.list_instruments(instruments, start_time, end_time, freq, as_list)
 
     def features(
@@ -1184,10 +1325,23 @@ class BaseProvider:
         fields = list(fields)  # In case of tuple.
         try:
             return DatasetD.dataset(
-                instruments, fields, start_time, end_time, freq, disk_cache, inst_processors=inst_processors
+                instruments,
+                fields,
+                start_time,
+                end_time,
+                freq,
+                disk_cache,
+                inst_processors=inst_processors,
             )
         except TypeError:
-            return DatasetD.dataset(instruments, fields, start_time, end_time, freq, inst_processors=inst_processors)
+            return DatasetD.dataset(
+                instruments,
+                fields,
+                start_time,
+                end_time,
+                freq,
+                inst_processors=inst_processors,
+            )
 
 
 class LocalProvider(BaseProvider):
@@ -1206,7 +1360,9 @@ class LocalProvider(BaseProvider):
         elif type == "feature":
             return DatasetD._uri(**kwargs)
 
-    def features_uri(self, instruments, fields, start_time, end_time, freq, disk_cache=1):
+    def features_uri(
+        self, instruments, fields, start_time, end_time, freq, disk_cache=1
+    ):
         """features_uri
 
         Return the uri of the generated cache of features/dataset
@@ -1218,7 +1374,9 @@ class LocalProvider(BaseProvider):
         :param end_time:
         :param freq:
         """
-        return DatasetD._dataset_uri(instruments, fields, start_time, end_time, freq, disk_cache)
+        return DatasetD._dataset_uri(
+            instruments, fields, start_time, end_time, freq, disk_cache
+        )
 
 
 class ClientProvider(BaseProvider):
@@ -1296,7 +1454,9 @@ def register_all_wrappers(C):
 
     _calendar_provider = init_instance_by_config(C.calendar_provider, module)
     if getattr(C, "calendar_cache", None) is not None:
-        _calendar_provider = init_instance_by_config(C.calendar_cache, module, provide=_calendar_provider)
+        _calendar_provider = init_instance_by_config(
+            C.calendar_cache, module, provide=_calendar_provider
+        )
     register_wrapper(Cal, _calendar_provider, "qlib.data")
     logger.debug(f"registering Cal {C.calendar_provider}-{C.calendar_cache}")
 
@@ -1318,13 +1478,19 @@ def register_all_wrappers(C):
         # This provider is unnecessary in client provider
         _eprovider = init_instance_by_config(C.expression_provider, module)
         if getattr(C, "expression_cache", None) is not None:
-            _eprovider = init_instance_by_config(C.expression_cache, module, provider=_eprovider)
+            _eprovider = init_instance_by_config(
+                C.expression_cache, module, provider=_eprovider
+            )
         register_wrapper(ExpressionD, _eprovider, "qlib.data")
-        logger.debug(f"registering ExpressionD {C.expression_provider}-{C.expression_cache}")
+        logger.debug(
+            f"registering ExpressionD {C.expression_provider}-{C.expression_cache}"
+        )
 
     _dprovider = init_instance_by_config(C.dataset_provider, module)
     if getattr(C, "dataset_cache", None) is not None:
-        _dprovider = init_instance_by_config(C.dataset_cache, module, provider=_dprovider)
+        _dprovider = init_instance_by_config(
+            C.dataset_cache, module, provider=_dprovider
+        )
     register_wrapper(DatasetD, _dprovider, "qlib.data")
     logger.debug(f"registering DatasetD {C.dataset_provider}-{C.dataset_cache}")
 

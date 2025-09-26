@@ -16,7 +16,13 @@ class POETCovEstimator(RiskModel):
     THRESH_HARD = "hard"
     THRESH_SCAD = "scad"
 
-    def __init__(self, num_factors: int = 0, thresh: float = 1.0, thresh_method: str = "soft", **kwargs):
+    def __init__(
+        self,
+        num_factors: int = 0,
+        thresh: float = 1.0,
+        thresh_method: str = "soft",
+        **kwargs,
+    ):
         """
         Args:
             num_factors (int): number of factors (if set to zero, no factor model will be used).
@@ -71,8 +77,18 @@ class POETCovEstimator(RiskModel):
             res = (res + np.abs(res)) / 2
             M = np.sign(R) * res
         else:
-            M1 = (np.abs(R) < 2 * lamb) * np.sign(R) * (np.abs(R) - lamb) * (np.abs(R) > lamb)
-            M2 = (np.abs(R) < 3.7 * lamb) * (np.abs(R) >= 2 * lamb) * (2.7 * R - 3.7 * np.sign(R) * lamb) / 1.7
+            M1 = (
+                (np.abs(R) < 2 * lamb)
+                * np.sign(R)
+                * (np.abs(R) - lamb)
+                * (np.abs(R) > lamb)
+            )
+            M2 = (
+                (np.abs(R) < 3.7 * lamb)
+                * (np.abs(R) >= 2 * lamb)
+                * (2.7 * R - 3.7 * np.sign(R) * lamb)
+                / 1.7
+            )
             M3 = (np.abs(R) >= 3.7 * lamb) * R
             M = M1 + M2 + M3
 

@@ -39,7 +39,8 @@ class LightGBMFInt(FeatureInt):
             https://lightgbm.readthedocs.io/en/latest/pythonapi/lightgbm.Booster.html?highlight=feature_importance#lightgbm.Booster.feature_importance
         """
         return pd.Series(
-            self.model.feature_importance(*args, **kwargs), index=self.model.feature_name()
+            self.model.feature_importance(*args, **kwargs),
+            index=self.model.feature_name(),
         ).sort_values(  # pylint: disable=E1101
             ascending=False
         )

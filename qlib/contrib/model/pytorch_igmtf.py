@@ -74,7 +74,9 @@ class IGMTF(Model):
         self.loss = loss
         self.base_model = base_model
         self.model_path = model_path
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        self.device = torch.device(
+            "cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu"
+        )
         self.seed = seed
 
         self.logger.info(
@@ -124,14 +126,18 @@ class IGMTF(Model):
             base_model=self.base_model,
         )
         self.logger.info("model:\n{:}".format(self.igmtf_model))
-        self.logger.info("model size: {:.4f} MB".format(count_parameters(self.igmtf_model)))
+        self.logger.info(
+            "model size: {:.4f} MB".format(count_parameters(self.igmtf_model))
+        )
 
         if optimizer.lower() == "adam":
             self.train_optimizer = optim.Adam(self.igmtf_model.parameters(), lr=self.lr)
         elif optimizer.lower() == "gd":
             self.train_optimizer = optim.SGD(self.igmtf_model.parameters(), lr=self.lr)
         else:
-            raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
+            raise NotImplementedError(
+                "optimizer {} is not supported!".format(optimizer)
+            )
 
         self.fitted = False
         self.igmtf_model.to(self.device)
@@ -161,7 +167,9 @@ class IGMTF(Model):
 
             vx = x - torch.mean(x)
             vy = y - torch.mean(y)
-            return torch.sum(vx * vy) / (torch.sqrt(torch.sum(vx**2)) * torch.sqrt(torch.sum(vy**2)))
+            return torch.sum(vx * vy) / (
+                torch.sqrt(torch.sum(vx**2)) * torch.sqrt(torch.sum(vy**2))
+            )
 
         if self.metric == ("", "loss"):
             return -self.loss_fn(pred[mask], label[mask])
@@ -211,7 +219,9 @@ class IGMTF(Model):
             batch = slice(idx, idx + count)
             feature = torch.from_numpy(x_train_values[batch]).float().to(self.device)
             label = torch.from_numpy(y_train_values[batch]).float().to(self.device)
-            pred = self.igmtf_model(feature, train_hidden=train_hidden, train_hidden_day=train_hidden_day)
+            pred = self.igmtf_model(
+                feature, train_hidden=train_hidden, train_hidden_day=train_hidden_day
+            )
             loss = self.loss_fn(pred, label)
 
             self.train_optimizer.zero_grad()
@@ -236,7 +246,9 @@ class IGMTF(Model):
             feature = torch.from_numpy(x_values[batch]).float().to(self.device)
             label = torch.from_numpy(y_values[batch]).float().to(self.device)
 
-            pred = self.igmtf_model(feature, train_hidden=train_hidden, train_hidden_day=train_hidden_day)
+            pred = self.igmtf_model(
+                feature, train_hidden=train_hidden, train_hidden_day=train_hidden_day
+            )
             loss = self.loss_fn(pred, label)
             losses.append(loss.item())
 
@@ -257,7 +269,9 @@ class IGMTF(Model):
             data_key=DataHandlerLP.DK_L,
         )
         if df_train.empty or df_valid.empty:
-            raise ValueError("Empty data from dataset, please check your dataset config.")
+            raise ValueError(
+                "Empty data from dataset, please check your dataset config."
+            )
 
         x_train, y_train = df_train["feature"], df_train["label"]
         x_valid, y_valid = df_valid["feature"], df_valid["label"]
@@ -280,11 +294,15 @@ class IGMTF(Model):
 
         if self.model_path is not None:
             self.logger.info("Loading pretrained model...")
-            pretrained_model.load_state_dict(torch.load(self.model_path, map_location=self.device))
+            pretrained_model.load_state_dict(
+                torch.load(self.model_path, map_location=self.device)
+            )
 
         model_dict = self.igmtf_model.state_dict()
         pretrained_dict = {
-            k: v for k, v in pretrained_model.state_dict().items() if k in model_dict  # pylint: disable=E1135
+            k: v
+            for k, v in pretrained_model.state_dict().items()
+            if k in model_dict  # pylint: disable=E1135
         }
         model_dict.update(pretrained_dict)
         self.igmtf_model.load_state_dict(model_dict)
@@ -300,8 +318,12 @@ class IGMTF(Model):
             train_hidden, train_hidden_day = self.get_train_hidden(x_train)
             self.train_epoch(x_train, y_train, train_hidden, train_hidden_day)
             self.logger.info("evaluating...")
-            train_loss, train_score = self.test_epoch(x_train, y_train, train_hidden, train_hidden_day)
-            val_loss, val_score = self.test_epoch(x_valid, y_valid, train_hidden, train_hidden_day)
+            train_loss, train_score = self.test_epoch(
+                x_train, y_train, train_hidden, train_hidden_day
+            )
+            val_loss, val_score = self.test_epoch(
+                x_valid, y_valid, train_hidden, train_hidden_day
+            )
             self.logger.info("train %.6f, valid %.6f" % (train_score, val_score))
             evals_result["train"].append(train_score)
             evals_result["valid"].append(val_score)
@@ -327,9 +349,13 @@ class IGMTF(Model):
     def predict(self, dataset: DatasetH, segment: Union[Text, slice] = "test"):
         if not self.fitted:
             raise ValueError("model is not fitted yet!")
-        x_train = dataset.prepare("train", col_set="feature", data_key=DataHandlerLP.DK_L)
+        x_train = dataset.prepare(
+            "train", col_set="feature", data_key=DataHandlerLP.DK_L
+        )
         train_hidden, train_hidden_day = self.get_train_hidden(x_train)
-        x_test = dataset.prepare(segment, col_set="feature", data_key=DataHandlerLP.DK_I)
+        x_test = dataset.prepare(
+            segment, col_set="feature", data_key=DataHandlerLP.DK_I
+        )
         index = x_test.index
         self.igmtf_model.eval()
         x_values = x_test.values
@@ -343,7 +369,11 @@ class IGMTF(Model):
 
             with torch.no_grad():
                 pred = (
-                    self.igmtf_model(x_batch, train_hidden=train_hidden, train_hidden_day=train_hidden_day)
+                    self.igmtf_model(
+                        x_batch,
+                        train_hidden=train_hidden,
+                        train_hidden_day=train_hidden_day,
+                    )
                     .detach()
                     .cpu()
                     .numpy()
@@ -355,7 +385,9 @@ class IGMTF(Model):
 
 
 class IGMTFModel(nn.Module):
-    def __init__(self, d_feat=6, hidden_size=64, num_layers=2, dropout=0.0, base_model="GRU"):
+    def __init__(
+        self, d_feat=6, hidden_size=64, num_layers=2, dropout=0.0, base_model="GRU"
+    ):
         super().__init__()
 
         if base_model == "GRU":
@@ -401,7 +433,15 @@ class IGMTFModel(nn.Module):
         dv = d[i[0, :], i[1, :]]  # get values from relevant entries of dense matrix
         return torch.sparse.FloatTensor(i, v * dv, s.size())
 
-    def forward(self, x, get_hidden=False, train_hidden=None, train_hidden_day=None, k_day=10, n_neighbor=10):
+    def forward(
+        self,
+        x,
+        get_hidden=False,
+        train_hidden=None,
+        train_hidden_day=None,
+        k_day=10,
+        n_neighbor=10,
+    ):
         # x: [N, F*T]
         device = x.device
         x = x.reshape(len(x), self.d_feat, -1)  # [N, F, T]
@@ -414,12 +454,16 @@ class IGMTFModel(nn.Module):
             return mini_batch_out
 
         mini_batch_out_day = torch.mean(mini_batch_out, dim=0).unsqueeze(0)
-        day_similarity = self.cal_cos_similarity(mini_batch_out_day, train_hidden_day.to(device))
+        day_similarity = self.cal_cos_similarity(
+            mini_batch_out_day, train_hidden_day.to(device)
+        )
         day_index = torch.topk(day_similarity, k_day, dim=1)[1]
         sample_train_hidden = train_hidden[day_index.long().cpu()].squeeze()
         sample_train_hidden = torch.cat(list(sample_train_hidden)).to(device)
         sample_train_hidden = self.lins(sample_train_hidden)
-        cos_similarity = self.cal_cos_similarity(self.project1(mini_batch_out), self.project2(sample_train_hidden))
+        cos_similarity = self.cal_cos_similarity(
+            self.project1(mini_batch_out), self.project2(sample_train_hidden)
+        )
 
         row = (
             torch.linspace(0, x.shape[0] - 1, x.shape[0])

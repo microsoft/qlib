@@ -20,9 +20,13 @@ class TunerConfigManager:
             config = yaml.load(fp)
         self.config = copy.deepcopy(config)
 
-        self.pipeline_ex_config = PipelineExperimentConfig(config.get("experiment", dict()), self)
+        self.pipeline_ex_config = PipelineExperimentConfig(
+            config.get("experiment", dict()), self
+        )
         self.pipeline_config = config.get("tuner_pipeline", list())
-        self.optim_config = OptimizationConfig(config.get("optimization_criteria", dict()), self)
+        self.optim_config = OptimizationConfig(
+            config.get("optimization_criteria", dict()), self
+        )
 
         self.time_config = config.get("time_period", dict())
         self.data_config = config.get("data", dict())
@@ -38,17 +42,25 @@ class PipelineExperimentConfig:
         """
         self.name = config.get("name", "tuner_experiment")
         # The dir of the config
-        self.global_dir = config.get("dir", os.path.dirname(TUNER_CONFIG_MANAGER.config_path))
+        self.global_dir = config.get(
+            "dir", os.path.dirname(TUNER_CONFIG_MANAGER.config_path)
+        )
         # The dir of the result of tuner experiment
-        self.tuner_ex_dir = config.get("tuner_ex_dir", os.path.join(self.global_dir, self.name))
+        self.tuner_ex_dir = config.get(
+            "tuner_ex_dir", os.path.join(self.global_dir, self.name)
+        )
         if not os.path.exists(self.tuner_ex_dir):
             os.makedirs(self.tuner_ex_dir)
         # The dir of the results of all estimator experiments
-        self.estimator_ex_dir = config.get("estimator_ex_dir", os.path.join(self.tuner_ex_dir, "estimator_experiment"))
+        self.estimator_ex_dir = config.get(
+            "estimator_ex_dir", os.path.join(self.tuner_ex_dir, "estimator_experiment")
+        )
         if not os.path.exists(self.estimator_ex_dir):
             os.makedirs(self.estimator_ex_dir)
         # Get the tuner type
-        self.tuner_module_path = config.get("tuner_module_path", "qlib.contrib.tuner.tuner")
+        self.tuner_module_path = config.get(
+            "tuner_module_path", "qlib.contrib.tuner.tuner"
+        )
         self.tuner_class = config.get("tuner_class", "QLibTuner")
         # Save the tuner experiment for further view
         tuner_ex_config_path = os.path.join(self.tuner_ex_dir, "tuner_config.yaml")
