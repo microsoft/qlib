@@ -15,11 +15,14 @@ class Avg15minLoader(QlibDataLoader):
     def load(self, instruments=None, start_time=None, end_time=None) -> pd.DataFrame:
         df = super(Avg15minLoader, self).load(instruments, start_time, end_time)
         if self.is_group:
-            # feature_day(day freq) and feature_15min(1min freq, Average every 15 minutes) renamed feature
+            # Normalize feature_day (day freq) and feature_15min (1min freq) to unified "feature" group
             df.columns = df.columns.map(
-                lambda x: ("feature", x[1]) if x[0].startswith("feature") else x
+                lambda x: ("feature", x[1]) 
+                if isinstance(x, tuple) and len(x) >= 2 and isinstance(x[0], str) and x[0].startswith("feature") 
+                else x
             )
         return df
+
 
 
 class Avg15minHandler(DataHandlerLP):
