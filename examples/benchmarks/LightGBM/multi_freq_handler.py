@@ -135,6 +135,7 @@ class Avg15minHandler(DataHandlerLP):
 
         # 15min resample to day
         #   df.resample("1d").last()
+        
         tmp_fields = []
         tmp_names = []
         for i, _f in enumerate(fields):
