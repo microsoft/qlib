@@ -613,10 +613,6 @@ class YahooNormalize1min(YahooNormalize, ABC):
     def symbol_to_yahoo(self, symbol):
         raise NotImplementedError("rewrite symbol_to_yahoo")
 
-    @abc.abstractmethod
-    def _get_1d_calendar_list(self) -> Iterable[pd.Timestamp]:
-        raise NotImplementedError("rewrite _get_1d_calendar_list")
-
 
 class YahooNormalizeUS:
     def _get_calendar_list(self) -> Iterable[pd.Timestamp]:
