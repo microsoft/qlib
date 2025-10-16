@@ -2,9 +2,7 @@
 # Licensed under the MIT License.
 
 """
-OnlineTool is a module to set and unset a series of `online` models.
-The `online` models are some decisive models in some time points, which can be changed with the change of time.
-This allows us to use efficient submodels as the market-style changing.
+OnlineTool is a module for setting and unsetting a series of online models. These are key models selected at specific time points, which can evolve over time. This enables the use of efficient submodels in response to changing market conditions.
 """
 
 from typing import List, Union
