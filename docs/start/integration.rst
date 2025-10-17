@@ -71,7 +71,7 @@ The Custom models need to inherit `qlib.model.base.Model <../reference/api.html#
                 )
 
 - Override the `predict` method
-    - The parameters must include the parameter `dataset`, which will be userd to get the test dataset.
+    - The parameters must include the parameter `dataset`, which will be used to get the test dataset.
     - Return the `prediction score`.
     - Please refer to `Model API <../reference/api.html#module-qlib.model.base>`_ for the parameter types of the fit method.
     - Code Example: In the following example, users need to use `LightGBM` to predict the label(such as `preds`) of test data `x_test` and return it.
