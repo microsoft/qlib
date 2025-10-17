@@ -2,7 +2,6 @@ import os
 
 import numpy
 from setuptools import Extension, setup
-from setuptools_scm import get_version
 
 
 def read(rel_path: str) -> str:
@@ -14,10 +13,7 @@ def read(rel_path: str) -> str:
 NUMPY_INCLUDE = numpy.get_include()
 
 
-VERSION = get_version(root=".", relative_to=__file__)
-
 setup(
-    version=VERSION,
     ext_modules=[
         Extension(
             "qlib.data._libs.rolling",
