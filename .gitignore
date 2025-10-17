@@ -50,3 +50,5 @@ tags
 ./pretrain
 .idea/
 .aider*
+.venv/
+.venv/
