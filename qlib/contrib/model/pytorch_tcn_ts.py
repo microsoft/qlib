@@ -73,7 +73,9 @@ class TCN(Model):
         self.early_stop = early_stop
         self.optimizer = optimizer.lower()
         self.loss = loss
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        self.device = torch.device(
+            "cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu"
+        )
         self.n_jobs = n_jobs
         self.seed = seed
 
@@ -126,14 +128,18 @@ class TCN(Model):
             dropout=self.dropout,
         )
         self.logger.info("model:\n{:}".format(self.TCN_model))
-        self.logger.info("model size: {:.4f} MB".format(count_parameters(self.TCN_model)))
+        self.logger.info(
+            "model size: {:.4f} MB".format(count_parameters(self.TCN_model))
+        )
 
         if optimizer.lower() == "adam":
             self.train_optimizer = optim.Adam(self.TCN_model.parameters(), lr=self.lr)
         elif optimizer.lower() == "gd":
             self.train_optimizer = optim.SGD(self.TCN_model.parameters(), lr=self.lr)
         else:
-            raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
+            raise NotImplementedError(
+                "optimizer {} is not supported!".format(optimizer)
+            )
 
         self.fitted = False
         self.TCN_model.to(self.device)
@@ -206,8 +212,12 @@ class TCN(Model):
         evals_result=dict(),
         save_path=None,
     ):
-        dl_train = dataset.prepare("train", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
-        dl_valid = dataset.prepare("valid", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
+        dl_train = dataset.prepare(
+            "train", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L
+        )
+        dl_valid = dataset.prepare(
+            "valid", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L
+        )
 
         # process nan brought by dataloader
         dl_train.config(fillna_type="ffill+bfill")
@@ -215,10 +225,18 @@ class TCN(Model):
         dl_valid.config(fillna_type="ffill+bfill")
 
         train_loader = DataLoader(
-            dl_train, batch_size=self.batch_size, shuffle=True, num_workers=self.n_jobs, drop_last=True
+            dl_train,
+            batch_size=self.batch_size,
+            shuffle=True,
+            num_workers=self.n_jobs,
+            drop_last=True,
         )
         valid_loader = DataLoader(
-            dl_valid, batch_size=self.batch_size, shuffle=False, num_workers=self.n_jobs, drop_last=True
+            dl_valid,
+            batch_size=self.batch_size,
+            shuffle=False,
+            num_workers=self.n_jobs,
+            drop_last=True,
         )
 
         save_path = get_or_create_path(save_path)
@@ -267,9 +285,13 @@ class TCN(Model):
         if not self.fitted:
             raise ValueError("model is not fitted yet!")
 
-        dl_test = dataset.prepare("test", col_set=["feature", "label"], data_key=DataHandlerLP.DK_I)
+        dl_test = dataset.prepare(
+            "test", col_set=["feature", "label"], data_key=DataHandlerLP.DK_I
+        )
         dl_test.config(fillna_type="ffill+bfill")
-        test_loader = DataLoader(dl_test, batch_size=self.batch_size, num_workers=self.n_jobs)
+        test_loader = DataLoader(
+            dl_test, batch_size=self.batch_size, num_workers=self.n_jobs
+        )
         self.TCN_model.eval()
         preds = []
 
@@ -288,7 +310,9 @@ class TCNModel(nn.Module):
     def __init__(self, num_input, output_size, num_channels, kernel_size, dropout):
         super().__init__()
         self.num_input = num_input
-        self.tcn = TemporalConvNet(num_input, num_channels, kernel_size, dropout=dropout)
+        self.tcn = TemporalConvNet(
+            num_input, num_channels, kernel_size, dropout=dropout
+        )
         self.linear = nn.Linear(num_channels[-1], output_size)
 
     def forward(self, x):

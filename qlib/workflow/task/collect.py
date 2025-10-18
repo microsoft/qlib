@@ -71,7 +71,9 @@ class Collector(Serializable):
             value = collected_dict[artifact]
             for process in process_list:
                 if not callable(process):
-                    raise NotImplementedError(f"{type(process)} is not supported in `process_collect`.")
+                    raise NotImplementedError(
+                        f"{type(process)} is not supported in `process_collect`."
+                    )
                 value = process(value, *args, **kwargs)
             result[artifact] = value
         return result
@@ -101,7 +103,12 @@ class MergeCollector(Collector):
 
     """
 
-    def __init__(self, collector_dict: Dict[str, Collector], process_list: List[Callable] = [], merge_func=None):
+    def __init__(
+        self,
+        collector_dict: Dict[str, Collector],
+        process_list: List[Callable] = [],
+        merge_func=None,
+    ):
         """
         Init MergeCollector.
 
@@ -181,7 +188,9 @@ class RecorderCollector(Collector):
         self.list_kwargs = list_kwargs
         self.status = status
 
-    def collect(self, artifacts_key=None, rec_filter_func=None, only_exist=True) -> dict:
+    def collect(
+        self, artifacts_key=None, rec_filter_func=None, only_exist=True
+    ) -> dict:
         """
         Collect different artifacts based on recorder after filtering.
 
@@ -215,7 +224,8 @@ class RecorderCollector(Collector):
             rec
             for rec in recs
             if (
-                (self.status is None or rec.status in self.status) and (rec_filter_func is None or rec_filter_func(rec))
+                (self.status is None or rec.status in self.status)
+                and (rec_filter_func is None or rec_filter_func(rec))
             )
         ]
 
@@ -235,7 +245,9 @@ class RecorderCollector(Collector):
                     except LoadObjectError as e:
                         if only_exist:
                             # only collect existing artifact
-                            logger.warning(f"Fail to load {self.artifacts_path[key]} and it is ignored.")
+                            logger.warning(
+                                f"Fail to load {self.artifacts_path[key]} and it is ignored."
+                            )
                             continue
                         raise e
                 # give user some warning if the values are overridden

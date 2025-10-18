@@ -98,7 +98,9 @@ def get_gbdt_task(dataset_kwargs={}, handler_kwargs={"instruments": CSI300_MARKE
     }
 
 
-def get_record_lgb_config(dataset_kwargs={}, handler_kwargs={"instruments": CSI300_MARKET}):
+def get_record_lgb_config(
+    dataset_kwargs={}, handler_kwargs={"instruments": CSI300_MARKET}
+):
     return {
         "model": {
             "class": "LGBModel",
@@ -109,7 +111,9 @@ def get_record_lgb_config(dataset_kwargs={}, handler_kwargs={"instruments": CSI3
     }
 
 
-def get_record_xgboost_config(dataset_kwargs={}, handler_kwargs={"instruments": CSI300_MARKET}):
+def get_record_xgboost_config(
+    dataset_kwargs={}, handler_kwargs={"instruments": CSI300_MARKET}
+):
     return {
         "model": {
             "class": "XGBModel",
@@ -120,11 +124,17 @@ def get_record_xgboost_config(dataset_kwargs={}, handler_kwargs={"instruments": 
     }
 
 
-CSI300_DATASET_CONFIG = get_dataset_config(handler_kwargs={"instruments": CSI300_MARKET})
+CSI300_DATASET_CONFIG = get_dataset_config(
+    handler_kwargs={"instruments": CSI300_MARKET}
+)
 CSI300_GBDT_TASK = get_gbdt_task(handler_kwargs={"instruments": CSI300_MARKET})
 
-CSI100_RECORD_XGBOOST_TASK_CONFIG = get_record_xgboost_config(handler_kwargs={"instruments": CSI100_MARKET})
-CSI100_RECORD_LGB_TASK_CONFIG = get_record_lgb_config(handler_kwargs={"instruments": CSI100_MARKET})
+CSI100_RECORD_XGBOOST_TASK_CONFIG = get_record_xgboost_config(
+    handler_kwargs={"instruments": CSI100_MARKET}
+)
+CSI100_RECORD_LGB_TASK_CONFIG = get_record_lgb_config(
+    handler_kwargs={"instruments": CSI100_MARKET}
+)
 
 # use for rolling_online_managment.py
 ROLLING_HANDLER_CONFIG = {

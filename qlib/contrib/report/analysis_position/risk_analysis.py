@@ -32,9 +32,13 @@ def _get_risk_analysis_data_with_report(
     #     analysis["pred_long_short"] = risk_analysis(report_long_short_df["long_short"])
 
     if not report_normal_df.empty:
-        analysis["excess_return_without_cost"] = risk_analysis(report_normal_df["return"] - report_normal_df["bench"])
+        analysis["excess_return_without_cost"] = risk_analysis(
+            report_normal_df["return"] - report_normal_df["bench"]
+        )
         analysis["excess_return_with_cost"] = risk_analysis(
-            report_normal_df["return"] - report_normal_df["bench"] - report_normal_df["cost"]
+            report_normal_df["return"]
+            - report_normal_df["bench"]
+            - report_normal_df["cost"]
         )
     analysis_df = pd.concat(analysis)  # type: pd.DataFrame
     analysis_df["date"] = date
@@ -54,7 +58,9 @@ def _get_all_risk_analysis(risk_df: pd.DataFrame) -> pd.DataFrame:
     return risk_df.drop("mean", axis=1)
 
 
-def _get_monthly_risk_analysis_with_report(report_normal_df: pd.DataFrame) -> pd.DataFrame:
+def _get_monthly_risk_analysis_with_report(
+    report_normal_df: pd.DataFrame,
+) -> pd.DataFrame:
     """Get monthly analysis data
 
     :param report_normal_df:
@@ -92,7 +98,9 @@ def _get_monthly_risk_analysis_with_report(report_normal_df: pd.DataFrame) -> pd
     return _monthly_df
 
 
-def _get_monthly_analysis_with_feature(monthly_df: pd.DataFrame, feature: str = "annualized_return") -> pd.DataFrame:
+def _get_monthly_analysis_with_feature(
+    monthly_df: pd.DataFrame, feature: str = "annualized_return"
+) -> pd.DataFrame:
     """
 
     :param monthly_df:
@@ -102,7 +110,9 @@ def _get_monthly_analysis_with_feature(monthly_df: pd.DataFrame, feature: str = 
     _monthly_df_gp = monthly_df.reset_index().groupby(["level_1"], group_keys=False)
 
     _name_df = _monthly_df_gp.get_group(feature).set_index(["level_0", "level_1"])
-    _temp_df = _name_df.pivot_table(index="date", values=["risk"], columns=_name_df.index)
+    _temp_df = _name_df.pivot_table(
+        index="date", values=["risk"], columns=_name_df.index
+    )
     _temp_df.columns = map(lambda x: "_".join(x[-1]), _temp_df.columns)
     _temp_df.index = _temp_df.index.strftime("%Y-%m")
 
@@ -126,7 +136,9 @@ def _get_risk_analysis_figure(analysis_df: pd.DataFrame) -> Iterable[py.Figure]:
     return (_figure,)
 
 
-def _get_monthly_risk_analysis_figure(report_normal_df: pd.DataFrame) -> Iterable[py.Figure]:
+def _get_monthly_risk_analysis_figure(
+    report_normal_df: pd.DataFrame,
+) -> Iterable[py.Figure]:
     """Get analysis monthly graph figure
 
     :param report_normal_df:

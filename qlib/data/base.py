@@ -187,8 +187,14 @@ class Expression(abc.ABC):
         cache_key = str(self), instrument, start_index, end_index, *args
         if cache_key in H["f"]:
             return H["f"][cache_key]
-        if start_index is not None and end_index is not None and start_index > end_index:
-            raise ValueError("Invalid index range: {} {}".format(start_index, end_index))
+        if (
+            start_index is not None
+            and end_index is not None
+            and start_index > end_index
+        ):
+            raise ValueError(
+                "Invalid index range: {} {}".format(start_index, end_index)
+            )
         try:
             series = self._load_internal(instrument, start_index, end_index, *args)
         except Exception as e:
@@ -204,7 +210,9 @@ class Expression(abc.ABC):
 
     @abc.abstractmethod
     def _load_internal(self, instrument, start_index, end_index, *args) -> pd.Series:
-        raise NotImplementedError("This function must be implemented in your newly defined feature")
+        raise NotImplementedError(
+            "This function must be implemented in your newly defined feature"
+        )
 
     @abc.abstractmethod
     def get_longest_back_rolling(self):
@@ -217,7 +225,9 @@ class Expression(abc.ABC):
         So this will only used for detecting the length of historical data needed.
         """
         # TODO: forward operator like Ref($close, -1) is not supported yet.
-        raise NotImplementedError("This function must be implemented in your newly defined feature")
+        raise NotImplementedError(
+            "This function must be implemented in your newly defined feature"
+        )
 
     @abc.abstractmethod
     def get_extended_window_size(self):
@@ -232,7 +242,9 @@ class Expression(abc.ABC):
         (int, int)
             lft_etd, rght_etd
         """
-        raise NotImplementedError("This function must be implemented in your newly defined feature")
+        raise NotImplementedError(
+            "This function must be implemented in your newly defined feature"
+        )
 
 
 class Feature(Expression):
@@ -270,7 +282,9 @@ class PFeature(Feature):
     def _load_internal(self, instrument, start_index, end_index, cur_time, period=None):
         from .data import PITD  # pylint: disable=C0415
 
-        return PITD.period_feature(instrument, str(self), start_index, end_index, cur_time, period)
+        return PITD.period_feature(
+            instrument, str(self), start_index, end_index, cur_time, period
+        )
 
 
 class ExpressionOps(Expression):

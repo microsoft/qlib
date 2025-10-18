@@ -8,7 +8,9 @@ import unittest
 import pandas as pd
 
 
-@unittest.skip("This test takes a lot of time due to the large size of high-frequency data")
+@unittest.skip(
+    "This test takes a lot of time due to the large size of high-frequency data"
+)
 class TestHFBacktest(TestAutoData):
     @classmethod
     def setUpClass(cls) -> None:
@@ -118,7 +120,12 @@ class TestHFBacktest(TestAutoData):
 
         ret_val = {}
         decisions = list(
-            collect_data(executor=executor_config, strategy=strategy_config, **backtest_config, return_value=ret_val)
+            collect_data(
+                executor=executor_config,
+                strategy=strategy_config,
+                **backtest_config,
+                return_value=ret_val,
+            )
         )
         report, indicator = ret_val["report"], ret_val["indicator"]
         # NOTE: please refer to the docs of format_decisions

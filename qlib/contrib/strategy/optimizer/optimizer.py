@@ -47,7 +47,12 @@ class PortfolioOptimizer(BaseOptimizer):
             scale_return (bool): if to scale alpha to match the volatility of the covariance matrix
             tol (float): tolerance for optimization termination
         """
-        assert method in [self.OPT_GMV, self.OPT_MVO, self.OPT_RP, self.OPT_INV], f"method `{method}` is not supported"
+        assert method in [
+            self.OPT_GMV,
+            self.OPT_MVO,
+            self.OPT_RP,
+            self.OPT_INV,
+        ], f"method `{method}` is not supported"
         self.method = method
 
         assert lamb >= 0, f"risk aversion parameter `lamb` should be positive"
@@ -111,7 +116,12 @@ class PortfolioOptimizer(BaseOptimizer):
 
         return w
 
-    def _optimize(self, S: np.ndarray, r: Optional[np.ndarray] = None, w0: Optional[np.ndarray] = None) -> np.ndarray:
+    def _optimize(
+        self,
+        S: np.ndarray,
+        r: Optional[np.ndarray] = None,
+        w0: Optional[np.ndarray] = None,
+    ) -> np.ndarray:
         # inverse volatility
         if self.method == self.OPT_INV:
             if r is not None:
@@ -143,7 +153,9 @@ class PortfolioOptimizer(BaseOptimizer):
         w /= w.sum()
         return w
 
-    def _optimize_gmv(self, S: np.ndarray, w0: Optional[np.ndarray] = None) -> np.ndarray:
+    def _optimize_gmv(
+        self, S: np.ndarray, w0: Optional[np.ndarray] = None
+    ) -> np.ndarray:
         """optimize global minimum variance portfolio
 
         This method solves the following optimization problem
@@ -151,10 +163,15 @@ class PortfolioOptimizer(BaseOptimizer):
             s.t. w >= 0, sum(w) == 1
         where `S` is the covariance matrix.
         """
-        return self._solve(len(S), self._get_objective_gmv(S), *self._get_constrains(w0))
+        return self._solve(
+            len(S), self._get_objective_gmv(S), *self._get_constrains(w0)
+        )
 
     def _optimize_mvo(
-        self, S: np.ndarray, r: Optional[np.ndarray] = None, w0: Optional[np.ndarray] = None
+        self,
+        S: np.ndarray,
+        r: Optional[np.ndarray] = None,
+        w0: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         """optimize mean-variance portfolio
 
@@ -164,9 +181,13 @@ class PortfolioOptimizer(BaseOptimizer):
         where `S` is the covariance matrix, `u` is the expected returns,
         and `lamb` is the risk aversion parameter.
         """
-        return self._solve(len(S), self._get_objective_mvo(S, r), *self._get_constrains(w0))
+        return self._solve(
+            len(S), self._get_objective_mvo(S, r), *self._get_constrains(w0)
+        )
 
-    def _optimize_rp(self, S: np.ndarray, w0: Optional[np.ndarray] = None) -> np.ndarray:
+    def _optimize_rp(
+        self, S: np.ndarray, w0: Optional[np.ndarray] = None
+    ) -> np.ndarray:
         """optimize risk parity portfolio
 
         This method solves the following optimization problem
@@ -234,11 +255,15 @@ class PortfolioOptimizer(BaseOptimizer):
 
         # turnover constraint
         if w0 is not None:
-            cons.append({"type": "ineq", "fun": lambda x: self.delta - np.sum(np.abs(x - w0))})  # >= 0
+            cons.append(
+                {"type": "ineq", "fun": lambda x: self.delta - np.sum(np.abs(x - w0))}
+            )  # >= 0
 
         return bounds, cons
 
-    def _solve(self, n: int, obj: Callable, bounds: so.Bounds, cons: List) -> np.ndarray:
+    def _solve(
+        self, n: int, obj: Callable, bounds: so.Bounds, cons: List
+    ) -> np.ndarray:
         """solve optimization
 
         Args:
@@ -258,7 +283,9 @@ class PortfolioOptimizer(BaseOptimizer):
 
         # solve
         x0 = np.ones(n) / n  # init results
-        sol = so.minimize(wrapped_obj, x0, bounds=bounds, constraints=cons, tol=self.tol)
+        sol = so.minimize(
+            wrapped_obj, x0, bounds=bounds, constraints=cons, tol=self.tol
+        )
         if not sol.success:
             warnings.warn(f"optimization not success ({sol.status})")
 

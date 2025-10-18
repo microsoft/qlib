@@ -17,7 +17,9 @@ class DummyDataset(Dataset):
 
     def __getitem__(self, index):
         assert 0 <= index < self.length
-        return pd.DataFrame(np.random.randint(0, 100, size=(index + 1, 4)), columns=list("ABCD"))
+        return pd.DataFrame(
+            np.random.randint(0, 100, size=(index + 1, 4)), columns=list("ABCD")
+        )
 
     def __len__(self):
         return self.length
@@ -50,7 +52,9 @@ def test_multiprocess_shared_dataloader():
         queue = multiprocessing.Queue()
         processes = []
         for _ in range(3):
-            processes.append(multiprocessing.Process(target=_worker, args=(data_queue, queue)))
+            processes.append(
+                multiprocessing.Process(target=_worker, args=(data_queue, queue))
+            )
             processes[-1].start()
         for p in processes:
             p.join()

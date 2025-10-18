@@ -40,7 +40,9 @@ class XGBModel(Model, FeatureInt):
 
         # Lightgbm need 1D array as its label
         if y_train.values.ndim == 2 and y_train.values.shape[1] == 1:
-            y_train_1d, y_valid_1d = np.squeeze(y_train.values), np.squeeze(y_valid.values)
+            y_train_1d, y_valid_1d = np.squeeze(y_train.values), np.squeeze(
+                y_valid.values
+            )
         else:
             raise ValueError("XGBoost doesn't support multi-label training")
 
@@ -71,7 +73,9 @@ class XGBModel(Model, FeatureInt):
     def predict(self, dataset: DatasetH, segment: Union[Text, slice] = "test"):
         if self.model is None:
             raise ValueError("model is not fitted yet!")
-        x_test = dataset.prepare(segment, col_set="feature", data_key=DataHandlerLP.DK_I)
+        x_test = dataset.prepare(
+            segment, col_set="feature", data_key=DataHandlerLP.DK_I
+        )
         return pd.Series(self.model.predict(xgb.DMatrix(x_test)), index=x_test.index)
 
     def get_feature_importance(self, *args, **kwargs) -> pd.Series:
@@ -82,4 +86,6 @@ class XGBModel(Model, FeatureInt):
             parameters reference:
                 https://xgboost.readthedocs.io/en/latest/python/python_api.html#xgboost.Booster.get_score
         """
-        return pd.Series(self.model.get_score(*args, **kwargs)).sort_values(ascending=False)
+        return pd.Series(self.model.get_score(*args, **kwargs)).sort_values(
+            ascending=False
+        )

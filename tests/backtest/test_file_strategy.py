@@ -40,14 +40,21 @@ class FileStrTest(TestAutoData):
             # test selling all stocks
             ["20200110", self.TEST_INST, str(dealt_num_for_1000), "sell"],
         ]
-        return pd.DataFrame(orders, columns=headers).set_index(["datetime", "instrument"])
+        return pd.DataFrame(orders, columns=headers).set_index(
+            ["datetime", "instrument"]
+        )
 
     def test_file_str(self):
         # 0) basic settings
         account_money = 150000
 
         # 1) get information
-        df = D.features([self.TEST_INST], ["$close", "$factor"], start_time="20200103", end_time="20200103")
+        df = D.features(
+            [self.TEST_INST],
+            ["$close", "$factor"],
+            start_time="20200103",
+            end_time="20200103",
+        )
         price = df["$close"].item()
         factor = df["$factor"].item()
         price_unit = price / factor * 100

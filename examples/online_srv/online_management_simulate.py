@@ -14,7 +14,10 @@ from qlib.workflow.online.manager import OnlineManager
 from qlib.workflow.online.strategy import RollingStrategy
 from qlib.workflow.task.gen import RollingGen
 from qlib.workflow.task.manage import TaskManager
-from qlib.tests.config import CSI100_RECORD_LGB_TASK_CONFIG_ONLINE, CSI100_RECORD_XGBOOST_TASK_CONFIG_ONLINE
+from qlib.tests.config import (
+    CSI100_RECORD_LGB_TASK_CONFIG_ONLINE,
+    CSI100_RECORD_XGBOOST_TASK_CONFIG_ONLINE,
+)
 import pandas as pd
 from qlib.contrib.evaluate import backtest_daily
 from qlib.contrib.evaluate import risk_analysis
@@ -52,7 +55,10 @@ class OnlineSimulationExample:
             tasks (dict or list[dict]): a set of the task config waiting for rolling and training
         """
         if tasks is None:
-            tasks = [CSI100_RECORD_XGBOOST_TASK_CONFIG_ONLINE, CSI100_RECORD_LGB_TASK_CONFIG_ONLINE]
+            tasks = [
+                CSI100_RECORD_XGBOOST_TASK_CONFIG_ONLINE,
+                CSI100_RECORD_LGB_TASK_CONFIG_ONLINE,
+            ]
         self.exp_name = exp_name
         self.task_pool = task_pool
         self.start_time = start_time
@@ -73,7 +79,9 @@ class OnlineSimulationExample:
             # TODO: support all the trainers: TrainerR, TrainerRM, DelayTrainerR
             raise NotImplementedError(f"This type of input is not supported")
         self.rolling_online_manager = OnlineManager(
-            RollingStrategy(exp_name, task_template=tasks, rolling_gen=self.rolling_gen),
+            RollingStrategy(
+                exp_name, task_template=tasks, rolling_gen=self.rolling_gen
+            ),
             trainer=self.trainer,
             begin_time=self.start_time,
         )
@@ -113,7 +121,9 @@ class OnlineSimulationExample:
             strategy=strategy_obj,
         )
         analysis = dict()
-        analysis["excess_return_without_cost"] = risk_analysis(report_normal["return"] - report_normal["bench"])
+        analysis["excess_return_without_cost"] = risk_analysis(
+            report_normal["return"] - report_normal["bench"]
+        )
         analysis["excess_return_with_cost"] = risk_analysis(
             report_normal["return"] - report_normal["bench"] - report_normal["cost"]
         )

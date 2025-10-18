@@ -14,11 +14,23 @@ from qlib.data.ops import Operators
 from qlib.data.data import Cal
 from qlib.tests.data import GetData
 
-from highfreq_ops import get_calendar_day, DayLast, FFillNan, BFillNan, Date, Select, IsNull, Cut
+from highfreq_ops import (
+    get_calendar_day,
+    DayLast,
+    FFillNan,
+    BFillNan,
+    Date,
+    Select,
+    IsNull,
+    Cut,
+)
 
 
 class HighfreqWorkflow:
-    SPEC_CONF = {"custom_ops": [DayLast, FFillNan, BFillNan, Date, Select, IsNull, Cut], "expression_cache": None}
+    SPEC_CONF = {
+        "custom_ops": [DayLast, FFillNan, BFillNan, Date, Select, IsNull, Cut],
+        "expression_cache": None,
+    }
 
     MARKET = "all"
 
@@ -33,7 +45,9 @@ class HighfreqWorkflow:
         "fit_start_time": start_time,
         "fit_end_time": train_end_time,
         "instruments": MARKET,
-        "infer_processors": [{"class": "HighFreqNorm", "module_path": "highfreq_processor"}],
+        "infer_processors": [
+            {"class": "HighFreqNorm", "module_path": "highfreq_processor"}
+        ],
     }
     DATA_HANDLER_CONFIG1 = {
         "start_time": start_time,
@@ -85,7 +99,9 @@ class HighfreqWorkflow:
         # use cn_data_1min data
         QLIB_INIT_CONFIG = {**HIGH_FREQ_CONFIG, **self.SPEC_CONF}
         provider_uri = QLIB_INIT_CONFIG.get("provider_uri")
-        GetData().qlib_data(target_dir=provider_uri, interval="1min", region=REG_CN, exists_skip=True)
+        GetData().qlib_data(
+            target_dir=provider_uri, interval="1min", region=REG_CN, exists_skip=True
+        )
         qlib.init(**QLIB_INIT_CONFIG)
 
     def _prepare_calender_cache(self):

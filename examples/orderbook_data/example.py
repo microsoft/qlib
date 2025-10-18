@@ -24,7 +24,10 @@ class TestClass(unittest.TestCase):
             mem_cache_size_limit=1024**3 * 2,
             mem_cache_type="sizeof",
             kernels=1,
-            expression_provider={"class": "LocalExpressionProvider", "kwargs": {"time2idx": False}},
+            expression_provider={
+                "class": "LocalExpressionProvider",
+                "kwargs": {"time2idx": False},
+            },
             feature_provider={
                 "class": "ArcticFeatureProvider",
                 "module_path": "qlib.contrib.data.data",
@@ -87,7 +90,9 @@ class TestClass(unittest.TestCase):
 
     # Here are some popular expressions for high-frequency
     # 1) some shared expression
-    expr_sum_buy_ask_1 = "(TResample($ask1, '1min', 'last') + TResample($bid1, '1min', 'last'))"
+    expr_sum_buy_ask_1 = (
+        "(TResample($ask1, '1min', 'last') + TResample($bid1, '1min', 'last'))"
+    )
     total_volume = (
         "TResample("
         + "+".join([f"${name}{i}" for i in range(1, 11) for name in ["asize", "bsize"]])
@@ -96,14 +101,20 @@ class TestClass(unittest.TestCase):
 
     @staticmethod
     def total_func(name, method):
-        return "TResample(" + "+".join([f"${name}{i}" for i in range(1, 11)]) + ",'1min', '{}')".format(method)
+        return (
+            "TResample("
+            + "+".join([f"${name}{i}" for i in range(1, 11)])
+            + ",'1min', '{}')".format(method)
+        )
 
     def test_exp_01(self):
         exprs = []
         names = []
         for name in ["asize", "bsize"]:
             for i in range(1, 11):
-                exprs.append(f"TResample(${name}{i}, '1min', 'mean') / ({self.total_volume})")
+                exprs.append(
+                    f"TResample(${name}{i}, '1min', 'mean') / ({self.total_volume})"
+                )
                 names.append(f"v_{name}_{i}")
         df = D.features(self.stocks_list, fields=exprs, freq="ticks")
         df.columns = names
@@ -145,7 +156,9 @@ class TestClass(unittest.TestCase):
         exprs = []
         names = []
         for name in ["asize", "bsize"]:
-            exprs.append(f"(({ self.total_func(name, 'mean')}) / 10) / {self.total_volume}")
+            exprs.append(
+                f"(({ self.total_func(name, 'mean')}) / 10) / {self.total_volume}"
+            )
             names.append(f"v_avg_{name}")
 
         df = D.features(self.stocks_list, fields=exprs, freq="ticks")
@@ -180,7 +193,9 @@ class TestClass(unittest.TestCase):
 
         for i in range(1, 11):
             for name in ["asize", "bsize"]:
-                exprs.append(f"TResample({expr6_price_func(name, i, 'mean')}, '1min', 'mean') / {self.total_volume}")
+                exprs.append(
+                    f"TResample({expr6_price_func(name, i, 'mean')}, '1min', 'mean') / {self.total_volume}"
+                )
                 names.append(f"v_diff_{name}{i}_{t}s")
 
         df = D.features(self.stocks_list, fields=exprs, freq="ticks")
@@ -227,7 +242,11 @@ class TestClass(unittest.TestCase):
         for funccode in ["B", "S"]:
             for ordercode in ["0", "1"]:
                 exprs.append(expr7(funccode, ordercode, "3"))
-                names.append(self.trans_dict[ordercode] + self.trans_dict[funccode] + "_intensity_3s")
+                names.append(
+                    self.trans_dict[ordercode]
+                    + self.trans_dict[funccode]
+                    + "_intensity_3s"
+                )
         df = D.features(self.stocks_list, fields=exprs, freq="transaction")
         df.columns = names
         print(df)
@@ -248,7 +267,11 @@ class TestClass(unittest.TestCase):
         for funccode in ["B", "S"]:
             for ordercode in ["0", "1"]:
                 exprs.append(expr8_1(funccode, ordercode, "10", "900"))
-                names.append(self.trans_dict[ordercode] + self.trans_dict[funccode] + "_relative_intensity_10s_900s")
+                names.append(
+                    self.trans_dict[ordercode]
+                    + self.trans_dict[funccode]
+                    + "_relative_intensity_10s_900s"
+                )
 
         df = D.features(self.stocks_list, fields=exprs, freq="order")
         df.columns = names
@@ -290,7 +313,11 @@ class TestClass(unittest.TestCase):
                 exprs.append(
                     f'TResample(Div(Sub(TResample({self.expr7_init(funccode, ordercode, "3")}, "3s", "last"), Ref(TResample({self.expr7_init(funccode, ordercode, "3")},"3s", "last"), 1)), 3) ,"1min", "mean")'
                 )
-                names.append(self.trans_dict[ordercode] + self.trans_dict[funccode] + "_diff_intensity_3s_3s")
+                names.append(
+                    self.trans_dict[ordercode]
+                    + self.trans_dict[funccode]
+                    + "_diff_intensity_3s_3s"
+                )
         df = D.features(self.stocks_list, fields=exprs, freq="order")
         df.columns = names
         print(df)

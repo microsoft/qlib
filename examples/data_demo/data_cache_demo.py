@@ -23,7 +23,9 @@ DIRNAME = Path(__file__).absolute().resolve().parent
 if __name__ == "__main__":
     init()
 
-    config_path = DIRNAME.parent / "benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml"
+    config_path = (
+        DIRNAME.parent / "benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml"
+    )
 
     # 1) show original time
     with TimeInspector.logt("The original time without handler cache:"):

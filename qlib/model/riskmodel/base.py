@@ -19,7 +19,12 @@ class RiskModel(BaseModel):
     FILL_NAN = "fill"
     IGNORE_NAN = "ignore"
 
-    def __init__(self, nan_option: str = "ignore", assume_centered: bool = False, scale_return: bool = True):
+    def __init__(
+        self,
+        nan_option: str = "ignore",
+        assume_centered: bool = False,
+        scale_return: bool = True,
+    ):
         """
         Args:
             nan_option (str): nan handling option (`ignore`/`mask`/`fill`).
@@ -65,7 +70,9 @@ class RiskModel(BaseModel):
         else:
             if isinstance(X.index, pd.MultiIndex):
                 if isinstance(X, pd.DataFrame):
-                    X = X.iloc[:, 0].unstack(level="instrument")  # always use the first column
+                    X = X.iloc[:, 0].unstack(
+                        level="instrument"
+                    )  # always use the first column
                 else:
                     X = X.unstack(level="instrument")
             else:
@@ -88,10 +95,13 @@ class RiskModel(BaseModel):
         # return decomposed components if needed
         if return_decomposed_components:
             assert (
-                "return_decomposed_components" in inspect.getfullargspec(self._predict).args
+                "return_decomposed_components"
+                in inspect.getfullargspec(self._predict).args
             ), "This risk model does not support return decomposed components of the covariance matrix "
 
-            F, cov_b, var_u = self._predict(X, return_decomposed_components=True)  # pylint: disable=E1123
+            F, cov_b, var_u = self._predict(
+                X, return_decomposed_components=True
+            )  # pylint: disable=E1123
             return F, cov_b, var_u
 
         # estimate covariance

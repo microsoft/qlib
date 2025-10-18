@@ -106,7 +106,9 @@ class CryptoCollector(BaseCollector):
 
     def init_datetime(self):
         if self.interval == self.INTERVAL_1min:
-            self.start_datetime = max(self.start_datetime, self.DEFAULT_START_DATETIME_1MIN)
+            self.start_datetime = max(
+                self.start_datetime, self.DEFAULT_START_DATETIME_1MIN
+            )
         elif self.interval == self.INTERVAL_1d:
             pass
         else:
@@ -134,14 +136,22 @@ class CryptoCollector(BaseCollector):
         error_msg = f"{symbol}-{interval}-{start}-{end}"
         try:
             cg = CoinGeckoAPI()
-            data = cg.get_coin_market_chart_by_id(id=symbol, vs_currency="usd", days="max")
+            data = cg.get_coin_market_chart_by_id(
+                id=symbol, vs_currency="usd", days="max"
+            )
             _resp = pd.DataFrame(columns=["date"] + list(data.keys()))
-            _resp["date"] = [dt.fromtimestamp(mktime(time.localtime(x[0] / 1000))) for x in data["prices"]]
+            _resp["date"] = [
+                dt.fromtimestamp(mktime(time.localtime(x[0] / 1000)))
+                for x in data["prices"]
+            ]
             for key in data.keys():
                 _resp[key] = [x[1] for x in data[key]]
             _resp["date"] = pd.to_datetime(_resp["date"])
             _resp["date"] = [x.date() for x in _resp["date"]]
-            _resp = _resp[(_resp["date"] < pd.to_datetime(end).date()) & (_resp["date"] > pd.to_datetime(start).date())]
+            _resp = _resp[
+                (_resp["date"] < pd.to_datetime(end).date())
+                & (_resp["date"] > pd.to_datetime(start).date())
+            ]
             if _resp.shape[0] != 0:
                 _resp = _resp.reset_index()
             if isinstance(_resp, pd.DataFrame):
@@ -150,7 +160,11 @@ class CryptoCollector(BaseCollector):
             logger.warning(f"{error_msg}:{e}")
 
     def get_data(
-        self, symbol: str, interval: str, start_datetime: pd.Timestamp, end_datetime: pd.Timestamp
+        self,
+        symbol: str,
+        interval: str,
+        start_datetime: pd.Timestamp,
+        end_datetime: pd.Timestamp,
     ) -> [pd.DataFrame]:
         def _get_simple(start_, end_):
             self.sleep()
@@ -204,7 +218,9 @@ class CryptoNormalize(BaseNormalize):
             df = df.reindex(
                 pd.DataFrame(index=calendar_list)
                 .loc[
-                    pd.Timestamp(df.index.min()).date() : pd.Timestamp(df.index.max()).date()
+                    pd.Timestamp(df.index.min())
+                    .date() : pd.Timestamp(df.index.max())
+                    .date()
                     + pd.Timedelta(hours=23, minutes=59)
                 ]
                 .index
@@ -215,7 +231,9 @@ class CryptoNormalize(BaseNormalize):
         return df.reset_index()
 
     def normalize(self, df: pd.DataFrame) -> pd.DataFrame:
-        df = self.normalize_crypto(df, self._calendar_list, self._date_field_name, self._symbol_field_name)
+        df = self.normalize_crypto(
+            df, self._calendar_list, self._date_field_name, self._symbol_field_name
+        )
         return df
 
 
@@ -225,7 +243,9 @@ class CryptoNormalize1d(CryptoNormalize):
 
 
 class Run(BaseRun):
-    def __init__(self, source_dir=None, normalize_dir=None, max_workers=1, interval="1d"):
+    def __init__(
+        self, source_dir=None, normalize_dir=None, max_workers=1, interval="1d"
+    ):
         """
 
         Parameters
@@ -287,9 +307,13 @@ class Run(BaseRun):
             $ python collector.py download_data --source_dir ~/.qlib/crypto_data/source/1d --start 2015-01-01 --end 2021-11-30 --delay 1 --interval 1d
         """
 
-        super(Run, self).download_data(max_collector_count, delay, start, end, check_data_length, limit_nums)
+        super(Run, self).download_data(
+            max_collector_count, delay, start, end, check_data_length, limit_nums
+        )
 
-    def normalize_data(self, date_field_name: str = "date", symbol_field_name: str = "symbol"):
+    def normalize_data(
+        self, date_field_name: str = "date", symbol_field_name: str = "symbol"
+    ):
         """normalize data
 
         Parameters

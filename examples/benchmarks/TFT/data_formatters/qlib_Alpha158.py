@@ -110,8 +110,12 @@ class Alpha158Formatter(GenericDataFormatter):
         print("Setting scalers with training data...")
 
         column_definitions = self.get_column_definition()
-        id_column = utils.get_single_col_by_input_type(InputTypes.ID, column_definitions)
-        target_column = utils.get_single_col_by_input_type(InputTypes.TARGET, column_definitions)
+        id_column = utils.get_single_col_by_input_type(
+            InputTypes.ID, column_definitions
+        )
+        target_column = utils.get_single_col_by_input_type(
+            InputTypes.TARGET, column_definitions
+        )
 
         # Extract identifiers in case required
         self.identifiers = list(df[id_column].unique())
@@ -137,7 +141,9 @@ class Alpha158Formatter(GenericDataFormatter):
         for col in categorical_inputs:
             # Set all to str so that we don't have mixed integer/string columns
             srs = df[col].apply(str)
-            categorical_scalers[col] = sklearn.preprocessing.LabelEncoder().fit(srs.values)
+            categorical_scalers[col] = sklearn.preprocessing.LabelEncoder().fit(
+                srs.values
+            )
             num_classes.append(srs.nunique())
 
         # Set categorical scaler outputs

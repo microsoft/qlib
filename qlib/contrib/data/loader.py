@@ -126,14 +126,30 @@ class Alpha158DL(QlibDataLoader):
             ]
         if "price" in config:
             windows = config["price"].get("windows", range(5))
-            feature = config["price"].get("feature", ["OPEN", "HIGH", "LOW", "CLOSE", "VWAP"])
+            feature = config["price"].get(
+                "feature", ["OPEN", "HIGH", "LOW", "CLOSE", "VWAP"]
+            )
             for field in feature:
                 field = field.lower()
-                fields += ["Ref($%s, %d)/$close" % (field, d) if d != 0 else "$%s/$close" % field for d in windows]
+                fields += [
+                    (
+                        "Ref($%s, %d)/$close" % (field, d)
+                        if d != 0
+                        else "$%s/$close" % field
+                    )
+                    for d in windows
+                ]
                 names += [field.upper() + str(d) for d in windows]
         if "volume" in config:
             windows = config["volume"].get("windows", range(5))
-            fields += ["Ref($volume, %d)/($volume+1e-12)" % d if d != 0 else "$volume/($volume+1e-12)" for d in windows]
+            fields += [
+                (
+                    "Ref($volume, %d)/($volume+1e-12)" % d
+                    if d != 0
+                    else "$volume/($volume+1e-12)"
+                )
+                for d in windows
+            ]
             names += ["VOLUME" + str(d) for d in windows]
         if "rolling" in config:
             windows = config["rolling"].get("windows", [5, 10, 20, 30, 60])
@@ -197,7 +213,11 @@ class Alpha158DL(QlibDataLoader):
                 names += ["RANK%d" % d for d in windows]
             if use("RSV"):
                 # Represent the price position between upper and lower resistent price for past d days.
-                fields += ["($close-Min($low, %d))/(Max($high, %d)-Min($low, %d)+1e-12)" % (d, d, d) for d in windows]
+                fields += [
+                    "($close-Min($low, %d))/(Max($high, %d)-Min($low, %d)+1e-12)"
+                    % (d, d, d)
+                    for d in windows
+                ]
                 names += ["RSV%d" % d for d in windows]
             if use("IMAX"):
                 # The number of days between current date and previous highest price date.
@@ -216,7 +236,10 @@ class Alpha158DL(QlibDataLoader):
             if use("IMXD"):
                 # The time period between previous lowest-price date occur after highest price date.
                 # Large value suggest downward momemtum.
-                fields += ["(IdxMax($high, %d)-IdxMin($low, %d))/%d" % (d, d, d) for d in windows]
+                fields += [
+                    "(IdxMax($high, %d)-IdxMin($low, %d))/%d" % (d, d, d)
+                    for d in windows
+                ]
                 names += ["IMXD%d" % d for d in windows]
             if use("CORR"):
                 # The correlation between absolute close price and log scaled trading volume
@@ -224,7 +247,10 @@ class Alpha158DL(QlibDataLoader):
                 names += ["CORR%d" % d for d in windows]
             if use("CORD"):
                 # The correlation between price change ratio and volume change ratio
-                fields += ["Corr($close/Ref($close,1), Log($volume/Ref($volume, 1)+1), %d)" % d for d in windows]
+                fields += [
+                    "Corr($close/Ref($close,1), Log($volume/Ref($volume, 1)+1), %d)" % d
+                    for d in windows
+                ]
                 names += ["CORD%d" % d for d in windows]
             if use("CNTP"):
                 # The percentage of days in past d days that price go up.
@@ -236,13 +262,18 @@ class Alpha158DL(QlibDataLoader):
                 names += ["CNTN%d" % d for d in windows]
             if use("CNTD"):
                 # The diff between past up day and past down day
-                fields += ["Mean($close>Ref($close, 1), %d)-Mean($close<Ref($close, 1), %d)" % (d, d) for d in windows]
+                fields += [
+                    "Mean($close>Ref($close, 1), %d)-Mean($close<Ref($close, 1), %d)"
+                    % (d, d)
+                    for d in windows
+                ]
                 names += ["CNTD%d" % d for d in windows]
             if use("SUMP"):
                 # The total gain / the absolute total price changed
                 # Similar to RSI indicator. https://www.investopedia.com/terms/r/rsi.asp
                 fields += [
-                    "Sum(Greater($close-Ref($close, 1), 0), %d)/(Sum(Abs($close-Ref($close, 1)), %d)+1e-12)" % (d, d)
+                    "Sum(Greater($close-Ref($close, 1), 0), %d)/(Sum(Abs($close-Ref($close, 1)), %d)+1e-12)"
+                    % (d, d)
                     for d in windows
                 ]
                 names += ["SUMP%d" % d for d in windows]
@@ -251,7 +282,8 @@ class Alpha158DL(QlibDataLoader):
                 # Can be derived from SUMP by SUMN = 1 - SUMP
                 # Similar to RSI indicator. https://www.investopedia.com/terms/r/rsi.asp
                 fields += [
-                    "Sum(Greater(Ref($close, 1)-$close, 0), %d)/(Sum(Abs($close-Ref($close, 1)), %d)+1e-12)" % (d, d)
+                    "Sum(Greater(Ref($close, 1)-$close, 0), %d)/(Sum(Abs($close-Ref($close, 1)), %d)+1e-12)"
+                    % (d, d)
                     for d in windows
                 ]
                 names += ["SUMN%d" % d for d in windows]

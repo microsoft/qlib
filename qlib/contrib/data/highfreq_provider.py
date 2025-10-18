@@ -10,7 +10,17 @@ from qlib.config import REG_CN
 from qlib.utils import init_instance_by_config
 from qlib.data.dataset.handler import DataHandlerLP
 from qlib.data.data import Cal
-from qlib.contrib.ops.high_freq import get_calendar_day, DayLast, FFillNan, BFillNan, Date, Select, IsNull, IsInf, Cut
+from qlib.contrib.ops.high_freq import (
+    get_calendar_day,
+    DayLast,
+    FFillNan,
+    BFillNan,
+    Date,
+    Select,
+    IsNull,
+    IsInf,
+    Cut,
+)
 import pickle as pkl
 from joblib import Parallel, delayed
 
@@ -137,7 +147,9 @@ class HighFreqProvider:
                 res = [data[i] for i in datasets]
             else:
                 res = data.prepare(datasets)
-            self.logger.info(f"[{__name__}]Data loaded, time cost: {time.time() - start:.2f}")
+            self.logger.info(
+                f"[{__name__}]Data loaded, time cost: {time.time() - start:.2f}"
+            )
         else:
             if not os.path.exists(os.path.dirname(path)):
                 os.makedirs(os.path.dirname(path))
@@ -160,7 +172,9 @@ class HighFreqProvider:
             with open(path[:-4] + "test.pkl", "wb") as f:
                 pkl.dump(testset, f)
             res = [data[i] for i in datasets]
-            self.logger.info(f"[{__name__}]Data generated, time cost: {(time.time() - start_time):.2f}")
+            self.logger.info(
+                f"[{__name__}]Data generated, time cost: {(time.time() - start_time):.2f}"
+            )
         return res
 
     def _gen_data(self, config, datasets=["train", "valid", "test"]):
@@ -179,7 +193,9 @@ class HighFreqProvider:
                 res = [data[i] for i in datasets]
             else:
                 res = data.prepare(datasets)
-            self.logger.info(f"[{__name__}]Data loaded, time cost: {time.time() - start:.2f}")
+            self.logger.info(
+                f"[{__name__}]Data loaded, time cost: {time.time() - start:.2f}"
+            )
         else:
             if not os.path.exists(os.path.dirname(path)):
                 os.makedirs(os.path.dirname(path))
@@ -190,7 +206,9 @@ class HighFreqProvider:
             dataset.config(dump_all=True, recursive=True)
             dataset.to_pickle(path)
             res = dataset.prepare(datasets)
-            self.logger.info(f"[{__name__}]Data generated, time cost: {(time.time() - start_time):.2f}")
+            self.logger.info(
+                f"[{__name__}]Data generated, time cost: {(time.time() - start_time):.2f}"
+            )
         return res
 
     def _gen_dataset(self, config):
@@ -204,7 +222,9 @@ class HighFreqProvider:
 
             with open(path, "rb") as f:
                 dataset = pkl.load(f)
-            self.logger.info(f"[{__name__}]Data loaded, time cost: {time.time() - start:.2f}")
+            self.logger.info(
+                f"[{__name__}]Data loaded, time cost: {time.time() - start:.2f}"
+            )
         else:
             start = time.time()
             if not os.path.exists(os.path.dirname(path)):
@@ -212,9 +232,13 @@ class HighFreqProvider:
             self.logger.info(f"[{__name__}]Generating dataset")
             self._prepare_calender_cache()
             dataset = init_instance_by_config(config)
-            self.logger.info(f"[{__name__}]Dataset init, time cost: {time.time() - start:.2f}")
+            self.logger.info(
+                f"[{__name__}]Dataset init, time cost: {time.time() - start:.2f}"
+            )
             dataset.prepare(["train", "valid", "test"])
-            self.logger.info(f"[{__name__}]Dataset prepared, time cost: {time.time() - start:.2f}")
+            self.logger.info(
+                f"[{__name__}]Dataset prepared, time cost: {time.time() - start:.2f}"
+            )
             dataset.config(dump_all=True, recursive=True)
             dataset.to_pickle(path)
         return dataset
@@ -235,14 +259,18 @@ class HighFreqProvider:
             self.logger.info(f"[{__name__}]Generating dataset")
             self._prepare_calender_cache()
             dataset = init_instance_by_config(config)
-            self.logger.info(f"[{__name__}]Dataset init, time cost: {time.time() - start:.2f}")
+            self.logger.info(
+                f"[{__name__}]Dataset init, time cost: {time.time() - start:.2f}"
+            )
             dataset.config(dump_all=False, recursive=True)
             dataset.to_pickle(path + "tmp_dataset.pkl")
 
         with open(path + "tmp_dataset.pkl", "rb") as f:
             new_dataset = pkl.load(f)
 
-        time_list = D.calendar(start_time=self.start_time, end_time=self.end_time, freq=self.freq)[::240]
+        time_list = D.calendar(
+            start_time=self.start_time, end_time=self.end_time, freq=self.freq
+        )[::240]
 
         def generate_dataset(times):
             if os.path.isfile(path + times.strftime("%Y-%m-%d") + ".pkl"):
@@ -276,7 +304,9 @@ class HighFreqProvider:
             self.logger.info(f"[{__name__}]Generating dataset")
             self._prepare_calender_cache()
             dataset = init_instance_by_config(config)
-            self.logger.info(f"[{__name__}]Dataset init, time cost: {time.time() - start:.2f}")
+            self.logger.info(
+                f"[{__name__}]Dataset init, time cost: {time.time() - start:.2f}"
+            )
             dataset.config(dump_all=False, recursive=True)
             dataset.to_pickle(path + "tmp_dataset.pkl")
 
@@ -285,7 +315,11 @@ class HighFreqProvider:
 
         instruments = D.instruments(market="all")
         stock_list = D.list_instruments(
-            instruments=instruments, start_time=self.start_time, end_time=self.end_time, freq=self.freq, as_list=True
+            instruments=instruments,
+            start_time=self.start_time,
+            end_time=self.end_time,
+            freq=self.freq,
+            as_list=True,
         )
 
         def generate_dataset(stock):

@@ -88,7 +88,10 @@ class DLWParser(DataLoader):
         self.is_group = isinstance(config, dict)
 
         if self.is_group:
-            self.fields = {grp: self._parse_fields_info(fields_info) for grp, fields_info in config.items()}
+            self.fields = {
+                grp: self._parse_fields_info(fields_info)
+                for grp, fields_info in config.items()
+            }
         else:
             self.fields = self._parse_fields_info(config)
 
@@ -139,7 +142,9 @@ class DLWParser(DataLoader):
         if self.is_group:
             df = pd.concat(
                 {
-                    grp: self.load_group_df(instruments, exprs, names, start_time, end_time, grp)
+                    grp: self.load_group_df(
+                        instruments, exprs, names, start_time, end_time, grp
+                    )
                     for grp, (exprs, names) in self.fields.items()
                 },
                 axis=1,
@@ -214,16 +219,29 @@ class QlibDataLoader(DLWParser):
         if isinstance(instruments, str):
             instruments = D.instruments(instruments, filter_pipe=self.filter_pipe)
         elif self.filter_pipe is not None:
-            warnings.warn("`filter_pipe` is not None, but it will not be used with `instruments` as list")
+            warnings.warn(
+                "`filter_pipe` is not None, but it will not be used with `instruments` as list"
+            )
 
         freq = self.freq[gp_name] if isinstance(self.freq, dict) else self.freq
         inst_processors = (
-            self.inst_processors if isinstance(self.inst_processors, list) else self.inst_processors.get(gp_name, [])
+            self.inst_processors
+            if isinstance(self.inst_processors, list)
+            else self.inst_processors.get(gp_name, [])
         )
-        df = D.features(instruments, exprs, start_time, end_time, freq=freq, inst_processors=inst_processors)
+        df = D.features(
+            instruments,
+            exprs,
+            start_time,
+            end_time,
+            freq=freq,
+            inst_processors=inst_processors,
+        )
         df.columns = names
         if self.swap_level:
-            df = df.swaplevel().sort_index()  # NOTE: if swaplevel, return <datetime, instrument>
+            df = (
+                df.swaplevel().sort_index()
+            )  # NOTE: if swaplevel, return <datetime, instrument>
         return df
 
 
@@ -273,7 +291,10 @@ class StaticDataLoader(DataLoader, Serializable):
             return
         if isinstance(self._config, dict):
             self._data = pd.concat(
-                {fields_group: load_dataset(path_or_obj) for fields_group, path_or_obj in self._config.items()},
+                {
+                    fields_group: load_dataset(path_or_obj)
+                    for fields_group, path_or_obj in self._config.items()
+                },
                 axis=1,
                 join=self.join,
             )
@@ -322,7 +343,8 @@ class NestedDataLoader(DataLoader):
         """
         super().__init__()
         self.data_loader_l = [
-            (dl if isinstance(dl, DataLoader) else init_instance_by_config(dl)) for dl in dataloader_l
+            (dl if isinstance(dl, DataLoader) else init_instance_by_config(dl))
+            for dl in dataloader_l
         ]
         self.join = join
 
@@ -335,15 +357,25 @@ class NestedDataLoader(DataLoader):
                 warnings.warn(
                     "If the value of `instruments` cannot be processed, it will set instruments to None to get all the data."
                 )
-                df_current = dl.load(instruments=None, start_time=start_time, end_time=end_time)
+                df_current = dl.load(
+                    instruments=None, start_time=start_time, end_time=end_time
+                )
             if df_full is None:
                 df_full = df_current
             else:
                 current_columns = df_current.columns.tolist()
                 full_columns = df_full.columns.tolist()
-                columns_to_drop = [col for col in current_columns if col in full_columns]
+                columns_to_drop = [
+                    col for col in current_columns if col in full_columns
+                ]
                 df_full.drop(columns=columns_to_drop, inplace=True)
-                df_full = pd.merge(df_full, df_current, left_index=True, right_index=True, how=self.join)
+                df_full = pd.merge(
+                    df_full,
+                    df_current,
+                    left_index=True,
+                    right_index=True,
+                    how=self.join,
+                )
         return df_full.sort_index(axis=1)
 
 
@@ -388,10 +420,13 @@ class DataLoaderDH(DataLoader):
 
         if is_group:
             self.handlers = {
-                grp: init_instance_by_config(config, accept_types=DataHandler) for grp, config in handler_config.items()
+                grp: init_instance_by_config(config, accept_types=DataHandler)
+                for grp, config in handler_config.items()
             }
         else:
-            self.handlers = init_instance_by_config(handler_config, accept_types=DataHandler)
+            self.handlers = init_instance_by_config(
+                handler_config, accept_types=DataHandler
+            )
 
         self.is_group = is_group
         self.fetch_kwargs = {"col_set": DataHandler.CS_RAW}
@@ -399,16 +434,26 @@ class DataLoaderDH(DataLoader):
 
     def load(self, instruments=None, start_time=None, end_time=None) -> pd.DataFrame:
         if instruments is not None:
-            get_module_logger(self.__class__.__name__).warning(f"instruments[{instruments}] is ignored")
+            get_module_logger(self.__class__.__name__).warning(
+                f"instruments[{instruments}] is ignored"
+            )
 
         if self.is_group:
             df = pd.concat(
                 {
-                    grp: dh.fetch(selector=slice(start_time, end_time), level="datetime", **self.fetch_kwargs)
+                    grp: dh.fetch(
+                        selector=slice(start_time, end_time),
+                        level="datetime",
+                        **self.fetch_kwargs,
+                    )
                     for grp, dh in self.handlers.items()
                 },
                 axis=1,
             )
         else:
-            df = self.handlers.fetch(selector=slice(start_time, end_time), level="datetime", **self.fetch_kwargs)
+            df = self.handlers.fetch(
+                selector=slice(start_time, end_time),
+                level="datetime",
+                **self.fetch_kwargs,
+            )
         return df

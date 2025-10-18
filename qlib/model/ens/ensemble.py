@@ -48,7 +48,9 @@ class SingleKeyEnsemble(Ensemble):
             dict: the readable dict.
     """
 
-    def __call__(self, ensemble_dict: Union[dict, object], recursion: bool = True) -> object:
+    def __call__(
+        self, ensemble_dict: Union[dict, object], recursion: bool = True
+    ) -> object:
         if not isinstance(ensemble_dict, dict):
             return ensemble_dict
         if recursion:
@@ -78,7 +80,9 @@ class RollingEnsemble(Ensemble):
     """
 
     def __call__(self, ensemble_dict: dict) -> pd.DataFrame:
-        get_module_logger("RollingEnsemble").info(f"keys in group: {list(ensemble_dict.keys())}")
+        get_module_logger("RollingEnsemble").info(
+            f"keys in group: {list(ensemble_dict.keys())}"
+        )
         artifact_list = list(ensemble_dict.values())
         artifact_list.sort(key=lambda x: x.index.get_level_values("datetime").min())
         artifact = pd.concat(artifact_list)
@@ -121,12 +125,16 @@ class AverageEnsemble(Ensemble):
         """
         # need to flatten the nested dict
         ensemble_dict = flatten_dict(ensemble_dict, sep=FLATTEN_TUPLE)
-        get_module_logger("AverageEnsemble").info(f"keys in group: {list(ensemble_dict.keys())}")
+        get_module_logger("AverageEnsemble").info(
+            f"keys in group: {list(ensemble_dict.keys())}"
+        )
         values = list(ensemble_dict.values())
         # NOTE: this may change the style underlying data!!!!
         # from pd.DataFrame to pd.Series
         results = pd.concat(values, axis=1)
-        results = results.groupby("datetime", group_keys=False).apply(lambda df: (df - df.mean()) / df.std())
+        results = results.groupby("datetime", group_keys=False).apply(
+            lambda df: (df - df.mean()) / df.std()
+        )
         results = results.mean(axis=1)
         results = results.sort_index()
         return results

@@ -33,7 +33,10 @@ class TestRolling(TestAutoData):
         train_end = latest_date - pd.Timedelta(days=41)
         task["dataset"]["kwargs"]["segments"] = {
             "train": (train_start, train_end),
-            "valid": (latest_date - pd.Timedelta(days=40), latest_date - pd.Timedelta(days=21)),
+            "valid": (
+                latest_date - pd.Timedelta(days=40),
+                latest_date - pd.Timedelta(days=21),
+            ),
             "test": (latest_date - pd.Timedelta(days=20), latest_date),
         }
 
@@ -56,8 +59,12 @@ class TestRolling(TestAutoData):
 
         good_pred = rec.load_object("pred.pkl")
 
-        mod_range = slice(latest_date - pd.Timedelta(days=20), latest_date - pd.Timedelta(days=10))
-        mod_range2 = slice(latest_date - pd.Timedelta(days=9), latest_date - pd.Timedelta(days=2))
+        mod_range = slice(
+            latest_date - pd.Timedelta(days=20), latest_date - pd.Timedelta(days=10)
+        )
+        mod_range2 = slice(
+            latest_date - pd.Timedelta(days=9), latest_date - pd.Timedelta(days=2)
+        )
         mod_pred = good_pred.copy()
 
         mod_pred.loc[mod_range] = -1
@@ -65,13 +72,16 @@ class TestRolling(TestAutoData):
 
         rec.save_objects(**{"pred.pkl": mod_pred})
         online_tool.update_online_pred(
-            to_date=latest_date - pd.Timedelta(days=10), from_date=latest_date - pd.Timedelta(days=20)
+            to_date=latest_date - pd.Timedelta(days=10),
+            from_date=latest_date - pd.Timedelta(days=20),
         )
 
         updated_pred = rec.load_object("pred.pkl")
 
         # this range is not fixed
-        self.assertTrue((updated_pred.loc[mod_range] == good_pred.loc[mod_range]).all().item())
+        self.assertTrue(
+            (updated_pred.loc[mod_range] == good_pred.loc[mod_range]).all().item()
+        )
         # this range is fixed now
         self.assertTrue((updated_pred.loc[mod_range2] == -2).all().item())
 
@@ -95,7 +105,10 @@ class TestRolling(TestAutoData):
         train_end = latest_date - pd.Timedelta(days=41)
         task["dataset"]["kwargs"]["segments"] = {
             "train": (train_start, train_end),
-            "valid": (latest_date - pd.Timedelta(days=40), latest_date - pd.Timedelta(days=21)),
+            "valid": (
+                latest_date - pd.Timedelta(days=40),
+                latest_date - pd.Timedelta(days=21),
+            ),
             "test": (latest_date - pd.Timedelta(days=20), latest_date),
         }
 
@@ -128,7 +141,9 @@ class TestRolling(TestAutoData):
         lu.update()
         new_label = rec.load_object("label.pkl")
         new_label_date = new_label.index.get_level_values("datetime").max()
-        self.assertTrue(new_label_date == pred_date)  # make sure the label is updated now
+        self.assertTrue(
+            new_label_date == pred_date
+        )  # make sure the label is updated now
 
 
 if __name__ == "__main__":

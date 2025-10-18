@@ -125,8 +125,12 @@ class UserManager:
 
         # save user
         user_path.mkdir()
-        save_instance(model, self.data_path / user_id / "model_{}.pickle".format(user_id))
-        save_instance(strategy, self.data_path / user_id / "strategy_{}.pickle".format(user_id))
+        save_instance(
+            model, self.data_path / user_id / "model_{}.pickle".format(user_id)
+        )
+        save_instance(
+            strategy, self.data_path / user_id / "strategy_{}.pickle".format(user_id)
+        )
         trade_account.save_account(self.data_path / user_id)
         user_record = pd.read_csv(self.users_file, index_col=0)
         user_record.loc[user_id] = [add_date]

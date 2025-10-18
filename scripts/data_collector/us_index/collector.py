@@ -19,7 +19,11 @@ CUR_DIR = Path(__file__).resolve().parent
 sys.path.append(str(CUR_DIR.parent.parent))
 
 from data_collector.index import IndexBase
-from data_collector.utils import deco_retry, get_calendar_list, get_trading_date_by_shift
+from data_collector.utils import (
+    deco_retry,
+    get_calendar_list,
+    get_trading_date_by_shift,
+)
 from data_collector.utils import get_instruments
 
 
@@ -47,7 +51,11 @@ class WIKIIndex(IndexBase):
         retry_sleep: int = 3,
     ):
         super(WIKIIndex, self).__init__(
-            index_name=index_name, qlib_dir=qlib_dir, freq=freq, request_retry=request_retry, retry_sleep=retry_sleep
+            index_name=index_name,
+            qlib_dir=qlib_dir,
+            freq=freq,
+            request_retry=request_retry,
+            retry_sleep=retry_sleep,
         )
 
         self._target_url = f"{WIKI_URL}/{WIKI_INDEX_NAME_MAP[self.index_name.upper()]}"
@@ -93,7 +101,9 @@ class WIKIIndex(IndexBase):
         """
         if self.freq != "day":
             inst_df[self.END_DATE_FIELD] = inst_df[self.END_DATE_FIELD].apply(
-                lambda x: (pd.Timestamp(x) + pd.Timedelta(hours=23, minutes=59)).strftime("%Y-%m-%d %H:%M:%S")
+                lambda x: (
+                    pd.Timestamp(x) + pd.Timedelta(hours=23, minutes=59)
+                ).strftime("%Y-%m-%d %H:%M:%S")
             )
         return inst_df
 
@@ -107,7 +117,11 @@ class WIKIIndex(IndexBase):
         """
         _calendar_list = getattr(self, "_calendar_list", None)
         if _calendar_list is None:
-            _calendar_list = list(filter(lambda x: x >= self.bench_start_date, get_calendar_list("US_ALL")))
+            _calendar_list = list(
+                filter(
+                    lambda x: x >= self.bench_start_date, get_calendar_list("US_ALL")
+                )
+            )
             setattr(self, "_calendar_list", _calendar_list)
         return _calendar_list
 
@@ -127,7 +141,9 @@ class WIKIIndex(IndexBase):
 
     def get_new_companies(self):
         logger.info(f"get new companies {self.index_name} ......")
-        _data = deco_retry(retry=self._request_retry, retry_sleep=self._retry_sleep)(self._request_new_companies)()
+        _data = deco_retry(retry=self._request_retry, retry_sleep=self._retry_sleep)(
+            self._request_new_companies
+        )()
         df_list = pd.read_html(_data.text)
         for _df in df_list:
             _df = self.filter_df(_df)
@@ -142,9 +158,7 @@ class WIKIIndex(IndexBase):
 
 
 class NASDAQ100Index(WIKIIndex):
-    HISTORY_COMPANIES_URL = (
-        "https://indexes.nasdaqomx.com/Index/WeightingData?id=NDX&tradeDate={trade_date}T00%3A00%3A00.000&timeOfDay=SOD"
-    )
+    HISTORY_COMPANIES_URL = "https://indexes.nasdaqomx.com/Index/WeightingData?id=NDX&tradeDate={trade_date}T00%3A00%3A00.000&timeOfDay=SOD"
     MAX_WORKERS = 16
 
     def filter_df(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -156,7 +170,9 @@ class NASDAQ100Index(WIKIIndex):
         return pd.Timestamp("2003-01-02")
 
     @deco_retry
-    def _request_history_companies(self, trade_date: pd.Timestamp, use_cache: bool = True) -> pd.DataFrame:
+    def _request_history_companies(
+        self, trade_date: pd.Timestamp, use_cache: bool = True
+    ) -> pd.DataFrame:
         trade_date = trade_date.strftime("%Y-%m-%d")
         cache_path = self.cache_dir.joinpath(f"{trade_date}_history_companies.pkl")
         if cache_path.exists() and use_cache:
@@ -168,7 +184,9 @@ class NASDAQ100Index(WIKIIndex):
                 raise ValueError(f"request error: {url}")
             df = pd.DataFrame(resp.json()["aaData"])
             df[self.DATE_FIELD_NAME] = trade_date
-            df.rename(columns={"Name": "name", "Symbol": self.SYMBOL_FIELD_NAME}, inplace=True)
+            df.rename(
+                columns={"Name": "name", "Symbol": self.SYMBOL_FIELD_NAME}, inplace=True
+            )
             if not df.empty:
                 df.to_pickle(cache_path)
         return df
@@ -180,7 +198,8 @@ class NASDAQ100Index(WIKIIndex):
         with tqdm(total=len(self.calendar_list)) as p_bar:
             with ThreadPoolExecutor(max_workers=self.MAX_WORKERS) as executor:
                 for _trading_date, _df in zip(
-                    self.calendar_list, executor.map(self._request_history_companies, self.calendar_list)
+                    self.calendar_list,
+                    executor.map(self._request_history_companies, self.calendar_list),
                 ):
                     if _df.empty:
                         error_list.append(_trading_date)
@@ -229,7 +248,9 @@ class SP500Index(WIKIIndex):
         changes_df = pd.read_html(self.WIKISP500_CHANGES_URL)[-1]
         changes_df = changes_df.iloc[:, [0, 1, 3]]
         changes_df.columns = [self.DATE_FIELD_NAME, self.ADD, self.REMOVE]
-        changes_df[self.DATE_FIELD_NAME] = pd.to_datetime(changes_df[self.DATE_FIELD_NAME])
+        changes_df[self.DATE_FIELD_NAME] = pd.to_datetime(
+            changes_df[self.DATE_FIELD_NAME]
+        )
         _result = []
         for _type in [self.ADD, self.REMOVE]:
             _df = changes_df.copy()
@@ -244,7 +265,15 @@ class SP500Index(WIKIIndex):
                 _df[self.DATE_FIELD_NAME] = _df[self.DATE_FIELD_NAME].apply(
                     lambda x: get_trading_date_by_shift(self.calendar_list, x, -1)
                 )
-            _result.append(_df[[self.DATE_FIELD_NAME, self.CHANGE_TYPE_FIELD, self.SYMBOL_FIELD_NAME]])
+            _result.append(
+                _df[
+                    [
+                        self.DATE_FIELD_NAME,
+                        self.CHANGE_TYPE_FIELD,
+                        self.SYMBOL_FIELD_NAME,
+                    ]
+                ]
+            )
         logger.info(f"end of get sp500 history changes.")
         return pd.concat(_result, sort=False)
 

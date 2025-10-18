@@ -33,7 +33,9 @@ class Serializable:
 
     def __init__(self):
         self._dump_all = self.default_dump_all
-        self._exclude = None  # this attribute have higher priorities than `exclude_attr`
+        self._exclude = (
+            None  # this attribute have higher priorities than `exclude_attr`
+        )
 
     def _is_kept(self, key):
         if key in self.config_attr:
@@ -151,7 +153,9 @@ class Serializable:
         if isinstance(object, cls):
             return object
         else:
-            raise TypeError(f"The instance of {type(object)} is not a valid `{type(cls)}`!")
+            raise TypeError(
+                f"The instance of {type(object)} is not a valid `{type(cls)}`!"
+            )
 
     @classmethod
     def get_backend(cls):

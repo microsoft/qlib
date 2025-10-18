@@ -12,7 +12,9 @@ class HandlerTests(TestAutoData):
         return "".join(str(obj).split())
 
     def test_handler_df(self):
-        df = D.features(["sh600519"], start_time="20190101", end_time="20190201", fields=["$close"])
+        df = D.features(
+            ["sh600519"], start_time="20190101", end_time="20190201", fields=["$close"]
+        )
         dh = DataHandlerLP.from_df(df)
         print(dh.fetch())
         self.assertTrue(dh._data.equals(df))

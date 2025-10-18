@@ -16,7 +16,9 @@ from qlib.workflow import R
 class LGBModel(ModelFT, LightGBMFInt):
     """LightGBM Model"""
 
-    def __init__(self, loss="mse", early_stopping_rounds=50, num_boost_round=1000, **kwargs):
+    def __init__(
+        self, loss="mse", early_stopping_rounds=50, num_boost_round=1000, **kwargs
+    ):
         if loss not in {"mse", "binary"}:
             raise NotImplementedError
         self.params = {"objective": loss, "verbosity": -1}
@@ -25,7 +27,9 @@ class LGBModel(ModelFT, LightGBMFInt):
         self.num_boost_round = num_boost_round
         self.model = None
 
-    def _prepare_data(self, dataset: DatasetH, reweighter=None) -> List[Tuple[lgb.Dataset, str]]:
+    def _prepare_data(
+        self, dataset: DatasetH, reweighter=None
+    ) -> List[Tuple[lgb.Dataset, str]]:
         """
         The motivation of current version is to make validation optional
         - train segment is necessary;
@@ -34,9 +38,13 @@ class LGBModel(ModelFT, LightGBMFInt):
         assert "train" in dataset.segments
         for key in ["train", "valid"]:
             if key in dataset.segments:
-                df = dataset.prepare(key, col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
+                df = dataset.prepare(
+                    key, col_set=["feature", "label"], data_key=DataHandlerLP.DK_L
+                )
                 if df.empty:
-                    raise ValueError("Empty data from dataset, please check your dataset config.")
+                    raise ValueError(
+                        "Empty data from dataset, please check your dataset config."
+                    )
                 x, y = df["feature"], df["label"]
 
                 # Lightgbm need 1D array as its label
@@ -69,7 +77,9 @@ class LGBModel(ModelFT, LightGBMFInt):
         ds_l = self._prepare_data(dataset, reweighter)
         ds, names = list(zip(*ds_l))
         early_stopping_callback = lgb.early_stopping(
-            self.early_stopping_rounds if early_stopping_rounds is None else early_stopping_rounds
+            self.early_stopping_rounds
+            if early_stopping_rounds is None
+            else early_stopping_rounds
         )
         # NOTE: if you encounter error here. Please upgrade your lightgbm
         verbose_eval_callback = lgb.log_evaluation(period=verbose_eval)
@@ -77,10 +87,16 @@ class LGBModel(ModelFT, LightGBMFInt):
         self.model = lgb.train(
             self.params,
             ds[0],  # training dataset
-            num_boost_round=self.num_boost_round if num_boost_round is None else num_boost_round,
+            num_boost_round=(
+                self.num_boost_round if num_boost_round is None else num_boost_round
+            ),
             valid_sets=ds,
             valid_names=names,
-            callbacks=[early_stopping_callback, verbose_eval_callback, evals_result_callback],
+            callbacks=[
+                early_stopping_callback,
+                verbose_eval_callback,
+                evals_result_callback,
+            ],
             **kwargs,
         )
         for k in names:
@@ -92,10 +108,14 @@ class LGBModel(ModelFT, LightGBMFInt):
     def predict(self, dataset: DatasetH, segment: Union[Text, slice] = "test"):
         if self.model is None:
             raise ValueError("model is not fitted yet!")
-        x_test = dataset.prepare(segment, col_set="feature", data_key=DataHandlerLP.DK_I)
+        x_test = dataset.prepare(
+            segment, col_set="feature", data_key=DataHandlerLP.DK_I
+        )
         return pd.Series(self.model.predict(x_test.values), index=x_test.index)
 
-    def finetune(self, dataset: DatasetH, num_boost_round=10, verbose_eval=20, reweighter=None):
+    def finetune(
+        self, dataset: DatasetH, num_boost_round=10, verbose_eval=20, reweighter=None
+    ):
         """
         finetune model
 
@@ -111,7 +131,9 @@ class LGBModel(ModelFT, LightGBMFInt):
         # Based on existing model and finetune by train more rounds
         dtrain, _ = self._prepare_data(dataset, reweighter)  # pylint: disable=W0632
         if dtrain.empty:
-            raise ValueError("Empty data from dataset, please check your dataset config.")
+            raise ValueError(
+                "Empty data from dataset, please check your dataset config."
+            )
         verbose_eval_callback = lgb.log_evaluation(period=verbose_eval)
         self.model = lgb.train(
             self.params,

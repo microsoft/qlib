@@ -94,7 +94,9 @@ class Rolling:
         self._rid = None  # the final combined recorder id in `exp_name`
 
         self.step = step
-        assert horizon is not None, "Current version does not support extracting horizon from the underlying dataset"
+        assert (
+            horizon is not None
+        ), "Current version does not support extracting horizon from the underlying dataset"
         self.horizon = horizon
         if rolling_exp is None:
             datetime_suffix = pd.Timestamp.now().strftime("%Y%m%d%H%M%S")
@@ -135,11 +137,16 @@ class Rolling:
     def _update_start_end_time(self, task: dict):
         if self.train_start is not None:
             seg = task["dataset"]["kwargs"]["segments"]["train"]
-            task["dataset"]["kwargs"]["segments"]["train"] = pd.Timestamp(self.train_start), seg[1]
+            task["dataset"]["kwargs"]["segments"]["train"] = (
+                pd.Timestamp(self.train_start),
+                seg[1],
+            )
 
         if self.test_end is not None:
             seg = task["dataset"]["kwargs"]["segments"]["test"]
-            task["dataset"]["kwargs"]["segments"]["test"] = seg[0], pd.Timestamp(self.test_end)
+            task["dataset"]["kwargs"]["segments"]["test"] = seg[0], pd.Timestamp(
+                self.test_end
+            )
         return task
 
     def basic_task(self, enable_handler_cache: Optional[bool] = True):
@@ -161,15 +168,21 @@ class Rolling:
             raise NotImplementedError(f"This type of input is not supported")
         else:
             if enable_handler_cache and self.h_path is not None:
-                self.logger.info("Fail to override the horizon due to data handler cache")
+                self.logger.info(
+                    "Fail to override the horizon due to data handler cache"
+                )
             else:
                 self.logger.info("The prediction horizon is overrided")
                 if isinstance(task["dataset"]["kwargs"]["handler"], dict):
                     task["dataset"]["kwargs"]["handler"]["kwargs"]["label"] = [
-                        "Ref($close, -{}) / Ref($close, -1) - 1".format(self.horizon + 1)
+                        "Ref($close, -{}) / Ref($close, -1) - 1".format(
+                            self.horizon + 1
+                        )
                     ]
                 else:
-                    self.logger.warning("Try to automatically configure the lablel but failed.")
+                    self.logger.warning(
+                        "Try to automatically configure the lablel but failed."
+                    )
 
         if self.h_path is not None or enable_handler_cache:
             # if we already have provided data source or we want to create one
@@ -209,7 +222,9 @@ class Rolling:
         try:
             # TODO: mlflow does not support permanently delete experiment
             # it will  be moved to .trash and prevents creating the experiments with the same name
-            R.delete_exp(experiment_name=self.rolling_exp)  # We should remove the rolling experiments.
+            R.delete_exp(
+                experiment_name=self.rolling_exp
+            )  # We should remove the rolling experiments.
         except ValueError:
             self.logger.info("No previous rolling results")
         trainer = TrainerR(experiment_name=self.rolling_exp)
@@ -248,7 +263,9 @@ class Rolling:
                 default_module="qlib.workflow.record_temp",
             )
             r.generate()
-        print(f"Your evaluation results can be found in the experiment named `{self.exp_name}`.")
+        print(
+            f"Your evaluation results can be found in the experiment named `{self.exp_name}`."
+        )
 
     def run(self):
         # the results will be  save in mlruns.

@@ -17,8 +17,12 @@ class HighFreqHandler(DataHandlerLP):
         fit_end_time=None,
         drop_raw=True,
     ):
-        infer_processors = check_transform_proc(infer_processors, fit_start_time, fit_end_time)
-        learn_processors = check_transform_proc(learn_processors, fit_start_time, fit_end_time)
+        infer_processors = check_transform_proc(
+            infer_processors, fit_start_time, fit_end_time
+        )
+        learn_processors = check_transform_proc(
+            learn_processors, fit_start_time, fit_end_time
+        )
 
         data_loader = {
             "class": "QlibDataLoader",
@@ -56,7 +60,10 @@ class HighFreqHandler(DataHandlerLP):
             # calculate -> ffill -> remove paused
             feature_ops = template_paused.format(
                 template_fillnan.format(
-                    template_norm.format(template_if.format("$close", price_field), template_fillnan.format("$close"))
+                    template_norm.format(
+                        template_if.format("$close", price_field),
+                        template_fillnan.format("$close"),
+                    )
                 )
             )
             return feature_ops
@@ -80,7 +87,9 @@ class HighFreqHandler(DataHandlerLP):
         fields += [
             template_gzero.format(
                 template_paused.format(
-                    "If(IsNull({0}), 0, {0})".format("{0}/Ref(DayLast(Mean({0}, 7200)), 240)".format("$volume"))
+                    "If(IsNull({0}), 0, {0})".format(
+                        "{0}/Ref(DayLast(Mean({0}, 7200)), 240)".format("$volume")
+                    )
                 )
             )
         ]
@@ -90,7 +99,9 @@ class HighFreqHandler(DataHandlerLP):
             template_gzero.format(
                 template_paused.format(
                     "If(IsNull({0}), 0, {0})".format(
-                        "Ref({0}, 240)/Ref(DayLast(Mean({0}, 7200)), 240)".format("$volume")
+                        "Ref({0}, 240)/Ref(DayLast(Mean({0}, 7200)), 240)".format(
+                            "$volume"
+                        )
                     )
                 )
             )
@@ -119,8 +130,12 @@ class HighFreqGeneralHandler(DataHandlerLP):
         self.day_length = day_length
         self.columns = columns
 
-        infer_processors = check_transform_proc(infer_processors, fit_start_time, fit_end_time)
-        learn_processors = check_transform_proc(learn_processors, fit_start_time, fit_end_time)
+        infer_processors = check_transform_proc(
+            infer_processors, fit_start_time, fit_end_time
+        )
+        learn_processors = check_transform_proc(
+            learn_processors, fit_start_time, fit_end_time
+        )
 
         data_loader = {
             "class": "QlibDataLoader",
@@ -153,13 +168,20 @@ class HighFreqGeneralHandler(DataHandlerLP):
             if shift == 0:
                 template_norm = f"{{0}}/DayLast(Ref({{1}}, {self.day_length * 2}))"
             else:
-                template_norm = f"Ref({{0}}, " + str(shift) + f")/DayLast(Ref({{1}}, {self.day_length}))"
+                template_norm = (
+                    f"Ref({{0}}, "
+                    + str(shift)
+                    + f")/DayLast(Ref({{1}}, {self.day_length}))"
+                )
 
             template_fillnan = "FFillNan({0})"
             # calculate -> ffill -> remove paused
             feature_ops = template_paused.format(
                 template_fillnan.format(
-                    template_norm.format(template_if.format("$close", price_field), template_fillnan.format("$close"))
+                    template_norm.format(
+                        template_if.format("$close", price_field),
+                        template_fillnan.format("$close"),
+                    )
                 )
             )
             return feature_ops
@@ -176,7 +198,9 @@ class HighFreqGeneralHandler(DataHandlerLP):
         fields += [
             template_paused.format(
                 "If(IsNull({0}), 0, {0})".format(
-                    f"{{0}}/Ref(DayLast(Mean({{0}}, {self.day_length * 30})), {self.day_length})".format("$volume")
+                    f"{{0}}/Ref(DayLast(Mean({{0}}, {self.day_length * 30})), {self.day_length})".format(
+                        "$volume"
+                    )
                 )
             )
         ]
@@ -293,12 +317,16 @@ class HighFreqGeneralBacktestHandler(DataHandler):
 
         if "$vwap" in self.columns:
             fields += [
-                template_paused.format(template_if.format(template_fillnan.format("$close"), "$vwap")),
+                template_paused.format(
+                    template_if.format(template_fillnan.format("$close"), "$vwap")
+                ),
             ]
             names += ["$vwap0"]
 
         if "$volume" in self.columns:
-            fields += [template_paused.format("If(IsNull({0}), 0, {0})".format("$volume"))]
+            fields += [
+                template_paused.format("If(IsNull({0}), 0, {0})".format("$volume"))
+            ]
             names += ["$volume0"]
 
         return fields, names
@@ -317,8 +345,12 @@ class HighFreqOrderHandler(DataHandlerLP):
         inst_processors=None,
         drop_raw=True,
     ):
-        infer_processors = check_transform_proc(infer_processors, fit_start_time, fit_end_time)
-        learn_processors = check_transform_proc(learn_processors, fit_start_time, fit_end_time)
+        infer_processors = check_transform_proc(
+            infer_processors, fit_start_time, fit_end_time
+        )
+        learn_processors = check_transform_proc(
+            learn_processors, fit_start_time, fit_end_time
+        )
 
         data_loader = {
             "class": "QlibDataLoader",
@@ -358,7 +390,10 @@ class HighFreqOrderHandler(DataHandlerLP):
             # calculate -> ffill -> remove paused
             feature_ops = template_paused.format(
                 template_fillnan.format(
-                    template_norm.format(template_if.format("$close", price_field), template_fillnan.format("$close"))
+                    template_norm.format(
+                        template_if.format("$close", price_field),
+                        template_fillnan.format("$close"),
+                    )
                 )
             )
             return feature_ops
@@ -375,7 +410,9 @@ class HighFreqOrderHandler(DataHandlerLP):
             feature_ops = template_paused.format(
                 template_fillnan.format(
                     template_norm.format(
-                        template_if.format("$close", template_ifinf.format("$close", price_field)),
+                        template_if.format(
+                            "$close", template_ifinf.format("$close", price_field)
+                        ),
                         template_fillnan.format("$close"),
                     )
                 )
@@ -413,7 +450,9 @@ class HighFreqOrderHandler(DataHandlerLP):
                     template_paused.format(
                         "If(IsInf({0}), 0, {0})".format(
                             "If(IsNull({0}), 0, {0})".format(
-                                "{0}/Ref(DayLast(Mean({0}, 7200)), 240)".format(volume_field)
+                                "{0}/Ref(DayLast(Mean({0}, 7200)), 240)".format(
+                                    volume_field
+                                )
                             )
                         )
                     )
@@ -423,7 +462,9 @@ class HighFreqOrderHandler(DataHandlerLP):
                     template_paused.format(
                         "If(IsInf({0}), 0, {0})".format(
                             "If(IsNull({0}), 0, {0})".format(
-                                f"Ref({{0}}, {shift})/Ref(DayLast(Mean({{0}}, 7200)), 240)".format(volume_field)
+                                f"Ref({{0}}, {shift})/Ref(DayLast(Mean({{0}}, 7200)), 240)".format(
+                                    volume_field
+                                )
                             )
                         )
                     )
@@ -444,7 +485,16 @@ class HighFreqOrderHandler(DataHandlerLP):
         fields += [get_volume_feature("$askV1", 0)]
         fields += [get_volume_feature("$askV3", 0)]
         fields += [get_volume_feature("$askV5", 0)]
-        names += ["$bidV", "$bidV1", "$bidV3", "$bidV5", "$askV", "$askV1", "$askV3", "$askV5"]
+        names += [
+            "$bidV",
+            "$bidV1",
+            "$bidV3",
+            "$bidV5",
+            "$askV",
+            "$askV1",
+            "$askV3",
+            "$askV5",
+        ]
 
         fields += [get_volume_feature("$bidV", 240)]
         fields += [get_volume_feature("$bidV1", 240)]
@@ -454,7 +504,16 @@ class HighFreqOrderHandler(DataHandlerLP):
         fields += [get_volume_feature("$askV1", 240)]
         fields += [get_volume_feature("$askV3", 240)]
         fields += [get_volume_feature("$askV5", 240)]
-        names += ["$bidV_1", "$bidV1_1", "$bidV3_1", "$bidV5_1", "$askV_1", "$askV1_1", "$askV3_1", "$askV5_1"]
+        names += [
+            "$bidV_1",
+            "$bidV1_1",
+            "$bidV3_1",
+            "$bidV5_1",
+            "$askV_1",
+            "$askV1_1",
+            "$askV3_1",
+            "$askV5_1",
+        ]
 
         return fields, names
 
@@ -518,22 +577,34 @@ class HighFreqBacktestOrderHandler(DataHandler):
         fields += [template_paused.format("If(IsNull({0}), 0, {0})".format("$askV"))]
         names += ["$askV0"]
 
-        fields += [template_paused.format("If(IsNull({0}), 0, {0})".format("($bid + $ask) / 2"))]
+        fields += [
+            template_paused.format(
+                "If(IsNull({0}), 0, {0})".format("($bid + $ask) / 2")
+            )
+        ]
         names += ["$median0"]
 
         fields += [template_paused.format("If(IsNull({0}), 0, {0})".format("$factor"))]
         names += ["$factor0"]
 
-        fields += [template_paused.format("If(IsNull({0}), 0, {0})".format("$downlimitmarket"))]
+        fields += [
+            template_paused.format("If(IsNull({0}), 0, {0})".format("$downlimitmarket"))
+        ]
         names += ["$downlimitmarket0"]
 
-        fields += [template_paused.format("If(IsNull({0}), 0, {0})".format("$uplimitmarket"))]
+        fields += [
+            template_paused.format("If(IsNull({0}), 0, {0})".format("$uplimitmarket"))
+        ]
         names += ["$uplimitmarket0"]
 
-        fields += [template_paused.format("If(IsNull({0}), 0, {0})".format("$highmarket"))]
+        fields += [
+            template_paused.format("If(IsNull({0}), 0, {0})".format("$highmarket"))
+        ]
         names += ["$highmarket0"]
 
-        fields += [template_paused.format("If(IsNull({0}), 0, {0})".format("$lowmarket"))]
+        fields += [
+            template_paused.format("If(IsNull({0}), 0, {0})".format("$lowmarket"))
+        ]
         names += ["$lowmarket0"]
 
         return fields, names

@@ -116,19 +116,25 @@ class OrderGenWInteract(OrderGenerator):
             # value. Then just sell all the stocks
             target_amount_dict = copy.deepcopy(current_amount_dict.copy())
             for stock_id in list(target_amount_dict.keys()):
-                if trade_exchange.is_stock_tradable(stock_id, start_time=trade_start_time, end_time=trade_end_time):
+                if trade_exchange.is_stock_tradable(
+                    stock_id, start_time=trade_start_time, end_time=trade_end_time
+                ):
                     del target_amount_dict[stock_id]
         else:
             # consider cost rate
-            current_tradable_value /= 1 + max(trade_exchange.close_cost, trade_exchange.open_cost)
+            current_tradable_value /= 1 + max(
+                trade_exchange.close_cost, trade_exchange.open_cost
+            )
 
             # strategy 1 : generate amount_position by weight_position
             # Use API in Exchange()
-            target_amount_dict = trade_exchange.generate_amount_position_from_weight_position(
-                weight_position=target_weight_position,
-                cash=current_tradable_value,
-                start_time=trade_start_time,
-                end_time=trade_end_time,
+            target_amount_dict = (
+                trade_exchange.generate_amount_position_from_weight_position(
+                    weight_position=target_weight_position,
+                    cash=current_tradable_value,
+                    start_time=trade_start_time,
+                    end_time=trade_end_time,
+                )
             )
         order_list = trade_exchange.generate_order_for_target_amount_position(
             target_position=target_amount_dict,
@@ -198,14 +204,18 @@ class OrderGenWOInteract(OrderGenerator):
                 amount_dict[stock_id] = (
                     risk_total_value
                     * target_weight_position[stock_id]
-                    / trade_exchange.get_close(stock_id, start_time=pred_start_time, end_time=pred_end_time)
+                    / trade_exchange.get_close(
+                        stock_id, start_time=pred_start_time, end_time=pred_end_time
+                    )
                 )
                 # TODO: Qlib use None to represent trading suspension.
                 #  So last close price can't be the estimated trading price.
                 # Maybe a close price with forward fill will be a better solution.
             elif stock_id in current_stock:
                 amount_dict[stock_id] = (
-                    risk_total_value * target_weight_position[stock_id] / current.get_stock_price(stock_id)
+                    risk_total_value
+                    * target_weight_position[stock_id]
+                    / current.get_stock_price(stock_id)
                 )
             else:
                 continue

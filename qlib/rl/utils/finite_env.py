@@ -11,9 +11,21 @@ from __future__ import annotations
 import copy
 import warnings
 from contextlib import contextmanager
-from typing import Any, Callable, Dict, Generator, List, Optional, Set, Tuple, Type, Union, cast
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generator,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Type,
+    Union,
+    cast,
+)
 
-import gym
+import gymnasium as gymnasium
 import numpy as np
 from tianshou.env import BaseVectorEnv, DummyVectorEnv, ShmemVectorEnv, SubprocVectorEnv
 
@@ -69,7 +81,7 @@ def is_invalid(arr: int | float | bool | T) -> bool:
     return True
 
 
-def generate_nan_observation(obs_space: gym.Space) -> Any:
+def generate_nan_observation(obs_space: gymnasium.Space) -> Any:
     """The NaN observation that indicates the environment receives no seed.
 
     We assume that obs is complex and there must be something like float.
@@ -123,7 +135,14 @@ class FiniteVectorEnv(BaseVectorEnv):
     _logger: list[LogWriter]
 
     def __init__(
-        self, logger: LogWriter | list[LogWriter] | None, env_fns: list[Callable[..., gym.Env]], **kwargs: Any
+<<<<<<< HEAD
+        self, logger: LogWriter | list[LogWriter] | None, env_fns: list[Callable[..., gymnasium.Env]], **kwargs: Any
+=======
+        self,
+        logger: LogWriter | list[LogWriter] | None,
+        env_fns: list[Callable[..., gymnasium.Env]],
+        **kwargs: Any,
+>>>>>>> f180e36a (fix: migrate from gym to gymnasium for NumPy 2.0+ compatibility)
     ) -> None:
         super().__init__(env_fns, **kwargs)
 
@@ -311,7 +330,7 @@ class FiniteShmemVectorEnv(FiniteVectorEnv, ShmemVectorEnv):
 
 
 def vectorize_env(
-    env_factory: Callable[..., gym.Env],
+    env_factory: Callable[..., gymnasium.Env],
     env_type: FiniteEnvType,
     concurrency: int,
     logger: LogWriter | List[LogWriter],
@@ -320,11 +339,11 @@ def vectorize_env(
 
     For example, once you wrote: ::
 
-        DummyVectorEnv([lambda: gym.make(task) for _ in range(env_num)])
+        DummyVectorEnv([lambda: gymnasium.make(task) for _ in range(env_num)])
 
     Now you can replace it with: ::
 
-        finite_env_factory(lambda: gym.make(task), "dummy", env_num, my_logger)
+        finite_env_factory(lambda: gymnasium.make(task), "dummy", env_num, my_logger)
 
     By doing such replacement, you have two additional features enabled (compared to normal VectorEnv):
 
@@ -335,7 +354,7 @@ def vectorize_env(
     Parameters
     ----------
     env_factory
-        Callable to instantiate one single ``gym.Env``.
+        Callable to instantiate one single ``gymnasium.Env``.
         All concurrent workers will have the same ``env_factory``.
     env_type
         dummy or subproc or shmem. Corresponding to

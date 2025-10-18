@@ -81,7 +81,9 @@ class ADARNN(Model):
         self.optimizer = optimizer.lower()
         self.loss = loss
         self.n_splits = n_splits
-        self.device = torch.device("cuda:%d" % GPU if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        self.device = torch.device(
+            "cuda:%d" % GPU if torch.cuda.is_available() and GPU >= 0 else "cpu"
+        )
         self.seed = seed
 
         self.logger.info(
@@ -141,7 +143,9 @@ class ADARNN(Model):
         elif optimizer.lower() == "gd":
             self.train_optimizer = optim.SGD(self.model.parameters(), lr=self.lr)
         else:
-            raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
+            raise NotImplementedError(
+                "optimizer {} is not supported!".format(optimizer)
+            )
 
         self.fitted = False
         self.model.to(self.device)
@@ -162,7 +166,10 @@ class ADARNN(Model):
             list_label = []
             for data in data_all:
                 # feature :[36, 24, 6]
-                feature, label_reg = data[0].to(self.device).float(), data[1].to(self.device).float()
+                feature, label_reg = (
+                    data[0].to(self.device).float(),
+                    data[1].to(self.device).float(),
+                )
                 list_feat.append(feature)
                 list_label.append(label_reg)
             flag = False
@@ -185,11 +192,13 @@ class ADARNN(Model):
                 feature_all = torch.cat((feature_s, feature_t), 0)
 
                 if epoch < self.pre_epoch:
-                    pred_all, loss_transfer, out_weight_list = self.model.forward_pre_train(
-                        feature_all, len_win=self.len_win
+                    pred_all, loss_transfer, out_weight_list = (
+                        self.model.forward_pre_train(feature_all, len_win=self.len_win)
                     )
                 else:
-                    pred_all, loss_transfer, dist, weight_mat = self.model.forward_Boosting(feature_all, weight_mat)
+                    pred_all, loss_transfer, dist, weight_mat = (
+                        self.model.forward_Boosting(feature_all, weight_mat)
+                    )
                     dist_mat = dist_mat + dist
                 pred_s = pred_all[0 : feature_s.size(0)]
                 pred_t = pred_all[feature_s.size(0) :]
@@ -204,7 +213,9 @@ class ADARNN(Model):
             self.train_optimizer.step()
         if epoch >= self.pre_epoch:
             if epoch > self.pre_epoch:
-                weight_mat = self.model.update_weight_Boosting(weight_mat, dist_old, dist_mat)
+                weight_mat = self.model.update_weight_Boosting(
+                    weight_mat, dist_old, dist_mat
+                )
             return weight_mat, dist_mat
         else:
             weight_mat = self.transform_type(out_weight_list)
@@ -214,7 +225,9 @@ class ADARNN(Model):
     def calc_all_metrics(pred):
         """pred is a pandas dataframe that has two attributes: score (pred) and label (real)"""
         res = {}
-        ic = pred.groupby(level="datetime", group_keys=False).apply(lambda x: x.label.corr(x.score))
+        ic = pred.groupby(level="datetime", group_keys=False).apply(
+            lambda x: x.label.corr(x.score)
+        )
         rank_ic = pred.groupby(level="datetime", group_keys=False).apply(
             lambda x: x.label.corr(x.score, method="spearman")
         )
@@ -254,7 +267,9 @@ class ADARNN(Model):
         days = df_train.index.get_level_values(level=0).unique()
         train_splits = np.array_split(days, self.n_splits)
         train_splits = [df_train[s[0] : s[-1]] for s in train_splits]
-        train_loader_list = [get_stock_loader(df, self.batch_size) for df in train_splits]
+        train_loader_list = [
+            get_stock_loader(df, self.batch_size) for df in train_splits
+        ]
 
         save_path = get_or_create_path(save_path)
         stop_steps = 0
@@ -271,7 +286,9 @@ class ADARNN(Model):
         for step in range(self.n_epochs):
             self.logger.info("Epoch%d:", step)
             self.logger.info("training...")
-            weight_mat, dist_mat = self.train_AdaRNN(train_loader_list, step, dist_mat, weight_mat)
+            weight_mat, dist_mat = self.train_AdaRNN(
+                train_loader_list, step, dist_mat, weight_mat
+            )
             self.logger.info("evaluating...")
             train_metrics = self.test_epoch(df_train)
             valid_metrics = self.test_epoch(df_valid)
@@ -304,7 +321,9 @@ class ADARNN(Model):
     def predict(self, dataset: DatasetH, segment: Union[Text, slice] = "test"):
         if not self.fitted:
             raise ValueError("model is not fitted yet!")
-        x_test = dataset.prepare(segment, col_set="feature", data_key=DataHandlerLP.DK_I)
+        x_test = dataset.prepare(
+            segment, col_set="feature", data_key=DataHandlerLP.DK_I
+        )
         return self.infer(x_test)
 
     def infer(self, x_test):
@@ -344,9 +363,12 @@ class data_loader(Dataset):
         self.df_label_reg = df["label"]
         self.df_index = df.index
         self.df_feature = torch.tensor(
-            self.df_feature.values.reshape(-1, 6, 60).transpose(0, 2, 1), dtype=torch.float32
+            self.df_feature.values.reshape(-1, 6, 60).transpose(0, 2, 1),
+            dtype=torch.float32,
         )
-        self.df_label_reg = torch.tensor(self.df_label_reg.values.reshape(-1), dtype=torch.float32)
+        self.df_label_reg = torch.tensor(
+            self.df_label_reg.values.reshape(-1), dtype=torch.float32
+        )
 
     def __getitem__(self, index):
         sample, label_reg = self.df_feature[index], self.df_label_reg[index]
@@ -396,12 +418,20 @@ class AdaRNN(nn.Module):
         self.model_type = model_type
         self.trans_loss = trans_loss
         self.len_seq = len_seq
-        self.device = torch.device("cuda:%d" % GPU if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        self.device = torch.device(
+            "cuda:%d" % GPU if torch.cuda.is_available() and GPU >= 0 else "cpu"
+        )
         in_size = self.n_input
 
         features = nn.ModuleList()
         for hidden in n_hiddens:
-            rnn = nn.GRU(input_size=in_size, num_layers=1, hidden_size=hidden, batch_first=True, dropout=dropout)
+            rnn = nn.GRU(
+                input_size=in_size,
+                num_layers=1,
+                hidden_size=hidden,
+                batch_first=True,
+                dropout=dropout,
+            )
             features.append(rnn)
             in_size = hidden
         self.features = nn.Sequential(*features)
@@ -455,7 +485,9 @@ class AdaRNN(nn.Module):
         out_list_s, out_list_t = self.get_features(out_list_all)
         loss_transfer = torch.zeros((1,)).to(self.device)
         for i, n in enumerate(out_list_s):
-            criterion_transder = TransferLoss(loss_type=self.trans_loss, input_dim=n.shape[2])
+            criterion_transder = TransferLoss(
+                loss_type=self.trans_loss, input_dim=n.shape[2]
+            )
             h_start = 0
             for j in range(h_start, self.len_seq, 1):
                 i_start = j - len_win if j - len_win >= 0 else 0
@@ -517,14 +549,20 @@ class AdaRNN(nn.Module):
         out_list_s, out_list_t = self.get_features(out_list_all)
         loss_transfer = torch.zeros((1,)).to(self.device)
         if weight_mat is None:
-            weight = (1.0 / self.len_seq * torch.ones(self.num_layers, self.len_seq)).to(self.device)
+            weight = (
+                1.0 / self.len_seq * torch.ones(self.num_layers, self.len_seq)
+            ).to(self.device)
         else:
             weight = weight_mat
         dist_mat = torch.zeros(self.num_layers, self.len_seq).to(self.device)
         for i, n in enumerate(out_list_s):
-            criterion_transder = TransferLoss(loss_type=self.trans_loss, input_dim=n.shape[2])
+            criterion_transder = TransferLoss(
+                loss_type=self.trans_loss, input_dim=n.shape[2]
+            )
             for j in range(self.len_seq):
-                loss_trans = criterion_transder.compute(n[:, j, :], out_list_t[i][:, j, :])
+                loss_trans = criterion_transder.compute(
+                    n[:, j, :], out_list_t[i][:, j, :]
+                )
                 loss_transfer = loss_transfer + weight[i, j] * loss_trans
                 dist_mat[i, j] = loss_trans
         return fc_out, loss_transfer, dist_mat, weight
@@ -535,7 +573,9 @@ class AdaRNN(nn.Module):
         dist_old = dist_old.detach()
         dist_new = dist_new.detach()
         ind = dist_new > dist_old + epsilon
-        weight_mat[ind] = weight_mat[ind] * (1 + torch.sigmoid(dist_new[ind] - dist_old[ind]))
+        weight_mat[ind] = weight_mat[ind] * (
+            1 + torch.sigmoid(dist_new[ind] - dist_old[ind])
+        )
         weight_norm = torch.norm(weight_mat, dim=1, p=1)
         weight_mat = weight_mat / weight_norm.t().unsqueeze(1).repeat(1, self.len_seq)
         return weight_mat
@@ -558,7 +598,9 @@ class TransferLoss:
         """
         self.loss_type = loss_type
         self.input_dim = input_dim
-        self.device = torch.device("cuda:%d" % GPU if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        self.device = torch.device(
+            "cuda:%d" % GPU if torch.cuda.is_available() and GPU >= 0 else "cpu"
+        )
 
     def compute(self, X, Y):
         """Compute adaptation loss
@@ -583,7 +625,9 @@ class TransferLoss:
         elif self.loss_type == "js":
             loss = js(X, Y)
         elif self.loss_type == "mine":
-            mine_model = Mine_estimator(input_dim=self.input_dim, hidden_dim=60).to(self.device)
+            mine_model = Mine_estimator(input_dim=self.input_dim, hidden_dim=60).to(
+                self.device
+            )
             loss = mine_model(X, Y)
         elif self.loss_type == "adv":
             loss = adv(X, Y, self.device, input_dim=self.input_dim, hidden_dim=32)
@@ -637,12 +681,16 @@ def adv(source, target, device, input_dim=256, hidden_dim=512):
     adv_net = Discriminator(input_dim, hidden_dim).to(device)
     domain_src = torch.ones(len(source)).to(device)
     domain_tar = torch.zeros(len(target)).to(device)
-    domain_src, domain_tar = domain_src.view(domain_src.shape[0], 1), domain_tar.view(domain_tar.shape[0], 1)
+    domain_src, domain_tar = domain_src.view(domain_src.shape[0], 1), domain_tar.view(
+        domain_tar.shape[0], 1
+    )
     reverse_src = ReverseLayerF.apply(source, 1)
     reverse_tar = ReverseLayerF.apply(target, 1)
     pred_src = adv_net(reverse_src)
     pred_tar = adv_net(reverse_tar)
-    loss_s, loss_t = domain_loss(pred_src, domain_src), domain_loss(pred_tar, domain_tar)
+    loss_s, loss_t = domain_loss(pred_src, domain_src), domain_loss(
+        pred_tar, domain_tar
+    )
     loss = loss_s + loss_t
     return loss
 
@@ -678,8 +726,12 @@ class MMD_loss(nn.Module):
     def guassian_kernel(source, target, kernel_mul=2.0, kernel_num=5, fix_sigma=None):
         n_samples = int(source.size()[0]) + int(target.size()[0])
         total = torch.cat([source, target], dim=0)
-        total0 = total.unsqueeze(0).expand(int(total.size(0)), int(total.size(0)), int(total.size(1)))
-        total1 = total.unsqueeze(1).expand(int(total.size(0)), int(total.size(0)), int(total.size(1)))
+        total0 = total.unsqueeze(0).expand(
+            int(total.size(0)), int(total.size(0)), int(total.size(1))
+        )
+        total1 = total.unsqueeze(1).expand(
+            int(total.size(0)), int(total.size(0)), int(total.size(1))
+        )
         L2_distance = ((total0 - total1) ** 2).sum(2)
         if fix_sigma:
             bandwidth = fix_sigma
@@ -687,7 +739,10 @@ class MMD_loss(nn.Module):
             bandwidth = torch.sum(L2_distance.data) / (n_samples**2 - n_samples)
         bandwidth /= kernel_mul ** (kernel_num // 2)
         bandwidth_list = [bandwidth * (kernel_mul**i) for i in range(kernel_num)]
-        kernel_val = [torch.exp(-L2_distance / bandwidth_temp) for bandwidth_temp in bandwidth_list]
+        kernel_val = [
+            torch.exp(-L2_distance / bandwidth_temp)
+            for bandwidth_temp in bandwidth_list
+        ]
         return sum(kernel_val)
 
     @staticmethod
@@ -702,7 +757,11 @@ class MMD_loss(nn.Module):
         elif self.kernel_type == "rbf":
             batch_size = int(source.size()[0])
             kernels = self.guassian_kernel(
-                source, target, kernel_mul=self.kernel_mul, kernel_num=self.kernel_num, fix_sigma=self.fix_sigma
+                source,
+                target,
+                kernel_mul=self.kernel_mul,
+                kernel_num=self.kernel_num,
+                fix_sigma=self.fix_sigma,
             )
             with torch.no_grad():
                 XX = torch.mean(kernels[:batch_size, :batch_size])

@@ -57,7 +57,15 @@ class TestRegiterCustomOps(TestAutoData):
     def test_regiter_custom_ops(self):
         instruments = ["SH600000"]
         fields = ["Diff($close)", "Distance($close, Ref($close, 1))"]
-        print(D.features(instruments, fields, start_time="2010-01-01", end_time="2017-12-31", freq="day"))
+        print(
+            D.features(
+                instruments,
+                fields,
+                start_time="2010-01-01",
+                end_time="2017-12-31",
+                freq="day",
+            )
+        )
 
 
 if __name__ == "__main__":

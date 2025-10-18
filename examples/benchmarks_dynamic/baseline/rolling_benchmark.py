@@ -15,11 +15,16 @@ DIRNAME = Path(__file__).absolute().resolve().parent
 
 class RollingBenchmark(Rolling):
     # The config in the README.md
-    CONF_LIST = [DIRNAME / "workflow_config_linear_Alpha158.yaml", DIRNAME / "workflow_config_lightgbm_Alpha158.yaml"]
+    CONF_LIST = [
+        DIRNAME / "workflow_config_linear_Alpha158.yaml",
+        DIRNAME / "workflow_config_lightgbm_Alpha158.yaml",
+    ]
 
     DEFAULT_CONF = CONF_LIST[0]
 
-    def __init__(self, conf_path: Union[str, Path] = DEFAULT_CONF, horizon=20, **kwargs) -> None:
+    def __init__(
+        self, conf_path: Union[str, Path] = DEFAULT_CONF, horizon=20, **kwargs
+    ) -> None:
         # This code is for being compatible with the previous old code
         conf_path = Path(conf_path)
         super().__init__(conf_path=conf_path, horizon=horizon, **kwargs)

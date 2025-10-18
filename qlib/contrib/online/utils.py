@@ -79,7 +79,11 @@ def prepare(um, today, user_id, exchange_config=None):
         latest_trading_date = um.user_record.loc[user_id][0]
 
     if str(today.date()) < latest_trading_date:
-        log.warning("user_id:{}, last trading date {} after today {}".format(user_id, latest_trading_date, today))
+        log.warning(
+            "user_id:{}, last trading date {} after today {}".format(
+                user_id, latest_trading_date, today
+            )
+        )
         return [pd.Timestamp(latest_trading_date)], None
 
     dates = D.calendar(

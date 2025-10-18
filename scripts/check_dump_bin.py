@@ -62,12 +62,20 @@ class CheckBin:
             redis_port=-1,
         )
         csv_path = Path(csv_path).expanduser()
-        self.csv_files = sorted(csv_path.glob(f"*{file_suffix}") if csv_path.is_dir() else [csv_path])
+        self.csv_files = sorted(
+            csv_path.glob(f"*{file_suffix}") if csv_path.is_dir() else [csv_path]
+        )
 
         if check_fields is None:
-            check_fields = list(map(lambda x: x.name.split(".")[0], bin_path_list[0].glob(f"*.bin")))
+            check_fields = list(
+                map(lambda x: x.name.split(".")[0], bin_path_list[0].glob(f"*.bin"))
+            )
         else:
-            check_fields = check_fields.split(",") if isinstance(check_fields, str) else check_fields
+            check_fields = (
+                check_fields.split(",")
+                if isinstance(check_fields, str)
+                else check_fields
+            )
         self.check_fields = list(map(lambda x: x.strip(), check_fields))
         self.qlib_fields = list(map(lambda x: f"${x}", self.check_fields))
         self.max_workers = max_workers
@@ -82,13 +90,19 @@ class CheckBin:
             return self.NOT_IN_FEATURES
         # qlib data
         qlib_df = D.features([symbol], self.qlib_fields, freq=self.freq)
-        qlib_df.rename(columns={_c: _c.strip("$") for _c in qlib_df.columns}, inplace=True)
+        qlib_df.rename(
+            columns={_c: _c.strip("$") for _c in qlib_df.columns}, inplace=True
+        )
         # csv data
         origin_df = pd.read_csv(file_path)
-        origin_df[self.date_field_name] = pd.to_datetime(origin_df[self.date_field_name])
+        origin_df[self.date_field_name] = pd.to_datetime(
+            origin_df[self.date_field_name]
+        )
         if self.symbol_field_name not in origin_df.columns:
             origin_df[self.symbol_field_name] = symbol
-        origin_df.set_index([self.symbol_field_name, self.date_field_name], inplace=True)
+        origin_df.set_index(
+            [self.symbol_field_name, self.date_field_name], inplace=True
+        )
         origin_df.index.names = qlib_df.index.names
         origin_df = origin_df.reindex(qlib_df.index)
         try:
@@ -116,7 +130,9 @@ class CheckBin:
         compare_false = []
         with tqdm(total=len(self.csv_files)) as p_bar:
             with ProcessPoolExecutor(max_workers=self.max_workers) as executor:
-                for file_path, _check_res in zip(self.csv_files, executor.map(self._compare, self.csv_files)):
+                for file_path, _check_res in zip(
+                    self.csv_files, executor.map(self._compare, self.csv_files)
+                ):
                     symbol = file_path.name.strip(self.file_suffix)
                     if _check_res == self.NOT_IN_FEATURES:
                         not_in_features.append(symbol)

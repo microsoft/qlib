@@ -199,7 +199,9 @@ class SignalRecord(RecordTemp):
             f"Signal record 'pred.pkl' has been saved as the artifact of the Experiment {self.recorder.experiment_id}"
         )
         # print out results
-        pprint(f"The following are prediction results of the {type(self.model).__name__} model.")
+        pprint(
+            f"The following are prediction results of the {type(self.model).__name__} model."
+        )
         pprint(pred.head(5))
 
         if isinstance(self.dataset, DatasetH):
@@ -260,7 +262,9 @@ class HFSignalRecord(SignalRecord):
     def generate(self):
         pred = self.load("pred.pkl")
         raw_label = self.load("label.pkl")
-        long_pre, short_pre = calc_long_short_prec(pred.iloc[:, 0], raw_label.iloc[:, 0], is_alpha=True)
+        long_pre, short_pre = calc_long_short_prec(
+            pred.iloc[:, 0], raw_label.iloc[:, 0], is_alpha=True
+        )
         ic, ric = calc_ic(pred.iloc[:, 0], raw_label.iloc[:, 0])
         metrics = {
             "IC": ic.mean(),
@@ -272,7 +276,9 @@ class HFSignalRecord(SignalRecord):
         }
         objects = {"ic.pkl": ic, "ric.pkl": ric}
         objects.update({"long_pre.pkl": long_pre, "short_pre.pkl": short_pre})
-        long_short_r, long_avg_r = calc_long_short_return(pred.iloc[:, 0], raw_label.iloc[:, 0])
+        long_short_r, long_avg_r = calc_long_short_return(
+            pred.iloc[:, 0], raw_label.iloc[:, 0]
+        )
         metrics.update(
             {
                 "Long-Short Average Return": long_short_r.mean(),
@@ -290,7 +296,14 @@ class HFSignalRecord(SignalRecord):
         pprint(metrics)
 
     def list(self):
-        return ["ic.pkl", "ric.pkl", "long_pre.pkl", "short_pre.pkl", "long_short_r.pkl", "long_avg_r.pkl"]
+        return [
+            "ic.pkl",
+            "ric.pkl",
+            "long_pre.pkl",
+            "short_pre.pkl",
+            "long_short_r.pkl",
+            "long_avg_r.pkl",
+        ]
 
 
 class SigAnaRecord(ACRecordTemp):
@@ -302,7 +315,14 @@ class SigAnaRecord(ACRecordTemp):
     artifact_path = "sig_analysis"
     depend_cls = SignalRecord
 
-    def __init__(self, recorder, ana_long_short=False, ann_scaler=252, label_col=0, skip_existing=False):
+    def __init__(
+        self,
+        recorder,
+        ana_long_short=False,
+        ann_scaler=252,
+        label_col=0,
+        skip_existing=False,
+    ):
         super().__init__(recorder=recorder, skip_existing=skip_existing)
         self.ana_long_short = ana_long_short
         self.ann_scaler = ann_scaler
@@ -330,13 +350,19 @@ class SigAnaRecord(ACRecordTemp):
         }
         objects = {"ic.pkl": ic, "ric.pkl": ric}
         if self.ana_long_short:
-            long_short_r, long_avg_r = calc_long_short_return(pred.iloc[:, 0], label.iloc[:, self.label_col])
+            long_short_r, long_avg_r = calc_long_short_return(
+                pred.iloc[:, 0], label.iloc[:, self.label_col]
+            )
             metrics.update(
                 {
                     "Long-Short Ann Return": long_short_r.mean() * self.ann_scaler,
-                    "Long-Short Ann Sharpe": long_short_r.mean() / long_short_r.std() * self.ann_scaler**0.5,
+                    "Long-Short Ann Sharpe": long_short_r.mean()
+                    / long_short_r.std()
+                    * self.ann_scaler**0.5,
                     "Long-Avg Ann Return": long_avg_r.mean() * self.ann_scaler,
-                    "Long-Avg Ann Sharpe": long_avg_r.mean() / long_avg_r.std() * self.ann_scaler**0.5,
+                    "Long-Avg Ann Sharpe": long_avg_r.mean()
+                    / long_avg_r.std()
+                    * self.ann_scaler**0.5,
                 }
             )
             objects.update(
@@ -447,10 +473,12 @@ class PortAnaRecord(ACRecordTemp):
             indicator_analysis_freq = [indicator_analysis_freq]
 
         self.risk_analysis_freq = [
-            "{0}{1}".format(*Freq.parse(_analysis_freq)) for _analysis_freq in risk_analysis_freq
+            "{0}{1}".format(*Freq.parse(_analysis_freq))
+            for _analysis_freq in risk_analysis_freq
         ]
         self.indicator_analysis_freq = [
-            "{0}{1}".format(*Freq.parse(_analysis_freq)) for _analysis_freq in indicator_analysis_freq
+            "{0}{1}".format(*Freq.parse(_analysis_freq))
+            for _analysis_freq in indicator_analysis_freq
         ]
         self.indicator_analysis_method = indicator_analysis_method
 
@@ -460,7 +488,9 @@ class PortAnaRecord(ACRecordTemp):
             _count, _freq = Freq.parse(executor_config["kwargs"]["time_per_step"])
             ret_freq.append(f"{_count}{_freq}")
         if "inner_executor" in executor_config["kwargs"]:
-            ret_freq.extend(self._get_report_freq(executor_config["kwargs"]["inner_executor"]))
+            ret_freq.extend(
+                self._get_report_freq(executor_config["kwargs"]["inner_executor"])
+            )
         return ret_freq
 
     def _generate(self, **kwargs):
@@ -481,15 +511,21 @@ class PortAnaRecord(ACRecordTemp):
         artifact_objects = {}
         # custom strategy and get backtest
         portfolio_metric_dict, indicator_dict = normal_backtest(
-            executor=self.executor_config, strategy=self.strategy_config, **self.backtest_config
+            executor=self.executor_config,
+            strategy=self.strategy_config,
+            **self.backtest_config,
         )
         for _freq, (report_normal, positions_normal) in portfolio_metric_dict.items():
             artifact_objects.update({f"report_normal_{_freq}.pkl": report_normal})
             artifact_objects.update({f"positions_normal_{_freq}.pkl": positions_normal})
 
         for _freq, indicators_normal in indicator_dict.items():
-            artifact_objects.update({f"indicators_normal_{_freq}.pkl": indicators_normal[0]})
-            artifact_objects.update({f"indicators_normal_{_freq}_obj.pkl": indicators_normal[1]})
+            artifact_objects.update(
+                {f"indicators_normal_{_freq}.pkl": indicators_normal[0]}
+            )
+            artifact_objects.update(
+                {f"indicators_normal_{_freq}_obj.pkl": indicators_normal[1]}
+            )
 
         for _analysis_freq in self.risk_analysis_freq:
             if _analysis_freq not in portfolio_metric_dict:
@@ -500,27 +536,41 @@ class PortAnaRecord(ACRecordTemp):
                 report_normal, _ = portfolio_metric_dict.get(_analysis_freq)
                 analysis = dict()
                 analysis["excess_return_without_cost"] = risk_analysis(
-                    report_normal["return"] - report_normal["bench"], freq=_analysis_freq
+                    report_normal["return"] - report_normal["bench"],
+                    freq=_analysis_freq,
                 )
                 analysis["excess_return_with_cost"] = risk_analysis(
-                    report_normal["return"] - report_normal["bench"] - report_normal["cost"], freq=_analysis_freq
+                    report_normal["return"]
+                    - report_normal["bench"]
+                    - report_normal["cost"],
+                    freq=_analysis_freq,
                 )
 
                 analysis_df = pd.concat(analysis)  # type: pd.DataFrame
                 # log metrics
                 analysis_dict = flatten_dict(analysis_df["risk"].unstack().T.to_dict())
-                self.recorder.log_metrics(**{f"{_analysis_freq}.{k}": v for k, v in analysis_dict.items()})
+                self.recorder.log_metrics(
+                    **{f"{_analysis_freq}.{k}": v for k, v in analysis_dict.items()}
+                )
                 # save results
-                artifact_objects.update({f"port_analysis_{_analysis_freq}.pkl": analysis_df})
+                artifact_objects.update(
+                    {f"port_analysis_{_analysis_freq}.pkl": analysis_df}
+                )
                 logger.info(
                     f"Portfolio analysis record 'port_analysis_{_analysis_freq}.pkl' has been saved as the artifact of the Experiment {self.recorder.experiment_id}"
                 )
                 # print out results
-                pprint(f"The following are analysis results of benchmark return({_analysis_freq}).")
+                pprint(
+                    f"The following are analysis results of benchmark return({_analysis_freq})."
+                )
                 pprint(risk_analysis(report_normal["bench"], freq=_analysis_freq))
-                pprint(f"The following are analysis results of the excess return without cost({_analysis_freq}).")
+                pprint(
+                    f"The following are analysis results of the excess return without cost({_analysis_freq})."
+                )
                 pprint(analysis["excess_return_without_cost"])
-                pprint(f"The following are analysis results of the excess return with cost({_analysis_freq}).")
+                pprint(
+                    f"The following are analysis results of the excess return with cost({_analysis_freq})."
+                )
                 pprint(analysis["excess_return_with_cost"])
 
         for _analysis_freq in self.indicator_analysis_freq:
@@ -531,16 +581,24 @@ class PortAnaRecord(ACRecordTemp):
                 if self.indicator_analysis_method is None:
                     analysis_df = indicator_analysis(indicators_normal)
                 else:
-                    analysis_df = indicator_analysis(indicators_normal, method=self.indicator_analysis_method)
+                    analysis_df = indicator_analysis(
+                        indicators_normal, method=self.indicator_analysis_method
+                    )
                 # log metrics
                 analysis_dict = analysis_df["value"].to_dict()
-                self.recorder.log_metrics(**{f"{_analysis_freq}.{k}": v for k, v in analysis_dict.items()})
+                self.recorder.log_metrics(
+                    **{f"{_analysis_freq}.{k}": v for k, v in analysis_dict.items()}
+                )
                 # save results
-                artifact_objects.update({f"indicator_analysis_{_analysis_freq}.pkl": analysis_df})
+                artifact_objects.update(
+                    {f"indicator_analysis_{_analysis_freq}.pkl": analysis_df}
+                )
                 logger.info(
                     f"Indicator analysis record 'indicator_analysis_{_analysis_freq}.pkl' has been saved as the artifact of the Experiment {self.recorder.experiment_id}"
                 )
-                pprint(f"The following are analysis results of indicators({_analysis_freq}).")
+                pprint(
+                    f"The following are analysis results of indicators({_analysis_freq})."
+                )
                 pprint(analysis_df)
         return artifact_objects
 
@@ -605,9 +663,13 @@ class MultiPassPortAnaRecord(PortAnaRecord):
         # Save original strategy so that pred df can be replaced in next generate
         self.original_strategy = deepcopy_basic_type(self.strategy_config)
         if not isinstance(self.original_strategy, dict):
-            raise QlibException("MultiPassPortAnaRecord require the passed in strategy to be a dict")
+            raise QlibException(
+                "MultiPassPortAnaRecord require the passed in strategy to be a dict"
+            )
         if "signal" not in self.original_strategy.get("kwargs", {}):
-            raise QlibException("MultiPassPortAnaRecord require the passed in strategy to have signal as a parameter")
+            raise QlibException(
+                "MultiPassPortAnaRecord require the passed in strategy to have signal as a parameter"
+            )
 
     def random_init(self):
         pred_df = self.load("pred.pkl")
@@ -642,7 +704,9 @@ class MultiPassPortAnaRecord(PortAnaRecord):
                 risk_analysis_df_list = risk_analysis_df_map.get(_analysis_freq, [])
                 risk_analysis_df_map[_analysis_freq] = risk_analysis_df_list
 
-                analysis_df = single_run_artifacts[f"port_analysis_{_analysis_freq}.pkl"]
+                analysis_df = single_run_artifacts[
+                    f"port_analysis_{_analysis_freq}.pkl"
+                ]
                 analysis_df["run_id"] = i
                 risk_analysis_df_list.append(analysis_df)
 
@@ -652,9 +716,15 @@ class MultiPassPortAnaRecord(PortAnaRecord):
             combined_df = pd.concat(risk_analysis_df_map[_analysis_freq])
 
             # Calculate return and information ratio's mean, std and mean/std
-            multi_pass_port_analysis_df = combined_df.groupby(level=[0, 1], group_keys=False).apply(
+            multi_pass_port_analysis_df = combined_df.groupby(
+                level=[0, 1], group_keys=False
+            ).apply(
                 lambda x: pd.Series(
-                    {"mean": x["risk"].mean(), "std": x["risk"].std(), "mean_std": x["risk"].mean() / x["risk"].std()}
+                    {
+                        "mean": x["risk"].mean(),
+                        "std": x["risk"].std(),
+                        "mean_std": x["risk"].mean() / x["risk"].std(),
+                    }
                 )
             )
 
@@ -665,14 +735,20 @@ class MultiPassPortAnaRecord(PortAnaRecord):
             pprint(multi_pass_port_analysis_df)
 
             # Save new df
-            result_artifacts.update({f"multi_pass_port_analysis_{_analysis_freq}.pkl": multi_pass_port_analysis_df})
+            result_artifacts.update(
+                {
+                    f"multi_pass_port_analysis_{_analysis_freq}.pkl": multi_pass_port_analysis_df
+                }
+            )
 
             # Log metrics
             metrics = flatten_dict(
                 {
                     "mean": multi_pass_port_analysis_df["mean"].unstack().T.to_dict(),
                     "std": multi_pass_port_analysis_df["std"].unstack().T.to_dict(),
-                    "mean_std": multi_pass_port_analysis_df["mean_std"].unstack().T.to_dict(),
+                    "mean_std": multi_pass_port_analysis_df["mean_std"]
+                    .unstack()
+                    .T.to_dict(),
                 }
             )
             self.recorder.log_metrics(**metrics)

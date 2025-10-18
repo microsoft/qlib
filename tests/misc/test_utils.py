@@ -8,7 +8,13 @@ from qlib import init
 from qlib.config import C
 from qlib.log import TimeInspector
 from qlib.constant import REG_CN, REG_US, REG_TW
-from qlib.utils.time import cal_sam_minute as cal_sam_minute_new, get_min_cal, CN_TIME, US_TIME, TW_TIME
+from qlib.utils.time import (
+    cal_sam_minute as cal_sam_minute_new,
+    get_min_cal,
+    CN_TIME,
+    US_TIME,
+    TW_TIME,
+)
 from qlib.utils.data import guess_horizon
 
 REG_MAP = {REG_CN: CN_TIME, REG_US: US_TIME, REG_TW: TW_TIME}
@@ -66,7 +72,9 @@ def cal_sam_minute(x: pd.Timestamp, sam_minutes: int, region: str):
     elif 120 <= minute_index < 240:
         return mid_open_time + (minute_index - 120) * pd.Timedelta(minutes=1)
     else:
-        raise ValueError("calendar minute_index error, check `min_data_shift` in qlib.config.C")
+        raise ValueError(
+            "calendar minute_index error, check `min_data_shift` in qlib.config.C"
+        )
 
 
 class TimeUtils(TestCase):
@@ -99,7 +107,9 @@ class TimeUtils(TestCase):
         for region in regions:
             cal_time = get_min_cal(region=region)
             for args in gen_args(cal_time):
-                assert cal_sam_minute(*args, region) == cal_sam_minute_new(*args, region=region)
+                assert cal_sam_minute(*args, region) == cal_sam_minute_new(
+                    *args, region=region
+                )
 
             # test the performance of the code
             args_l = list(gen_args(cal_time))

@@ -18,7 +18,10 @@ from qlib.workflow.task.manage import TaskManager, run_task
 from qlib.workflow.task.collect import RecorderCollector
 from qlib.model.ens.group import RollingGroup
 from qlib.model.trainer import TrainerR, TrainerRM, task_train
-from qlib.tests.config import CSI100_RECORD_LGB_TASK_CONFIG, CSI100_RECORD_XGBOOST_TASK_CONFIG
+from qlib.tests.config import (
+    CSI100_RECORD_LGB_TASK_CONFIG,
+    CSI100_RECORD_XGBOOST_TASK_CONFIG,
+)
 
 
 class RollingTaskExample:
@@ -36,7 +39,10 @@ class RollingTaskExample:
     ):
         # TaskManager config
         if task_config is None:
-            task_config = [CSI100_RECORD_XGBOOST_TASK_CONFIG, CSI100_RECORD_LGB_TASK_CONFIG]
+            task_config = [
+                CSI100_RECORD_XGBOOST_TASK_CONFIG,
+                CSI100_RECORD_LGB_TASK_CONFIG,
+            ]
         mongo_conf = {
             "task_url": task_url,
             "task_db_name": task_db_name,

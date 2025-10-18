@@ -62,7 +62,9 @@ QSETTINGS = QSettings()
 
 class Config:
     def __init__(self, default_conf):
-        self.__dict__["_default_config"] = copy.deepcopy(default_conf)  # avoiding conflicts with __getattr__
+        self.__dict__["_default_config"] = copy.deepcopy(
+            default_conf
+        )  # avoiding conflicts with __getattr__
         self.reset()
 
     def __getitem__(self, key):
@@ -209,7 +211,13 @@ _default_config = {
         # However, due to bug in pytest, it requires log message to propagate to root logger to be captured by `caplog` [2].
         # [1] https://github.com/microsoft/qlib/pull/1661
         # [2] https://github.com/pytest-dev/pytest/issues/3697
-        "loggers": {"qlib": {"level": logging.DEBUG, "handlers": ["console"], "propagate": False}},
+        "loggers": {
+            "qlib": {
+                "level": logging.DEBUG,
+                "handlers": ["console"],
+                "propagate": False,
+            }
+        },
         # To let qlib work with other packages, we shouldn't disable existing loggers.
         # Note that this param is default to True according to the documentation of logging.
         "disable_existing_loggers": False,
@@ -328,7 +336,11 @@ class QlibConfig(Config):
         - some helper functions to process uri.
         """
 
-        def __init__(self, provider_uri: Union[str, Path, dict], mount_path: Union[str, Path, dict]):
+        def __init__(
+            self,
+            provider_uri: Union[str, Path, dict],
+            mount_path: Union[str, Path, dict],
+        ):
             """
             The relation of `provider_uri` and `mount_path`
             - `mount_path` is used only if provider_uri is an NFS path
@@ -347,14 +359,19 @@ class QlibConfig(Config):
             else:
                 raise TypeError(f"provider_uri does not support {type(provider_uri)}")
             for freq, _uri in provider_uri.items():
-                if QlibConfig.DataPathManager.get_uri_type(_uri) == QlibConfig.LOCAL_URI:
+                if (
+                    QlibConfig.DataPathManager.get_uri_type(_uri)
+                    == QlibConfig.LOCAL_URI
+                ):
                     provider_uri[freq] = str(Path(_uri).expanduser().resolve())
             return provider_uri
 
         @staticmethod
         def get_uri_type(uri: Union[str, Path]):
             uri = uri if isinstance(uri, str) else str(uri.expanduser().resolve())
-            is_win = re.match("^[a-zA-Z]:.*", uri) is not None  # such as 'C:\\data', 'D:'
+            is_win = (
+                re.match("^[a-zA-Z]:.*", uri) is not None
+            )  # such as 'C:\\data', 'D:'
             # such as 'host:/data/'   (User may define short hostname by themselves or use localhost)
             is_nfs_or_win = re.match("^[^/]+:.+", uri) is not None
 
@@ -415,7 +432,9 @@ class QlibConfig(Config):
         for _freq in _provider_uri.keys():
             # mount_path
             _mount_path[_freq] = (
-                _mount_path[_freq] if _mount_path[_freq] is None else str(Path(_mount_path[_freq]).expanduser())
+                _mount_path[_freq]
+                if _mount_path[_freq] is None
+                else str(Path(_mount_path[_freq]).expanduser())
             )
         self["provider_uri"] = _provider_uri
         self["mount_path"] = _mount_path
@@ -438,7 +457,11 @@ class QlibConfig(Config):
         default_conf : str
             the default config template chosen by user: "server", "client"
         """
-        from .utils import set_log_with_config, get_module_logger, can_use_cache  # pylint: disable=C0415
+        from .utils import (
+            set_log_with_config,
+            get_module_logger,
+            can_use_cache,
+        )  # pylint: disable=C0415
 
         self.reset()
 
@@ -448,11 +471,15 @@ class QlibConfig(Config):
         if _logging_config:
             set_log_with_config(_logging_config)
 
-        logger = get_module_logger("Initialization", kwargs.get("logging_level", self.logging_level))
+        logger = get_module_logger(
+            "Initialization", kwargs.get("logging_level", self.logging_level)
+        )
         logger.info(f"default_conf: {default_conf}.")
 
         self.set_mode(default_conf)
-        self.set_region(kwargs.get("region", self["region"] if "region" in self else REG_CN))
+        self.set_region(
+            kwargs.get("region", self["region"] if "region" in self else REG_CN)
+        )
 
         for k, v in kwargs.items():
             if k not in self:
@@ -471,7 +498,11 @@ class QlibConfig(Config):
                     self["expression_cache"] = None
                 # check dataset cache
                 if self.is_depend_redis(self["dataset_cache"]):
-                    log_str += f" and {self['dataset_cache']}" if log_str else self["dataset_cache"]
+                    log_str += (
+                        f" and {self['dataset_cache']}"
+                        if log_str
+                        else self["dataset_cache"]
+                    )
                     self["dataset_cache"] = None
                 if log_str:
                     logger.warning(

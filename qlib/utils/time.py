@@ -50,19 +50,23 @@ def get_min_cal(shift: int = 0, region: str = REG_CN) -> List[time]:
 
     if region == REG_CN:
         for ts in list(
-            pd.date_range(CN_TIME[0], CN_TIME[1] - timedelta(minutes=1), freq="1min") - pd.Timedelta(minutes=shift)
+            pd.date_range(CN_TIME[0], CN_TIME[1] - timedelta(minutes=1), freq="1min")
+            - pd.Timedelta(minutes=shift)
         ) + list(
-            pd.date_range(CN_TIME[2], CN_TIME[3] - timedelta(minutes=1), freq="1min") - pd.Timedelta(minutes=shift)
+            pd.date_range(CN_TIME[2], CN_TIME[3] - timedelta(minutes=1), freq="1min")
+            - pd.Timedelta(minutes=shift)
         ):
             cal.append(ts.time())
     elif region == REG_TW:
         for ts in list(
-            pd.date_range(TW_TIME[0], TW_TIME[1] - timedelta(minutes=1), freq="1min") - pd.Timedelta(minutes=shift)
+            pd.date_range(TW_TIME[0], TW_TIME[1] - timedelta(minutes=1), freq="1min")
+            - pd.Timedelta(minutes=shift)
         ):
             cal.append(ts.time())
     elif region == REG_US:
         for ts in list(
-            pd.date_range(US_TIME[0], US_TIME[1] - timedelta(minutes=1), freq="1min") - pd.Timedelta(minutes=shift)
+            pd.date_range(US_TIME[0], US_TIME[1] - timedelta(minutes=1), freq="1min")
+            - pd.Timedelta(minutes=shift)
         ):
             cal.append(ts.time())
     else:
@@ -108,15 +112,22 @@ def is_single_value(start_time, end_time, freq, region: str = REG_CN):
             return True
         return False
     else:
-        raise NotImplementedError(f"please implement the is_single_value func for {region}")
+        raise NotImplementedError(
+            f"please implement the is_single_value func for {region}"
+        )
 
 
 class Freq:
     NORM_FREQ_MONTH = "month"
     NORM_FREQ_WEEK = "week"
     NORM_FREQ_DAY = "day"
-    NORM_FREQ_MINUTE = "min"  # using min instead of minute for align with Qlib's data filename
-    SUPPORT_CAL_LIST = [NORM_FREQ_MINUTE, NORM_FREQ_DAY]  # FIXME: this list should from data
+    NORM_FREQ_MINUTE = (
+        "min"  # using min instead of minute for align with Qlib's data filename
+    )
+    SUPPORT_CAL_LIST = [
+        NORM_FREQ_MINUTE,
+        NORM_FREQ_DAY,
+    ]  # FIXME: this list should from data
 
     def __init__(self, freq: Union[str, "Freq"]) -> None:
         if isinstance(freq, str):
@@ -132,7 +143,9 @@ class Freq:
 
     def __str__(self):
         # trying to align to the filename of Qlib: day, 30min, 5min, 1min...
-        return f"{self.count if self.count != 1 or self.base != 'day' else ''}{self.base}"
+        return (
+            f"{self.count if self.count != 1 or self.base != 'day' else ''}{self.base}"
+        )
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({str(self)})"
@@ -226,7 +239,9 @@ class Freq:
         return left_minutes - right_minutes
 
     @staticmethod
-    def get_recent_freq(base_freq: Union[str, "Freq"], freq_list: List[Union[str, "Freq"]]) -> Optional["Freq"]:
+    def get_recent_freq(
+        base_freq: Union[str, "Freq"], freq_list: List[Union[str, "Freq"]]
+    ) -> Optional["Freq"]:
         """Get the closest freq to base_freq from freq_list
 
         Parameters
@@ -265,22 +280,30 @@ def time_to_day_index(time_obj: Union[str, datetime], region: str = REG_CN):
         elif CN_TIME[2] <= time_obj < CN_TIME[3]:
             return int((time_obj - CN_TIME[2]).total_seconds() / 60) + 120
         else:
-            raise ValueError(f"{time_obj} is not the opening time of the {region} stock market")
+            raise ValueError(
+                f"{time_obj} is not the opening time of the {region} stock market"
+            )
     elif region == REG_US:
         if US_TIME[0] <= time_obj < US_TIME[1]:
             return int((time_obj - US_TIME[0]).total_seconds() / 60)
         else:
-            raise ValueError(f"{time_obj} is not the opening time of the {region} stock market")
+            raise ValueError(
+                f"{time_obj} is not the opening time of the {region} stock market"
+            )
     elif region == REG_TW:
         if TW_TIME[0] <= time_obj < TW_TIME[1]:
             return int((time_obj - TW_TIME[0]).total_seconds() / 60)
         else:
-            raise ValueError(f"{time_obj} is not the opening time of the {region} stock market")
+            raise ValueError(
+                f"{time_obj} is not the opening time of the {region} stock market"
+            )
     else:
         raise ValueError(f"{region} is not supported")
 
 
-def get_day_min_idx_range(start: str, end: str, freq: str, region: str) -> Tuple[int, int]:
+def get_day_min_idx_range(
+    start: str, end: str, freq: str, region: str
+) -> Tuple[int, int]:
     """
     get the min-bar index in a day for a time range (both left and right is closed) given a fixed frequency
     Parameters
@@ -320,7 +343,9 @@ def concat_date_time(date_obj: date, time_obj: time) -> pd.Timestamp:
     )
 
 
-def cal_sam_minute(x: pd.Timestamp, sam_minutes: int, region: str = REG_CN) -> pd.Timestamp:
+def cal_sam_minute(
+    x: pd.Timestamp, sam_minutes: int, region: str = REG_CN
+) -> pd.Timestamp:
     """
     align the minute-level data to a down sampled calendar
 
@@ -346,7 +371,9 @@ def cal_sam_minute(x: pd.Timestamp, sam_minutes: int, region: str = REG_CN) -> p
     return concat_date_time(_date, new_time)
 
 
-def epsilon_change(date_time: pd.Timestamp, direction: str = "backward") -> pd.Timestamp:
+def epsilon_change(
+    date_time: pd.Timestamp, direction: str = "backward"
+) -> pd.Timestamp:
     """
     change the time by infinitely small quantity.
 

@@ -19,7 +19,11 @@ def generate_order(stock: str, start_idx: int, end_idx: int) -> bool:
 
     df["date"] = df["datetime"].dt.date.astype("datetime64")
     df = df.set_index(["instrument", "datetime", "date"])
-    df = df.groupby("date", group_keys=False).take(range(start_idx, end_idx)).droplevel(level=0)
+    df = (
+        df.groupby("date", group_keys=False)
+        .take(range(start_idx, end_idx))
+        .droplevel(level=0)
+    )
 
     order_all = pd.DataFrame(df.groupby(level=(2, 0), group_keys=False).mean().dropna())
     order_all["amount"] = np.random.lognormal(-3.28, 1.14) * order_all["$volume0"]
@@ -27,12 +31,23 @@ def generate_order(stock: str, start_idx: int, end_idx: int) -> bool:
     order_all["order_type"] = 0
     order_all = order_all.drop(columns=["$volume0"])
 
-    order_train = order_all[order_all.index.get_level_values(0) <= pd.Timestamp("2021-06-30")]
-    order_test = order_all[order_all.index.get_level_values(0) > pd.Timestamp("2021-06-30")]
-    order_valid = order_test[order_test.index.get_level_values(0) <= pd.Timestamp("2021-09-30")]
-    order_test = order_test[order_test.index.get_level_values(0) > pd.Timestamp("2021-09-30")]
+    order_train = order_all[
+        order_all.index.get_level_values(0) <= pd.Timestamp("2021-06-30")
+    ]
+    order_test = order_all[
+        order_all.index.get_level_values(0) > pd.Timestamp("2021-06-30")
+    ]
+    order_valid = order_test[
+        order_test.index.get_level_values(0) <= pd.Timestamp("2021-09-30")
+    ]
+    order_test = order_test[
+        order_test.index.get_level_values(0) > pd.Timestamp("2021-09-30")
+    ]
 
-    for order, tag in zip((order_train, order_valid, order_test, order_all), ("train", "valid", "test", "all")):
+    for order, tag in zip(
+        (order_train, order_valid, order_test, order_all),
+        ("train", "valid", "test", "all"),
+    ):
         path = OUTPUT_PATH / tag
         os.makedirs(path, exist_ok=True)
         if len(order) > 0:

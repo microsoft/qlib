@@ -34,7 +34,9 @@ class BaseDFilter(abc.ABC):
         config : dict
             dict of config parameters.
         """
-        raise NotImplementedError("Subclass of BaseDFilter must reimplement `from_config` method")
+        raise NotImplementedError(
+            "Subclass of BaseDFilter must reimplement `from_config` method"
+        )
 
     @abstractmethod
     def to_config(self):
@@ -45,7 +47,9 @@ class BaseDFilter(abc.ABC):
         dict
             return the dict of config parameters.
         """
-        raise NotImplementedError("Subclass of BaseDFilter must reimplement `to_config` method")
+        raise NotImplementedError(
+            "Subclass of BaseDFilter must reimplement `to_config` method"
+        )
 
 
 class SeriesDFilter(BaseDFilter):
@@ -123,7 +127,9 @@ class SeriesDFilter(BaseDFilter):
         timestamp_series = pd.Series(timestamp_series)
         # Fill the date within target_timestamp with TRUE
         for start, end in target_timestamp:
-            timestamp_series[Cal.calendar(start_time=start, end_time=end, freq=self.filter_freq)] = True
+            timestamp_series[
+                Cal.calendar(start_time=start, end_time=end, freq=self.filter_freq)
+            ] = True
         return timestamp_series
 
     def _filterSeries(self, timestamp_series, filter_series):
@@ -142,7 +148,9 @@ class SeriesDFilter(BaseDFilter):
             the series of bool value indicating whether the date satisfies the filter condition and exists in target timestamp.
         """
         fstart, fend = list(filter_series.keys())[0], list(filter_series.keys())[-1]
-        filter_series = filter_series.astype("bool")  # Make sure the filter_series is boolean
+        filter_series = filter_series.astype(
+            "bool"
+        )  # Make sure the filter_series is boolean
         timestamp_series[fstart:fend] = timestamp_series[fstart:fend] & filter_series
         return timestamp_series
 
@@ -211,7 +219,9 @@ class SeriesDFilter(BaseDFilter):
         pd.Dataframe
             a series of {pd.Timestamp => bool}.
         """
-        raise NotImplementedError("Subclass of SeriesDFilter must reimplement `getFilterSeries` method")
+        raise NotImplementedError(
+            "Subclass of SeriesDFilter must reimplement `getFilterSeries` method"
+        )
 
     def filter_main(self, instruments, start_time=None, end_time=None):
         """Implement this method to filter the instruments.
@@ -234,13 +244,21 @@ class SeriesDFilter(BaseDFilter):
         start_time = pd.Timestamp(start_time or lbound)
         end_time = pd.Timestamp(end_time or ubound)
         _instruments_filtered = {}
-        _all_calendar = Cal.calendar(start_time=start_time, end_time=end_time, freq=self.filter_freq)
+        _all_calendar = Cal.calendar(
+            start_time=start_time, end_time=end_time, freq=self.filter_freq
+        )
         _filter_calendar = Cal.calendar(
-            start_time=self.filter_start_time and max(self.filter_start_time, _all_calendar[0]) or _all_calendar[0],
-            end_time=self.filter_end_time and min(self.filter_end_time, _all_calendar[-1]) or _all_calendar[-1],
+            start_time=self.filter_start_time
+            and max(self.filter_start_time, _all_calendar[0])
+            or _all_calendar[0],
+            end_time=self.filter_end_time
+            and min(self.filter_end_time, _all_calendar[-1])
+            or _all_calendar[-1],
             freq=self.filter_freq,
         )
-        _all_filter_series = self._getFilterSeries(instruments, _filter_calendar[0], _filter_calendar[-1])
+        _all_filter_series = self._getFilterSeries(
+            instruments, _filter_calendar[0], _filter_calendar[-1]
+        )
         for inst, timestamp in instruments.items():
             # Construct a whole map of date
             _timestamp_series = self._toSeries(_all_calendar, timestamp)
@@ -249,9 +267,13 @@ class SeriesDFilter(BaseDFilter):
                 _filter_series = _all_filter_series[inst]
             else:
                 if self.keep:
-                    _filter_series = pd.Series({timestamp: True for timestamp in _filter_calendar})
+                    _filter_series = pd.Series(
+                        {timestamp: True for timestamp in _filter_calendar}
+                    )
                 else:
-                    _filter_series = pd.Series({timestamp: False for timestamp in _filter_calendar})
+                    _filter_series = pd.Series(
+                        {timestamp: False for timestamp in _filter_calendar}
+                    )
             # Calculate bool value within the range of filter
             _timestamp_series = self._filterSeries(_timestamp_series, _filter_series)
             # Reform the map to (start_timestamp, end_timestamp) format
@@ -283,12 +305,18 @@ class NameDFilter(SeriesDFilter):
 
     def _getFilterSeries(self, instruments, fstart, fend):
         all_filter_series = {}
-        filter_calendar = Cal.calendar(start_time=fstart, end_time=fend, freq=self.filter_freq)
+        filter_calendar = Cal.calendar(
+            start_time=fstart, end_time=fend, freq=self.filter_freq
+        )
         for inst, timestamp in instruments.items():
             if re.match(self.name_rule_re, inst):
-                _filter_series = pd.Series({timestamp: True for timestamp in filter_calendar})
+                _filter_series = pd.Series(
+                    {timestamp: True for timestamp in filter_calendar}
+                )
             else:
-                _filter_series = pd.Series({timestamp: False for timestamp in filter_calendar})
+                _filter_series = pd.Series(
+                    {timestamp: False for timestamp in filter_calendar}
+                )
             all_filter_series[inst] = _filter_series
         return all_filter_series
 
@@ -304,8 +332,16 @@ class NameDFilter(SeriesDFilter):
         return {
             "filter_type": "NameDFilter",
             "name_rule_re": self.name_rule_re,
-            "filter_start_time": str(self.filter_start_time) if self.filter_start_time else self.filter_start_time,
-            "filter_end_time": str(self.filter_end_time) if self.filter_end_time else self.filter_end_time,
+            "filter_start_time": (
+                str(self.filter_start_time)
+                if self.filter_start_time
+                else self.filter_start_time
+            ),
+            "filter_end_time": (
+                str(self.filter_end_time)
+                if self.filter_end_time
+                else self.filter_end_time
+            ),
         }
 
 
@@ -351,7 +387,9 @@ class ExpressionDFilter(SeriesDFilter):
             )
         except TypeError:
             # use LocalDatasetProvider
-            _features = DatasetD.dataset(instruments, [self.rule_expression], fstart, fend, freq=self.filter_freq)
+            _features = DatasetD.dataset(
+                instruments, [self.rule_expression], fstart, fend, freq=self.filter_freq
+            )
         rule_expression_field_name = list(_features.keys())[0]
         all_filter_series = _features[rule_expression_field_name]
         return all_filter_series
@@ -369,7 +407,15 @@ class ExpressionDFilter(SeriesDFilter):
         return {
             "filter_type": "ExpressionDFilter",
             "rule_expression": self.rule_expression,
-            "filter_start_time": str(self.filter_start_time) if self.filter_start_time else self.filter_start_time,
-            "filter_end_time": str(self.filter_end_time) if self.filter_end_time else self.filter_end_time,
+            "filter_start_time": (
+                str(self.filter_start_time)
+                if self.filter_start_time
+                else self.filter_start_time
+            ),
+            "filter_end_time": (
+                str(self.filter_end_time)
+                if self.filter_end_time
+                else self.filter_end_time
+            ),
             "keep": self.keep,
         }

@@ -38,7 +38,11 @@ def _get_multi_level_executor_config(
         "kwargs": {
             "time_per_step": data_granularity,
             "verbose": False,
-            "trade_type": SimulatorExecutor.TT_PARAL if cash_limit is not None else SimulatorExecutor.TT_SERIAL,
+            "trade_type": (
+                SimulatorExecutor.TT_PARAL
+                if cash_limit is not None
+                else SimulatorExecutor.TT_SERIAL
+            ),
             "generate_report": generate_report,
             "track_data": True,
         },
@@ -80,7 +84,9 @@ def _convert_indicator_to_dataframe(indicator: dict) -> Optional[pd.DataFrame]:
     if not record_list:
         return None
 
-    records: pd.DataFrame = pd.concat(record_list, 0).reset_index().rename(columns={"index": "instrument"})
+    records: pd.DataFrame = (
+        pd.concat(record_list, 0).reset_index().rename(columns={"index": "instrument"})
+    )
     records = records.set_index(["instrument", "datetime"])
     return records
 
@@ -110,11 +116,17 @@ def _generate_report(
             indicator_his[key].append(indicator_obj.order_indicator_his)
 
     report = {}
-    decision_details = pd.concat([getattr(d, "details") for d in decisions if hasattr(d, "details")])
+    decision_details = pd.concat(
+        [getattr(d, "details") for d in decisions if hasattr(d, "details")]
+    )
     for key in indicator_dict:
         cur_dict = pd.concat(indicator_dict[key])
-        cur_his = pd.concat([_convert_indicator_to_dataframe(his) for his in indicator_his[key]])
-        cur_details = decision_details[decision_details.freq == key].set_index(["instrument", "datetime"])
+        cur_his = pd.concat(
+            [_convert_indicator_to_dataframe(his) for his in indicator_his[key]]
+        )
+        cur_details = decision_details[decision_details.freq == key].set_index(
+            ["instrument", "datetime"]
+        )
         if len(cur_details) > 0:
             cur_details.pop("freq")
             cur_his = cur_his.join(cur_details, how="outer")
@@ -163,8 +175,12 @@ def single_with_simulator(
     decisions = []
     for _, row in orders.iterrows():
         date = pd.Timestamp(row["datetime"])
-        start_time = pd.Timestamp(backtest_config["start_time"]).replace(year=date.year, month=date.month, day=date.day)
-        end_time = pd.Timestamp(backtest_config["end_time"]).replace(year=date.year, month=date.month, day=date.day)
+        start_time = pd.Timestamp(backtest_config["start_time"]).replace(
+            year=date.year, month=date.month, day=date.day
+        )
+        end_time = pd.Timestamp(backtest_config["end_time"]).replace(
+            year=date.year, month=date.month, day=date.day
+        )
         order = Order(
             stock_id=row["instrument"],
             amount=row["amount"],
@@ -200,12 +216,16 @@ def single_with_simulator(
         decisions += simulator.decisions
 
     indicator_1day_objs = [report["indicator_dict"]["1day"][1] for report in reports]
-    indicator_info = {k: v for obj in indicator_1day_objs for k, v in obj.order_indicator_his.items()}
+    indicator_info = {
+        k: v for obj in indicator_1day_objs for k, v in obj.order_indicator_his.items()
+    }
     records = _convert_indicator_to_dataframe(indicator_info)
     assert records is None or not np.isnan(records["ffr"]).any()
 
     if generate_report:
-        _report = _generate_report(decisions, [report["indicator"] for report in reports])
+        _report = _generate_report(
+            decisions, [report["indicator"] for report in reports]
+        )
 
         if split == "stock":
             stock_id = orders.iloc[0].instrument
@@ -295,10 +315,16 @@ def single_with_collect_data_loop(
     )
 
     report_dict: dict = {}
-    decisions = list(collect_data_loop(trade_start_time, trade_end_time, strategy, executor, report_dict))
+    decisions = list(
+        collect_data_loop(
+            trade_start_time, trade_end_time, strategy, executor, report_dict
+        )
+    )
 
     indicator_dict = cast(INDICATOR_METRIC, report_dict.get("indicator_dict"))
-    records = _convert_indicator_to_dataframe(indicator_dict["1day"][1].order_indicator_his)
+    records = _convert_indicator_to_dataframe(
+        indicator_dict["1day"][1].order_indicator_his
+    )
     assert records is None or not np.isnan(records["ffr"]).any()
 
     if generate_report:
@@ -324,7 +350,11 @@ def backtest(backtest_config: dict, with_simulator: bool = False) -> pd.DataFram
     stock_pool.sort()
 
     single = single_with_simulator if with_simulator else single_with_collect_data_loop
-    mp_config = {"n_jobs": backtest_config["concurrency"], "verbose": 10, "backend": "multiprocessing"}
+    mp_config = {
+        "n_jobs": backtest_config["concurrency"],
+        "verbose": 10,
+        "backend": "multiprocessing",
+    }
     torch.set_num_threads(1)  # https://github.com/pytorch/pytorch/issues/17199
     res = Parallel(**mp_config)(
         delayed(single)(
@@ -364,8 +394,14 @@ if __name__ == "__main__":
     warnings.filterwarnings("ignore", category=RuntimeWarning)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config_path", type=str, required=True, help="Path to the config file")
-    parser.add_argument("--use_simulator", action="store_true", help="Whether to use simulator as the backend")
+    parser.add_argument(
+        "--config_path", type=str, required=True, help="Path to the config file"
+    )
+    parser.add_argument(
+        "--use_simulator",
+        action="store_true",
+        help="Whether to use simulator as the backend",
+    )
     parser.add_argument(
         "--n_jobs",
         type=int,

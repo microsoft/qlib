@@ -49,7 +49,9 @@ class ICLoss(nn.Module):
                 continue
 
             ic_day = torch.dot(
-                (pred_focus - pred_focus.mean()) / np.sqrt(pred_focus.shape[0]) / pred_focus.std(),
+                (pred_focus - pred_focus.mean())
+                / np.sqrt(pred_focus.shape[0])
+                / pred_focus.std(),
                 (y_focus - y_focus.mean()) / np.sqrt(y_focus.shape[0]) / y_focus.std(),
             )
             ic_all += ic_day
@@ -87,7 +89,9 @@ def preds_to_weight_with_clamp(preds, clip_weight=None, clip_method="tanh"):
                 weights = torch.ones_like(preds)
             else:
                 sm = nn.Sigmoid()
-                weights = sm(preds) * clip_weight  # TODO: The clip_weight is useless here.
+                weights = (
+                    sm(preds) * clip_weight
+                )  # TODO: The clip_weight is useless here.
                 weights = weights / torch.sum(weights) * weights.numel()
         else:
             raise ValueError("Unknown clip_method")

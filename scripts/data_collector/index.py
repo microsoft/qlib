@@ -52,9 +52,13 @@ class IndexBase:
         self.index_name = index_name
         if qlib_dir is None:
             qlib_dir = Path(__file__).resolve().parent.joinpath("qlib_data")
-        self.instruments_dir = Path(qlib_dir).expanduser().resolve().joinpath("instruments")
+        self.instruments_dir = (
+            Path(qlib_dir).expanduser().resolve().joinpath("instruments")
+        )
         self.instruments_dir.mkdir(exist_ok=True, parents=True)
-        self.cache_dir = Path(f"~/.cache/qlib/index/{self.index_name}").expanduser().resolve()
+        self.cache_dir = (
+            Path(f"~/.cache/qlib/index/{self.index_name}").expanduser().resolve()
+        )
         self.cache_dir.mkdir(exist_ok=True, parents=True)
         self._request_retry = request_retry
         self._retry_sleep = retry_sleep
@@ -143,10 +147,15 @@ class IndexBase:
             raise ValueError(f"get new companies error: {self.index_name}")
         df = df.drop_duplicates([self.SYMBOL_FIELD_NAME])
         df.loc[:, self.INSTRUMENTS_COLUMNS].to_csv(
-            self.instruments_dir.joinpath(f"{self.index_name.lower()}_only_new.txt"), sep="\t", index=False, header=None
+            self.instruments_dir.joinpath(f"{self.index_name.lower()}_only_new.txt"),
+            sep="\t",
+            index=False,
+            header=None,
         )
 
-    def get_changes_with_history_companies(self, history_companies: pd.DataFrame) -> pd.DataFrame:
+    def get_changes_with_history_companies(
+        self, history_companies: pd.DataFrame
+    ) -> pd.DataFrame:
         """get changes with history companies
 
         Parameters
@@ -174,25 +183,47 @@ class IndexBase:
         logger.info("parse changes from history companies......")
         last_code = []
         result_df_list = []
-        _columns = [self.DATE_FIELD_NAME, self.SYMBOL_FIELD_NAME, self.CHANGE_TYPE_FIELD]
-        for _trading_date in tqdm(sorted(history_companies[self.DATE_FIELD_NAME].unique(), reverse=True)):
-            _currenet_code = history_companies[history_companies[self.DATE_FIELD_NAME] == _trading_date][
-                self.SYMBOL_FIELD_NAME
-            ].tolist()
+        _columns = [
+            self.DATE_FIELD_NAME,
+            self.SYMBOL_FIELD_NAME,
+            self.CHANGE_TYPE_FIELD,
+        ]
+        for _trading_date in tqdm(
+            sorted(history_companies[self.DATE_FIELD_NAME].unique(), reverse=True)
+        ):
+            _currenet_code = history_companies[
+                history_companies[self.DATE_FIELD_NAME] == _trading_date
+            ][self.SYMBOL_FIELD_NAME].tolist()
             if last_code:
                 add_code = list(set(last_code) - set(_currenet_code))
                 remote_code = list(set(_currenet_code) - set(last_code))
                 for _code in add_code:
                     result_df_list.append(
                         pd.DataFrame(
-                            [[get_trading_date_by_shift(self.calendar_list, _trading_date, 1), _code, self.ADD]],
+                            [
+                                [
+                                    get_trading_date_by_shift(
+                                        self.calendar_list, _trading_date, 1
+                                    ),
+                                    _code,
+                                    self.ADD,
+                                ]
+                            ],
                             columns=_columns,
                         )
                     )
                 for _code in remote_code:
                     result_df_list.append(
                         pd.DataFrame(
-                            [[get_trading_date_by_shift(self.calendar_list, _trading_date, 0), _code, self.REMOVE]],
+                            [
+                                [
+                                    get_trading_date_by_shift(
+                                        self.calendar_list, _trading_date, 0
+                                    ),
+                                    _code,
+                                    self.REMOVE,
+                                ]
+                            ],
                             columns=_columns,
                         )
                     )
@@ -209,30 +240,49 @@ class IndexBase:
             $ python collector.py parse_instruments --index_name CSI300 --qlib_dir ~/.qlib/qlib_data/cn_data
         """
         logger.info(f"start parse {self.index_name.lower()} companies.....")
-        instruments_columns = [self.SYMBOL_FIELD_NAME, self.START_DATE_FIELD, self.END_DATE_FIELD]
+        instruments_columns = [
+            self.SYMBOL_FIELD_NAME,
+            self.START_DATE_FIELD,
+            self.END_DATE_FIELD,
+        ]
         changers_df = self.get_changes()
         new_df = self.get_new_companies()
         if new_df is None or new_df.empty:
             raise ValueError(f"get new companies error: {self.index_name}")
         new_df = new_df.copy()
         logger.info("parse history companies by changes......")
-        for _row in tqdm(changers_df.sort_values(self.DATE_FIELD_NAME, ascending=False).itertuples(index=False)):
+        for _row in tqdm(
+            changers_df.sort_values(self.DATE_FIELD_NAME, ascending=False).itertuples(
+                index=False
+            )
+        ):
             if _row.type == self.ADD:
-                min_end_date = new_df.loc[new_df[self.SYMBOL_FIELD_NAME] == _row.symbol, self.END_DATE_FIELD].min()
+                min_end_date = new_df.loc[
+                    new_df[self.SYMBOL_FIELD_NAME] == _row.symbol, self.END_DATE_FIELD
+                ].min()
                 new_df.loc[
-                    (new_df[self.END_DATE_FIELD] == min_end_date) & (new_df[self.SYMBOL_FIELD_NAME] == _row.symbol),
+                    (new_df[self.END_DATE_FIELD] == min_end_date)
+                    & (new_df[self.SYMBOL_FIELD_NAME] == _row.symbol),
                     self.START_DATE_FIELD,
                 ] = _row.date
             else:
-                _tmp_df = pd.DataFrame([[_row.symbol, self.bench_start_date, _row.date]], columns=instruments_columns)
+                _tmp_df = pd.DataFrame(
+                    [[_row.symbol, self.bench_start_date, _row.date]],
+                    columns=instruments_columns,
+                )
                 new_df = pd.concat([new_df, _tmp_df], sort=False)
 
         inst_df = new_df.loc[:, instruments_columns]
         _inst_prefix = self.INST_PREFIX.strip()
         if _inst_prefix:
-            inst_df["save_inst"] = inst_df[self.SYMBOL_FIELD_NAME].apply(lambda x: f"{_inst_prefix}{x}")
+            inst_df["save_inst"] = inst_df[self.SYMBOL_FIELD_NAME].apply(
+                lambda x: f"{_inst_prefix}{x}"
+            )
         inst_df = self.format_datetime(inst_df)
         inst_df.to_csv(
-            self.instruments_dir.joinpath(f"{self.index_name.lower()}.txt"), sep="\t", index=False, header=None
+            self.instruments_dir.joinpath(f"{self.index_name.lower()}.txt"),
+            sep="\t",
+            index=False,
+            header=None,
         )
         logger.info(f"parse {self.index_name.lower()} companies finished.")

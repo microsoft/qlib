@@ -150,7 +150,9 @@ def read_period_data(
     # find the first index of linked revisions
     if last_period_index is None:
         with open(index_path, "rb") as fi:
-            (first_year,) = struct.unpack(PERIOD_DTYPE, fi.read(struct.calcsize(PERIOD_DTYPE)))
+            (first_year,) = struct.unpack(
+                PERIOD_DTYPE, fi.read(struct.calcsize(PERIOD_DTYPE))
+            )
             all_periods = np.fromfile(fi, dtype=INDEX_DTYPE)
         offset = get_period_offset(first_year, period, quarterly)
         _next = all_periods[offset]
@@ -164,7 +166,9 @@ def read_period_data(
     with open(data_path, "rb") as fd:
         while _next != NAN_INDEX:
             fd.seek(_next)
-            date, period, value, new_next = struct.unpack(DATA_DTYPE, fd.read(struct.calcsize(DATA_DTYPE)))
+            date, period, value, new_next = struct.unpack(
+                DATA_DTYPE, fd.read(struct.calcsize(DATA_DTYPE))
+            )
             if date > cur_date_int:
                 break
             prev_next = _next
@@ -380,7 +384,9 @@ def is_tradable_date(cur_date):
     """
     from ..data import D  # pylint: disable=C0415
 
-    return str(cur_date.date()) == str(D.calendar(start_time=cur_date, future=True)[0].date())
+    return str(cur_date.date()) == str(
+        D.calendar(start_time=cur_date, future=True)[0].date()
+    )
 
 
 def get_date_range(trading_date, left_shift=0, right_shift=0, future=False):
@@ -444,7 +450,9 @@ def get_date_by_shift(
         if clip_shift:
             shift_index = np.clip(shift_index, 0, len(cal) - 1)
         else:
-            raise IndexError(f"The shift_index({shift_index}) of the trading day ({trading_date}) is out of range")
+            raise IndexError(
+                f"The shift_index({shift_index}) of the trading day ({trading_date}) is out of range"
+            )
     return cal[shift_index]
 
 
@@ -481,7 +489,11 @@ def transform_end_date(end_date=None, freq="day"):
     from ..data import D  # pylint: disable=C0415
 
     last_date = D.calendar(freq=freq)[-1]
-    if end_date is None or (str(end_date) == "-1") or (pd.Timestamp(last_date) < pd.Timestamp(end_date)):
+    if (
+        end_date is None
+        or (str(end_date) == "-1")
+        or (pd.Timestamp(last_date) < pd.Timestamp(end_date))
+    ):
         log.warning(
             "\nInfo: the end_date in the configuration file is {}, "
             "so the default last date {} is used.".format(end_date, last_date)
@@ -595,7 +607,9 @@ def exists_qlib_data(qlib_dir):
             return False
 
     # check instruments
-    code_names = set(map(lambda x: fname_to_code(x.name.lower()), features_dir.iterdir()))
+    code_names = set(
+        map(lambda x: fname_to_code(x.name.lower()), features_dir.iterdir())
+    )
     _instrument = instruments_dir.joinpath("all.txt")
     # Removed two possible ticker names "NA" and "NULL" from the default na_values list for column 0
     miss_code = set(
@@ -865,7 +879,9 @@ class Wrapper:
         self._provider = provider
 
     def __repr__(self):
-        return "{name}(provider={provider})".format(name=self.__class__.__name__, provider=self._provider)
+        return "{name}(provider={provider})".format(
+            name=self.__class__.__name__, provider=self._provider
+        )
 
     def __getattr__(self, key):
         if self.__dict__.get("_provider", None) is None:

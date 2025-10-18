@@ -46,13 +46,26 @@ class Recurrent(nn.Module):
         self.rnn_class = rnn_classes[rnn_type]
         self.rnn_layers = rnn_num_layers
 
-        self.raw_rnn = self.rnn_class(hidden_dim, hidden_dim, batch_first=True, num_layers=self.rnn_layers)
-        self.prev_rnn = self.rnn_class(hidden_dim, hidden_dim, batch_first=True, num_layers=self.rnn_layers)
-        self.pri_rnn = self.rnn_class(hidden_dim, hidden_dim, batch_first=True, num_layers=self.rnn_layers)
+        self.raw_rnn = self.rnn_class(
+            hidden_dim, hidden_dim, batch_first=True, num_layers=self.rnn_layers
+        )
+        self.prev_rnn = self.rnn_class(
+            hidden_dim, hidden_dim, batch_first=True, num_layers=self.rnn_layers
+        )
+        self.pri_rnn = self.rnn_class(
+            hidden_dim, hidden_dim, batch_first=True, num_layers=self.rnn_layers
+        )
 
-        self.raw_fc = nn.Sequential(nn.Linear(obs_space["data_processed"].shape[-1], hidden_dim), nn.ReLU())
+        self.raw_fc = nn.Sequential(
+            nn.Linear(obs_space["data_processed"].shape[-1], hidden_dim), nn.ReLU()
+        )
         self.pri_fc = nn.Sequential(nn.Linear(2, hidden_dim), nn.ReLU())
-        self.dire_fc = nn.Sequential(nn.Linear(2, hidden_dim), nn.ReLU(), nn.Linear(hidden_dim, hidden_dim), nn.ReLU())
+        self.dire_fc = nn.Sequential(
+            nn.Linear(2, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ReLU(),
+        )
 
         self._init_extra_branches()
 
@@ -66,16 +79,25 @@ class Recurrent(nn.Module):
     def _init_extra_branches(self) -> None:
         pass
 
-    def _source_features(self, obs: FullHistoryObs, device: torch.device) -> Tuple[List[torch.Tensor], torch.Tensor]:
+    def _source_features(
+        self, obs: FullHistoryObs, device: torch.device
+    ) -> Tuple[List[torch.Tensor], torch.Tensor]:
         bs, _, data_dim = obs["data_processed"].size()
-        data = torch.cat((torch.zeros(bs, 1, data_dim, device=device), obs["data_processed"]), 1)
+        data = torch.cat(
+            (torch.zeros(bs, 1, data_dim, device=device), obs["data_processed"]), 1
+        )
         cur_step = obs["cur_step"].long()
         cur_tick = obs["cur_tick"].long()
         bs_indices = torch.arange(bs, device=device)
 
-        position = obs["position_history"] / obs["target"].unsqueeze(-1)  # [bs, num_step]
+        position = obs["position_history"] / obs["target"].unsqueeze(
+            -1
+        )  # [bs, num_step]
         steps = (
-            torch.arange(position.size(-1), device=device).unsqueeze(0).repeat(bs, 1).float()
+            torch.arange(position.size(-1), device=device)
+            .unsqueeze(0)
+            .repeat(bs, 1)
+            .float()
             / obs["num_step"].unsqueeze(-1).float()
         )  # [bs, num_step]
         priv = torch.stack((position.float(), steps), -1)
@@ -91,7 +113,9 @@ class Recurrent(nn.Module):
 
         sources = [data_out_slice, priv_out]
 
-        dir_out = self.dire_fc(torch.stack((obs["acquiring"], 1 - obs["acquiring"]), -1).float())
+        dir_out = self.dire_fc(
+            torch.stack((obs["acquiring"], 1 - obs["acquiring"]), -1).float()
+        )
         sources.append(dir_out)
 
         return sources, data_out

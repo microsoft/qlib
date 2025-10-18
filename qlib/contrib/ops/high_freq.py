@@ -31,7 +31,9 @@ def get_calendar_day(freq="1min", future=False):
     if flag in H["c"]:
         _calendar = H["c"][flag]
     else:
-        _calendar = np.array(list(map(lambda x: x.date(), Cal.load_calendar(freq, future))))
+        _calendar = np.array(
+            list(map(lambda x: x.date(), Cal.load_calendar(freq, future)))
+        )
         H["c"][flag] = _calendar
     return _calendar
 
@@ -42,7 +44,9 @@ def get_calendar_minute(freq="day", future=False):
     if flag in H["c"]:
         _calendar = H["c"][flag]
     else:
-        _calendar = np.array(list(map(lambda x: x.minute // 30, Cal.load_calendar(freq, future))))
+        _calendar = np.array(
+            list(map(lambda x: x.minute // 30, Cal.load_calendar(freq, future)))
+        )
         H["c"][flag] = _calendar
     return _calendar
 
@@ -70,7 +74,13 @@ class DayCumsum(ElemOperator):
         Otherwise, the value is zero.
     """
 
-    def __init__(self, feature, start: str = "9:30", end: str = "14:59", data_granularity: int = 1):
+    def __init__(
+        self,
+        feature,
+        start: str = "9:30",
+        end: str = "14:59",
+        data_granularity: int = 1,
+    ):
         self.feature = feature
         self.start = datetime.strptime(start, "%H:%M")
         self.end = datetime.strptime(end, "%H:%M")
@@ -96,7 +106,9 @@ class DayCumsum(ElemOperator):
     def _load_internal(self, instrument, start_index, end_index, freq):
         _calendar = get_calendar_day(freq=freq)
         series = self.feature.load(instrument, start_index, end_index, freq)
-        return series.groupby(_calendar[series.index], group_keys=False).transform(self.period_cusum)
+        return series.groupby(_calendar[series.index], group_keys=False).transform(
+            self.period_cusum
+        )
 
 
 class DayLast(ElemOperator):
@@ -116,7 +128,9 @@ class DayLast(ElemOperator):
     def _load_internal(self, instrument, start_index, end_index, freq):
         _calendar = get_calendar_day(freq=freq)
         series = self.feature.load(instrument, start_index, end_index, freq)
-        return series.groupby(_calendar[series.index], group_keys=False).transform("last")
+        return series.groupby(_calendar[series.index], group_keys=False).transform(
+            "last"
+        )
 
 
 class FFillNan(ElemOperator):
@@ -195,8 +209,12 @@ class Select(PairOperator):
     """
 
     def _load_internal(self, instrument, start_index, end_index, freq):
-        series_condition = self.feature_left.load(instrument, start_index, end_index, freq)
-        series_feature = self.feature_right.load(instrument, start_index, end_index, freq)
+        series_condition = self.feature_left.load(
+            instrument, start_index, end_index, freq
+        )
+        series_feature = self.feature_right.load(
+            instrument, start_index, end_index, freq
+        )
         return series_feature.loc[series_condition]
 
 
@@ -259,7 +277,9 @@ class Cut(ElemOperator):
     def __init__(self, feature, left=None, right=None):
         self.left = left
         self.right = right
-        if (self.left is not None and self.left <= 0) or (self.right is not None and self.right >= 0):
+        if (self.left is not None and self.left <= 0) or (
+            self.right is not None and self.right >= 0
+        ):
             raise ValueError("Cut operator l shoud > 0 and r should < 0")
 
         super(Cut, self).__init__(feature)

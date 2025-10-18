@@ -72,10 +72,14 @@ class ValueCNT(FeaAnalyser):
         self._val_cnt = {}
         for col, item in self._dataset.items():
             if not super().skip(col):
-                self._val_cnt[col] = item.groupby(DT_COL_NAME, group_keys=False).apply(lambda s: len(s.unique()))
+                self._val_cnt[col] = item.groupby(DT_COL_NAME, group_keys=False).apply(
+                    lambda s: len(s.unique())
+                )
         self._val_cnt = pd.DataFrame(self._val_cnt)
         if self.ratio:
-            self._val_cnt = self._val_cnt.div(self._dataset.groupby(DT_COL_NAME, group_keys=False).size(), axis=0)
+            self._val_cnt = self._val_cnt.div(
+                self._dataset.groupby(DT_COL_NAME, group_keys=False).size(), axis=0
+            )
 
         # TODO: transfer this feature to other analysers
         ymin, ymax = self._val_cnt.min().min(), self._val_cnt.max().max()
@@ -98,7 +102,12 @@ class FeaInfAna(NumFeaAnalyser):
         self._inf_cnt = {}
         for col, item in self._dataset.items():
             if not super().skip(col):
-                self._inf_cnt[col] = item.apply(np.isinf).astype(np.int).groupby(DT_COL_NAME, group_keys=False).sum()
+                self._inf_cnt[col] = (
+                    item.apply(np.isinf)
+                    .astype(np.int)
+                    .groupby(DT_COL_NAME, group_keys=False)
+                    .sum()
+                )
         self._inf_cnt = pd.DataFrame(self._inf_cnt)
 
     def skip(self, col):
@@ -111,7 +120,9 @@ class FeaInfAna(NumFeaAnalyser):
 
 class FeaNanAna(FeaAnalyser):
     def calc_stat_values(self):
-        self._nan_cnt = self._dataset.isna().groupby(DT_COL_NAME, group_keys=False).sum()
+        self._nan_cnt = (
+            self._dataset.isna().groupby(DT_COL_NAME, group_keys=False).sum()
+        )
 
     def skip(self, col):
         return (col not in self._nan_cnt) or (self._nan_cnt[col].sum() == 0)
@@ -123,7 +134,9 @@ class FeaNanAna(FeaAnalyser):
 
 class FeaNanAnaRatio(FeaAnalyser):
     def calc_stat_values(self):
-        self._nan_cnt = self._dataset.isna().groupby(DT_COL_NAME, group_keys=False).sum()
+        self._nan_cnt = (
+            self._dataset.isna().groupby(DT_COL_NAME, group_keys=False).sum()
+        )
         self._total_cnt = self._dataset.groupby(DT_COL_NAME, group_keys=False).size()
 
     def skip(self, col):

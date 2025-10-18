@@ -54,7 +54,9 @@ def concat(data_list: Union[SingleData], axis=0) -> MultiData:
         raise ValueError(f"axis must be 0 or 1")
 
 
-def sum_by_index(data_list: Union[SingleData], new_index: list, fill_value=0) -> SingleData:
+def sum_by_index(
+    data_list: Union[SingleData], new_index: list, fill_value=0
+) -> SingleData:
     """concat all SingleData by new index.
 
     Parameters
@@ -98,7 +100,9 @@ class Index:
     """
 
     def __init__(self, idx_list: Union[List, pd.Index, "Index", int]):
-        self.idx_list: np.ndarray = None  # using array type for index list will make things easier
+        self.idx_list: np.ndarray = (
+            None  # using array type for index list will make things easier
+        )
         if isinstance(idx_list, Index):
             # Fast read-only copy
             self.idx_list = idx_list.idx_list
@@ -112,8 +116,12 @@ class Index:
             if not all(isinstance(x, type(idx_list[0])) for x in idx_list):
                 raise TypeError("All elements in idx_list must be of the same type")
             # Check if all elements in idx_list are of the same datetime64 precision
-            if isinstance(idx_list[0], np.datetime64) and not all(x.dtype == idx_list[0].dtype for x in idx_list):
-                raise TypeError("All elements in idx_list must be of the same datetime64 precision")
+            if isinstance(idx_list[0], np.datetime64) and not all(
+                x.dtype == idx_list[0].dtype for x in idx_list
+            ):
+                raise TypeError(
+                    "All elements in idx_list must be of the same datetime64 precision"
+                )
             self.idx_list = np.array(idx_list)
             # NOTE: only the first appearance is indexed
             self.index_map = dict(zip(self.idx_list, range(len(self))))
@@ -212,14 +220,18 @@ class LocIndexer:
     Modifications will results in new Index.
     """
 
-    def __init__(self, index_data: "IndexData", indices: List[Index], int_loc: bool = False):
+    def __init__(
+        self, index_data: "IndexData", indices: List[Index], int_loc: bool = False
+    ):
         self._indices: List[Index] = indices
         self._bind_id = index_data  # bind index data
         self._int_loc = int_loc
         assert self._bind_id.data.ndim == len(self._indices)
 
     @staticmethod
-    def proc_idx_l(indices: List[Union[List, pd.Index, Index]], data_shape: Tuple = None) -> List[Index]:
+    def proc_idx_l(
+        indices: List[Union[List, pd.Index, Index]], data_shape: Tuple = None
+    ) -> List[Index]:
         """process the indices from user and output a list of `Index`"""
         res = []
         for i, idx in enumerate(indices):
@@ -243,8 +255,16 @@ class LocIndexer:
             the integer based slicing
         """
         if index.is_sorted():
-            int_start = None if indexing.start is None else bisect.bisect_left(index, indexing.start)
-            int_stop = None if indexing.stop is None else bisect.bisect_right(index, indexing.stop)
+            int_start = (
+                None
+                if indexing.start is None
+                else bisect.bisect_left(index, indexing.start)
+            )
+            int_stop = (
+                None
+                if indexing.stop is None
+                else bisect.bisect_right(index, indexing.stop)
+            )
         else:
             int_start = None if indexing.start is None else index.index(indexing.start)
             int_stop = None if indexing.stop is None else index.index(indexing.stop) + 1
@@ -275,7 +295,9 @@ class LocIndexer:
         for dim, index in enumerate(self._indices):
             if dim < len(indexing):
                 _indexing = indexing[dim]
-                if not self._int_loc:  # type converting is only necessary when it is not `iloc`
+                if (
+                    not self._int_loc
+                ):  # type converting is only necessary when it is not `iloc`
                     if isinstance(_indexing, slice):
                         _indexing = self._slc_convert(index, _indexing)
                     elif isinstance(_indexing, (IndexData, np.ndarray)):
@@ -283,7 +305,9 @@ class LocIndexer:
                             _indexing = _indexing.data
                         assert _indexing.ndim == 1
                         if _indexing.dtype != bool:
-                            _indexing = np.array(list(index.index(i) for i in _indexing))
+                            _indexing = np.array(
+                                list(index.index(i) for i in _indexing)
+                            )
                     else:
                         _indexing = index.index(_indexing)
             else:
@@ -297,7 +321,9 @@ class LocIndexer:
         if new_data.ndim == 0:
             return new_data
         # otherwise we go on to the index part
-        new_indices = [idx[indexing] for idx, indexing in zip(self._indices, int_indexing)]
+        new_indices = [
+            idx[indexing] for idx, indexing in zip(self._indices, int_indexing)
+        ]
 
         # 3) squash dimensions
         new_indices = [
@@ -329,7 +355,9 @@ class BinaryOps:
             return self.obj.__class__(self_data_method(other), *self.obj.indices)
         elif isinstance(other, self.obj.__class__):
             other_aligned = self.obj._align_indices(other)
-            return self.obj.__class__(self_data_method(other_aligned.data), *self.obj.indices)
+            return self.obj.__class__(
+                self_data_method(other_aligned.data), *self.obj.indices
+            )
         else:
             return NotImplemented
 
@@ -338,7 +366,16 @@ def index_data_ops_creator(*args, **kwargs):
     """
     meta class for auto generating operations for index data.
     """
-    for method_name in ["__add__", "__sub__", "__rsub__", "__mul__", "__truediv__", "__eq__", "__gt__", "__lt__"]:
+    for method_name in [
+        "__add__",
+        "__sub__",
+        "__rsub__",
+        "__mul__",
+        "__truediv__",
+        "__eq__",
+        "__gt__",
+        "__lt__",
+    ]:
         args[2][method_name] = BinaryOps(method_name=method_name)
     return type(*args)
 
@@ -472,7 +509,9 @@ class IndexData(metaclass=index_data_ops_creator):
         return len(self.data)
 
     def sum(self, axis=None, dtype=None, out=None):
-        assert out is None and dtype is None, "`out` is just for compatible with numpy's aggregating function"
+        assert (
+            out is None and dtype is None
+        ), "`out` is just for compatible with numpy's aggregating function"
         # FIXME: weird logic and not general
         if axis is None:
             return np.nansum(self.data)
@@ -486,7 +525,9 @@ class IndexData(metaclass=index_data_ops_creator):
             raise ValueError(f"axis must be None, 0 or 1")
 
     def mean(self, axis=None, dtype=None, out=None):
-        assert out is None and dtype is None, "`out` is just for compatible with numpy's aggregating function"
+        assert (
+            out is None and dtype is None
+        ), "`out` is just for compatible with numpy's aggregating function"
         # FIXME: weird logic and not general
         if axis is None:
             return np.nanmean(self.data)
@@ -528,7 +569,9 @@ class IndexData(metaclass=index_data_ops_creator):
 
 class SingleData(IndexData):
     def __init__(
-        self, data: Union[int, float, np.number, list, dict, pd.Series] = [], index: Union[List, pd.Index, Index] = []
+        self,
+        data: Union[int, float, np.number, list, dict, pd.Series] = [],
+        index: Union[List, pd.Index, Index] = [],
     ):
         """A data structure of index and numpy data.
         It's used to replace pd.Series due to high-speed.
@@ -651,4 +694,8 @@ class MultiData(IndexData):
             )
 
     def __repr__(self) -> str:
-        return str(pd.DataFrame(self.data, index=self.index.tolist(), columns=self.columns.tolist()))
+        return str(
+            pd.DataFrame(
+                self.data, index=self.index.tolist(), columns=self.columns.tolist()
+            )
+        )

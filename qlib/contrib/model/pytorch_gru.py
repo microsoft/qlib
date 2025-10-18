@@ -70,7 +70,9 @@ class GRU(Model):
         self.early_stop = early_stop
         self.optimizer = optimizer.lower()
         self.loss = loss
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        self.device = torch.device(
+            "cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu"
+        )
         self.seed = seed
 
         self.logger.info(
@@ -117,14 +119,18 @@ class GRU(Model):
             dropout=self.dropout,
         )
         self.logger.info("model:\n{:}".format(self.gru_model))
-        self.logger.info("model size: {:.4f} MB".format(count_parameters(self.gru_model)))
+        self.logger.info(
+            "model size: {:.4f} MB".format(count_parameters(self.gru_model))
+        )
 
         if optimizer.lower() == "adam":
             self.train_optimizer = optim.Adam(self.gru_model.parameters(), lr=self.lr)
         elif optimizer.lower() == "gd":
             self.train_optimizer = optim.SGD(self.gru_model.parameters(), lr=self.lr)
         else:
-            raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
+            raise NotImplementedError(
+                "optimizer {} is not supported!".format(optimizer)
+            )
 
         self.fitted = False
         self.gru_model.to(self.device)
@@ -166,8 +172,16 @@ class GRU(Model):
             if len(indices) - i < self.batch_size:
                 break
 
-            feature = torch.from_numpy(x_train_values[indices[i : i + self.batch_size]]).float().to(self.device)
-            label = torch.from_numpy(y_train_values[indices[i : i + self.batch_size]]).float().to(self.device)
+            feature = (
+                torch.from_numpy(x_train_values[indices[i : i + self.batch_size]])
+                .float()
+                .to(self.device)
+            )
+            label = (
+                torch.from_numpy(y_train_values[indices[i : i + self.batch_size]])
+                .float()
+                .to(self.device)
+            )
 
             pred = self.gru_model(feature)
             loss = self.loss_fn(pred, label)
@@ -193,8 +207,16 @@ class GRU(Model):
             if len(indices) - i < self.batch_size:
                 break
 
-            feature = torch.from_numpy(x_values[indices[i : i + self.batch_size]]).float().to(self.device)
-            label = torch.from_numpy(y_values[indices[i : i + self.batch_size]]).float().to(self.device)
+            feature = (
+                torch.from_numpy(x_values[indices[i : i + self.batch_size]])
+                .float()
+                .to(self.device)
+            )
+            label = (
+                torch.from_numpy(y_values[indices[i : i + self.batch_size]])
+                .float()
+                .to(self.device)
+            )
 
             with torch.no_grad():
                 pred = self.gru_model(feature)
@@ -222,11 +244,15 @@ class GRU(Model):
             for k in ["train", "valid"]
             if k in dataset.segments
         }
-        df_train, df_valid = dfs.get("train", pd.DataFrame()), dfs.get("valid", pd.DataFrame())
+        df_train, df_valid = dfs.get("train", pd.DataFrame()), dfs.get(
+            "valid", pd.DataFrame()
+        )
 
         # check if training data is empty
         if df_train.empty:
-            raise ValueError("Empty training data from dataset, please check your dataset config.")
+            raise ValueError(
+                "Empty training data from dataset, please check your dataset config."
+            )
 
         df_train = df_train.dropna()
         x_train, y_train = df_train["feature"], df_train["label"]
@@ -293,7 +319,9 @@ class GRU(Model):
         if not self.fitted:
             raise ValueError("model is not fitted yet!")
 
-        x_test = dataset.prepare(segment, col_set="feature", data_key=DataHandlerLP.DK_I)
+        x_test = dataset.prepare(
+            segment, col_set="feature", data_key=DataHandlerLP.DK_I
+        )
         index = x_test.index
         self.gru_model.eval()
         x_values = x_test.values

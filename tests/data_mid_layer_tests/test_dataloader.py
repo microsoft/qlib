@@ -25,13 +25,22 @@ class TestDataLoader(unittest.TestCase):
                 },
                 {
                     "class": "qlib.contrib.data.loader.Alpha360DL",
-                    "kwargs": {"config": {"label": (["Ref($close, -2)/Ref($close, -1) - 1"], ["LABEL0"])}},
+                    "kwargs": {
+                        "config": {
+                            "label": (
+                                ["Ref($close, -2)/Ref($close, -1) - 1"],
+                                ["LABEL0"],
+                            )
+                        }
+                    },
                 },
             ]
         )
         # Of course you can use StaticDataLoader
 
-        dataset = nd.load(instruments="csi300", start_time="2020-01-01", end_time="2020-01-31")
+        dataset = nd.load(
+            instruments="csi300", start_time="2020-01-01", end_time="2020-01-31"
+        )
 
         assert dataset is not None
 

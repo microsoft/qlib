@@ -67,7 +67,9 @@ class DataQueue(Generic[T]):
         if queue_maxsize == 0:
             if os.cpu_count() is not None:
                 queue_maxsize = cast(int, os.cpu_count())
-                _logger.info(f"Automatically set data queue maxsize to {queue_maxsize} to avoid overwhelming.")
+                _logger.info(
+                    f"Automatically set data queue maxsize to {queue_maxsize} to avoid overwhelming."
+                )
             else:
                 queue_maxsize = 1
                 _logger.warning(f"CPU count not available. Setting queue maxsize to 1.")
@@ -78,7 +80,9 @@ class DataQueue(Generic[T]):
         self.producer_num_workers: int = producer_num_workers
 
         self._activated: bool = False
-        self._queue: multiprocessing.Queue = multiprocessing.Queue(maxsize=queue_maxsize)
+        self._queue: multiprocessing.Queue = multiprocessing.Queue(
+            maxsize=queue_maxsize
+        )
         # Mypy 0.981 brought '"SynchronizedBase[Any]" has no attribute "value"  [attr-defined]' bug.
         # Therefore, add this type casting to pass Mypy checking.
         self._done = cast(Synchronized, multiprocessing.Value("i", 0))
@@ -95,7 +99,10 @@ class DataQueue(Generic[T]):
             self._done.value += 1
         for repeat in range(500):
             if repeat >= 1:
-                warnings.warn(f"After {repeat} cleanup, the queue is still not empty.", category=RuntimeWarning)
+                warnings.warn(
+                    f"After {repeat} cleanup, the queue is still not empty.",
+                    category=RuntimeWarning,
+                )
             while not self._queue.empty():
                 try:
                     self._queue.get(block=False)
@@ -108,7 +115,9 @@ class DataQueue(Generic[T]):
             time.sleep(1.0)
             if self._queue.empty():
                 break
-        _logger.debug(f"Remaining items in queue collection done. Empty: {self._queue.empty()}")
+        _logger.debug(
+            f"Remaining items in queue collection done. Empty: {self._queue.empty()}"
+        )
 
     def get(self, block: bool = True) -> Any:
         if not hasattr(self, "_first_get"):
@@ -166,7 +175,10 @@ class DataQueue(Generic[T]):
 
     def _producer(self) -> None:
         # pytorch dataloader is used here only because we need its sampler and multi-processing
-        from torch.utils.data import DataLoader, Dataset  # pylint: disable=import-outside-toplevel
+        from torch.utils.data import (
+            DataLoader,
+            Dataset,
+        )  # pylint: disable=import-outside-toplevel
 
         try:
             dataloader = DataLoader(

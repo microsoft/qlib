@@ -4,16 +4,25 @@
 import pandas as pd
 
 from qlib.data.dataset.loader import QlibDataLoader
-from qlib.contrib.data.handler import DataHandlerLP, _DEFAULT_LEARN_PROCESSORS, check_transform_proc
+from qlib.contrib.data.handler import (
+    DataHandlerLP,
+    _DEFAULT_LEARN_PROCESSORS,
+    check_transform_proc,
+)
 
 
 class Avg15minLoader(QlibDataLoader):
     def load(self, instruments=None, start_time=None, end_time=None) -> pd.DataFrame:
         df = super(Avg15minLoader, self).load(instruments, start_time, end_time)
         if self.is_group:
-            # feature_day(day freq) and feature_15min(1min freq, Average every 15 minutes) renamed feature
-            df.columns = df.columns.map(lambda x: ("feature", x[1]) if x[0].startswith("feature") else x)
+            # Normalize feature_day (day freq) and feature_15min (1min freq) to unified "feature" group
+            df.columns = df.columns.map(
+                lambda x: ("feature", x[1]) 
+                if isinstance(x, tuple) and len(x) >= 2 and isinstance(x[0], str) and x[0].startswith("feature") 
+                else x
+            )
         return df
+
 
 
 class Avg15minHandler(DataHandlerLP):
@@ -32,10 +41,17 @@ class Avg15minHandler(DataHandlerLP):
         inst_processors=None,
         **kwargs,
     ):
-        infer_processors = check_transform_proc(infer_processors, fit_start_time, fit_end_time)
-        learn_processors = check_transform_proc(learn_processors, fit_start_time, fit_end_time)
+        infer_processors = check_transform_proc(
+            infer_processors, fit_start_time, fit_end_time
+        )
+        learn_processors = check_transform_proc(
+            learn_processors, fit_start_time, fit_end_time
+        )
         data_loader = Avg15minLoader(
-            config=self.loader_config(), filter_pipe=filter_pipe, freq=freq, inst_processors=inst_processors
+            config=self.loader_config(),
+            filter_pipe=filter_pipe,
+            freq=freq,
+            inst_processors=inst_processors,
         )
         super().__init__(
             instruments=instruments,
@@ -119,11 +135,15 @@ class Avg15minHandler(DataHandlerLP):
 
         # 15min resample to day
         #   df.resample("1d").last()
+        
         tmp_fields = []
         tmp_names = []
         for i, _f in enumerate(fields):
             _fields = [f"Ref(Mean({_f}, 15), {j * 15})" for j in range(1, 240 // 15)]
-            _names = [f"{names[i][:-1]}{int(names[i][-1])+j}" for j in range(240 // 15 - 1, 0, -1)]
+            _names = [
+                f"{names[i][:-1]}{int(names[i][-1])+j}"
+                for j in range(240 // 15 - 1, 0, -1)
+            ]
             _fields.append(f"Mean({_f}, 15)")
             _names.append(f"{names[i][:-1]}{int(names[i][-1])+240 // 15}")
             tmp_fields += _fields

@@ -18,7 +18,9 @@ class TimeWeightMeta(SingleMetaBase):
     def forward(self, time_perf, time_belong=None, return_preds=False):
         hist_step_n = self.linear.in_features
         # NOTE: the reshape order is very important
-        time_perf = time_perf.reshape(hist_step_n, time_perf.shape[0] // hist_step_n, *time_perf.shape[1:])
+        time_perf = time_perf.reshape(
+            hist_step_n, time_perf.shape[0] // hist_step_n, *time_perf.shape[1:]
+        )
         time_perf = torch.mean(time_perf, dim=1, keepdim=False)
 
         preds = []
@@ -33,7 +35,9 @@ class TimeWeightMeta(SingleMetaBase):
             else:
                 return time_belong @ preds
         else:
-            weights = preds_to_weight_with_clamp(preds, self.clip_weight, self.clip_method)
+            weights = preds_to_weight_with_clamp(
+                preds, self.clip_weight, self.clip_method
+            )
             if time_belong is None:
                 return weights
             else:
@@ -41,7 +45,14 @@ class TimeWeightMeta(SingleMetaBase):
 
 
 class PredNet(nn.Module):
-    def __init__(self, step, hist_step_n, clip_weight=None, clip_method="tanh", alpha: float = 0.0):
+    def __init__(
+        self,
+        step,
+        hist_step_n,
+        clip_weight=None,
+        clip_method="tanh",
+        alpha: float = 0.0,
+    ):
         """
         Parameters
         ----------
@@ -50,7 +61,9 @@ class PredNet(nn.Module):
         """
         super().__init__()
         self.step = step
-        self.twm = TimeWeightMeta(hist_step_n=hist_step_n, clip_weight=clip_weight, clip_method=clip_method)
+        self.twm = TimeWeightMeta(
+            hist_step_n=hist_step_n, clip_weight=clip_weight, clip_method=clip_method
+        )
         self.init_paramters(hist_step_n)
         self.alpha = alpha
 
@@ -64,11 +77,15 @@ class PredNet(nn.Module):
 
     def forward(self, X, y, time_perf, time_belong, X_test, ignore_weight=False):
         """Please refer to the docs of MetaTaskDS for the description of the variables"""
-        weights = self.get_sample_weights(X, time_perf, time_belong, ignore_weight=ignore_weight)
+        weights = self.get_sample_weights(
+            X, time_perf, time_belong, ignore_weight=ignore_weight
+        )
         X_w = X.T * weights.view(1, -1)
         theta = torch.inverse(X_w @ X + self.alpha * torch.eye(X_w.shape[0])) @ X_w @ y
         return X_test @ theta, weights
 
     def init_paramters(self, hist_step_n):
-        self.twm.linear.weight.data = 1.0 / hist_step_n + self.twm.linear.weight.data * 0.01
+        self.twm.linear.weight.data = (
+            1.0 / hist_step_n + self.twm.linear.weight.data * 0.01
+        )
         self.twm.linear.bias.data.fill_(0.0)

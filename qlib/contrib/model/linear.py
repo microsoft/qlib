@@ -30,7 +30,13 @@ class LinearModel(Model):
     RIDGE = "ridge"
     LASSO = "lasso"
 
-    def __init__(self, estimator="ols", alpha=0.0, fit_intercept=False, include_valid: bool = False):
+    def __init__(
+        self,
+        estimator="ols",
+        alpha=0.0,
+        fit_intercept=False,
+        include_valid: bool = False,
+    ):
         """
         Parameters
         ----------
@@ -44,10 +50,18 @@ class LinearModel(Model):
             Should the validation data be included for training?
             The validation data should be included
         """
-        assert estimator in [self.OLS, self.NNLS, self.RIDGE, self.LASSO], f"unsupported estimator `{estimator}`"
+        assert estimator in [
+            self.OLS,
+            self.NNLS,
+            self.RIDGE,
+            self.LASSO,
+        ], f"unsupported estimator `{estimator}`"
         self.estimator = estimator
 
-        assert alpha == 0 or estimator in [self.RIDGE, self.LASSO], f"alpha is only supported in `ridge`&`lasso`"
+        assert alpha == 0 or estimator in [
+            self.RIDGE,
+            self.LASSO,
+        ], f"alpha is only supported in `ridge`&`lasso`"
         self.alpha = alpha
 
         self.fit_intercept = fit_intercept
@@ -56,16 +70,24 @@ class LinearModel(Model):
         self.include_valid = include_valid
 
     def fit(self, dataset: DatasetH, reweighter: Reweighter = None):
-        df_train = dataset.prepare("train", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
+        df_train = dataset.prepare(
+            "train", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L
+        )
         if self.include_valid:
             try:
-                df_valid = dataset.prepare("valid", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
+                df_valid = dataset.prepare(
+                    "valid", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L
+                )
                 df_train = pd.concat([df_train, df_valid])
             except KeyError:
-                get_module_logger("LinearModel").info("include_valid=True, but valid does not exist")
+                get_module_logger("LinearModel").info(
+                    "include_valid=True, but valid does not exist"
+                )
         df_train = df_train.dropna()
         if df_train.empty:
-            raise ValueError("Empty data from dataset, please check your dataset config.")
+            raise ValueError(
+                "Empty data from dataset, please check your dataset config."
+            )
         if reweighter is not None:
             w: pd.Series = reweighter.reweight(df_train)
             w = w.values
@@ -109,5 +131,9 @@ class LinearModel(Model):
     def predict(self, dataset: DatasetH, segment: Union[Text, slice] = "test"):
         if self.coef_ is None:
             raise ValueError("model is not fitted yet!")
-        x_test = dataset.prepare(segment, col_set="feature", data_key=DataHandlerLP.DK_I)
-        return pd.Series(x_test.values @ self.coef_ + self.intercept_, index=x_test.index)
+        x_test = dataset.prepare(
+            segment, col_set="feature", data_key=DataHandlerLP.DK_I
+        )
+        return pd.Series(
+            x_test.values @ self.coef_ + self.intercept_, index=x_test.index
+        )

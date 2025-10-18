@@ -108,7 +108,9 @@ class Account:
         self.benchmark_config: dict = {}  # avoid no attribute error
         self.init_vars(init_cash, position_dict, freq, benchmark_config)
 
-    def init_vars(self, init_cash: float, position_dict: dict, freq: str, benchmark_config: dict) -> None:
+    def init_vars(
+        self, init_cash: float, position_dict: dict, freq: str, benchmark_config: dict
+    ) -> None:
         # 1) the following variables are shared by multiple layers
         # - you will see a shallow copy instead of deepcopy in the NestedExecutor;
         self.init_cash = init_cash
@@ -146,14 +148,22 @@ class Account:
             # fill stock value
             # The frequency of account may not align with the trading frequency.
             # This may result in obscure bugs when data quality is low.
-            if isinstance(self.benchmark_config, dict) and "start_time" in self.benchmark_config:
-                self.current_position.fill_stock_value(self.benchmark_config["start_time"], self.freq)
+            if (
+                isinstance(self.benchmark_config, dict)
+                and "start_time" in self.benchmark_config
+            ):
+                self.current_position.fill_stock_value(
+                    self.benchmark_config["start_time"], self.freq
+                )
 
         # trading related metrics(e.g. high-frequency trading)
         self.indicator = Indicator()
 
     def reset(
-        self, freq: str | None = None, benchmark_config: dict | None = None, port_metr_enabled: bool | None = None
+        self,
+        freq: str | None = None,
+        benchmark_config: dict | None = None,
+        port_metr_enabled: bool | None = None,
     ) -> None:
         """reset freq and report of account
 
@@ -180,7 +190,9 @@ class Account:
     def get_cash(self) -> float:
         return self.current_position.get_cash()
 
-    def _update_state_from_order(self, order: Order, trade_val: float, cost: float, trade_price: float) -> None:
+    def _update_state_from_order(
+        self, order: Order, trade_val: float, cost: float, trade_price: float
+    ) -> None:
         if self.is_port_metr_enabled():
             # update turnover
             self.accum_info.add_turnover(trade_val)
@@ -191,16 +203,29 @@ class Account:
             trade_amount = trade_val / trade_price
             if order.direction == Order.SELL:  # 0 for sell
                 # when sell stock, get profit from price change
-                profit = trade_val - self.current_position.get_stock_price(order.stock_id) * trade_amount
-                self.accum_info.add_return_value(profit)  # note here do not consider cost
+                profit = (
+                    trade_val
+                    - self.current_position.get_stock_price(order.stock_id)
+                    * trade_amount
+                )
+                self.accum_info.add_return_value(
+                    profit
+                )  # note here do not consider cost
 
             elif order.direction == Order.BUY:  # 1 for buy
                 # when buy stock, we get return for the rtn computing method
                 # profit in buy order is to make rtn is consistent with earning at the end of bar
-                profit = self.current_position.get_stock_price(order.stock_id) * trade_amount - trade_val
-                self.accum_info.add_return_value(profit)  # note here do not consider cost
+                profit = (
+                    self.current_position.get_stock_price(order.stock_id) * trade_amount
+                    - trade_val
+                )
+                self.accum_info.add_return_value(
+                    profit
+                )  # note here do not consider cost
 
-    def update_order(self, order: Order, trade_val: float, cost: float, trade_price: float) -> None:
+    def update_order(
+        self, order: Order, trade_val: float, cost: float, trade_price: float
+    ) -> None:
         if self.current_position.skip_update():
             # TODO: supporting polymorphism for account
             # updating order for infinite position is meaningless
@@ -239,15 +264,22 @@ class Account:
             stock_list = self.current_position.get_stock_list()
             for code in stock_list:
                 # if suspended, no new price to be updated, profit is 0
-                if trade_exchange.check_stock_suspended(code, trade_start_time, trade_end_time):
+                if trade_exchange.check_stock_suspended(
+                    code, trade_start_time, trade_end_time
+                ):
                     continue
-                bar_close = cast(float, trade_exchange.get_close(code, trade_start_time, trade_end_time))
+                bar_close = cast(
+                    float,
+                    trade_exchange.get_close(code, trade_start_time, trade_end_time),
+                )
                 self.current_position.update_stock_price(stock_id=code, price=bar_close)
             # update holding day count
             # NOTE: updating bar_count does not only serve portfolio metrics, it also serve the strategy
             self.current_position.add_count_all(bar=self.freq)
 
-    def update_portfolio_metrics(self, trade_start_time: pd.Timestamp, trade_end_time: pd.Timestamp) -> None:
+    def update_portfolio_metrics(
+        self, trade_start_time: pd.Timestamp, trade_end_time: pd.Timestamp
+    ) -> None:
         """update portfolio_metrics"""
         # calculate earning
         # account_value - last_account_value
@@ -330,7 +362,9 @@ class Account:
             )
 
         # aggregate all the order metrics a single step
-        self.indicator.cal_trade_indicators(trade_start_time, self.freq, indicator_config)
+        self.indicator.cal_trade_indicators(
+            trade_start_time, self.freq, indicator_config
+        )
 
         # record the metrics
         self.indicator.record(trade_start_time)
@@ -380,7 +414,9 @@ class Account:
         if atomic is True and trade_info is None:
             raise ValueError("trade_info is necessary in atomic executor")
         elif atomic is False and inner_order_indicators is None:
-            raise ValueError("inner_order_indicators is necessary in un-atomic executor")
+            raise ValueError(
+                "inner_order_indicators is necessary in un-atomic executor"
+            )
 
         # update current position and hold bar count in each bar end
         self.update_current_position(trade_start_time, trade_end_time, trade_exchange)
@@ -406,11 +442,15 @@ class Account:
         """get the history portfolio_metrics and positions instance"""
         if self.is_port_metr_enabled():
             assert self.portfolio_metrics is not None
-            _portfolio_metrics = self.portfolio_metrics.generate_portfolio_metrics_dataframe()
+            _portfolio_metrics = (
+                self.portfolio_metrics.generate_portfolio_metrics_dataframe()
+            )
             _positions = self.get_hist_positions()
             return _portfolio_metrics, _positions
         else:
-            raise ValueError("generate_portfolio_metrics should be True if you want to generate portfolio_metrics")
+            raise ValueError(
+                "generate_portfolio_metrics should be True if you want to generate portfolio_metrics"
+            )
 
     def get_trade_indicator(self) -> Indicator:
         """get the trade indicator instance, which has pa/pos/ffr info."""

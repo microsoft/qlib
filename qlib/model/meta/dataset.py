@@ -36,7 +36,9 @@ class MetaTaskDataset(Serializable, metaclass=abc.ABCMeta):
         super().__init__(*args, **kwargs)
         self.segments = segments
 
-    def prepare_tasks(self, segments: Union[List[Text], Text], *args, **kwargs) -> List[MetaTask]:
+    def prepare_tasks(
+        self, segments: Union[List[Text], Text], *args, **kwargs
+    ) -> List[MetaTask]:
         """
         Prepare the data in each meta-task and ready for training.
 

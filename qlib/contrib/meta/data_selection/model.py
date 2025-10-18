@@ -98,7 +98,9 @@ class MetaModelDS(MetaTaskModel):
                 try:
                     loss = criterion(pred, meta_input["y_test"], meta_input["test_idx"])
                 except ValueError as e:
-                    get_module_logger("MetaModelDS").warning(f"Exception `{e}` when calculating IC loss")
+                    get_module_logger("MetaModelDS").warning(
+                        f"Exception `{e}` when calculating IC loss"
+                    )
                     continue
             else:
                 raise ValueError(f"Unknown criterion: {self.criterion}")
@@ -115,8 +117,13 @@ class MetaModelDS(MetaTaskModel):
             pred_y_all.append(
                 pd.DataFrame(
                     {
-                        "pred": pd.Series(pred.detach().cpu().numpy(), index=meta_input["test_idx"]),
-                        "label": pd.Series(meta_input["y_test"].detach().cpu().numpy(), index=meta_input["test_idx"]),
+                        "pred": pd.Series(
+                            pred.detach().cpu().numpy(), index=meta_input["test_idx"]
+                        ),
+                        "label": pd.Series(
+                            meta_input["y_test"].detach().cpu().numpy(),
+                            index=meta_input["test_idx"],
+                        ),
                     }
                 )
             )
@@ -145,7 +152,17 @@ class MetaModelDS(MetaTaskModel):
         """
 
         if not self.fitted:
-            for k in set(["lr", "step", "hist_step_n", "clip_method", "clip_weight", "criterion", "max_epoch"]):
+            for k in set(
+                [
+                    "lr",
+                    "step",
+                    "hist_step_n",
+                    "clip_method",
+                    "clip_weight",
+                    "criterion",
+                    "max_epoch",
+                ]
+            ):
                 R.log_params(**{k: getattr(self, k)})
 
         # FIXME: get test tasks for just checking the performance
@@ -154,7 +171,11 @@ class MetaModelDS(MetaTaskModel):
 
         if len(meta_tasks_l[1]):
             R.log_params(
-                **dict(proxy_test_begin=meta_tasks_l[1][0].task["dataset"]["kwargs"]["segments"]["test"])
+                **dict(
+                    proxy_test_begin=meta_tasks_l[1][0].task["dataset"]["kwargs"][
+                        "segments"
+                    ]["test"]
+                )
             )  # debug: record when the test phase starts
 
         self.tn = PredNet(
@@ -169,7 +190,9 @@ class MetaModelDS(MetaTaskModel):
 
         # run weight with no weight
         for phase, task_list in zip(phases, meta_tasks_l):
-            self.run_epoch(f"{phase}_noweight", task_list, 0, opt, {}, ignore_weight=True)
+            self.run_epoch(
+                f"{phase}_noweight", task_list, 0, opt, {}, ignore_weight=True
+            )
             self.run_epoch(f"{phase}_init", task_list, 0, opt, {})
 
         # run training
@@ -184,7 +207,9 @@ class MetaModelDS(MetaTaskModel):
         meta_ipt = task.get_meta_input()
         weights = self.tn.twm(meta_ipt["time_perf"])
 
-        weight_s = pd.Series(weights.detach().cpu().numpy(), index=task.meta_info.columns)
+        weight_s = pd.Series(
+            weights.detach().cpu().numpy(), index=task.meta_info.columns
+        )
         task = copy.copy(task.task)  # NOTE: this is a shallow copy.
         task["reweighter"] = TimeReweighter(weight_s)
         return task
