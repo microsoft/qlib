@@ -586,7 +586,10 @@ class DatasetProvider(abc.ABC):
 
         if len(new_data) > 0:
             data = pd.concat(new_data, names=["instrument"], sort=False)
-            data = DiskDatasetCache.cache_to_origin_data(data, column_names)
+
+            # NOTE: InstProcessors may add new columns and using cache_to_origin_data will remove those added columns.
+            if not len(inst_processors):
+                data = DiskDatasetCache.cache_to_origin_data(data, column_names)
         else:
             data = pd.DataFrame(
                 index=pd.MultiIndex.from_arrays([[], []], names=("instrument", "datetime")),
