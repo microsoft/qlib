@@ -1,4 +1,3 @@
-import ast
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
@@ -52,7 +51,21 @@ class TRAModel(Model):
         self.logger = get_module_logger("TRA")
         self.logger.info("TRA Model...")
 
-        self.model = ast.literal_eval(model_type)(**model_config).to(device)
+        # Secure model registry - whitelist of allowed model classes
+        # This prevents arbitrary code execution while allowing dynamic model selection
+        model_registry = {
+            "LSTM": LSTM,
+            "Transformer": Transformer,
+        }
+
+        if model_type not in model_registry:
+            raise ValueError(
+                f"Unknown model_type: '{model_type}'. "
+                f"Supported types: {list(model_registry.keys())}"
+            )
+
+        model_class = model_registry[model_type]
+        self.model = model_class(**model_config).to(device)
         if model_init_state:
             self.model.load_state_dict(torch.load(model_init_state, map_location="cpu")["model"])
         if freeze_model:
