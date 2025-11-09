@@ -71,7 +71,9 @@ class EnhancedIndexingOptimizer(BaseOptimizer):
         assert delta >= 0, "turnover limit `delta` should be positive"
         self.delta = delta
 
-        assert b_dev is None or b_dev >= 0, "benchmark deviation limit `b_dev` should be positive"
+        assert (
+            b_dev is None or b_dev >= 0
+        ), "benchmark deviation limit `b_dev` should be positive"
         self.b_dev = b_dev
 
         if isinstance(f_dev, float):
@@ -176,7 +178,9 @@ class EnhancedIndexingOptimizer(BaseOptimizer):
 
         # trial 2: remove turnover constraint
         if not success and len(t_cons):
-            logger.info("try removing turnover constraint as the last optimization failed")
+            logger.info(
+                "try removing turnover constraint as the last optimization failed"
+            )
             try:
                 w.value = wb
                 prob = cp.Problem(obj, cons)

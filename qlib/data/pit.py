@@ -37,13 +37,20 @@ class P(ElemOperator):
             # The calculated value will always the last element, so the end_offset is zero.
             try:
                 s = self._load_feature(instrument, -start_ws, 0, cur_time)
-                resample_data[cur_index - start_index] = s.iloc[-1] if len(s) > 0 else np.nan
+                resample_data[cur_index - start_index] = (
+                    s.iloc[-1] if len(s) > 0 else np.nan
+                )
             except FileNotFoundError:
-                get_module_logger("base").warning(f"WARN: period data not found for {str(self)}")
+                get_module_logger("base").warning(
+                    f"WARN: period data not found for {str(self)}"
+                )
                 return pd.Series(dtype="float32", name=str(self))
 
         resample_series = pd.Series(
-            resample_data, index=pd.RangeIndex(start_index, end_index + 1), dtype="float32", name=str(self)
+            resample_data,
+            index=pd.RangeIndex(start_index, end_index + 1),
+            dtype="float32",
+            name=str(self),
         )
         return resample_series
 
@@ -68,4 +75,6 @@ class PRef(P):
         return f"{super().__str__()}[{self.period}]"
 
     def _load_feature(self, instrument, start_index, end_index, cur_time):
-        return self.feature.load(instrument, start_index, end_index, cur_time, self.period)
+        return self.feature.load(
+            instrument, start_index, end_index, cur_time, self.period
+        )

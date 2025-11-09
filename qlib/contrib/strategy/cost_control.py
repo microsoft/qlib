@@ -37,7 +37,13 @@ class SoftTopkStrategy(WeightStrategyBase):
                 average_fill: assign the weight to the stocks rank high averagely.
         """
         super(SoftTopkStrategy, self).__init__(
-            model, dataset, order_generator_cls_or_obj, trade_exchange, level_infra, common_infra, **kwargs
+            model,
+            dataset,
+            order_generator_cls_or_obj,
+            trade_exchange,
+            level_infra,
+            common_infra,
+            **kwargs,
         )
         self.topk = topk
         self.max_sold_weight = max_sold_weight
@@ -52,7 +58,9 @@ class SoftTopkStrategy(WeightStrategyBase):
         # It will use 95% amount of your total value by default
         return self.risk_degree
 
-    def generate_target_weight_position(self, score, current, trade_start_time, trade_end_time):
+    def generate_target_weight_position(
+        self, score, current, trade_start_time, trade_end_time
+    ):
         """
         Parameters
         ----------
@@ -70,7 +78,9 @@ class SoftTopkStrategy(WeightStrategyBase):
         # TODO:
         # If the current stock list is more than topk(eg. The weights are modified
         # by risk control), the weight will not be handled correctly.
-        buy_signal_stocks = set(score.sort_values(ascending=False).iloc[: self.topk].index)
+        buy_signal_stocks = set(
+            score.sort_values(ascending=False).iloc[: self.topk].index
+        )
         cur_stock_weight = current.get_stock_weight_dict(only_stock=True)
 
         if len(cur_stock_weight) == 0:
@@ -89,13 +99,15 @@ class SoftTopkStrategy(WeightStrategyBase):
                         max(1 / self.topk - final_stock_weight.get(stock_id, 0), 0.0),
                         sold_stock_weight,
                     )
-                    final_stock_weight[stock_id] = final_stock_weight.get(stock_id, 0.0) + add_weight
+                    final_stock_weight[stock_id] = (
+                        final_stock_weight.get(stock_id, 0.0) + add_weight
+                    )
                     sold_stock_weight -= add_weight
             elif self.buy_method == "average_fill":
                 for stock_id in buy_signal_stocks:
-                    final_stock_weight[stock_id] = final_stock_weight.get(stock_id, 0.0) + sold_stock_weight / len(
-                        buy_signal_stocks
-                    )
+                    final_stock_weight[stock_id] = final_stock_weight.get(
+                        stock_id, 0.0
+                    ) + sold_stock_weight / len(buy_signal_stocks)
             else:
                 raise ValueError("Buy method not found")
         return final_stock_weight

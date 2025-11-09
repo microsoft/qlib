@@ -116,11 +116,19 @@ class RollingStrategy(OnlineStrategy):
             task_template = [task_template]
         self.task_template = task_template
         self.rg = rolling_gen
-        assert issubclass(self.rg.__class__, RollingGen), "The rolling strategy relies on the feature if RollingGen"
+        assert issubclass(
+            self.rg.__class__, RollingGen
+        ), "The rolling strategy relies on the feature if RollingGen"
         self.tool = OnlineToolR(self.exp_name)
         self.ta = TimeAdjuster()
 
-    def get_collector(self, process_list=[RollingGroup()], rec_key_func=None, rec_filter_func=None, artifacts_key=None):
+    def get_collector(
+        self,
+        process_list=[RollingGroup()],
+        rec_key_func=None,
+        rec_filter_func=None,
+        artifacts_key=None,
+    ):
         """
         Get the instance of `Collector <../advanced/task_management.html#Task Collecting>`_ to collect results. The returned collector must distinguish results in different models.
 
@@ -200,9 +208,15 @@ class RollingStrategy(OnlineStrategy):
         """
         if len(rec_list) == 0:
             return rec_list, None
-        max_test = max(rec.load_object("task")["dataset"]["kwargs"]["segments"]["test"] for rec in rec_list)
+        max_test = max(
+            rec.load_object("task")["dataset"]["kwargs"]["segments"]["test"]
+            for rec in rec_list
+        )
         latest_rec = []
         for rec in rec_list:
-            if rec.load_object("task")["dataset"]["kwargs"]["segments"]["test"] == max_test:
+            if (
+                rec.load_object("task")["dataset"]["kwargs"]["segments"]["test"]
+                == max_test
+            ):
                 latest_rec.append(rec)
         return latest_rec, max_test

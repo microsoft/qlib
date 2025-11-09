@@ -28,7 +28,9 @@ class Client:
         # bind connect/disconnect callbacks
         self.sio.on(
             "connect",
-            lambda: self.logger.debug("Connect to server {}".format(self.sio.connection_url)),
+            lambda: self.logger.debug(
+                "Connect to server {}".format(self.sio.connection_url)
+            ),
         )
         self.sio.on("disconnect", lambda: self.logger.debug("Disconnect from server!"))
 
@@ -37,7 +39,9 @@ class Client:
         try:
             self.sio.connect(f"ws://{self.server_host}:{self.server_port}")
         except socketio.exceptions.ConnectionError:
-            self.logger.error("Cannot connect to server - check your network or server status")
+            self.logger.error(
+                "Cannot connect to server - check your network or server status"
+            )
 
     def disconnect(self):
         """Disconnect from server."""
@@ -46,7 +50,9 @@ class Client:
         except Exception as e:
             self.logger.error("Cannot disconnect from server : %s" % e)
 
-    def send_request(self, request_type, request_content, msg_queue, msg_proc_func=None):
+    def send_request(
+        self, request_type, request_content, msg_queue, msg_proc_func=None
+    ):
         """Send a certain request to server.
 
         Parameters
@@ -76,7 +82,9 @@ class Client:
                 else:
                     self.logger.info(msg["detailed_info"])
             if msg["status"] != 0:
-                ex = ValueError(f"Bad response(status=={msg['status']}), detailed info: {msg['detailed_info']}")
+                ex = ValueError(
+                    f"Bad response(status=={msg['status']}), detailed info: {msg['detailed_info']}"
+                )
                 msg_queue.put(ex)
             else:
                 if msg_proc_func is not None:
@@ -96,7 +104,10 @@ class Client:
         self.logger.debug("connected")
         # The pickle is for passing some parameters with special type(such as
         # pd.Timestamp)
-        request_content = {"head": head_info, "body": pickle.dumps(request_content, protocol=C.dump_protocol_version)}
+        request_content = {
+            "head": head_info,
+            "body": pickle.dumps(request_content, protocol=C.dump_protocol_version),
+        }
         self.sio.on(request_type + "_response", request_callback)
         self.logger.debug("try sending")
         self.sio.emit(request_type + "_request", request_content)

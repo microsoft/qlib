@@ -59,7 +59,9 @@ def train_mse(uri_path: str = None):
 
 
 class TestAllFlow(TestAutoData):
-    URI_PATH = "file:" + str(Path(__file__).parent.joinpath("test_contrib_mlruns").resolve())
+    URI_PATH = "file:" + str(
+        Path(__file__).parent.joinpath("test_contrib_mlruns").resolve()
+    )
 
     @classmethod
     def tearDownClass(cls) -> None:

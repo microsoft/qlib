@@ -39,7 +39,11 @@ class GetData:
             The file name can be accompanied by a version number, (e.g.: v2/qlib_data_simple_cn_1d_latest.zip),
             if no version number is attached, it will be downloaded from v0 by default.
         """
-        return f"{self.REMOTE_URL}/{file_name}" if "/" in file_name else f"{self.REMOTE_URL}/v0/{file_name}"
+        return (
+            f"{self.REMOTE_URL}/{file_name}"
+            if "/" in file_name
+            else f"{self.REMOTE_URL}/v0/{file_name}"
+        )
 
     def download(self, url: str, target_path: [Path, str]):
         """
@@ -69,7 +73,9 @@ class GetData:
                     fp.write(chunk)
                     p_bar.update(chunk_size)
 
-    def download_data(self, file_name: str, target_dir: [Path, str], delete_old: bool = True):
+    def download_data(
+        self, file_name: str, target_dir: [Path, str], delete_old: bool = True
+    ):
         """
         Download the specified file to the target folder.
 
@@ -98,7 +104,11 @@ class GetData:
         target_dir = Path(target_dir).expanduser()
         target_dir.mkdir(exist_ok=True, parents=True)
         # saved file name
-        _target_file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S") + "_" + os.path.basename(file_name)
+        _target_file_name = (
+            datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+            + "_"
+            + os.path.basename(file_name)
+        )
         target_path = target_dir.joinpath(_target_file_name)
 
         url = self.merge_remote_url(file_name)
@@ -117,7 +127,9 @@ class GetData:
         return status
 
     @staticmethod
-    def _unzip(file_path: [Path, str], target_dir: [Path, str], delete_old: bool = True):
+    def _unzip(
+        file_path: [Path, str], target_dir: [Path, str], delete_old: bool = True
+    ):
         file_path = Path(file_path)
         target_dir = Path(target_dir)
         if delete_old:
@@ -133,7 +145,13 @@ class GetData:
     @staticmethod
     def _delete_qlib_data(file_dir: Path):
         rm_dirs = []
-        for _name in ["features", "calendars", "instruments", "features_cache", "dataset_cache"]:
+        for _name in [
+            "features",
+            "calendars",
+            "instruments",
+            "features_cache",
+            "dataset_cache",
+        ]:
             _p = file_dir.joinpath(_name)
             if _p.exists():
                 rm_dirs.append(str(_p.resolve()))

@@ -21,7 +21,9 @@ class SingleOrderStrategy(BaseStrategy):
         self._order = order
         self._trade_range = trade_range
 
-    def generate_trade_decision(self, execute_result: list | None = None) -> TradeDecisionWO:
+    def generate_trade_decision(
+        self, execute_result: list | None = None
+    ) -> TradeDecisionWO:
         oh: OrderHelper = self.common_infra.get("trade_exchange").get_order_helper()
         order_list = [
             oh.create(

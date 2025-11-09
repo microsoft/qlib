@@ -33,7 +33,9 @@ class DEnsembleModel(Model, FeatureInt):
         early_stopping_rounds=None,
         **kwargs,
     ):
-        self.base_model = base_model  # "gbm" or "mlp", specifically, we use lgbm for "gbm"
+        self.base_model = (
+            base_model  # "gbm" or "mlp", specifically, we use lgbm for "gbm"
+        )
         self.num_models = num_models  # the number of sub-models
         self.enable_sr = enable_sr
         self.enable_fs = enable_fs
@@ -55,8 +57,12 @@ class DEnsembleModel(Model, FeatureInt):
         self.epochs = epochs
         self.logger = get_module_logger("DEnsembleModel")
         self.logger.info("Double Ensemble Model...")
-        self.ensemble = []  # the current ensemble model, a list contains all the sub-models
-        self.sub_features = []  # the features for each sub model in the form of pandas.Index
+        self.ensemble = (
+            []
+        )  # the current ensemble model, a list contains all the sub-models
+        self.sub_features = (
+            []
+        )  # the features for each sub model in the form of pandas.Index
         self.params = {"objective": loss}
         self.params.update(kwargs)
         self.loss = loss
@@ -64,21 +70,29 @@ class DEnsembleModel(Model, FeatureInt):
 
     def fit(self, dataset: DatasetH):
         df_train, df_valid = dataset.prepare(
-            ["train", "valid"], col_set=["feature", "label"], data_key=DataHandlerLP.DK_L
+            ["train", "valid"],
+            col_set=["feature", "label"],
+            data_key=DataHandlerLP.DK_L,
         )
         if df_train.empty or df_valid.empty:
-            raise ValueError("Empty data from dataset, please check your dataset config.")
+            raise ValueError(
+                "Empty data from dataset, please check your dataset config."
+            )
         x_train, y_train = df_train["feature"], df_train["label"]
         # initialize the sample weights
         N, F = x_train.shape
         weights = pd.Series(np.ones(N, dtype=float))
         # initialize the features
         features = x_train.columns
-        pred_sub = pd.DataFrame(np.zeros((N, self.num_models), dtype=float), index=x_train.index)
+        pred_sub = pd.DataFrame(
+            np.zeros((N, self.num_models), dtype=float), index=x_train.index
+        )
         # train sub-models
         for k in range(self.num_models):
             self.sub_features.append(features)
-            self.logger.info("Training sub-model: ({}/{})".format(k + 1, self.num_models))
+            self.logger.info(
+                "Training sub-model: ({}/{})".format(k + 1, self.num_models)
+            )
             model_k = self.train_submodel(df_train, df_valid, weights, features)
             self.ensemble.append(model_k)
             # no further sample re-weight and feature selection needed for the last sub-model
@@ -89,10 +103,12 @@ class DEnsembleModel(Model, FeatureInt):
             loss_curve = self.retrieve_loss_curve(model_k, df_train, features)
             pred_k = self.predict_sub(model_k, df_train, features)
             pred_sub.iloc[:, k] = pred_k
-            pred_ensemble = (pred_sub.iloc[:, : k + 1] * self.sub_weights[0 : k + 1]).sum(axis=1) / np.sum(
-                self.sub_weights[0 : k + 1]
+            pred_ensemble = (
+                pred_sub.iloc[:, : k + 1] * self.sub_weights[0 : k + 1]
+            ).sum(axis=1) / np.sum(self.sub_weights[0 : k + 1])
+            loss_values = pd.Series(
+                self.get_loss(y_train.values.squeeze(), pred_ensemble.values)
             )
-            loss_values = pd.Series(self.get_loss(y_train.values.squeeze(), pred_ensemble.values))
 
             if self.enable_sr:
                 self.logger.info("Sample re-weighting...")
@@ -190,17 +206,24 @@ class DEnsembleModel(Model, FeatureInt):
         # shuffle specific columns and calculate g-value for each feature
         x_train_tmp = x_train.copy()
         for i_f, feat in enumerate(features):
-            x_train_tmp.loc[:, feat] = np.random.permutation(x_train_tmp.loc[:, feat].values)
+            x_train_tmp.loc[:, feat] = np.random.permutation(
+                x_train_tmp.loc[:, feat].values
+            )
             pred = pd.Series(np.zeros(N), index=x_train_tmp.index)
             for i_s, submodel in enumerate(self.ensemble):
                 pred += (
                     pd.Series(
-                        submodel.predict(x_train_tmp.loc[:, self.sub_features[i_s]].values), index=x_train_tmp.index
+                        submodel.predict(
+                            x_train_tmp.loc[:, self.sub_features[i_s]].values
+                        ),
+                        index=x_train_tmp.index,
                     )
                     / M
                 )
             loss_feat = self.get_loss(y_train.values.squeeze(), pred.values)
-            g.loc[i_f, "g_value"] = np.mean(loss_feat - loss_values) / (np.std(loss_feat - loss_values) + 1e-7)
+            g.loc[i_f, "g_value"] = np.mean(loss_feat - loss_values) / (
+                np.std(loss_feat - loss_values) + 1e-7
+            )
             x_train_tmp.loc[:, feat] = x_train.loc[:, feat].copy()
 
         # one column in train features is all-nan # if g['g_value'].isna().any()
@@ -215,7 +238,10 @@ class DEnsembleModel(Model, FeatureInt):
         for i_b, b in enumerate(sorted_bins):
             b_feat = features[g["bins"] == b]
             num_feat = int(np.ceil(self.sample_ratios[i_b] * len(b_feat)))
-            res_feat = res_feat + np.random.choice(b_feat, size=num_feat, replace=False).tolist()
+            res_feat = (
+                res_feat
+                + np.random.choice(b_feat, size=num_feat, replace=False).tolist()
+            )
         return pd.Index(set(res_feat))
 
     def get_loss(self, label, pred):
@@ -238,7 +264,9 @@ class DEnsembleModel(Model, FeatureInt):
             loss_curve = pd.DataFrame(np.zeros((N, num_trees)))
             pred_tree = np.zeros(N, dtype=float)
             for i_tree in range(num_trees):
-                pred_tree += model.predict(x_train.values, start_iteration=i_tree, num_iteration=1)
+                pred_tree += model.predict(
+                    x_train.values, start_iteration=i_tree, num_iteration=1
+                )
                 loss_curve.iloc[:, i_tree] = self.get_loss(y_train, pred_tree)
         else:
             raise ValueError("not implemented yet")
@@ -247,12 +275,16 @@ class DEnsembleModel(Model, FeatureInt):
     def predict(self, dataset: DatasetH, segment: Union[Text, slice] = "test"):
         if self.ensemble is None:
             raise ValueError("model is not fitted yet!")
-        x_test = dataset.prepare(segment, col_set="feature", data_key=DataHandlerLP.DK_I)
+        x_test = dataset.prepare(
+            segment, col_set="feature", data_key=DataHandlerLP.DK_I
+        )
         pred = pd.Series(np.zeros(x_test.shape[0]), index=x_test.index)
         for i_sub, submodel in enumerate(self.ensemble):
             feat_sub = self.sub_features[i_sub]
             pred += (
-                pd.Series(submodel.predict(x_test.loc[:, feat_sub].values), index=x_test.index)
+                pd.Series(
+                    submodel.predict(x_test.loc[:, feat_sub].values), index=x_test.index
+                )
                 * self.sub_weights[i_sub]
             )
         pred = pred / np.sum(self.sub_weights)
@@ -273,5 +305,13 @@ class DEnsembleModel(Model, FeatureInt):
         """
         res = []
         for _model, _weight in zip(self.ensemble, self.sub_weights):
-            res.append(pd.Series(_model.feature_importance(*args, **kwargs), index=_model.feature_name()) * _weight)
-        return pd.concat(res, axis=1, sort=False).sum(axis=1).sort_values(ascending=False)
+            res.append(
+                pd.Series(
+                    _model.feature_importance(*args, **kwargs),
+                    index=_model.feature_name(),
+                )
+                * _weight
+            )
+        return (
+            pd.concat(res, axis=1, sort=False).sum(axis=1).sort_values(ascending=False)
+        )

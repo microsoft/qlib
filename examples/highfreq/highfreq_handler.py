@@ -14,8 +14,12 @@ class HighFreqHandler(DataHandlerLP):
         fit_end_time=None,
         drop_raw=True,
     ):
-        infer_processors = check_transform_proc(infer_processors, fit_start_time, fit_end_time)
-        learn_processors = check_transform_proc(learn_processors, fit_start_time, fit_end_time)
+        infer_processors = check_transform_proc(
+            infer_processors, fit_start_time, fit_end_time
+        )
+        learn_processors = check_transform_proc(
+            learn_processors, fit_start_time, fit_end_time
+        )
 
         data_loader = {
             "class": "QlibDataLoader",
@@ -50,7 +54,11 @@ class HighFreqHandler(DataHandlerLP):
             if shift == 0:
                 template_norm = "Cut({0}/Ref(DayLast({1}), 240), 240, None)"
             else:
-                template_norm = "Cut(Ref({0}, " + str(shift) + ")/Ref(DayLast({1}), 240), 240, None)"
+                template_norm = (
+                    "Cut(Ref({0}, "
+                    + str(shift)
+                    + ")/Ref(DayLast({1}), 240), 240, None)"
+                )
 
             feature_ops = template_norm.format(
                 template_if.format(
@@ -133,7 +141,9 @@ class HighFreqBacktestHandler(DataHandler):
         # Because there is no vwap field in the yahoo data, a method similar to Simpson integration is used to approximate vwap
         simpson_vwap = "($open + 2*$high + 2*$low + $close)/6"
         fields += [
-            "Cut({0}, 240, None)".format(template_fillnan.format(template_paused.format("$close"))),
+            "Cut({0}, 240, None)".format(
+                template_fillnan.format(template_paused.format("$close"))
+            ),
         ]
         names += ["$close0"]
         fields += [

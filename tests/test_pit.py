@@ -16,7 +16,9 @@ from qlib.tests.data import GetData
 sys.path.append(str(Path(__file__).resolve().parent.parent.joinpath("scripts")))
 from dump_pit import DumpPitData
 
-sys.path.append(str(Path(__file__).resolve().parent.parent.joinpath("scripts/data_collector/pit")))
+sys.path.append(
+    str(Path(__file__).resolve().parent.parent.joinpath("scripts/data_collector/pit"))
+)
 from collector import Run
 
 
@@ -41,9 +43,19 @@ class TestPIT(unittest.TestCase):
         pit_dir = str(SOURCE_DIR.joinpath("pit").resolve())
         pit_normalized_dir = str(SOURCE_DIR.joinpath("pit_normalized").resolve())
         GetData().qlib_data(
-            name="qlib_data_simple", target_dir=cn_data_dir, region="cn", delete_old=False, exists_skip=True
+            name="qlib_data_simple",
+            target_dir=cn_data_dir,
+            region="cn",
+            delete_old=False,
+            exists_skip=True,
         )
-        GetData().qlib_data(name="qlib_data", target_dir=pit_dir, region="pit", delete_old=False, exists_skip=True)
+        GetData().qlib_data(
+            name="qlib_data",
+            target_dir=pit_dir,
+            region="pit",
+            delete_old=False,
+            exists_skip=True,
+        )
 
         # NOTE: This code does the same thing as line 43, but since baostock is not stable in downloading data, we have chosen to download offline data.
         # bs.login()
@@ -79,7 +91,13 @@ class TestPIT(unittest.TestCase):
         fields = ["P($$roewa_q)", "P($$yoyni_q)"]
         # Mao Tai published 2019Q2 report at 2019-07-13 & 2019-07-18
         # - http://www.cninfo.com.cn/new/commonUrl/pageOfSearch?url=disclosure/list/search&lastPage=index
-        data = D.features(instruments, fields, start_time="2019-01-01", end_time="2019-07-19", freq="day")
+        data = D.features(
+            instruments,
+            fields,
+            start_time="2019-01-01",
+            end_time="2019-07-19",
+            freq="day",
+        )
         res = """
                P($$roewa_q)  P($$yoyni_q)
         count    133.000000    133.000000
@@ -106,7 +124,13 @@ class TestPIT(unittest.TestCase):
 
     def test_no_exist_data(self):
         fields = ["P($$roewa_q)", "P($$yoyni_q)", "$close"]
-        data = D.features(["sh600519", "sh601988"], fields, start_time="2019-01-01", end_time="2019-07-19", freq="day")
+        data = D.features(
+            ["sh600519", "sh601988"],
+            fields,
+            start_time="2019-01-01",
+            end_time="2019-07-19",
+            freq="day",
+        )
         data["$close"] = 1  # in case of different dataset gives different values
         expect = """
                                P($$roewa_q)  P($$yoyni_q)  $close
@@ -137,7 +161,13 @@ class TestPIT(unittest.TestCase):
             "P((Ref($$roewa_q, 1) +$$roewa_q) / 2)",
         ]
         instruments = ["sh600519"]
-        data = D.features(instruments, fields, start_time="2019-01-01", end_time="2019-07-19", freq="day")
+        data = D.features(
+            instruments,
+            fields,
+            start_time="2019-01-01",
+            end_time="2019-07-19",
+            freq="day",
+        )
         expect = """
                                P(Mean($$roewa_q, 1))  P($$roewa_q)  P(Mean($$roewa_q, 2))  P(Ref($$roewa_q, 1))  P((Ref($$roewa_q, 1) +$$roewa_q) / 2)
         instrument datetime
@@ -164,7 +194,9 @@ class TestPIT(unittest.TestCase):
         fields = ["P($$roewa_q)"]
         instruments = ["sh600519"]
         _ = D.features(instruments, fields, freq="day")  # this should not raise error
-        data = D.features(instruments, fields, end_time="2020-01-01", freq="day")  # this should not raise error
+        data = D.features(
+            instruments, fields, end_time="2020-01-01", freq="day"
+        )  # this should not raise error
         s = data.iloc[:, 0]
         # You can check the expected value based on the content in `docs/advanced/PIT.rst`
         expect = """
@@ -233,7 +265,13 @@ class TestPIT(unittest.TestCase):
         fields += ["P(($$roewa_q / $$yoyni_q) / Ref($$roewa_q / $$yoyni_q, 1) - 1)"]
         fields += ["P(Sum($$yoyni_q, 4))"]
         fields += ["$close", "P($$roewa_q) * $close"]
-        data = D.features(instruments, fields, start_time="2019-01-01", end_time="2020-01-01", freq="day")
+        data = D.features(
+            instruments,
+            fields,
+            start_time="2019-01-01",
+            end_time="2020-01-01",
+            freq="day",
+        )
         except_data = """
                                        P($$roewa_q)  P($$yoyni_q)  P(($$roewa_q / $$yoyni_q) / Ref($$roewa_q / $$yoyni_q, 1) - 1)  P(Sum($$yoyni_q, 4))      $close  P($$roewa_q) * $close
         instrument datetime
@@ -261,7 +299,13 @@ class TestPIT(unittest.TestCase):
             "P($$roewa_q)",
             "P($$roewa_q) / PRef($$roewa_q, 201801)",
         ]
-        data = D.features(instruments, fields, start_time="2018-04-28", end_time="2019-07-19", freq="day")
+        data = D.features(
+            instruments,
+            fields,
+            start_time="2018-04-28",
+            end_time="2019-07-19",
+            freq="day",
+        )
         except_data = """
                                PRef($$roewa_q, 201902)  PRef($$yoyni_q, 201801)  P($$roewa_q)  P($$roewa_q) / PRef($$roewa_q, 201801)
         instrument datetime

@@ -25,7 +25,9 @@ def get_or_create_path(path: Optional[Text] = None, return_dir: bool = False):
     if path:
         if return_dir and not os.path.exists(path):
             os.makedirs(path)
-        elif not return_dir:  # return a file, thus we need to create its parent directory
+        elif (
+            not return_dir
+        ):  # return a file, thus we need to create its parent directory
             xpath = os.path.abspath(os.path.join(path, ".."))
             if not os.path.exists(xpath):
                 os.makedirs(xpath)
@@ -74,7 +76,9 @@ def save_multiple_parts_file(filename, format="gztar"):
 
     # Create model dir
     if os.path.exists(file_path):
-        raise FileExistsError("ERROR: file exists: {}, cannot be create the directory.".format(file_path))
+        raise FileExistsError(
+            "ERROR: file exists: {}, cannot be create the directory.".format(file_path)
+        )
 
     os.makedirs(file_path)
 
@@ -185,6 +189,8 @@ def get_io_object(file: Union[IO, str, Path], *args, **kwargs) -> IO:
         if isinstance(file, str):
             file = Path(file)
         if not isinstance(file, Path):
-            raise NotImplementedError(f"This type[{type(file)}] of input is not supported")
+            raise NotImplementedError(
+                f"This type[{type(file)}] of input is not supported"
+            )
         with file.open(*args, **kwargs) as f:
             yield f

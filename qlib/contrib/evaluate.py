@@ -13,7 +13,12 @@ from ..log import get_module_logger
 from ..utils import get_date_range
 from ..utils.resam import Freq
 from ..strategy.base import BaseStrategy
-from ..backtest import get_exchange, position, backtest as backtest_func, executor as _executor
+from ..backtest import (
+    get_exchange,
+    position,
+    backtest as backtest_func,
+    executor as _executor,
+)
 
 
 from ..data import D
@@ -24,7 +29,9 @@ from ..data.dataset.utils import get_level_index
 logger = get_module_logger("Evaluate")
 
 
-def risk_analysis(r, N: int = None, freq: str = "day", mode: Literal["sum", "product"] = "sum"):
+def risk_analysis(
+    r, N: int = None, freq: str = "day", mode: Literal["sum", "product"] = "sum"
+):
     """Risk Analysis
     NOTE:
     The calculation of annualized return is different from the definition of annualized return.
@@ -80,7 +87,9 @@ def risk_analysis(r, N: int = None, freq: str = "day", mode: Literal["sum", "pro
         # max percentage drawdown from peak cumulative product
         max_drawdown = (cumulative_curve / cumulative_curve.cummax() - 1).min()
     else:
-        raise ValueError(f"risk_analysis accumulation mode {mode} is not supported. Expected `sum` or `product`.")
+        raise ValueError(
+            f"risk_analysis accumulation mode {mode} is not supported. Expected `sum` or `product`."
+        )
 
     information_ratio = mean / std * np.sqrt(N)
     data = {
@@ -339,7 +348,10 @@ def long_short_backtest(
 
     _pred_dates = pred.index.get_level_values(level="datetime")
     predict_dates = D.calendar(start_time=_pred_dates.min(), end_time=_pred_dates.max())
-    trade_dates = np.append(predict_dates[shift:], get_date_range(predict_dates[-1], left_shift=1, right_shift=shift))
+    trade_dates = np.append(
+        predict_dates[shift:],
+        get_date_range(predict_dates[-1], left_shift=1, right_shift=shift),
+    )
 
     long_returns = {}
     short_returns = {}
@@ -361,7 +373,9 @@ def long_short_backtest(
         for stock in long_stocks:
             if not trade_exchange.is_stock_tradable(stock_id=stock, trade_date=date):
                 continue
-            profit = trade_exchange.get_quote_info(stock_id=stock, start_time=date, end_time=date, field=profit_str)
+            profit = trade_exchange.get_quote_info(
+                stock_id=stock, start_time=date, end_time=date, field=profit_str
+            )
             if np.isnan(profit):
                 long_profit.append(0)
             else:
@@ -370,7 +384,9 @@ def long_short_backtest(
         for stock in short_stocks:
             if not trade_exchange.is_stock_tradable(stock_id=stock, trade_date=date):
                 continue
-            profit = trade_exchange.get_quote_info(stock_id=stock, start_time=date, end_time=date, field=profit_str)
+            profit = trade_exchange.get_quote_info(
+                stock_id=stock, start_time=date, end_time=date, field=profit_str
+            )
             if np.isnan(profit):
                 short_profit.append(0)
             else:
@@ -380,7 +396,9 @@ def long_short_backtest(
             # exclude the suspend stock
             if trade_exchange.check_stock_suspended(stock_id=stock, trade_date=date):
                 continue
-            profit = trade_exchange.get_quote_info(stock_id=stock, start_time=date, end_time=date, field=profit_str)
+            profit = trade_exchange.get_quote_info(
+                stock_id=stock, start_time=date, end_time=date, field=profit_str
+            )
             if np.isnan(profit):
                 all_profit.append(0)
             else:
@@ -409,7 +427,9 @@ def t_run():
         "n_drop": 5,
         "signal": pred,
     }
-    report_df, positions = backtest_daily(start_time="2017-01-01", end_time="2020-08-01", strategy=strategy_config)
+    report_df, positions = backtest_daily(
+        start_time="2017-01-01", end_time="2020-08-01", strategy=strategy_config
+    )
     print(report_df.head())
     print(positions.keys())
     print(positions[list(positions.keys())[0]])

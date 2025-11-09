@@ -12,7 +12,12 @@ from joblib import Parallel, delayed
 
 
 def calc_long_short_prec(
-    pred: pd.Series, label: pd.Series, date_col="datetime", quantile: float = 0.2, dropna=False, is_alpha=False
+    pred: pd.Series,
+    label: pd.Series,
+    date_col="datetime",
+    quantile: float = 0.2,
+    dropna=False,
+    is_alpha=False,
 ) -> Tuple[pd.Series, pd.Series]:
     """
     calculate the precision for long and short operation
@@ -131,10 +136,14 @@ def pred_autocorr(pred: pd.Series, lag=1, inst_col="instrument", date_col="datet
     """
     if isinstance(pred, pd.DataFrame):
         pred = pred.iloc[:, 0]
-        get_module_logger("pred_autocorr").warning(f"Only the first column in {pred.columns} of `pred` is kept")
+        get_module_logger("pred_autocorr").warning(
+            f"Only the first column in {pred.columns} of `pred` is kept"
+        )
     pred_ustk = pred.sort_index().unstack(inst_col)
     corr_s = {}
-    for (idx, cur), (_, prev) in zip(pred_ustk.iterrows(), pred_ustk.shift(lag).iterrows()):
+    for (idx, cur), (_, prev) in zip(
+        pred_ustk.iterrows(), pred_ustk.shift(lag).iterrows()
+    ):
         corr_s[idx] = cur.corr(prev)
     corr_s = pd.Series(corr_s).sort_index()
     return corr_s
@@ -157,7 +166,9 @@ def pred_autocorr_all(pred_dict, n_jobs=-1, **kwargs):
     return complex_parallel(Parallel(n_jobs=n_jobs, verbose=10), ac_dict)
 
 
-def calc_ic(pred: pd.Series, label: pd.Series, date_col="datetime", dropna=False) -> (pd.Series, pd.Series):
+def calc_ic(
+    pred: pd.Series, label: pd.Series, date_col="datetime", dropna=False
+) -> (pd.Series, pd.Series):
     """calc_ic.
 
     Parameters
@@ -175,8 +186,12 @@ def calc_ic(pred: pd.Series, label: pd.Series, date_col="datetime", dropna=False
         ic and rank ic
     """
     df = pd.DataFrame({"pred": pred, "label": label})
-    ic = df.groupby(date_col, group_keys=False).apply(lambda df: df["pred"].corr(df["label"]))
-    ric = df.groupby(date_col, group_keys=False).apply(lambda df: df["pred"].corr(df["label"], method="spearman"))
+    ic = df.groupby(date_col, group_keys=False).apply(
+        lambda df: df["pred"].corr(df["label"])
+    )
+    ric = df.groupby(date_col, group_keys=False).apply(
+        lambda df: df["pred"].corr(df["label"], method="spearman")
+    )
     if dropna:
         return ic.dropna(), ric.dropna()
     else:
@@ -210,6 +225,9 @@ def calc_all_ic(pred_dict_all, label, date_col="datetime", dropna=False, n_jobs=
     """
     pred_all_ics = {}
     for k, pred in pred_dict_all.items():
-        pred_all_ics[k] = DelayedDict(["ic", "ric"], delayed(calc_ic)(pred, label, date_col=date_col, dropna=dropna))
+        pred_all_ics[k] = DelayedDict(
+            ["ic", "ric"],
+            delayed(calc_ic)(pred, label, date_col=date_col, dropna=dropna),
+        )
     pred_all_ics = complex_parallel(Parallel(n_jobs=n_jobs, verbose=10), pred_all_ics)
     return pred_all_ics

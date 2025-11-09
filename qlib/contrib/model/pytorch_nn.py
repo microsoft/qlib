@@ -66,7 +66,9 @@ class DNNModelPytorch(Model):
         seed=None,
         weight_decay=0.0,
         data_parall=False,
-        scheduler: Optional[Union[Callable]] = "default",  # when it is Callable, it accept one argument named optimizer
+        scheduler: Optional[
+            Union[Callable]
+        ] = "default",  # when it is Callable, it accept one argument named optimizer
         init_model=None,
         eval_train_metric=False,
         pt_model_uri="qlib.contrib.model.pytorch_nn.Net",
@@ -92,7 +94,9 @@ class DNNModelPytorch(Model):
         if isinstance(GPU, str):
             self.device = torch.device(GPU)
         else:
-            self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+            self.device = torch.device(
+                "cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu"
+            )
         self.seed = seed
         self.weight_decay = weight_decay
         self.data_parall = data_parall
@@ -128,7 +132,9 @@ class DNNModelPytorch(Model):
         self._scorer = mean_squared_error if loss == "mse" else roc_auc_score
 
         if init_model is None:
-            self.dnn_model = init_instance_by_config({"class": pt_model_uri, "kwargs": pt_model_kwargs})
+            self.dnn_model = init_instance_by_config(
+                {"class": pt_model_uri, "kwargs": pt_model_kwargs}
+            )
 
             if self.data_parall:
                 self.dnn_model = DataParallel(self.dnn_model).to(self.device)
@@ -136,31 +142,41 @@ class DNNModelPytorch(Model):
             self.dnn_model = init_model
 
         self.logger.info("model:\n{:}".format(self.dnn_model))
-        self.logger.info("model size: {:.4f} MB".format(count_parameters(self.dnn_model)))
+        self.logger.info(
+            "model size: {:.4f} MB".format(count_parameters(self.dnn_model))
+        )
 
         if optimizer.lower() == "adam":
-            self.train_optimizer = optim.Adam(self.dnn_model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
+            self.train_optimizer = optim.Adam(
+                self.dnn_model.parameters(), lr=self.lr, weight_decay=self.weight_decay
+            )
         elif optimizer.lower() == "gd":
-            self.train_optimizer = optim.SGD(self.dnn_model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
+            self.train_optimizer = optim.SGD(
+                self.dnn_model.parameters(), lr=self.lr, weight_decay=self.weight_decay
+            )
         else:
-            raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
+            raise NotImplementedError(
+                "optimizer {} is not supported!".format(optimizer)
+            )
 
         if scheduler == "default":
             # In torch version 2.7.0, the verbose parameter has been removed. Reference Link:
             # https://github.com/pytorch/pytorch/pull/147301/files#diff-036a7470d5307f13c9a6a51c3a65dd014f00ca02f476c545488cd856bea9bcf2L1313
             if str(torch.__version__).split("+", maxsplit=1)[0] <= "2.6.0":
                 # Reduce learning rate when loss has stopped decrease
-                self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(  # pylint: disable=E1123
-                    self.train_optimizer,
-                    mode="min",
-                    factor=0.5,
-                    patience=10,
-                    verbose=True,
-                    threshold=0.0001,
-                    threshold_mode="rel",
-                    cooldown=0,
-                    min_lr=0.00001,
-                    eps=1e-08,
+                self.scheduler = (
+                    torch.optim.lr_scheduler.ReduceLROnPlateau(  # pylint: disable=E1123
+                        self.train_optimizer,
+                        mode="min",
+                        factor=0.5,
+                        patience=10,
+                        verbose=True,
+                        threshold=0.0001,
+                        threshold_mode="rel",
+                        cooldown=0,
+                        min_lr=0.00001,
+                        eps=1e-08,
+                    )
                 )
             else:
                 self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
@@ -203,12 +219,18 @@ class DNNModelPytorch(Model):
             if seg in dataset.segments:
                 # df_train df_valid
                 df = dataset.prepare(
-                    seg, col_set=["feature", "label"], data_key=self.valid_key if seg == "valid" else DataHandlerLP.DK_L
+                    seg,
+                    col_set=["feature", "label"],
+                    data_key=self.valid_key if seg == "valid" else DataHandlerLP.DK_L,
                 )
                 all_df["x"][seg] = df["feature"]
-                all_df["y"][seg] = df["label"].copy()  # We have to use copy to remove the reference to release mem
+                all_df["y"][seg] = df[
+                    "label"
+                ].copy()  # We have to use copy to remove the reference to release mem
                 if reweighter is None:
-                    all_df["w"][seg] = pd.DataFrame(np.ones_like(all_df["y"][seg].values), index=df.index)
+                    all_df["w"][seg] = pd.DataFrame(
+                        np.ones_like(all_df["y"][seg].values), index=df.index
+                    )
                 elif isinstance(reweighter, Reweighter):
                     all_df["w"][seg] = pd.DataFrame(reweighter.reweight(df))
                 else:
@@ -218,7 +240,9 @@ class DNNModelPytorch(Model):
                 for v in vars:
                     all_t[v][seg] = torch.from_numpy(all_df[v][seg].values).float()
                     # if seg == "valid": # accelerate the eval of validation
-                    all_t[v][seg] = all_t[v][seg].to(self.device)  # This will consume a lot of memory !!!!
+                    all_t[v][seg] = all_t[v][seg].to(
+                        self.device
+                    )  # This will consume a lot of memory !!!!
 
                 evals_result[seg] = []
                 # free memory
@@ -271,11 +295,18 @@ class DNNModelPytorch(Model):
 
                         # forward
                         preds = self._nn_predict(all_t["x"]["valid"], return_cpu=False)
-                        cur_loss_val = self.get_loss(preds, all_t["w"]["valid"], all_t["y"]["valid"], self.loss_type)
+                        cur_loss_val = self.get_loss(
+                            preds,
+                            all_t["w"]["valid"],
+                            all_t["y"]["valid"],
+                            self.loss_type,
+                        )
                         loss_val = cur_loss_val.item()
                         metric_val = (
                             self.get_metric(
-                                preds.reshape(-1), all_t["y"]["valid"].reshape(-1), all_df["y"]["valid"].index
+                                preds.reshape(-1),
+                                all_t["y"]["valid"].reshape(-1),
+                                all_df["y"]["valid"].index,
                             )
                             .detach()
                             .cpu()
@@ -288,7 +319,9 @@ class DNNModelPytorch(Model):
                         if self.eval_train_metric:
                             metric_train = (
                                 self.get_metric(
-                                    self._nn_predict(all_t["x"]["train"], return_cpu=False),
+                                    self._nn_predict(
+                                        all_t["x"]["train"], return_cpu=False
+                                    ),
                                     all_t["y"]["train"].reshape(-1),
                                     all_df["y"]["train"].index,
                                 )
@@ -321,7 +354,9 @@ class DNNModelPytorch(Model):
                     train_loss = 0
                     # update learning rate
                     if self.scheduler is not None:
-                        auto_filter_kwargs(self.scheduler.step, warning=False)(metrics=cur_loss_val, epoch=step)
+                        auto_filter_kwargs(self.scheduler.step, warning=False)(
+                            metrics=cur_loss_val, epoch=step
+                        )
                     R.log_metrics(lr=self.get_lr(), step=step)
                 else:
                     # retraining mode
@@ -330,7 +365,9 @@ class DNNModelPytorch(Model):
 
         if has_valid:
             # restore the optimal parameters after training
-            self.dnn_model.load_state_dict(torch.load(save_path, map_location=self.device))
+            self.dnn_model.load_state_dict(
+                torch.load(save_path, map_location=self.device)
+            )
         if self.use_gpu:
             torch.cuda.empty_cache()
 
@@ -381,7 +418,9 @@ class DNNModelPytorch(Model):
     def predict(self, dataset: DatasetH, segment: Union[Text, slice] = "test"):
         if not self.fitted:
             raise ValueError("model is not fitted yet!")
-        x_test_pd = dataset.prepare(segment, col_set="feature", data_key=DataHandlerLP.DK_I)
+        x_test_pd = dataset.prepare(
+            segment, col_set="feature", data_key=DataHandlerLP.DK_I
+        )
         preds = self._nn_predict(x_test_pd)
         return pd.Series(preds.reshape(-1), index=x_test_pd.index)
 
@@ -394,12 +433,16 @@ class DNNModelPytorch(Model):
     def load(self, buffer, **kwargs):
         with unpack_archive_with_buffer(buffer) as model_dir:
             # Get model name
-            _model_name = os.path.splitext(list(filter(lambda x: x.startswith("model.bin"), os.listdir(model_dir)))[0])[
-                0
-            ]
+            _model_name = os.path.splitext(
+                list(
+                    filter(lambda x: x.startswith("model.bin"), os.listdir(model_dir))
+                )[0]
+            )[0]
             _model_path = os.path.join(model_dir, _model_name)
             # Load model
-            self.dnn_model.load_state_dict(torch.load(_model_path, map_location=self.device))
+            self.dnn_model.load_state_dict(
+                torch.load(_model_path, map_location=self.device)
+            )
         self.fitted = True
 
 
@@ -453,7 +496,9 @@ class Net(nn.Module):
     def _weight_init(self):
         for m in self.modules():
             if isinstance(m, nn.Linear):
-                nn.init.kaiming_normal_(m.weight, a=0.1, mode="fan_in", nonlinearity="leaky_relu")
+                nn.init.kaiming_normal_(
+                    m.weight, a=0.1, mode="fan_in", nonlinearity="leaky_relu"
+                )
 
     def forward(self, x):
         cur_output = x

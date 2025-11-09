@@ -87,8 +87,14 @@ class TRAModel(Model):
         self.logger = get_module_logger("TRA")
 
         assert memory_mode in ["sample", "daily"], "invalid memory mode"
-        assert transport_method in ["none", "router", "oracle"], f"invalid transport method {transport_method}"
-        assert transport_method == "none" or tra_config["num_states"] > 1, "optimal transport requires `num_states` > 1"
+        assert transport_method in [
+            "none",
+            "router",
+            "oracle",
+        ], f"invalid transport method {transport_method}"
+        assert (
+            transport_method == "none" or tra_config["num_states"] > 1
+        ), "optimal transport requires `num_states` > 1"
         assert (
             memory_mode != "daily" or tra_config["src_info"] == "TPE"
         ), "daily transport can only support TPE as `src_info`"
@@ -122,7 +128,9 @@ class TRAModel(Model):
         self.freeze_predictors = freeze_predictors
         self.transport_method = transport_method
         self.use_daily_transport = memory_mode == "daily"
-        self.transport_fn = transport_daily if self.use_daily_transport else transport_sample
+        self.transport_fn = (
+            transport_daily if self.use_daily_transport else transport_sample
+        )
 
         self._writer = None
         if self.logdir is not None:
@@ -165,10 +173,18 @@ class TRAModel(Model):
             for param in self.tra.predictors.parameters():
                 param.requires_grad_(False)
 
-        self.logger.info("# model params: %d" % sum(p.numel() for p in self.model.parameters() if p.requires_grad))
-        self.logger.info("# tra params: %d" % sum(p.numel() for p in self.tra.parameters() if p.requires_grad))
+        self.logger.info(
+            "# model params: %d"
+            % sum(p.numel() for p in self.model.parameters() if p.requires_grad)
+        )
+        self.logger.info(
+            "# tra params: %d"
+            % sum(p.numel() for p in self.tra.parameters() if p.requires_grad)
+        )
 
-        self.optimizer = optim.Adam(list(self.model.parameters()) + list(self.tra.parameters()), lr=self.lr)
+        self.optimizer = optim.Adam(
+            list(self.model.parameters()) + list(self.tra.parameters()), lr=self.lr
+        )
 
         self.fitted = False
         self.global_step = -1
@@ -185,7 +201,9 @@ class TRAModel(Model):
         max_steps = len(data_set)
         if self.max_steps_per_epoch is not None:
             if epoch == 0 and self.max_steps_per_epoch < max_steps:
-                self.logger.info(f"max steps updated from {max_steps} to {self.max_steps_per_epoch}")
+                self.logger.info(
+                    f"max steps updated from {max_steps} to {self.max_steps_per_epoch}"
+                )
             max_steps = min(self.max_steps_per_epoch, max_steps)
 
         cur_step = 0
@@ -199,7 +217,12 @@ class TRAModel(Model):
             if not is_pretrain:
                 self.global_step += 1
 
-            data, state, label, count = batch["data"], batch["state"], batch["label"], batch["daily_count"]
+            data, state, label, count = (
+                batch["data"],
+                batch["state"],
+                batch["label"],
+                batch["daily_count"],
+            )
             index = batch["daily_index"] if self.use_daily_transport else batch["index"]
 
             with torch.set_grad_enabled(not self.freeze_model):
@@ -223,18 +246,30 @@ class TRAModel(Model):
                 data_set.assign_data(index, L)  # save loss to memory
                 if self.use_daily_transport:  # only save for daily transport
                     P_all.append(pd.DataFrame(P.detach().cpu().numpy(), index=index))
-                    prob_all.append(pd.DataFrame(prob.detach().cpu().numpy(), index=index))
-                    choice_all.append(pd.DataFrame(choice.detach().cpu().numpy(), index=index))
+                    prob_all.append(
+                        pd.DataFrame(prob.detach().cpu().numpy(), index=index)
+                    )
+                    choice_all.append(
+                        pd.DataFrame(choice.detach().cpu().numpy(), index=index)
+                    )
                 decay = self.rho ** (self.global_step // 100)  # decay every 100 steps
                 lamb = 0 if is_pretrain else self.lamb * decay
-                reg = prob.log().mul(P).sum(dim=1).mean()  # train router to predict TO assignment
+                reg = (
+                    prob.log().mul(P).sum(dim=1).mean()
+                )  # train router to predict TO assignment
                 if self._writer is not None and not is_pretrain:
-                    self._writer.add_scalar("training/router_loss", -reg.item(), self.global_step)
-                    self._writer.add_scalar("training/reg_loss", loss.item(), self.global_step)
+                    self._writer.add_scalar(
+                        "training/router_loss", -reg.item(), self.global_step
+                    )
+                    self._writer.add_scalar(
+                        "training/reg_loss", loss.item(), self.global_step
+                    )
                     self._writer.add_scalar("training/lamb", lamb, self.global_step)
                     if not self.use_daily_transport:
                         P_mean = P.mean(axis=0).detach()
-                        self._writer.add_scalar("training/P", P_mean.max() / P_mean.min(), self.global_step)
+                        self._writer.add_scalar(
+                            "training/P", P_mean.max() / P_mean.min(), self.global_step
+                        )
                 loss = loss - lamb * reg
             else:
                 pred = all_preds.mean(dim=1)
@@ -246,7 +281,9 @@ class TRAModel(Model):
                 self.optimizer.zero_grad()
 
             if self._writer is not None and not is_pretrain:
-                self._writer.add_scalar("training/total_loss", loss.item(), self.global_step)
+                self._writer.add_scalar(
+                    "training/total_loss", loss.item(), self.global_step
+                )
 
             total_loss += loss.item()
             total_count += 1
@@ -261,7 +298,9 @@ class TRAModel(Model):
             if not is_pretrain:
                 self._writer.add_image("P", plot(P_all), epoch, dataformats="HWC")
                 self._writer.add_image("prob", plot(prob_all), epoch, dataformats="HWC")
-                self._writer.add_image("choice", plot(choice_all), epoch, dataformats="HWC")
+                self._writer.add_image(
+                    "choice", plot(choice_all), epoch, dataformats="HWC"
+                )
 
         total_loss /= total_count
 
@@ -270,7 +309,9 @@ class TRAModel(Model):
 
         return total_loss
 
-    def test_epoch(self, epoch, data_set, return_pred=False, prefix="test", is_pretrain=False):
+    def test_epoch(
+        self, epoch, data_set, return_pred=False, prefix="test", is_pretrain=False
+    ):
         self.model.eval()
         self.tra.eval()
         data_set.eval()
@@ -280,7 +321,12 @@ class TRAModel(Model):
         P_all = []
         metrics = []
         for batch in tqdm(data_set):
-            data, state, label, count = batch["data"], batch["state"], batch["label"], batch["daily_count"]
+            data, state, label, count = (
+                batch["data"],
+                batch["state"],
+                batch["label"],
+                batch["daily_count"],
+            )
             index = batch["daily_index"] if self.use_daily_transport else batch["index"]
 
             with torch.no_grad():
@@ -306,7 +352,9 @@ class TRAModel(Model):
                 pred = all_preds.mean(dim=1)
 
             X = np.c_[pred.cpu().numpy(), label.cpu().numpy(), all_preds.cpu().numpy()]
-            columns = ["score", "label"] + ["score_%d" % d for d in range(all_preds.shape[1])]
+            columns = ["score", "label"] + [
+                "score_%d" % d for d in range(all_preds.shape[1])
+            ]
             pred = pd.DataFrame(X, index=batch["index"], columns=columns)
 
             metrics.append(evaluate(pred))
@@ -315,7 +363,9 @@ class TRAModel(Model):
                 preds.append(pred)
                 if prob is not None:
                     columns = ["prob_%d" % d for d in range(all_preds.shape[1])]
-                    probs.append(pd.DataFrame(prob.cpu().numpy(), index=index, columns=columns))
+                    probs.append(
+                        pd.DataFrame(prob.cpu().numpy(), index=index, columns=columns)
+                    )
 
         metrics = pd.DataFrame(metrics)
         metrics = {
@@ -376,18 +426,26 @@ class TRAModel(Model):
 
             self.logger.info("evaluating...")
             # NOTE: during evaluating, the whole memory will be refreshed
-            if not is_pretrain and (self.transport_method == "router" or self.eval_train):
+            if not is_pretrain and (
+                self.transport_method == "router" or self.eval_train
+            ):
                 train_set.clear_memory()  # NOTE: clear the shared memory
-                train_metrics = self.test_epoch(epoch, train_set, is_pretrain=is_pretrain, prefix="train")[0]
+                train_metrics = self.test_epoch(
+                    epoch, train_set, is_pretrain=is_pretrain, prefix="train"
+                )[0]
                 evals_result["train"].append(train_metrics)
                 self.logger.info("train metrics: %s" % train_metrics)
 
-            valid_metrics = self.test_epoch(epoch, valid_set, is_pretrain=is_pretrain, prefix="valid")[0]
+            valid_metrics = self.test_epoch(
+                epoch, valid_set, is_pretrain=is_pretrain, prefix="valid"
+            )[0]
             evals_result["valid"].append(valid_metrics)
             self.logger.info("valid metrics: %s" % valid_metrics)
 
             if self.eval_test:
-                test_metrics = self.test_epoch(epoch, test_set, is_pretrain=is_pretrain, prefix="test")[0]
+                test_metrics = self.test_epoch(
+                    epoch, test_set, is_pretrain=is_pretrain, prefix="test"
+                )[0]
                 evals_result["test"].append(test_metrics)
                 self.logger.info("test metrics: %s" % test_metrics)
 
@@ -414,7 +472,9 @@ class TRAModel(Model):
         return best_score
 
     def fit(self, dataset, evals_result=dict()):
-        assert isinstance(dataset, MTSDatasetH), "TRAModel only supports `qlib.contrib.data.dataset.MTSDatasetH`"
+        assert isinstance(
+            dataset, MTSDatasetH
+        ), "TRAModel only supports `qlib.contrib.data.dataset.MTSDatasetH`"
 
         train_set, valid_set, test_set = dataset.prepare(["train", "valid", "test"])
 
@@ -428,34 +488,49 @@ class TRAModel(Model):
         if self.pretrain:
             self.logger.info("pretraining...")
             self.optimizer = optim.Adam(
-                list(self.model.parameters()) + list(self.tra.predictors.parameters()), lr=self.lr
+                list(self.model.parameters()) + list(self.tra.predictors.parameters()),
+                lr=self.lr,
             )
             self._fit(train_set, valid_set, test_set, evals_result, is_pretrain=True)
 
             # reset optimizer
-            self.optimizer = optim.Adam(list(self.model.parameters()) + list(self.tra.parameters()), lr=self.lr)
+            self.optimizer = optim.Adam(
+                list(self.model.parameters()) + list(self.tra.parameters()), lr=self.lr
+            )
 
         self.logger.info("training...")
-        best_score = self._fit(train_set, valid_set, test_set, evals_result, is_pretrain=False)
+        best_score = self._fit(
+            train_set, valid_set, test_set, evals_result, is_pretrain=False
+        )
 
         self.logger.info("inference")
-        train_metrics, train_preds, train_probs, train_P = self.test_epoch(-1, train_set, return_pred=True)
+        train_metrics, train_preds, train_probs, train_P = self.test_epoch(
+            -1, train_set, return_pred=True
+        )
         self.logger.info("train metrics: %s" % train_metrics)
 
-        valid_metrics, valid_preds, valid_probs, valid_P = self.test_epoch(-1, valid_set, return_pred=True)
+        valid_metrics, valid_preds, valid_probs, valid_P = self.test_epoch(
+            -1, valid_set, return_pred=True
+        )
         self.logger.info("valid metrics: %s" % valid_metrics)
 
-        test_metrics, test_preds, test_probs, test_P = self.test_epoch(-1, test_set, return_pred=True)
+        test_metrics, test_preds, test_probs, test_P = self.test_epoch(
+            -1, test_set, return_pred=True
+        )
         self.logger.info("test metrics: %s" % test_metrics)
 
         if self.logdir:
             self.logger.info("save model & pred to local directory")
 
-            pd.concat({name: pd.DataFrame(evals_result[name]) for name in evals_result}, axis=1).to_csv(
-                self.logdir + "/logs.csv", index=False
-            )
+            pd.concat(
+                {name: pd.DataFrame(evals_result[name]) for name in evals_result},
+                axis=1,
+            ).to_csv(self.logdir + "/logs.csv", index=False)
 
-            torch.save({"model": self.model.state_dict(), "tra": self.tra.state_dict()}, self.logdir + "/model.bin")
+            torch.save(
+                {"model": self.model.state_dict(), "tra": self.tra.state_dict()},
+                self.logdir + "/model.bin",
+            )
 
             train_preds.to_pickle(self.logdir + "/train_pred.pkl")
             valid_preds.to_pickle(self.logdir + "/valid_pred.pkl")
@@ -491,13 +566,19 @@ class TRAModel(Model):
                     "use_daily_transport": self.use_daily_transport,
                 },
                 "best_eval_metric": -best_score,  # NOTE: -1 for minimize
-                "metrics": {"train": train_metrics, "valid": valid_metrics, "test": test_metrics},
+                "metrics": {
+                    "train": train_metrics,
+                    "valid": valid_metrics,
+                    "test": test_metrics,
+                },
             }
             with open(self.logdir + "/info.json", "w") as f:
                 json.dump(info, f)
 
     def predict(self, dataset, segment="test"):
-        assert isinstance(dataset, MTSDatasetH), "TRAModel only supports `qlib.contrib.data.dataset.MTSDatasetH`"
+        assert isinstance(
+            dataset, MTSDatasetH
+        ), "TRAModel only supports `qlib.contrib.data.dataset.MTSDatasetH`"
 
         if not self.fitted:
             raise ValueError("model is not fitted yet!")
@@ -588,7 +669,9 @@ class PositionalEncoding(nn.Module):
 
         pe = torch.zeros(max_len, d_model)
         position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
+        div_term = torch.exp(
+            torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model)
+        )
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
         pe = pe.unsqueeze(0).transpose(0, 1)
@@ -630,7 +713,10 @@ class Transformer(nn.Module):
 
         self.pe = PositionalEncoding(input_size, dropout)
         layer = nn.TransformerEncoderLayer(
-            nhead=num_heads, dropout=dropout, d_model=hidden_size, dim_feedforward=hidden_size * 4
+            nhead=num_heads,
+            dropout=dropout,
+            d_model=hidden_size,
+            dim_feedforward=hidden_size * 4,
         )
         self.encoder = nn.TransformerEncoder(layer, num_layers=num_layers)
 
@@ -692,7 +778,10 @@ class TRA(nn.Module):
                     batch_first=True,
                     dropout=dropout,
                 )
-                self.fc = nn.Linear(hidden_size + input_size if "LR" in src_info else hidden_size, num_states)
+                self.fc = nn.Linear(
+                    hidden_size + input_size if "LR" in src_info else hidden_size,
+                    num_states,
+                )
             else:
                 self.fc = nn.Linear(input_size, num_states)
 
@@ -781,7 +870,17 @@ def minmax_norm(x):
     return x
 
 
-def transport_sample(all_preds, label, choice, prob, hist_loss, count, transport_method, alpha, training=False):
+def transport_sample(
+    all_preds,
+    label,
+    choice,
+    prob,
+    hist_loss,
+    count,
+    transport_method,
+    alpha,
+    training=False,
+):
     """
     sample-wise transport
 
@@ -826,7 +925,17 @@ def transport_sample(all_preds, label, choice, prob, hist_loss, count, transport
     return loss, pred, L, P
 
 
-def transport_daily(all_preds, label, choice, prob, hist_loss, count, transport_method, alpha, training=False):
+def transport_daily(
+    all_preds,
+    label,
+    choice,
+    prob,
+    hist_loss,
+    count,
+    transport_method,
+    alpha,
+    training=False,
+):
     """
     daily transport
 
@@ -901,7 +1010,13 @@ def load_state_dict_unsafe(model, state_dict):
     def load(module, prefix=""):
         local_metadata = {} if metadata is None else metadata.get(prefix[:-1], {})
         module._load_from_state_dict(
-            state_dict, prefix, local_metadata, True, missing_keys, unexpected_keys, error_msgs
+            state_dict,
+            prefix,
+            local_metadata,
+            True,
+            missing_keys,
+            unexpected_keys,
+            error_msgs,
         )
         for name, child in module._modules.items():
             if child is not None:
@@ -910,7 +1025,11 @@ def load_state_dict_unsafe(model, state_dict):
     load(model)
     load = None  # break load->load reference cycle
 
-    return {"unexpected_keys": unexpected_keys, "missing_keys": missing_keys, "error_msgs": error_msgs}
+    return {
+        "unexpected_keys": unexpected_keys,
+        "missing_keys": missing_keys,
+        "error_msgs": error_msgs,
+    }
 
 
 def plot(P):

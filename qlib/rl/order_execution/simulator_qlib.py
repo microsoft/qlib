@@ -43,19 +43,30 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
     ) -> None:
         super().__init__(initial=order)
 
-        assert order.start_time.date() == order.end_time.date(), "Start date and end date must be the same."
+        assert (
+            order.start_time.date() == order.end_time.date()
+        ), "Start date and end date must be the same."
 
         strategy_config = {
             "class": "SingleOrderStrategy",
             "module_path": "qlib.rl.strategy.single_order",
             "kwargs": {
                 "order": order,
-                "trade_range": TradeRangeByTime(order.start_time.time(), order.end_time.time()),
+                "trade_range": TradeRangeByTime(
+                    order.start_time.time(), order.end_time.time()
+                ),
             },
         }
 
         self._collect_data_loop: Optional[Generator] = None
-        self.reset(order, strategy_config, executor_config, exchange_config, qlib_config, cash_limit)
+        self.reset(
+            order,
+            strategy_config,
+            executor_config,
+            exchange_config,
+            qlib_config,
+            cash_limit,
+        )
 
     def reset(
         self,
@@ -108,11 +119,19 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
         """Iterate the _collect_data_loop until we get the next yield SAOEStrategy."""
         assert self._collect_data_loop is not None
 
-        obj = next(self._collect_data_loop) if action is None else self._collect_data_loop.send(action)
+        obj = (
+            next(self._collect_data_loop)
+            if action is None
+            else self._collect_data_loop.send(action)
+        )
         while not isinstance(obj, SAOEStrategy):
             if isinstance(obj, BaseTradeDecision):
                 self.decisions.append(obj)
-            obj = next(self._collect_data_loop) if action is None else self._collect_data_loop.send(action)
+            obj = (
+                next(self._collect_data_loop)
+                if action is None
+                else self._collect_data_loop.send(action)
+            )
         assert isinstance(obj, SAOEStrategy)
         return obj
 

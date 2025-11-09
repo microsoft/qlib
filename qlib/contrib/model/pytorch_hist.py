@@ -80,7 +80,9 @@ class HIST(Model):
         self.model_path = model_path
         self.stock2concept = stock2concept
         self.stock_index = stock_index
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        self.device = torch.device(
+            "cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu"
+        )
         self.seed = seed
 
         self.logger.info(
@@ -132,13 +134,17 @@ class HIST(Model):
             base_model=self.base_model,
         )
         self.logger.info("model:\n{:}".format(self.HIST_model))
-        self.logger.info("model size: {:.4f} MB".format(count_parameters(self.HIST_model)))
+        self.logger.info(
+            "model size: {:.4f} MB".format(count_parameters(self.HIST_model))
+        )
         if optimizer.lower() == "adam":
             self.train_optimizer = optim.Adam(self.HIST_model.parameters(), lr=self.lr)
         elif optimizer.lower() == "gd":
             self.train_optimizer = optim.SGD(self.HIST_model.parameters(), lr=self.lr)
         else:
-            raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
+            raise NotImplementedError(
+                "optimizer {} is not supported!".format(optimizer)
+            )
 
         self.fitted = False
         self.HIST_model.to(self.device)
@@ -168,7 +174,9 @@ class HIST(Model):
 
             vx = x - torch.mean(x)
             vy = y - torch.mean(y)
-            return torch.sum(vx * vy) / (torch.sqrt(torch.sum(vx**2)) * torch.sqrt(torch.sum(vy**2)))
+            return torch.sum(vx * vy) / (
+                torch.sqrt(torch.sum(vx**2)) * torch.sqrt(torch.sum(vy**2))
+            )
 
         if self.metric == ("", "loss"):
             return -self.loss_fn(pred[mask], label[mask])
@@ -201,7 +209,11 @@ class HIST(Model):
         for idx, count in zip(daily_index, daily_count):
             batch = slice(idx, idx + count)
             feature = torch.from_numpy(x_train_values[batch]).float().to(self.device)
-            concept_matrix = torch.from_numpy(stock2concept_matrix[stock_index[batch]]).float().to(self.device)
+            concept_matrix = (
+                torch.from_numpy(stock2concept_matrix[stock_index[batch]])
+                .float()
+                .to(self.device)
+            )
             label = torch.from_numpy(y_train_values[batch]).float().to(self.device)
             pred = self.HIST_model(feature, concept_matrix)
             loss = self.loss_fn(pred, label)
@@ -229,7 +241,11 @@ class HIST(Model):
         for idx, count in zip(daily_index, daily_count):
             batch = slice(idx, idx + count)
             feature = torch.from_numpy(x_values[batch]).float().to(self.device)
-            concept_matrix = torch.from_numpy(stock2concept_matrix[stock_index[batch]]).float().to(self.device)
+            concept_matrix = (
+                torch.from_numpy(stock2concept_matrix[stock_index[batch]])
+                .float()
+                .to(self.device)
+            )
             label = torch.from_numpy(y_values[batch]).float().to(self.device)
             with torch.no_grad():
                 pred = self.HIST_model(feature, concept_matrix)
@@ -253,7 +269,9 @@ class HIST(Model):
             data_key=DataHandlerLP.DK_L,
         )
         if df_train.empty or df_valid.empty:
-            raise ValueError("Empty data from dataset, please check your dataset config.")
+            raise ValueError(
+                "Empty data from dataset, please check your dataset config."
+            )
 
         if not os.path.exists(self.stock2concept):
             url = "https://github.com/SunsetWolf/qlib_dataset/releases/download/v0/qlib_csi300_stock2concept.npy"
@@ -261,12 +279,24 @@ class HIST(Model):
 
         stock_index = np.load(self.stock_index, allow_pickle=True).item()
         df_train["stock_index"] = 733
-        df_train["stock_index"] = df_train.index.get_level_values("instrument").map(stock_index)
+        df_train["stock_index"] = df_train.index.get_level_values("instrument").map(
+            stock_index
+        )
         df_valid["stock_index"] = 733
-        df_valid["stock_index"] = df_valid.index.get_level_values("instrument").map(stock_index)
+        df_valid["stock_index"] = df_valid.index.get_level_values("instrument").map(
+            stock_index
+        )
 
-        x_train, y_train, stock_index_train = df_train["feature"], df_train["label"], df_train["stock_index"]
-        x_valid, y_valid, stock_index_valid = df_valid["feature"], df_valid["label"], df_valid["stock_index"]
+        x_train, y_train, stock_index_train = (
+            df_train["feature"],
+            df_train["label"],
+            df_train["stock_index"],
+        )
+        x_valid, y_valid, stock_index_valid = (
+            df_valid["feature"],
+            df_valid["label"],
+            df_valid["stock_index"],
+        )
 
         save_path = get_or_create_path(save_path)
 
@@ -290,7 +320,9 @@ class HIST(Model):
 
         model_dict = self.HIST_model.state_dict()
         pretrained_dict = {
-            k: v for k, v in pretrained_model.state_dict().items() if k in model_dict  # pylint: disable=E1135
+            k: v
+            for k, v in pretrained_model.state_dict().items()
+            if k in model_dict  # pylint: disable=E1135
         }
         model_dict.update(pretrained_dict)
         self.HIST_model.load_state_dict(model_dict)
@@ -306,7 +338,9 @@ class HIST(Model):
             self.train_epoch(x_train, y_train, stock_index_train)
 
             self.logger.info("evaluating...")
-            train_loss, train_score = self.test_epoch(x_train, y_train, stock_index_train)
+            train_loss, train_score = self.test_epoch(
+                x_train, y_train, stock_index_train
+            )
             val_loss, val_score = self.test_epoch(x_valid, y_valid, stock_index_valid)
             self.logger.info("train %.6f, valid %.6f" % (train_score, val_score))
             evals_result["train"].append(train_score)
@@ -333,9 +367,13 @@ class HIST(Model):
 
         stock2concept_matrix = np.load(self.stock2concept)
         stock_index = np.load(self.stock_index, allow_pickle=True).item()
-        df_test = dataset.prepare(segment, col_set="feature", data_key=DataHandlerLP.DK_I)
+        df_test = dataset.prepare(
+            segment, col_set="feature", data_key=DataHandlerLP.DK_I
+        )
         df_test["stock_index"] = 733
-        df_test["stock_index"] = df_test.index.get_level_values("instrument").map(stock_index)
+        df_test["stock_index"] = df_test.index.get_level_values("instrument").map(
+            stock_index
+        )
         stock_index_test = df_test["stock_index"].values
         stock_index_test[np.isnan(stock_index_test)] = 733
         stock_index_test = stock_index_test.astype("int")
@@ -352,7 +390,11 @@ class HIST(Model):
         for idx, count in zip(daily_index, daily_count):
             batch = slice(idx, idx + count)
             x_batch = torch.from_numpy(x_values[batch]).float().to(self.device)
-            concept_matrix = torch.from_numpy(stock2concept_matrix[stock_index_test[batch]]).float().to(self.device)
+            concept_matrix = (
+                torch.from_numpy(stock2concept_matrix[stock_index_test[batch]])
+                .float()
+                .to(self.device)
+            )
 
             with torch.no_grad():
                 pred = self.HIST_model(x_batch, concept_matrix).detach().cpu().numpy()
@@ -363,7 +405,9 @@ class HIST(Model):
 
 
 class HISTModel(nn.Module):
-    def __init__(self, d_feat=6, hidden_size=64, num_layers=2, dropout=0.0, base_model="GRU"):
+    def __init__(
+        self, d_feat=6, hidden_size=64, num_layers=2, dropout=0.0, base_model="GRU"
+    ):
         super().__init__()
 
         self.d_feat = d_feat
@@ -440,7 +484,11 @@ class HISTModel(nn.Module):
 
         stock_to_concept = concept_matrix
 
-        stock_to_concept_sum = torch.sum(stock_to_concept, 0).reshape(1, -1).repeat(stock_to_concept.shape[0], 1)
+        stock_to_concept_sum = (
+            torch.sum(stock_to_concept, 0)
+            .reshape(1, -1)
+            .repeat(stock_to_concept.shape[0], 1)
+        )
         stock_to_concept_sum = stock_to_concept_sum.mul(concept_matrix)
 
         stock_to_concept_sum = stock_to_concept_sum + (
@@ -467,14 +515,18 @@ class HISTModel(nn.Module):
         i_stock_to_concept = self.cal_cos_similarity(i_shared_info, hidden)
         dim = i_stock_to_concept.shape[0]
         diag = i_stock_to_concept.diagonal(0)
-        i_stock_to_concept = i_stock_to_concept * (torch.ones(dim, dim) - torch.eye(dim)).to(device)
+        i_stock_to_concept = i_stock_to_concept * (
+            torch.ones(dim, dim) - torch.eye(dim)
+        ).to(device)
         row = torch.linspace(0, dim - 1, dim).to(device).long()
         column = i_stock_to_concept.max(1)[1].long()
         value = i_stock_to_concept.max(1)[0]
         i_stock_to_concept[row, column] = 10
         i_stock_to_concept[i_stock_to_concept != 10] = 0
         i_stock_to_concept[row, column] = value
-        i_stock_to_concept = i_stock_to_concept + torch.diag_embed((i_stock_to_concept.sum(0) != 0).float() * diag)
+        i_stock_to_concept = i_stock_to_concept + torch.diag_embed(
+            (i_stock_to_concept.sum(0) != 0).float() * diag
+        )
         hidden = torch.t(i_shared_info).mm(i_stock_to_concept).t()
         hidden = hidden[hidden.sum(1) != 0]
 

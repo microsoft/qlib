@@ -64,7 +64,9 @@ class Group:
         else:
             raise NotImplementedError(f"Please specify valid `_ens_func`.")
 
-    def __call__(self, ungrouped_dict: dict, n_jobs: int = 1, verbose: int = 0, *args, **kwargs) -> dict:
+    def __call__(
+        self, ungrouped_dict: dict, n_jobs: int = 1, verbose: int = 0, *args, **kwargs
+    ) -> dict:
         """
         Group the ungrouped_dict into different groups.
 

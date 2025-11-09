@@ -12,4 +12,6 @@ for tag in ["test", "valid"]:
         dfs.append(df)
 
     total_df = pd.concat(dfs)
-    pickle.dump(total_df, open(os.path.join("data", "orders", f"{tag}_orders.pkl"), "wb"))
+    pickle.dump(
+        total_df, open(os.path.join("data", "orders", f"{tag}_orders.pkl"), "wb")
+    )

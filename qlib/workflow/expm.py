@@ -150,7 +150,14 @@ class ExpManager:
         """
         raise NotImplementedError(f"Please implement the `search_records` method.")
 
-    def get_exp(self, *, experiment_id=None, experiment_name=None, create: bool = True, start: bool = False):
+    def get_exp(
+        self,
+        *,
+        experiment_id=None,
+        experiment_name=None,
+        create: bool = True,
+        start: bool = False,
+    ):
         """
         Retrieve an experiment. This method includes getting an active experiment, and get_or_create a specific experiment.
 
@@ -206,42 +213,56 @@ class ExpManager:
             experiment_name = self._default_exp_name
 
         if create:
-            exp, _ = self._get_or_create_exp(experiment_id=experiment_id, experiment_name=experiment_name)
+            exp, _ = self._get_or_create_exp(
+                experiment_id=experiment_id, experiment_name=experiment_name
+            )
         else:
-            exp = self._get_exp(experiment_id=experiment_id, experiment_name=experiment_name)
+            exp = self._get_exp(
+                experiment_id=experiment_id, experiment_name=experiment_name
+            )
         if self.active_experiment is None and start:
             self.active_experiment = exp
             # start the recorder
             self.active_experiment.start()
         return exp
 
-    def _get_or_create_exp(self, experiment_id=None, experiment_name=None) -> (object, bool):
+    def _get_or_create_exp(
+        self, experiment_id=None, experiment_name=None
+    ) -> (object, bool):
         """
         Method for getting or creating an experiment. It will try to first get a valid experiment, if exception occurs, it will
         automatically create a new experiment based on the given id and name.
         """
         try:
             return (
-                self._get_exp(experiment_id=experiment_id, experiment_name=experiment_name),
+                self._get_exp(
+                    experiment_id=experiment_id, experiment_name=experiment_name
+                ),
                 False,
             )
         except ValueError:
             if experiment_name is None:
                 experiment_name = self._default_exp_name
-            logger.warning(f"No valid experiment found. Create a new experiment with name {experiment_name}.")
+            logger.warning(
+                f"No valid experiment found. Create a new experiment with name {experiment_name}."
+            )
 
             # NOTE: mlflow doesn't consider the lock for recording multiple runs
             # So we supported it in the interface wrapper
             pr = urlparse(self.uri)
             if pr.scheme == "file":
-                with FileLock(Path(os.path.join(pr.netloc, pr.path.lstrip("/"), "filelock"))):  # pylint: disable=E0110
+                with FileLock(
+                    Path(os.path.join(pr.netloc, pr.path.lstrip("/"), "filelock"))
+                ):  # pylint: disable=E0110
                     return self.create_exp(experiment_name), True
             # NOTE: for other schemes like http, we double check to avoid create exp conflicts
             try:
                 return self.create_exp(experiment_name), True
             except ExpAlreadyExistError:
                 return (
-                    self._get_exp(experiment_id=experiment_id, experiment_name=experiment_name),
+                    self._get_exp(
+                        experiment_id=experiment_id, experiment_name=experiment_name
+                    ),
                     False,
                 )
 
@@ -338,11 +359,15 @@ class MLflowExpManager(ExpManager):
         # Create experiment
         if experiment_name is None:
             experiment_name = self._default_exp_name
-        experiment, _ = self._get_or_create_exp(experiment_id=experiment_id, experiment_name=experiment_name)
+        experiment, _ = self._get_or_create_exp(
+            experiment_id=experiment_id, experiment_name=experiment_name
+        )
         # Set up active experiment
         self.active_experiment = experiment
         # Start the experiment
-        self.active_experiment.start(recorder_id=recorder_id, recorder_name=recorder_name, resume=resume)
+        self.active_experiment.start(
+            recorder_id=recorder_id, recorder_name=recorder_name, resume=resume
+        )
 
         return self.active_experiment
 
@@ -389,7 +414,9 @@ class MLflowExpManager(ExpManager):
                 exp = self.client.get_experiment_by_name(experiment_name)
                 if exp is None or exp.lifecycle_stage.upper() == "DELETED":
                     raise MlflowException("No valid experiment has been found.")
-                experiment = MLflowExperiment(exp.experiment_id, experiment_name, self.uri)
+                experiment = MLflowExperiment(
+                    exp.experiment_id, experiment_name, self.uri
+                )
                 return experiment
             except MlflowException as e:
                 raise ValueError(
@@ -397,11 +424,19 @@ class MLflowExpManager(ExpManager):
                 ) from e
 
     def search_records(self, experiment_ids=None, **kwargs):
-        filter_string = "" if kwargs.get("filter_string") is None else kwargs.get("filter_string")
-        run_view_type = 1 if kwargs.get("run_view_type") is None else kwargs.get("run_view_type")
-        max_results = 100000 if kwargs.get("max_results") is None else kwargs.get("max_results")
+        filter_string = (
+            "" if kwargs.get("filter_string") is None else kwargs.get("filter_string")
+        )
+        run_view_type = (
+            1 if kwargs.get("run_view_type") is None else kwargs.get("run_view_type")
+        )
+        max_results = (
+            100000 if kwargs.get("max_results") is None else kwargs.get("max_results")
+        )
         order_by = kwargs.get("order_by")
-        return self.client.search_runs(experiment_ids, filter_string, run_view_type, max_results, order_by)
+        return self.client.search_runs(
+            experiment_ids, filter_string, run_view_type, max_results, order_by
+        )
 
     def delete_exp(self, experiment_id=None, experiment_name=None):
         assert (
@@ -426,7 +461,9 @@ class MLflowExpManager(ExpManager):
         if mlflow_version >= 2:
             exps = self.client.search_experiments(view_type=ViewType.ACTIVE_ONLY)
         else:
-            exps = self.client.list_experiments(view_type=ViewType.ACTIVE_ONLY)  # pylint: disable=E1101
+            exps = self.client.list_experiments(
+                view_type=ViewType.ACTIVE_ONLY
+            )  # pylint: disable=E1101
         experiments = dict()
         for exp in exps:
             experiment = MLflowExperiment(exp.experiment_id, exp.name, self.uri)

@@ -53,17 +53,25 @@ class TRAModel(Model):
 
         self.model = eval(model_type)(**model_config).to(device)
         if model_init_state:
-            self.model.load_state_dict(torch.load(model_init_state, map_location="cpu")["model"])
+            self.model.load_state_dict(
+                torch.load(model_init_state, map_location="cpu")["model"]
+            )
         if freeze_model:
             for param in self.model.parameters():
                 param.requires_grad_(False)
         else:
-            self.logger.info("# model params: %d" % sum([p.numel() for p in self.model.parameters()]))
+            self.logger.info(
+                "# model params: %d" % sum([p.numel() for p in self.model.parameters()])
+            )
 
         self.tra = TRA(self.model.output_size, **tra_config).to(device)
-        self.logger.info("# tra params: %d" % sum([p.numel() for p in self.tra.parameters()]))
+        self.logger.info(
+            "# tra params: %d" % sum([p.numel() for p in self.tra.parameters()])
+        )
 
-        self.optimizer = optim.Adam(list(self.model.parameters()) + list(self.tra.parameters()), lr=lr)
+        self.optimizer = optim.Adam(
+            list(self.model.parameters()) + list(self.tra.parameters()), lr=lr
+        )
 
         self.model_config = model_config
         self.tra_config = tra_config
@@ -283,9 +291,10 @@ class TRAModel(Model):
         if self.logdir:
             self.logger.info("save model & pred to local directory")
 
-            pd.concat({name: pd.DataFrame(evals_result[name]) for name in evals_result}, axis=1).to_csv(
-                self.logdir + "/logs.csv", index=False
-            )
+            pd.concat(
+                {name: pd.DataFrame(evals_result[name]) for name in evals_result},
+                axis=1,
+            ).to_csv(self.logdir + "/logs.csv", index=False)
 
             torch.save(best_params, self.logdir + "/model.bin")
 
@@ -401,7 +410,9 @@ class PositionalEncoding(nn.Module):
 
         pe = torch.zeros(max_len, d_model)
         position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
+        div_term = torch.exp(
+            torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model)
+        )
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
         pe = pe.unsqueeze(0).transpose(0, 1)
@@ -450,7 +461,10 @@ class Transformer(nn.Module):
 
         self.pe = PositionalEncoding(input_size, dropout)
         layer = nn.TransformerEncoderLayer(
-            nhead=num_heads, dropout=dropout, d_model=hidden_size, dim_feedforward=hidden_size * 4
+            nhead=num_heads,
+            dropout=dropout,
+            d_model=hidden_size,
+            dim_feedforward=hidden_size * 4,
         )
         self.encoder = nn.TransformerEncoder(layer, num_layers=num_layers)
 
@@ -486,7 +500,9 @@ class TRA(nn.Module):
         tau (float): gumbel softmax temperature
     """
 
-    def __init__(self, input_size, num_states=1, hidden_size=8, tau=1.0, src_info="LR_TPE"):
+    def __init__(
+        self, input_size, num_states=1, hidden_size=8, tau=1.0, src_info="LR_TPE"
+    ):
         super().__init__()
 
         self.num_states = num_states

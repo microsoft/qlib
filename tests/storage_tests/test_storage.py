@@ -22,9 +22,15 @@ QLIB_DIR.mkdir(exist_ok=True, parents=True)
 
 class TestStorage(TestAutoData):
     def test_calendar_storage(self):
-        calendar = CalendarStorage(freq="day", future=False, provider_uri=self.provider_uri)
-        assert isinstance(calendar[:], Iterable), f"{calendar.__class__.__name__}.__getitem__(s: slice) is not Iterable"
-        assert isinstance(calendar.data, Iterable), f"{calendar.__class__.__name__}.data is not Iterable"
+        calendar = CalendarStorage(
+            freq="day", future=False, provider_uri=self.provider_uri
+        )
+        assert isinstance(
+            calendar[:], Iterable
+        ), f"{calendar.__class__.__name__}.__getitem__(s: slice) is not Iterable"
+        assert isinstance(
+            calendar.data, Iterable
+        ), f"{calendar.__class__.__name__}.data is not Iterable"
 
         print(f"calendar[1: 5]: {calendar[1:5]}")
         print(f"calendar[0]: {calendar[0]}")
@@ -74,7 +80,9 @@ class TestStorage(TestAutoData):
 
         """
 
-        instrument = InstrumentStorage(market="csi300", provider_uri=self.provider_uri, freq="day")
+        instrument = InstrumentStorage(
+            market="csi300", provider_uri=self.provider_uri, freq="day"
+        )
 
         for inst, spans in instrument.data.items():
             assert isinstance(inst, str) and isinstance(
@@ -87,7 +95,9 @@ class TestStorage(TestAutoData):
 
         print(f"instrument['SH600000']: {instrument['SH600000']}")
 
-        instrument = InstrumentStorage(market="csi300", provider_uri="not_found", freq="day")
+        instrument = InstrumentStorage(
+            market="csi300", provider_uri="not_found", freq="day"
+        )
         with self.assertRaises(ValueError):
             print(instrument.data)
 
@@ -148,19 +158,28 @@ class TestStorage(TestAutoData):
 
         """
 
-        feature = FeatureStorage(instrument="SZ300677", field="close", freq="day", provider_uri=self.provider_uri)
+        feature = FeatureStorage(
+            instrument="SZ300677",
+            field="close",
+            freq="day",
+            provider_uri=self.provider_uri,
+        )
 
         with self.assertRaises(IndexError):
             print(feature[0])
         assert isinstance(
             feature[3049][1], (float, np.float32)
         ), f"{feature.__class__.__name__}.__getitem__(i: int) error"
-        assert len(feature[3049:3052]) == 3, f"{feature.__class__.__name__}.__getitem__(s: slice) error"
+        assert (
+            len(feature[3049:3052]) == 3
+        ), f"{feature.__class__.__name__}.__getitem__(s: slice) error"
         print(f"feature[3049: 3052]: \n{feature[3049: 3052]}")
 
         print(f"feature[:].tail(): \n{feature[:].tail()}")
 
-        feature = FeatureStorage(instrument="SH600004", field="close", freq="day", provider_uri="not_fount")
+        feature = FeatureStorage(
+            instrument="SH600004", field="close", freq="day", provider_uri="not_fount"
+        )
 
         with self.assertRaises(ValueError):
             print(feature[0])

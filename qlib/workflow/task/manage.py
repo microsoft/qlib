@@ -92,7 +92,9 @@ class TaskManager:
         task_pool: str
             the name of Collection in MongoDB
         """
-        self.task_pool: pymongo.collection.Collection = getattr(get_mongodb(), task_pool)
+        self.task_pool: pymongo.collection.Collection = getattr(
+            get_mongodb(), task_pool
+        )
         self.logger = get_module_logger(self.__class__.__name__)
         self.logger.info(f"task_pool:{task_pool}")
 
@@ -110,7 +112,9 @@ class TaskManager:
         for prefix in self.ENCODE_FIELDS_PREFIX:
             for k in list(task.keys()):
                 if k.startswith(prefix):
-                    task[k] = Binary(pickle.dumps(task[k], protocol=C.dump_protocol_version))
+                    task[k] = Binary(
+                        pickle.dumps(task[k], protocol=C.dump_protocol_version)
+                    )
         return task
 
     def _decode_task(self, task):
@@ -275,7 +279,9 @@ class TaskManager:
         query = self._decode_query(query)
         query.update({"status": status})
         task = self.task_pool.find_one_and_update(
-            query, {"$set": {"status": self.STATUS_RUNNING}}, sort=[("priority", pymongo.DESCENDING)]
+            query,
+            {"$set": {"status": self.STATUS_RUNNING}},
+            sort=[("priority", pymongo.DESCENDING)],
         )
         # null will be at the top after sorting when using ASCENDING, so the larger the number higher, the higher the priority
         if task is None:
@@ -300,10 +306,15 @@ class TaskManager:
         task = self.fetch_task(query=query, status=status)
         try:
             yield task
-        except (Exception, KeyboardInterrupt):  # KeyboardInterrupt is not a subclass of Exception
+        except (
+            Exception,
+            KeyboardInterrupt,
+        ):  # KeyboardInterrupt is not a subclass of Exception
             if task is not None:
                 self.logger.info("Returning task before raising error")
-                self.return_task(task, status=status)  # return task as the original status
+                self.return_task(
+                    task, status=status
+                )  # return task as the original status
                 self.logger.info("Task returned")
             raise
 
@@ -363,7 +374,12 @@ class TaskManager:
             status = TaskManager.STATUS_DONE
         self.task_pool.update_one(
             {"_id": task["_id"]},
-            {"$set": {"status": status, "res": Binary(pickle.dumps(res, protocol=C.dump_protocol_version))}},
+            {
+                "$set": {
+                    "status": status,
+                    "res": Binary(pickle.dumps(res, protocol=C.dump_protocol_version)),
+                }
+            },
         )
 
     def return_task(self, task, status=STATUS_WAITING):
@@ -466,7 +482,9 @@ class TaskManager:
         last_undone_n = self._get_undone_n(task_stat)
         if last_undone_n == 0:
             return
-        self.logger.warning(f"Waiting for {last_undone_n} undone tasks. Please make sure they are running.")
+        self.logger.warning(
+            f"Waiting for {last_undone_n} undone tasks. Please make sure they are running."
+        )
         with tqdm(total=total, initial=total - last_undone_n) as pbar:
             while True:
                 time.sleep(10)
@@ -537,7 +555,9 @@ def run_task(
             elif before_status == TaskManager.STATUS_PART_DONE:
                 param = task["res"]
             else:
-                raise ValueError("The fetched task must be `STATUS_WAITING` or `STATUS_PART_DONE`!")
+                raise ValueError(
+                    "The fetched task must be `STATUS_WAITING` or `STATUS_PART_DONE`!"
+                )
             if force_release:
                 with concurrent.futures.ProcessPoolExecutor(max_workers=1) as executor:
                     res = executor.submit(task_func, param, **kwargs).result()

@@ -38,7 +38,9 @@ def parse_backtest_config(path: str) -> dict:
         raise IOError("Only py/yml/yaml/json type are supported now!")
 
     with tempfile.TemporaryDirectory() as tmp_config_dir:
-        with tempfile.NamedTemporaryFile(dir=tmp_config_dir, suffix=file_ext_name) as tmp_config_file:
+        with tempfile.NamedTemporaryFile(
+            dir=tmp_config_dir, suffix=file_ext_name
+        ) as tmp_config_file:
             if platform.system() == "Windows":
                 tmp_config_file.close()
 
@@ -51,7 +53,9 @@ def parse_backtest_config(path: str) -> dict:
                 module = import_module(tmp_module_name)
                 sys.path.pop(0)
 
-                config = {k: v for k, v in module.__dict__.items() if not k.startswith("__")}
+                config = {
+                    k: v for k, v in module.__dict__.items() if not k.startswith("__")
+                }
 
                 del sys.modules[tmp_module_name]
             else:
@@ -65,7 +69,9 @@ def parse_backtest_config(path: str) -> dict:
             base_file_name = [base_file_name]
 
         for f in base_file_name:
-            base_config = parse_backtest_config(os.path.join(os.path.dirname(abs_path), f))
+            base_config = parse_backtest_config(
+                os.path.join(os.path.dirname(abs_path), f)
+            )
             config = merge_a_into_b(a=config, b=base_config)
 
     return config
@@ -90,8 +96,12 @@ def get_backtest_config_fromfile(path: str) -> dict:
         "trade_unit": 100.0,
         "cash_limit": None,
     }
-    backtest_config["exchange"] = merge_a_into_b(a=backtest_config["exchange"], b=exchange_config_default)
-    backtest_config["exchange"] = _convert_all_list_to_tuple(backtest_config["exchange"])
+    backtest_config["exchange"] = merge_a_into_b(
+        a=backtest_config["exchange"], b=exchange_config_default
+    )
+    backtest_config["exchange"] = _convert_all_list_to_tuple(
+        backtest_config["exchange"]
+    )
 
     backtest_config_default = {
         "debug_single_stock": None,

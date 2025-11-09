@@ -4,7 +4,9 @@ try:
     from .catboost_model import CatBoostModel
 except ModuleNotFoundError:
     CatBoostModel = None
-    print("ModuleNotFoundError. CatBoostModel are skipped. (optional: maybe installing CatBoostModel can fix it.)")
+    print(
+        "ModuleNotFoundError. CatBoostModel are skipped. (optional: maybe installing CatBoostModel can fix it.)"
+    )
 try:
     from .double_ensemble import DEnsembleModel
     from .gbdt import LGBModel
@@ -17,12 +19,16 @@ try:
     from .xgboost import XGBModel
 except ModuleNotFoundError:
     XGBModel = None
-    print("ModuleNotFoundError. XGBModel is skipped(optional: maybe installing xgboost can fix it).")
+    print(
+        "ModuleNotFoundError. XGBModel is skipped(optional: maybe installing xgboost can fix it)."
+    )
 try:
     from .linear import LinearModel
 except ModuleNotFoundError:
     LinearModel = None
-    print("ModuleNotFoundError. LinearModel is skipped(optional: maybe installing scipy and sklearn can fix it).")
+    print(
+        "ModuleNotFoundError. LinearModel is skipped(optional: maybe installing scipy and sklearn can fix it)."
+    )
 # import pytorch models
 try:
     from .pytorch_alstm import ALSTM
@@ -35,9 +41,27 @@ try:
     from .pytorch_tcn import TCN
     from .pytorch_add import ADD
 
-    pytorch_classes = (ALSTM, GATs, GRU, LSTM, DNNModelPytorch, TabnetModel, SFM_Model, TCN, ADD)
+    pytorch_classes = (
+        ALSTM,
+        GATs,
+        GRU,
+        LSTM,
+        DNNModelPytorch,
+        TabnetModel,
+        SFM_Model,
+        TCN,
+        ADD,
+    )
 except ModuleNotFoundError:
     pytorch_classes = ()
-    print("ModuleNotFoundError.  PyTorch models are skipped (optional: maybe installing pytorch can fix it).")
+    print(
+        "ModuleNotFoundError.  PyTorch models are skipped (optional: maybe installing pytorch can fix it)."
+    )
 
-all_model_classes = (CatBoostModel, DEnsembleModel, LGBModel, XGBModel, LinearModel) + pytorch_classes
+all_model_classes = (
+    CatBoostModel,
+    DEnsembleModel,
+    LGBModel,
+    XGBModel,
+    LinearModel,
+) + pytorch_classes

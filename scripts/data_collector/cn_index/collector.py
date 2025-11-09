@@ -19,13 +19,15 @@ CUR_DIR = Path(__file__).resolve().parent
 sys.path.append(str(CUR_DIR.parent.parent))
 
 from data_collector.index import IndexBase
-from data_collector.utils import get_calendar_list, get_trading_date_by_shift, deco_retry
+from data_collector.utils import (
+    get_calendar_list,
+    get_trading_date_by_shift,
+    deco_retry,
+)
 from data_collector.utils import get_instruments
 
 
-NEW_COMPANIES_URL = (
-    "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/file/autofile/cons/{index_code}cons.xls"
-)
+NEW_COMPANIES_URL = "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/file/autofile/cons/{index_code}cons.xls"
 
 
 INDEX_CHANGES_URL = "https://www.csindex.com.cn/csindex-home/search/search-content?lang=cn&searchInput=%E5%85%B3%E4%BA%8E%E8%B0%83%E6%95%B4%E6%B2%AA%E6%B7%B1300%E5%92%8C%E4%B8%AD%E8%AF%81%E9%A6%99%E6%B8%AF100%E7%AD%89%E6%8C%87%E6%95%B0%E6%A0%B7%E6%9C%AC&pageNum={page_num}&pageSize={page_size}&sortField=date&dateRange=all&contentType=announcement"
@@ -114,10 +116,14 @@ class CSIIndex(IndexBase):
         """
         if self.freq != "day":
             inst_df[self.START_DATE_FIELD] = inst_df[self.START_DATE_FIELD].apply(
-                lambda x: (pd.Timestamp(x) + pd.Timedelta(hours=9, minutes=30)).strftime("%Y-%m-%d %H:%M:%S")
+                lambda x: (
+                    pd.Timestamp(x) + pd.Timedelta(hours=9, minutes=30)
+                ).strftime("%Y-%m-%d %H:%M:%S")
             )
             inst_df[self.END_DATE_FIELD] = inst_df[self.END_DATE_FIELD].apply(
-                lambda x: (pd.Timestamp(x) + pd.Timedelta(hours=15, minutes=0)).strftime("%Y-%m-%d %H:%M:%S")
+                lambda x: (
+                    pd.Timestamp(x) + pd.Timedelta(hours=15, minutes=0)
+                ).strftime("%Y-%m-%d %H:%M:%S")
             )
         return inst_df
 
@@ -158,9 +164,15 @@ class CSIIndex(IndexBase):
             symbol
         """
         symbol = f"{int(symbol):06}"
-        return f"SH{symbol}" if symbol.startswith("60") or symbol.startswith("688") else f"SZ{symbol}"
+        return (
+            f"SH{symbol}"
+            if symbol.startswith("60") or symbol.startswith("688")
+            else f"SZ{symbol}"
+        )
 
-    def _parse_excel(self, excel_url: str, add_date: pd.Timestamp, remove_date: pd.Timestamp) -> pd.DataFrame:
+    def _parse_excel(
+        self, excel_url: str, add_date: pd.Timestamp, remove_date: pd.Timestamp
+    ) -> pd.DataFrame:
         content = retry_request(excel_url, exclude_status=[404]).content
         _io = BytesIO(content)
         df_map = pd.read_excel(_io, sheet_name=None)
@@ -169,7 +181,10 @@ class CSIIndex(IndexBase):
         ).open("wb") as fp:
             fp.write(content)
         tmp = []
-        for _s_name, _type, _date in [("调入", self.ADD, add_date), ("调出", self.REMOVE, remove_date)]:
+        for _s_name, _type, _date in [
+            ("调入", self.ADD, add_date),
+            ("调出", self.REMOVE, remove_date),
+        ]:
             _df = df_map[_s_name]
             _df = _df.loc[_df["指数代码"] == self.index_code, ["证券代码"]]
             _df = _df.applymap(self.normalize_symbol)
@@ -180,7 +195,9 @@ class CSIIndex(IndexBase):
         df = pd.concat(tmp)
         return df
 
-    def _parse_table(self, content: str, add_date: pd.DataFrame, remove_date: pd.DataFrame) -> pd.DataFrame:
+    def _parse_table(
+        self, content: str, add_date: pd.DataFrame, remove_date: pd.DataFrame
+    ) -> pd.DataFrame:
         df = pd.DataFrame()
         _tmp_count = 0
         for _df in pd.read_html(content):
@@ -242,13 +259,17 @@ class CSIIndex(IndexBase):
         if "沪深300" not in title:
             return pd.DataFrame()
 
-        logger.info(f"load index data from https://www.csindex.com.cn/#/about/newsDetail?id={url.split('id=')[-1]}")
+        logger.info(
+            f"load index data from https://www.csindex.com.cn/#/about/newsDetail?id={url.split('id=')[-1]}"
+        )
         _text = resp["content"]
         date_list = re.findall(r"(\d{4}).*?年.*?(\d+).*?月.*?(\d+).*?日", _text)
         if len(date_list) >= 2:
             add_date = pd.Timestamp("-".join(date_list[0]))
         else:
-            _date = pd.Timestamp("-".join(re.findall(r"(\d{4}).*?年.*?(\d+).*?月", _text)[0]))
+            _date = pd.Timestamp(
+                "-".join(re.findall(r"(\d{4}).*?年.*?(\d+).*?月", _text)[0])
+            )
             add_date = get_trading_date_by_shift(self.calendar_list, _date, shift=0)
         if "盘后" in _text or "市后" in _text:
             add_date = get_trading_date_by_shift(self.calendar_list, add_date, shift=1)
@@ -262,11 +283,15 @@ class CSIIndex(IndexBase):
             if excel_url_list:
                 excel_url = excel_url_list[0]
                 if not excel_url.startswith("http"):
-                    excel_url = excel_url if excel_url.startswith("/") else "/" + excel_url
+                    excel_url = (
+                        excel_url if excel_url.startswith("/") else "/" + excel_url
+                    )
                     excel_url = f"http://www.csindex.com.cn{excel_url}"
         if excel_url:
             try:
-                logger.info(f"get {add_date} changes from the excel, title={title}, excel_url={excel_url}")
+                logger.info(
+                    f"get {add_date} changes from the excel, title={title}, excel_url={excel_url}"
+                )
                 df = self._parse_excel(excel_url, add_date, remove_date)
             except ValueError:
                 logger.info(
@@ -289,8 +314,12 @@ class CSIIndex(IndexBase):
         """
         page_num = 1
         page_size = 5
-        data = retry_request(self.changes_url.format(page_size=page_size, page_num=page_num)).json()
-        data = retry_request(self.changes_url.format(page_size=data["total"], page_num=page_num)).json()
+        data = retry_request(
+            self.changes_url.format(page_size=page_size, page_num=page_num)
+        ).json()
+        data = retry_request(
+            self.changes_url.format(page_size=data["total"], page_num=page_num)
+        ).json()
         for item in data["data"]:
             yield f"https://www.csindex.com.cn/csindex-home/announcement/queryAnnouncementById?id={item['id']}"
 
@@ -319,7 +348,9 @@ class CSIIndex(IndexBase):
         df = pd.read_excel(_io)
         df = df.iloc[:, [0, 4]]
         df.columns = [self.END_DATE_FIELD, self.SYMBOL_FIELD_NAME]
-        df[self.SYMBOL_FIELD_NAME] = df[self.SYMBOL_FIELD_NAME].map(self.normalize_symbol)
+        df[self.SYMBOL_FIELD_NAME] = df[self.SYMBOL_FIELD_NAME].map(
+            self.normalize_symbol
+        )
         df[self.END_DATE_FIELD] = pd.to_datetime(df[self.END_DATE_FIELD].astype(str))
         df[self.START_DATE_FIELD] = self.bench_start_date
         logger.info("end of get new companies.")
@@ -396,7 +427,9 @@ class CSI500Index(CSIIndex):
         """
         bs.login()
         today = pd.Timestamp.now()
-        date_range = pd.DataFrame(pd.date_range(start="2007-01-15", end=today, freq="7D"))[0].dt.date
+        date_range = pd.DataFrame(
+            pd.date_range(start="2007-01-15", end=today, freq="7D")
+        )[0].dt.date
         ret_list = []
         for date in tqdm(date_range, desc="Download CSI500"):
             result = self.get_data_from_baostock(date)

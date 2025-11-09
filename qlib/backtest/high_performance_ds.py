@@ -104,7 +104,9 @@ class PandasQuote(BaseQuote):
     def __init__(self, quote_df: pd.DataFrame, freq: str) -> None:
         super().__init__(quote_df=quote_df, freq=freq)
         quote_dict = {}
-        for stock_id, stock_val in quote_df.groupby(level="instrument", group_keys=False):
+        for stock_id, stock_val in quote_df.groupby(
+            level="instrument", group_keys=False
+        ):
             quote_dict[stock_id] = stock_val.droplevel(level="instrument")
         self.data = quote_dict
 
@@ -114,7 +116,9 @@ class PandasQuote(BaseQuote):
     def get_data(self, stock_id, start_time, end_time, field, method=None):
         if method == "ts_data_last":
             method = ts_data_last
-        stock_data = resam_ts_data(self.data[stock_id][field], start_time, end_time, method=method)
+        stock_data = resam_ts_data(
+            self.data[stock_id][field], start_time, end_time, method=method
+        )
         if stock_data is None:
             return None
         elif isinstance(stock_data, (bool, np.bool_, int, float, np.number)):
@@ -122,7 +126,9 @@ class PandasQuote(BaseQuote):
         elif isinstance(stock_data, pd.Series):
             return idd.SingleData(stock_data)
         else:
-            raise ValueError(f"stock data from resam_ts_data must be a number, pd.Series or pd.DataFrame")
+            raise ValueError(
+                f"stock data from resam_ts_data must be a number, pd.Series or pd.DataFrame"
+            )
 
 
 class NumpyQuote(BaseQuote):
@@ -137,9 +143,15 @@ class NumpyQuote(BaseQuote):
         """
         super().__init__(quote_df=quote_df, freq=freq)
         quote_dict = {}
-        for stock_id, stock_val in quote_df.groupby(level="instrument", group_keys=False):
-            quote_dict[stock_id] = idd.MultiData(stock_val.droplevel(level="instrument"))
-            quote_dict[stock_id].sort_index()  # To support more flexible slicing, we must sort data first
+        for stock_id, stock_val in quote_df.groupby(
+            level="instrument", group_keys=False
+        ):
+            quote_dict[stock_id] = idd.MultiData(
+                stock_val.droplevel(level="instrument")
+            )
+            quote_dict[
+                stock_id
+            ].sort_index()  # To support more flexible slicing, we must sort data first
         self.data = quote_dict
 
         n, unit = Freq.parse(freq)
@@ -242,7 +254,9 @@ class BaseSingleMetric:
     def __mul__(self, other: Union[BaseSingleMetric, int, float]) -> BaseSingleMetric:
         raise NotImplementedError(f"Please implement the `__mul__` method")
 
-    def __truediv__(self, other: Union[BaseSingleMetric, int, float]) -> BaseSingleMetric:
+    def __truediv__(
+        self, other: Union[BaseSingleMetric, int, float]
+    ) -> BaseSingleMetric:
         raise NotImplementedError(f"Please implement the `__truediv__` method")
 
     def __eq__(self, other: object) -> BaseSingleMetric:
@@ -277,7 +291,9 @@ class BaseSingleMetric:
 
         raise NotImplementedError(f"Please implement the `empty` method")
 
-    def add(self, other: BaseSingleMetric, fill_value: float = None) -> BaseSingleMetric:
+    def add(
+        self, other: BaseSingleMetric, fill_value: float = None
+    ) -> BaseSingleMetric:
         """Replace np.nan with fill_value in two metrics and add them."""
 
         raise NotImplementedError(f"Please implement the `add` method")
@@ -331,7 +347,9 @@ class BaseOrderIndicator:
 
         raise NotImplementedError(f"Please implement the 'assign' method")
 
-    def transfer(self, func: Callable, new_col: str = None) -> Optional[BaseSingleMetric]:
+    def transfer(
+        self, func: Callable, new_col: str = None
+    ) -> Optional[BaseSingleMetric]:
         """compute new metric with existing metrics.
 
         Parameters
@@ -536,7 +554,9 @@ class PandasSingleMetric(SingleMetric):
     def index(self):
         return list(self.metric.index)
 
-    def add(self, other: BaseSingleMetric, fill_value: float = None) -> PandasSingleMetric:
+    def add(
+        self, other: BaseSingleMetric, fill_value: float = None
+    ) -> PandasSingleMetric:
         other = cast(PandasSingleMetric, other)
         return self.__class__(self.metric.add(other.metric, fill_value=fill_value))
 

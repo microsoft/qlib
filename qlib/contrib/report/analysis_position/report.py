@@ -48,12 +48,20 @@ def _calculate_report_data(df: pd.DataFrame) -> pd.DataFrame:
     report_df["cum_return_w_cost"] = (df["return"] - df["cost"]).cumsum()
     # report_df['cum_return'] - report_df['cum_return'].cummax()
     report_df["return_wo_mdd"] = _calculate_mdd(report_df["cum_return_wo_cost"])
-    report_df["return_w_cost_mdd"] = _calculate_mdd((df["return"] - df["cost"]).cumsum())
+    report_df["return_w_cost_mdd"] = _calculate_mdd(
+        (df["return"] - df["cost"]).cumsum()
+    )
 
     report_df["cum_ex_return_wo_cost"] = (df["return"] - df["bench"]).cumsum()
-    report_df["cum_ex_return_w_cost"] = (df["return"] - df["bench"] - df["cost"]).cumsum()
-    report_df["cum_ex_return_wo_cost_mdd"] = _calculate_mdd((df["return"] - df["bench"]).cumsum())
-    report_df["cum_ex_return_w_cost_mdd"] = _calculate_mdd((df["return"] - df["cost"] - df["bench"]).cumsum())
+    report_df["cum_ex_return_w_cost"] = (
+        df["return"] - df["bench"] - df["cost"]
+    ).cumsum()
+    report_df["cum_ex_return_wo_cost_mdd"] = _calculate_mdd(
+        (df["return"] - df["bench"]).cumsum()
+    )
+    report_df["cum_ex_return_w_cost_mdd"] = _calculate_mdd(
+        (df["return"] - df["cost"] - df["bench"]).cumsum()
+    )
     # return_wo_mdd , return_w_cost_mdd,  cum_ex_return_wo_cost_mdd, cum_ex_return_w
 
     report_df["turnover"] = df["turnover"]
@@ -105,9 +113,21 @@ def _report_figure(df: pd.DataFrame) -> [list, tuple]:
     _subplot_layout = dict()
     for i in range(1, 8):
         # yaxis
-        _subplot_layout.update({"yaxis{}".format(i): dict(zeroline=True, showline=True, showticklabels=True)})
+        _subplot_layout.update(
+            {
+                "yaxis{}".format(i): dict(
+                    zeroline=True, showline=True, showticklabels=True
+                )
+            }
+        )
         _show_line = i == 7
-        _subplot_layout.update({"xaxis{}".format(i): dict(showline=_show_line, type="category", tickangle=45)})
+        _subplot_layout.update(
+            {
+                "xaxis{}".format(i): dict(
+                    showline=_show_line, type="category", tickangle=45
+                )
+            }
+        )
 
     _layout_style = dict(
         height=1200,

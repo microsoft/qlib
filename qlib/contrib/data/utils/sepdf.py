@@ -110,7 +110,9 @@ class SepDataFrame:
                     self._df_dict[_df_dict_key] = df.to_frame(col_name)
                 else:
                     df_copy = df.copy()  # avoid changing df
-                    df_copy.columns = pd.MultiIndex.from_tuples([(*col_name, *idx) for idx in df.columns.to_list()])
+                    df_copy.columns = pd.MultiIndex.from_tuples(
+                        [(*col_name, *idx) for idx in df.columns.to_list()]
+                    )
                     self._df_dict[_df_dict_key] = df_copy
 
     def __delitem__(self, item: str):
@@ -163,12 +165,18 @@ class SDFLoc:
                 return self._sdf[args]
             elif isinstance(args, (tuple, list)):
                 new_df_dict = {k: self._sdf[k] for k in args}
-                return SepDataFrame(new_df_dict, join=self.join if self.join in args else args[0], skip_align=True)
+                return SepDataFrame(
+                    new_df_dict,
+                    join=self.join if self.join in args else args[0],
+                    skip_align=True,
+                )
             else:
                 raise NotImplementedError(f"This type of input is not supported")
         elif self.axis == 0:
             return SepDataFrame(
-                {k: df.loc(axis=0)[args] for k, df in self._sdf._df_dict.items()}, join=self.join, skip_align=True
+                {k: df.loc(axis=0)[args] for k, df in self._sdf._df_dict.items()},
+                join=self.join,
+                skip_align=True,
             )
         else:
             df = self._sdf

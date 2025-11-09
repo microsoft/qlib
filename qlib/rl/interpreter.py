@@ -5,9 +5,9 @@ from __future__ import annotations
 
 from typing import Any, Generic, TypeVar
 
-import gym
+import gymnasium as gymnasium
 import numpy as np
-from gym import spaces
+from gymnasium import spaces
 
 from qlib.typehint import final
 from .simulator import ActType, StateType
@@ -36,7 +36,7 @@ class StateInterpreter(Generic[StateType, ObsType], Interpreter):
     """State Interpreter that interpret execution result of qlib executor into rl env state"""
 
     @property
-    def observation_space(self) -> gym.Space:
+    def observation_space(self) -> gymnasium.Space:
         raise NotImplementedError()
 
     @final  # no overridden
@@ -47,7 +47,7 @@ class StateInterpreter(Generic[StateType, ObsType], Interpreter):
 
     def validate(self, obs: ObsType) -> None:
         """Validate whether an observation belongs to the pre-defined observation space."""
-        _gym_space_contains(self.observation_space, obs)
+        _gymnasium_space_contains(self.observation_space, obs)
 
     def interpret(self, simulator_state: StateType) -> ObsType:
         """Interpret the state of simulator.
@@ -68,7 +68,7 @@ class ActionInterpreter(Generic[StateType, PolicyActType, ActType], Interpreter)
     """Action Interpreter that interpret rl agent action into qlib orders"""
 
     @property
-    def action_space(self) -> gym.Space:
+    def action_space(self) -> gymnasium.Space:
         raise NotImplementedError()
 
     @final  # no overridden
@@ -79,7 +79,7 @@ class ActionInterpreter(Generic[StateType, PolicyActType, ActType], Interpreter)
 
     def validate(self, action: PolicyActType) -> None:
         """Validate whether an action belongs to the pre-defined action space."""
-        _gym_space_contains(self.action_space, action)
+        _gymnasium_space_contains(self.action_space, action)
 
     def interpret(self, simulator_state: StateType, action: PolicyActType) -> ActType:
         """Convert the policy action to simulator action.
@@ -98,41 +98,76 @@ class ActionInterpreter(Generic[StateType, PolicyActType, ActType], Interpreter)
         raise NotImplementedError("interpret is not implemented!")
 
 
-def _gym_space_contains(space: gym.Space, x: Any) -> None:
-    """Strengthened version of gym.Space.contains.
+def _gymnasium_space_contains(space: gymnasium.Space, x: Any) -> None:
+    """Strengthened version of gymnasium.Space.contains.
     Giving more diagnostic information on why validation fails.
 
     Throw exception rather than returning true or false.
     """
     if isinstance(space, spaces.Dict):
         if not isinstance(x, dict) or len(x) != len(space):
-            raise GymSpaceValidationError("Sample must be a dict with same length as space.", space, x)
+<<<<<<< HEAD
+            raise gymnasiumSpaceValidationError("Sample must be a dict with same length as space.", space, x)
         for k, subspace in space.spaces.items():
             if k not in x:
-                raise GymSpaceValidationError(f"Key {k} not found in sample.", space, x)
+                raise gymnasiumSpaceValidationError(f"Key {k} not found in sample.", space, x)
             try:
-                _gym_space_contains(subspace, x[k])
-            except GymSpaceValidationError as e:
-                raise GymSpaceValidationError(f"Subspace of key {k} validation error.", space, x) from e
+                _gymnasium_space_contains(subspace, x[k])
+            except gymnasiumSpaceValidationError as e:
+                raise gymnasiumSpaceValidationError(f"Subspace of key {k} validation error.", space, x) from e
+=======
+            raise gymnasiumSpaceValidationError(
+                "Sample must be a dict with same length as space.", space, x
+            )
+        for k, subspace in space.spaces.items():
+            if k not in x:
+                raise gymnasiumSpaceValidationError(
+                    f"Key {k} not found in sample.", space, x
+                )
+            try:
+                _gymnasium_space_contains(subspace, x[k])
+            except gymnasiumSpaceValidationError as e:
+                raise gymnasiumSpaceValidationError(
+                    f"Subspace of key {k} validation error.", space, x
+                ) from e
+>>>>>>> f180e36a (fix: migrate from gym to gymnasium for NumPy 2.0+ compatibility)
 
     elif isinstance(space, spaces.Tuple):
         if isinstance(x, (list, np.ndarray)):
             x = tuple(x)  # Promote list and ndarray to tuple for contains check
         if not isinstance(x, tuple) or len(x) != len(space):
-            raise GymSpaceValidationError("Sample must be a tuple with same length as space.", space, x)
+<<<<<<< HEAD
+            raise gymnasiumSpaceValidationError("Sample must be a tuple with same length as space.", space, x)
+=======
+            raise gymnasiumSpaceValidationError(
+                "Sample must be a tuple with same length as space.", space, x
+            )
+>>>>>>> f180e36a (fix: migrate from gym to gymnasium for NumPy 2.0+ compatibility)
         for i, (subspace, part) in enumerate(zip(space, x)):
             try:
-                _gym_space_contains(subspace, part)
-            except GymSpaceValidationError as e:
-                raise GymSpaceValidationError(f"Subspace of index {i} validation error.", space, x) from e
+                _gymnasium_space_contains(subspace, part)
+            except gymnasiumSpaceValidationError as e:
+<<<<<<< HEAD
+                raise gymnasiumSpaceValidationError(f"Subspace of index {i} validation error.", space, x) from e
 
     else:
         if not space.contains(x):
-            raise GymSpaceValidationError("Validation error reported by gym.", space, x)
+            raise gymnasiumSpaceValidationError("Validation error reported by gymnasium.", space, x)
+=======
+                raise gymnasiumSpaceValidationError(
+                    f"Subspace of index {i} validation error.", space, x
+                ) from e
+
+    else:
+        if not space.contains(x):
+            raise gymnasiumSpaceValidationError(
+                "Validation error reported by gymnasium.", space, x
+            )
+>>>>>>> f180e36a (fix: migrate from gym to gymnasium for NumPy 2.0+ compatibility)
 
 
-class GymSpaceValidationError(Exception):
-    def __init__(self, message: str, space: gym.Space, x: Any) -> None:
+class gymnasiumSpaceValidationError(Exception):
+    def __init__(self, message: str, space: gymnasium.Space, x: Any) -> None:
         self.message = message
         self.space = space
         self.x = x

@@ -75,7 +75,9 @@ class FundCollector(BaseCollector):
 
     def init_datetime(self):
         if self.interval == self.INTERVAL_1min:
-            self.start_datetime = max(self.start_datetime, self.DEFAULT_START_DATETIME_1MIN)
+            self.start_datetime = max(
+                self.start_datetime, self.DEFAULT_START_DATETIME_1MIN
+            )
         elif self.interval == self.INTERVAL_1d:
             pass
         else:
@@ -105,9 +107,16 @@ class FundCollector(BaseCollector):
         try:
             # TODO: numberOfHistoricalDaysToCrawl should be bigger enough
             url = INDEX_BENCH_URL.format(
-                index_code=symbol, numberOfHistoricalDaysToCrawl=10000, startDate=start, endDate=end
+                index_code=symbol,
+                numberOfHistoricalDaysToCrawl=10000,
+                startDate=start,
+                endDate=end,
             )
-            resp = requests.get(url, headers={"referer": "http://fund.eastmoney.com/110022.html"}, timeout=None)
+            resp = requests.get(
+                url,
+                headers={"referer": "http://fund.eastmoney.com/110022.html"},
+                timeout=None,
+            )
 
             if resp.status_code != 200:
                 raise ValueError("request error")
@@ -128,7 +137,11 @@ class FundCollector(BaseCollector):
             logger.warning(f"{error_msg}:{e}")
 
     def get_data(
-        self, symbol: str, interval: str, start_datetime: pd.Timestamp, end_datetime: pd.Timestamp
+        self,
+        symbol: str,
+        interval: str,
+        start_datetime: pd.Timestamp,
+        end_datetime: pd.Timestamp,
     ) -> [pd.DataFrame]:
         def _get_simple(start_, end_):
             self.sleep()
@@ -186,7 +199,9 @@ class FundNormalize(BaseNormalize):
             df = df.reindex(
                 pd.DataFrame(index=calendar_list)
                 .loc[
-                    pd.Timestamp(df.index.min()).date() : pd.Timestamp(df.index.max()).date()
+                    pd.Timestamp(df.index.min())
+                    .date() : pd.Timestamp(df.index.max())
+                    .date()
                     + pd.Timedelta(hours=23, minutes=59)
                 ]
                 .index
@@ -198,7 +213,9 @@ class FundNormalize(BaseNormalize):
 
     def normalize(self, df: pd.DataFrame) -> pd.DataFrame:
         # normalize
-        df = self.normalize_fund(df, self._calendar_list, self._date_field_name, self._symbol_field_name)
+        df = self.normalize_fund(
+            df, self._calendar_list, self._date_field_name, self._symbol_field_name
+        )
         return df
 
 
@@ -216,7 +233,14 @@ class FundNormalizeCN1d(FundNormalizeCN, FundNormalize1d):
 
 
 class Run(BaseRun):
-    def __init__(self, source_dir=None, normalize_dir=None, max_workers=4, interval="1d", region=REGION_CN):
+    def __init__(
+        self,
+        source_dir=None,
+        normalize_dir=None,
+        max_workers=4,
+        interval="1d",
+        region=REGION_CN,
+    ):
         """
 
         Parameters
@@ -281,9 +305,13 @@ class Run(BaseRun):
             $ python collector.py download_data --source_dir ~/.qlib/fund_data/source/cn_data --region CN --start 2020-11-01 --end 2020-11-10 --delay 0.1 --interval 1d
         """
 
-        super(Run, self).download_data(max_collector_count, delay, start, end, check_data_length, limit_nums)
+        super(Run, self).download_data(
+            max_collector_count, delay, start, end, check_data_length, limit_nums
+        )
 
-    def normalize_data(self, date_field_name: str = "date", symbol_field_name: str = "symbol"):
+    def normalize_data(
+        self, date_field_name: str = "date", symbol_field_name: str = "symbol"
+    ):
         """normalize data
 
         Parameters
