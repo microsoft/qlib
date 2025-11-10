@@ -14,6 +14,7 @@ import requests
 import pandas as pd
 from tqdm import tqdm
 from loguru import logger
+from fake_useragent import UserAgent
 
 
 CUR_DIR = Path(__file__).resolve().parent
@@ -52,6 +53,7 @@ class WIKIIndex(IndexBase):
         )
 
         self._target_url = f"{WIKI_URL}/{WIKI_INDEX_NAME_MAP[self.index_name.upper()]}"
+        self._ua = UserAgent()
 
     @property
     @abc.abstractmethod
@@ -114,7 +116,7 @@ class WIKIIndex(IndexBase):
 
     def _request_new_companies(self) -> requests.Response:
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            'User-Agent': self._ua.random
         }
         resp = requests.get(self._target_url, timeout=None, headers=headers)
         if resp.status_code != 200:
@@ -232,7 +234,7 @@ class SP500Index(WIKIIndex):
         # NOTE: may update the index of the table
         # Add headers to avoid 403 Forbidden error from Wikipedia
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            'User-Agent': self._ua.random
         }
         response = requests.get(self.WIKISP500_CHANGES_URL, headers=headers)
         response.raise_for_status()
