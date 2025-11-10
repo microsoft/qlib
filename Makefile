@@ -113,7 +113,7 @@ dev: prerequisite all
 
 # Check lint with black.
 black:
-	black . -l 120 --check --diff
+	black . -l 120 --check --diff --exclude qlib/_version.py
 
 # Check code folder with pylint.
 # TODO: These problems we will solve in the future. Important among them are: W0221, W0223, W0237, E1102

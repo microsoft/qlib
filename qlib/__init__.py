@@ -4,7 +4,10 @@ from pathlib import Path
 
 from setuptools_scm import get_version
 
-__version__ = get_version(root="..", relative_to=__file__)
+try:
+    from ._version import version as __version__
+except ImportError:
+    __version__ = get_version(root="..", relative_to=__file__)
 __version__bak = __version__  # This version is backup for QlibConfig.reset_qlib_version
 import logging
 import os
