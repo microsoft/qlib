@@ -115,9 +115,7 @@ class WIKIIndex(IndexBase):
         return _calendar_list
 
     def _request_new_companies(self) -> requests.Response:
-        headers = {
-            'User-Agent': self._ua.random
-        }
+        headers = {"User-Agent": self._ua.random}
         resp = requests.get(self._target_url, timeout=None, headers=headers)
         if resp.status_code != 200:
             raise ValueError(f"request error: {self._target_url}")
@@ -233,9 +231,7 @@ class SP500Index(WIKIIndex):
         logger.info(f"get sp500 history changes......")
         # NOTE: may update the index of the table
         # Add headers to avoid 403 Forbidden error from Wikipedia
-        headers = {
-            'User-Agent': self._ua.random
-        }
+        headers = {"User-Agent": self._ua.random}
         response = requests.get(self.WIKISP500_CHANGES_URL, headers=headers)
         response.raise_for_status()
         changes_df = pd.read_html(StringIO(response.text))[-1]
