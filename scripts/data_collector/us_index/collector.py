@@ -232,7 +232,7 @@ class SP500Index(WIKIIndex):
         # NOTE: may update the index of the table
         # Add headers to avoid 403 Forbidden error from Wikipedia
         headers = {"User-Agent": self._ua.random}
-        response = requests.get(self.WIKISP500_CHANGES_URL, headers=headers)
+        response = requests.get(self.WIKISP500_CHANGES_URL, headers=headers, timeout=None)
         response.raise_for_status()
         changes_df = pd.read_html(StringIO(response.text))[-1]
         changes_df = changes_df.iloc[:, [0, 1, 3]]
