@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Qlib Web 平台 - 仪表盘</title>
+    <!-- Include Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Optional: Add custom base styles or overrides here */
+        body {
+            font-family: 'Inter', sans-serif; /* Example font */
+        }
+        /* Style for sidebar active link */
+        .sidebar-link.active {
+            background-color: #3b82f6; /* bg-blue-600 */
+            color: white;
+        }
+    </style>
+    <!-- Include a font, e.g., Inter -->
+    <link rel="preconnect" href="https://rsms.me/">
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+</head>
+<body class="bg-gray-100">
+    <div class="flex h-screen bg-gray-200">
+        <!-- Sidebar -->
+        <div class="w-64 bg-gray-800 text-white flex flex-col fixed h-full">
+            <!-- Logo/Brand -->
+            <div class="h-16 flex items-center justify-center text-xl font-bold border-b border-gray-700">
+                Qlib 平台
+            </div>
+            <!-- Navigation Links -->
+            <nav class="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
+                <a href="dashboard.html" class="sidebar-link active flex items-center px-4 py-2 rounded hover:bg-gray-700">
+                    <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+                    仪表盘
+                </a>
+                <a href="strategies.html" class="sidebar-link flex items-center px-4 py-2 rounded hover:bg-gray-700">
+                     <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17.25v-.092M9.75 12.75v-.092m0-4.5v-.092m6 4.684v-.092m0-4.5v-.092m0-4.5v-.092M5.25 17.25v-.092m0-4.5v-.092m6-4.5v-.092m6 4.684v-.092M5.25 12.75v-.092m0-4.5v-.092m6 4.684v-.092m0-4.5v-.092m6-4.5v-.092M3 12a9 9 0 1118 0 9 9 0 01-18 0z"/> </svg>
+                    我的策略
+                </a>
+                <a href="models.html" class="sidebar-link flex items-center px-4 py-2 rounded hover:bg-gray-700">
+                    <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <!-- Placeholder Icon -->
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17.109c.637-.207 1.32-.325 2.041-.325 3.182 0 5.75 1.962 5.75 4.375 0 .355-.04.7-.118 1.033M15 11.25a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM21 11.25a8.956 8.956 0 01-8.956 8.956 8.956 8.956 0 01-8.956-8.956A8.956 8.956 0 0112.044 2.3a8.956 8.956 0 018.956 8.956z"/>
+                    </svg>
+                    模型管理
+                </a>
+                <a href="data_management.html" class="sidebar-link flex items-center px-4 py-2 rounded hover:bg-gray-700">
+                    <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4M4 7l8 5m0 0l8-5m-8 5v10"/> </svg>
+                    数据管理
+                </a>
+                <a href="live_trading.html" class="sidebar-link flex items-center px-4 py-2 rounded hover:bg-gray-700">
+                     <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/> </svg>
+                    实盘交易 (IB)
+                </a>
+            </nav>
+            <!-- User Area/Logout -->
+            <div class="border-t border-gray-700 p-4">
+                 <a href="settings.html" class="sidebar-link flex items-center px-4 py-2 rounded hover:bg-gray-700">
+                    <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/> </svg>
+                    设置
+                </a>
+                <a href="login.html" class="sidebar-link flex items-center px-4 py-2 mt-2 text-red-400 rounded hover:bg-gray-700">
+                     <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/> </svg>
+                    登出
+                </a>
+            </div>
+        </div>
+
+        <!-- Main content -->
+        <div class="flex-1 flex flex-col overflow-hidden ml-64"> <!-- Add ml-64 for fixed sidebar -->
+            <!-- Header -->
+            <header class="bg-white shadow p-4 flex justify-between items-center">
+                <h1 class="text-xl font-semibold text-gray-800">仪表盘</h1>
+                <div class="flex items-center space-x-4">
+                    <span class="text-gray-600">欢迎, 用户!</span>
+                     <!-- User profile dropdown can go here -->
+                </div>
+            </header>
+
+            <!-- Content area -->
+            <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
+                <div class="container mx-auto">
+                    <!-- Example Content Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <h2 class="text-lg font-semibold text-gray-700 mb-2">我的策略</h2>
+                            <p class="text-gray-600">您有 <span class="font-bold">5</span> 个运行中策略。</p>
+                            <a href="strategies.html" class="text-blue-500 hover:underline mt-4 inline-block">查看策略</a>
+                        </div>
+                         <div class="bg-white p-6 rounded-lg shadow">
+                            <h2 class="text-lg font-semibold text-gray-700 mb-2">近期回测</h2>
+                            <p class="text-gray-600">今日完成 <span class="font-bold">2</span> 次回测。</p>
+                             <a href="backtest.html" class="text-blue-500 hover:underline mt-4 inline-block">查看回测记录</a>
+                        </div>
+                         <div class="bg-white p-6 rounded-lg shadow">
+                            <h2 class="text-lg font-semibold text-gray-700 mb-2">实盘交易状态</h2>
+                            <p class="text-gray-600">IB 连接: <span class="text-green-500 font-bold">已连接</span></p>
+                            <a href="live_trading.html" class="text-blue-500 hover:underline mt-4 inline-block">查看实盘状态</a>
+                        </div>
+                    </div>
+
+                    <!-- Placeholder for charts or more info -->
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <h2 class="text-lg font-semibold text-gray-700 mb-4">整体表现 (占位符)</h2>
+                        <div class="h-64 bg-gray-200 rounded flex items-center justify-center text-gray-500">
+                            图表区域
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+</body>
+</html> 
