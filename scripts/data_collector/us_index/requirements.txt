@@ -3,3 +3,4 @@ requests
 pandas
 lxml
 loguru
+fake-useragent
