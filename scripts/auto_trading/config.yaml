@@ -1,0 +1,113 @@
+# A股/港股/ETF 自动化交易系统配置文件
+
+# 市场配置
+market: cn  # 'cn' (A股) 或 'hk' (港股)
+benchmark: SH000300  # 基准指数: SH000300 (沪深300), SH000905 (中证500)
+
+# 数据配置
+data:
+  base_dir: ~/.qlib/qlib_data  # 数据根目录
+  # 多市场数据目录会自动生成: {base_dir}/cn_data, {base_dir}/hk_data
+
+# 模型配置
+models:
+  models_dir: ./models  # 模型保存目录
+
+  # 模型列表 (在 signal_generator.py 中定义)
+  enabled_models:
+    - lgb_alpha158  # LightGBM + Alpha158 (158个因子)
+    - lgb_alpha360  # LightGBM + Alpha360 (360个因子)
+
+  # 训练参数
+  training:
+    rolling_period: 252  # 滚动窗口：252个交易日 (约1年)
+    retrain_interval: 20  # 每20个交易日重新训练一次
+
+# 策略配置
+strategy:
+  topk: 30  # 持仓股票数量
+  rebalance_freq: daily  # 再平衡频率: daily, weekly, monthly
+  ensemble_method: weighted_average  # 集成方法: weighted_average, rank_average
+
+# 风险控制
+risk_control:
+  lambda: 1.0  # 风险厌恶系数 (越大越保守，典型值: 0.5-2.0)
+  max_turnover: 0.3  # 最大换手率 30%
+  max_position_deviation: 0.05  # 单股票最大偏离基准权重 ±5%
+  max_single_position: 0.10  # 单只股票最大权重 10%
+  min_position: 0.001  # 最小持仓权重 0.1%
+
+# 组合管理
+portfolio:
+  total_value: 100000000  # 总资产价值 (1亿元)
+
+  # 当前持仓文件 (可选)
+  # positions_file: ./data/current_positions.csv
+  # 格式: stock,weight
+  #       SH600000,0.05
+  #       SH600036,0.03
+
+# 基准权重文件 (可选，不提供则使用等权)
+# benchmark_weights_file: ./data/benchmark_weights.csv
+# 格式: stock,weight
+#       SH600000,0.03
+#       SH600036,0.02
+
+# 约束条件 (可选)
+constraints:
+  # 强制持有的股票 (不会卖出)
+  must_hold: []
+  #  - SH600000
+  #  - SH600036
+
+  # 强制卖出的股票 (设为0权重)
+  must_sell: []
+  #  - SH600999
+
+# 交易成本
+transaction_costs:
+  open_cost: 0.0005  # 开仓成本 0.05% (佣金)
+  close_cost: 0.0015  # 平仓成本 0.15% (佣金 + 印花税)
+  min_cost: 5  # 最小手续费 5元
+  impact_cost: 0.0001  # 冲击成本 0.01%
+
+# 回测配置
+backtest:
+  lookback_days: 60  # 回测天数 (用于验证策略)
+  init_cash: 100000000  # 初始资金
+
+# 报告配置
+report:
+  output_dir: ./reports  # 报告输出目录
+  formats:
+    - html  # HTML 格式日报
+    - excel  # Excel 格式订单表
+
+  # 邮件通知 (可选)
+  # email:
+  #   enabled: false
+  #   smtp_server: smtp.gmail.com
+  #   smtp_port: 587
+  #   sender: your_email@example.com
+  #   password: your_password
+  #   recipients:
+  #     - recipient1@example.com
+  #     - recipient2@example.com
+
+# 日志配置
+logging:
+  level: INFO  # DEBUG, INFO, WARNING, ERROR
+  log_dir: ./logs  # 日志目录
+  max_files: 30  # 保留最近30天的日志
+
+# 高级配置
+advanced:
+  # 并行处理
+  parallel_workers: 4  # 并行线程数
+
+  # 缓存设置
+  enable_cache: true
+  cache_dir: ./cache
+
+  # 性能优化
+  use_gpu: false  # 是否使用GPU (需要相应模型支持)
