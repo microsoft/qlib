@@ -6,11 +6,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Dict, Generator, Iterable, Optional, OrderedDict, Tuple, cast
 
-import gym
+import gymnasium as gym
 import numpy as np
 import torch
 import torch.nn as nn
-from gym.spaces import Discrete
+from gymnasium.spaces import Discrete
 from tianshou.data import Batch, ReplayBuffer, to_torch
 from tianshou.policy import BasePolicy, PPOPolicy, DQNPolicy
 

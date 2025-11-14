@@ -45,7 +45,7 @@ class InfoCollector:
             "pymongo",
             "loguru",
             "lightgbm",
-            "gym",
+            "gymnasium",
             "cvxpy",
             "joblib",
             "matplotlib",
