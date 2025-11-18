@@ -19,6 +19,7 @@ import torch.optim as optim
 from ...model.base import Model
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
+from .pytorch_utils import get_device
 
 
 class TCTS(Model):
@@ -73,7 +74,7 @@ class TCTS(Model):
         self.batch_size = batch_size
         self.early_stop = early_stop
         self.loss = loss
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() else "cpu")
+        self.device = get_device(GPU)
         self.use_gpu = torch.cuda.is_available()
         self.seed = seed
         self.input_dim = input_dim

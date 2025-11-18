@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+import torch
 import torch.nn as nn
 
 
@@ -35,3 +36,35 @@ def count_parameters(models_or_parameters, unit="m"):
     elif unit is not None:
         raise ValueError("Unknown unit: {:}".format(unit))
     return counts
+
+
+def get_device(GPU=0, return_str=False):
+    """
+    Get the appropriate device (CUDA, MPS, or CPU) based on availability.
+
+    Parameters
+    ----------
+    GPU : int
+        the GPU ID used for training. If >= 0 and CUDA is available, use CUDA.
+    return_str : bool
+        if True, return device as string; if False, return torch.device object.
+
+    Returns
+    -------
+    torch.device or str
+        The device to use for computation.
+    """
+    USE_CUDA = torch.cuda.is_available() and GPU >= 0
+    USE_MPS = torch.backends.mps.is_available()
+    
+    # Default to CPU, then check for GPU availability
+    device_str = 'cpu'
+    if USE_CUDA:
+        device_str = f'cuda:{GPU}'
+    elif USE_MPS:
+        device_str = 'mps'
+    
+    if return_str:
+        return device_str
+    else:
+        return torch.device(device_str)
