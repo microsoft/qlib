@@ -1236,7 +1236,7 @@ class TemporalFusionTransformer:
         """Saves optimal TFT weights.
 
         Args:
-          model_folder: Location to serialze model.
+          model_folder: Location to serialize model.
         """
         # Allows for direct serialisation of tensorflow variables to avoid spurious
         # issue with Keras that leads to different performance evaluation results
