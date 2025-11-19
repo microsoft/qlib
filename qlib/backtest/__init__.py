@@ -107,6 +107,35 @@ def get_exchange(
         )
         return exchange
     else:
+        # If user passes an exchange config, inject missing basic kwargs such as freq/start/end.
+        if isinstance(exchange, dict):
+            ex_cfg = copy.deepcopy(exchange)
+            ex_kwargs = ex_cfg.setdefault("kwargs", {})
+
+            # Default values to inject if not present
+            defaults = {
+                "freq": freq,
+                "start_time": start_time,
+                "end_time": end_time,
+                "codes": codes,
+                "open_cost": open_cost,
+                "close_cost": close_cost,
+                "min_cost": min_cost,
+            }
+
+            # Conditional defaults
+            if deal_price is not None:
+                defaults["deal_price"] = deal_price
+            if subscribe_fields:
+                defaults["subscribe_fields"] = subscribe_fields
+            if limit_threshold is not None:
+                defaults["limit_threshold"] = limit_threshold
+
+            # Update kwargs with defaults where keys are missing
+            for k, v in defaults.items():
+                ex_kwargs.setdefault(k, v)
+
+            exchange = ex_cfg
         return init_instance_by_config(exchange, accept_types=Exchange)
 
 
@@ -199,6 +228,13 @@ def get_strategy_executor(
     )
 
     exchange_kwargs = copy.copy(exchange_kwargs)
+    # derive freq from executor config if not explicitly provided
+    if "freq" not in exchange_kwargs:
+        if isinstance(executor, dict):
+            tps = executor.get("kwargs", {}).get("time_per_step")
+            if isinstance(tps, str) and tps:
+                exchange_kwargs["freq"] = tps
+
     if "start_time" not in exchange_kwargs:
         exchange_kwargs["start_time"] = start_time
     if "end_time" not in exchange_kwargs:
