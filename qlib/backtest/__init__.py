@@ -241,10 +241,6 @@ def get_strategy_executor(
         exchange_kwargs["end_time"] = end_time
     trade_exchange = get_exchange(**exchange_kwargs)
 
-    # align account/report frequency with exchange frequency to avoid inconsistent benchmark frequency
-    if hasattr(trade_account, "reset"):
-        trade_account.reset(freq=trade_exchange.freq, benchmark_config=trade_account.benchmark_config)
-
     common_infra = CommonInfrastructure(trade_account=trade_account, trade_exchange=trade_exchange)
     trade_strategy = init_instance_by_config(strategy, accept_types=BaseStrategy)
     trade_strategy.reset_common_infra(common_infra)
