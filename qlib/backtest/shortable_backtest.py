@@ -32,6 +32,7 @@ from qlib.utils import init_instance_by_config
 from .shortable_exchange import ShortableExchange
 from .shortable_position import ShortablePosition
 from .borrow_fee_model import FixedRateBorrowFeeModel, BaseBorrowFeeModel
+from qlib.strategy.base import BaseStrategy
 
 
 class ShortableAccount(Account):
@@ -418,7 +419,7 @@ def round_to_lot(shares, lot=100):
     return int(math.copysign(lots * lot, shares))
 
 
-class LongShortStrategy:
+class LongShortStrategy(BaseStrategy):
     """
     Long-short strategy that generates balanced long and short positions.
     """
@@ -432,6 +433,7 @@ class LongShortStrategy:
         risk_limit: Optional[Dict] = None,
         lot_size: Optional[int] = 100,
         min_trade_threshold: Optional[int] = 100,
+        **kwargs,
     ):
         """
         Initialize long-short strategy.
@@ -453,6 +455,7 @@ class LongShortStrategy:
         min_trade_threshold : int
             Minimum trade threshold in shares (default 100)
         """
+        super().__init__(**kwargs)
         self.gross_leverage = gross_leverage
         self.net_exposure = net_exposure
         self.top_k = top_k

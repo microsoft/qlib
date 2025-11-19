@@ -13,6 +13,7 @@ from qlib.constant import REG_CRYPTO
 
 from qlib.backtest.shortable_exchange import ShortableExchange
 from qlib.backtest.shortable_backtest import ShortableExecutor, LongShortStrategy, ShortableAccount
+from qlib.backtest.utils import CommonInfrastructure, LevelInfrastructure
 
 
 def _try_init_qlib():
@@ -75,6 +76,7 @@ def test_shortable_with_real_data_end_to_end():
     # Avoid default CSI300 benchmark by constructing account with benchmark=None
     account = ShortableAccount(benchmark_config={"benchmark": None})
 
+    common_infra = CommonInfrastructure(trade_account=account, trade_exchange=ex)
     exe = ShortableExecutor(
         time_per_step="day",
         generate_portfolio_metrics=True,
@@ -82,7 +84,10 @@ def test_shortable_with_real_data_end_to_end():
         region="crypto",
         verbose=False,
         account=account,
+        common_infra=common_infra,
     )
+    # Ensure position is initialized
+    exe.reset_common_infra(common_infra)
 
     # Build a simple momentum signal on end_time (fallback to last-close ranking if necessary)
     feat = D.features(
@@ -122,6 +127,13 @@ def test_shortable_with_real_data_end_to_end():
         lot_size=1,
         min_trade_threshold=1,
     )
+
+    # Setup infrastructure for strategy
+    level_infra = LevelInfrastructure()
+    level_infra.reset_cal(freq="day", start_time=start_time, end_time=end_time)
+    strat.reset_level_infra(level_infra)
+    strat.reset_common_infra(common_infra)
+
     td = strat.generate_trade_decision(sig, exe.position, end_time)
 
     # Execute one step via standard API
