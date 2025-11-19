@@ -45,7 +45,7 @@ dependencies = [
   "pymongo",
   "loguru",
   "lightgbm",
-  "gym",
+  "gymnasium<=0.26.2",
   "cvxpy",
   "joblib",
   "matplotlib",
