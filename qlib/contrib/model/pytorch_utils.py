@@ -56,14 +56,14 @@ def get_device(GPU=0, return_str=False):
     """
     USE_CUDA = torch.cuda.is_available() and GPU >= 0
     USE_MPS = torch.backends.mps.is_available()
-    
+
     # Default to CPU, then check for GPU availability
     device_str = "cpu"
     if USE_CUDA:
         device_str = f"cuda:{GPU}"
     elif USE_MPS:
         device_str = "mps"
-    
+
     if return_str:
         return device_str
     else:
