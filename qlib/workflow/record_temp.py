@@ -652,7 +652,7 @@ class MultiPassPortAnaRecord(PortAnaRecord):
             combined_df = pd.concat(risk_analysis_df_map[_analysis_freq])
 
             # Calculate return and information ratio's mean, std and mean/std
-            multi_pass_port_analysis_df = combined_df.groupby(level=[0, 1]).apply(
+            multi_pass_port_analysis_df = combined_df.groupby(level=[0, 1], group_keys=False).apply(
                 lambda x: pd.Series(
                     {"mean": x["risk"].mean(), "std": x["risk"].std(), "mean_std": x["risk"].mean() / x["risk"].std()}
                 )

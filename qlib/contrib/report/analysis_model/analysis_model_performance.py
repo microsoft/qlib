@@ -38,7 +38,7 @@ def _group_return(pred_label: pd.DataFrame = None, reverse: bool = False, N: int
     t_df = pd.DataFrame(
         {
             "Group%d"
-            % (i + 1): pred_label_drop.groupby(level="datetime")["label"].apply(
+            % (i + 1): pred_label_drop.groupby(level="datetime", group_keys=False)["label"].apply(
                 lambda x: x[len(x) // N * i : len(x) // N * (i + 1)].mean()  # pylint: disable=W0640
             )
             for i in range(N)
@@ -50,7 +50,7 @@ def _group_return(pred_label: pd.DataFrame = None, reverse: bool = False, N: int
     t_df["long-short"] = t_df["Group1"] - t_df["Group%d" % N]
 
     # Long-Average
-    t_df["long-average"] = t_df["Group1"] - pred_label.groupby(level="datetime")["label"].mean()
+    t_df["long-average"] = t_df["Group1"] - pred_label.groupby(level="datetime", group_keys=False)["label"].mean()
 
     t_df = t_df.dropna(how="all")  # for days which does not contain label
     # Cumulative Return By Group
@@ -137,7 +137,9 @@ def _pred_ic(
 
     ic_df = pd.concat(
         [
-            pred_label.groupby(level="datetime").apply(partial(_corr_series, method=_methods_mapping[m])).rename(m)
+            pred_label.groupby(level="datetime", group_keys=False)
+            .apply(partial(_corr_series, method=_methods_mapping[m]))
+            .rename(m)
             for m in methods
         ],
         axis=1,
@@ -145,7 +147,7 @@ def _pred_ic(
     _ic = ic_df.iloc(axis=1)[0]
 
     _index = _ic.index.get_level_values(0).astype("str").str.replace("-", "").str.slice(0, 6)
-    _monthly_ic = _ic.groupby(_index).mean()
+    _monthly_ic = _ic.groupby(_index, group_keys=False).mean()
     _monthly_ic.index = pd.MultiIndex.from_arrays(
         [_monthly_ic.index.str.slice(0, 4), _monthly_ic.index.str.slice(4, 6)],
         names=["year", "month"],
@@ -220,8 +222,10 @@ def _pred_ic(
 
 def _pred_autocorr(pred_label: pd.DataFrame, lag=1, **kwargs) -> tuple:
     pred = pred_label.copy()
-    pred["score_last"] = pred.groupby(level="instrument")["score"].shift(lag)
-    ac = pred.groupby(level="datetime").apply(lambda x: x["score"].rank(pct=True).corr(x["score_last"].rank(pct=True)))
+    pred["score_last"] = pred.groupby(level="instrument", group_keys=False)["score"].shift(lag)
+    ac = pred.groupby(level="datetime", group_keys=False).apply(
+        lambda x: x["score"].rank(pct=True).corr(x["score_last"].rank(pct=True))
+    )
     _df = ac.to_frame("value")
     ac_figure = ScatterGraph(
         _df,
@@ -235,13 +239,13 @@ def _pred_autocorr(pred_label: pd.DataFrame, lag=1, **kwargs) -> tuple:
 
 def _pred_turnover(pred_label: pd.DataFrame, N=5, lag=1, **kwargs) -> tuple:
     pred = pred_label.copy()
-    pred["score_last"] = pred.groupby(level="instrument")["score"].shift(lag)
-    top = pred.groupby(level="datetime").apply(
+    pred["score_last"] = pred.groupby(level="instrument", group_keys=False)["score"].shift(lag)
+    top = pred.groupby(level="datetime", group_keys=False).apply(
         lambda x: 1
         - x.nlargest(len(x) // N, columns="score").index.isin(x.nlargest(len(x) // N, columns="score_last").index).sum()
         / (len(x) // N)
     )
-    bottom = pred.groupby(level="datetime").apply(
+    bottom = pred.groupby(level="datetime", group_keys=False).apply(
         lambda x: 1
         - x.nsmallest(len(x) // N, columns="score")
         .index.isin(x.nsmallest(len(x) // N, columns="score_last").index)
@@ -313,7 +317,7 @@ def model_performance_graph(
                                 2017-12-15  -0.102778       -0.102778
 
 
-    :param lag: `pred.groupby(level='instrument')['score'].shift(lag)`. It will be only used in the auto-correlation computing.
+    :param lag: `pred.groupby(level='instrument', group_keys=False)['score'].shift(lag)`. It will be only used in the auto-correlation computing.
     :param N: group number, default 5.
     :param reverse: if `True`, `pred['score'] *= -1`.
     :param rank: if **True**, calculate rank ic.

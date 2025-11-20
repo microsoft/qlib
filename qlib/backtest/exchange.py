@@ -897,6 +897,7 @@ class Exchange:
             # if we don't know current position, we choose to sell all
             # Otherwise, we clip the amount based on current position
             if position is not None:
+                # TODO: make the trading shortable
                 current_amount = (
                     position.get_stock_amount(order.stock_id) if position.check_stock(order.stock_id) else 0
                 )

@@ -108,10 +108,10 @@ Automatic update of daily frequency data
 
 
 
-Converting CSV Format into Qlib Format
---------------------------------------
+Converting CSV and Parquet Format into Qlib Format
+--------------------------------------------------
 
-``Qlib`` has provided the script ``scripts/dump_bin.py`` to convert **any** data in CSV format into `.bin` files (``Qlib`` format) as long as they are in the correct format.
+``Qlib`` has provided the script ``scripts/dump_bin.py`` to convert **any** data in CSV or Parquet format into `.bin` files (``Qlib`` format) as long as they are in the correct format.
 
 Besides downloading the prepared demo data, users could download demo data directly from the Collector as follows for reference to the CSV format.
 Here are some example:
@@ -126,17 +126,17 @@ for 1min data:
 
     python scripts/data_collector/yahoo/collector.py download_data --source_dir ~/.qlib/stock_data/source/cn_1min --region CN --start 2021-05-20 --end 2021-05-23 --delay 0.1 --interval 1min --limit_nums 10
 
-Users can also provide their own data in CSV format. However, the CSV data **must satisfies** following criterions:
+Users can also provide their own data in CSV or Parquet format. However, the data **must satisfies** following criterions:
 
-- CSV file is named after a specific stock *or* the CSV file includes a column of the stock name
+- CSV or Parquet file is named after a specific stock *or* the CSV or Parquet file includes a column of the stock name
 
-    - Name the CSV file after a stock: `SH600000.csv`, `AAPL.csv` (not case sensitive).
+    - Name the CSV or Parquet file after a stock: `SH600000.csv`, `AAPL.csv` or `SH600000.parquet`, `AAPL.parquet` (not case sensitive).
 
-    - CSV file includes a column of the stock name. User **must** specify the column name when dumping the data. Here is an example:
+    - CSV or Parquet file includes a column of the stock name. User **must** specify the column name when dumping the data. Here is an example:
 
         .. code-block:: bash
 
-            python scripts/dump_bin.py dump_all ... --symbol_field_name symbol
+            python scripts/dump_bin.py dump_all ... --symbol_field_name symbol --file_suffix <.csv or .parquet>
 
         where the data are in the following format:
 
@@ -146,11 +146,11 @@ Users can also provide their own data in CSV format. However, the CSV data **mus
             | SH600000  | 120   |
             +-----------+-------+
 
-- CSV file **must** include a column for the date, and when dumping the data, user must specify the date column name. Here is an example:
+- CSV or Parquet file **must** include a column for the date, and when dumping the data, user must specify the date column name. Here is an example:
 
     .. code-block:: bash
 
-        python scripts/dump_bin.py dump_all ... --date_field_name date
+        python scripts/dump_bin.py dump_all ... --date_field_name date --file_suffix <.csv or .parquet>
 
     where the data are in the following format:
 
@@ -163,23 +163,23 @@ Users can also provide their own data in CSV format. However, the CSV data **mus
         +---------+------------+-------+------+----------+
 
 
-Supposed that users prepare their CSV format data in the directory ``~/.qlib/csv_data/my_data``, they can run the following command to start the conversion.
+Supposed that users prepare their CSV or Parquet format data in the directory ``~/.qlib/my_data``, they can run the following command to start the conversion.
 
 .. code-block:: bash
 
-    python scripts/dump_bin.py dump_all --csv_path  ~/.qlib/csv_data/my_data --qlib_dir ~/.qlib/qlib_data/my_data --include_fields open,close,high,low,volume,factor
+    python scripts/dump_bin.py dump_all --data_path  ~/.qlib/my_data --qlib_dir ~/.qlib/qlib_data/ --include_fields open,close,high,low,volume,factor --file_suffix <.csv or .parquet>
 
 For other supported parameters when dumping the data into `.bin` file, users can refer to the information by running the following commands:
 
 .. code-block:: bash
 
-    python dump_bin.py dump_all --help
+    python scripts/dump_bin.py dump_all --help
 
-After conversion, users can find their Qlib format data in the directory `~/.qlib/qlib_data/my_data`.
+After conversion, users can find their Qlib format data in the directory `~/.qlib/qlib_data/`.
 
 .. note::
 
-    The arguments of `--include_fields` should correspond with the column names of CSV files. The columns names of dataset provided by ``Qlib`` should include open, close, high, low, volume and factor at least.
+    The arguments of `--include_fields` should correspond with the column names of CSV or Parquet files. The columns names of dataset provided by ``Qlib`` should include open, close, high, low, volume and factor at least.
 
     - `open`
         The adjusted opening price
@@ -195,7 +195,58 @@ After conversion, users can find their Qlib format data in the directory `~/.qli
         The Restoration factor. Normally, ``factor = adjusted_price / original_price``, `adjusted price` reference: `split adjusted <https://www.investopedia.com/terms/s/splitadjusted.asp>`_
 
     In the convention of `Qlib` data processing, `open, close, high, low, volume, money and factor` will be set to NaN if the stock is suspended.
-    If you want to use your own alpha-factor which can't be calculate by OCHLV, like PE, EPS and so on, you could add it to the CSV files with OHCLV together and then dump it to the Qlib format data.
+    If you want to use your own alpha-factor which can't be calculate by OCHLV, like PE, EPS and so on, you could add it to the CSV or Parquet files with OHCLV together and then dump it to the Qlib format data.
+
+Checking the health of the data
+-------------------------------
+
+``Qlib`` provides a script to check the health of the data.
+
+- The main points to check are as follows
+
+    - Check if any data is missing in the DataFrame.
+
+    - Check if there are any large step changes above the threshold in the OHLCV columns.
+
+    - Check if any of the required columns (OLHCV) are missing in the DataFrame.
+
+    - Check if the 'factor' column is missing in the DataFrame.
+
+- You can run the following commands to check whether the data is healthy or not.
+
+    for daily data:
+        .. code-block:: bash
+
+            python scripts/check_data_health.py check_data --qlib_dir ~/.qlib/qlib_data/cn_data
+
+    for 1min data:
+        .. code-block:: bash
+
+            python scripts/check_data_health.py check_data --qlib_dir ~/.qlib/qlib_data/cn_data_1min --freq 1min
+
+- Of course, you can also add some parameters to adjust the test results.
+
+    - The available parameters are these.
+
+        - freq: Frequency of data.
+
+        - large_step_threshold_price: Maximum permitted price change
+
+        - large_step_threshold_volume: Maximum permitted volume change.
+
+        - missing_data_num: Maximum value for which data is allowed to be null.
+
+- You can run the following commands to check whether the data is healthy or not.
+
+    for daily data:
+        .. code-block:: bash
+
+            python scripts/check_data_health.py check_data --qlib_dir ~/.qlib/qlib_data/cn_data --missing_data_num 30055 --large_step_threshold_volume 94485 --large_step_threshold_price 20
+
+    for 1min data:
+        .. code-block:: bash
+
+            python scripts/check_data_health.py check_data --qlib_dir ~/.qlib/qlib_data/cn_data --freq 1min --missing_data_num 35806 --large_step_threshold_volume 3205452000000 --large_step_threshold_price 0.91
 
 Stock Pool (Market)
 -------------------

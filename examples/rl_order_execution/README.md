@@ -7,7 +7,7 @@ This folder comprises an example of Reinforcement Learning (RL) workflows for or
 ### Get Data
 
 ```
-python -m qlib.run.get_data qlib_data qlib_data --target_dir ./data/bin --region hs300 --interval 5min
+python -m qlib.cli.data qlib_data --target_dir ./data/bin --region hs300 --interval 5min
 ```
 
 ### Generate Pickle-Style Data

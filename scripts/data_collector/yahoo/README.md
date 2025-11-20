@@ -50,12 +50,6 @@ pip install -r requirements.txt
     python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data_1min --region cn --interval 1min
     # us 1d
     python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/us_data --region us --interval 1d
-    # us 1min
-    python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/us_data_1min --region us --interval 1min
-    # in 1d
-    python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/in_data --region in --interval 1d
-    # in 1min
-    python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/in_data_1min --region in --interval 1min
     ```
 
 ### Collector *YahooFinance* data to qlib
@@ -145,7 +139,7 @@ pip install -r requirements.txt
      This will convert the normalized csv in `feature` directory as numpy array and store the normalized data one file per column and one symbol per directory. 
     
      - parameters:
-       - `csv_path`: stock data path or directory, **normalize result(normalize_dir)**
+       - `data_path`: stock data path or directory, **normalize result(normalize_dir)**
        - `qlib_dir`: qlib(dump) data director
        - `freq`: transaction frequency, by default `day`
          > `freq_map = {1d:day, 1mih: 1min}`
@@ -155,12 +149,13 @@ pip install -r requirements.txt
          > dump_fields = `include_fields if include_fields else set(symbol_df.columns) - set(exclude_fields) exclude_fields else symbol_df.columns`
        - `symbol_field_name`: column *name* identifying symbol in csv files, by default `symbol`
        - `date_field_name`: column *name* identifying time in csv files, by default `date`
+       - `file_suffix`: stock data file format, by default ".csv"
      - examples:
        ```bash
        # dump 1d cn
-       python dump_bin.py dump_all --csv_path ~/.qlib/stock_data/source/cn_1d_nor --qlib_dir ~/.qlib/qlib_data/cn_data --freq day --exclude_fields date,symbol
+       python dump_bin.py dump_all --data_path ~/.qlib/stock_data/source/cn_1d_nor --qlib_dir ~/.qlib/qlib_data/cn_data --freq day --exclude_fields date,symbol --file_suffix .csv
        # dump 1min cn
-       python dump_bin.py dump_all --csv_path ~/.qlib/stock_data/source/cn_1min_nor --qlib_dir ~/.qlib/qlib_data/cn_data_1min --freq 1min --exclude_fields date,symbol
+       python dump_bin.py dump_all --data_path ~/.qlib/stock_data/source/cn_1min_nor --qlib_dir ~/.qlib/qlib_data/cn_data_1min --freq 1min --exclude_fields date,symbol --file_suffix .csv
        ```
 
 ### Automatic update of daily frequency data(from yahoo finance)

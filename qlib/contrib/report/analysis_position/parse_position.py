@@ -33,7 +33,7 @@ def parse_position(position: dict = None) -> pd.DataFrame:
 
     position_weight_df = get_stock_weight_df(position)
     # If the day does not exist, use the last weight
-    position_weight_df.fillna(method="ffill", inplace=True)
+    position_weight_df.ffill(inplace=True)
 
     previous_data = {"date": None, "code_list": []}
 
@@ -132,7 +132,7 @@ def _calculate_label_rank(df: pd.DataFrame) -> pd.DataFrame:
         g_df["excess_return"] = g_df[_label_name] - g_df[_label_name].mean()
         return g_df
 
-    return df.groupby(level="datetime").apply(_calculate_day_value)
+    return df.groupby(level="datetime", group_keys=False).apply(_calculate_day_value)
 
 
 def get_position_data(

@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 
 # coding=utf-8
+from abc import abstractmethod
 import warnings
 from typing import Callable, Union, Tuple, List, Iterator, Optional
 
@@ -19,9 +20,59 @@ from . import processor as processor_module
 from . import loader as data_loader_module
 
 
-# TODO: A more general handler interface which does not relies on internal pd.DataFrame is needed.
-class DataHandler(Serializable):
+DATA_KEY_TYPE = Literal["raw", "infer", "learn"]
+
+
+class DataHandlerABC(Serializable):
     """
+    Interface for data handler.
+
+    This class does not assume the internal data structure of the data handler.
+    It only defines the interface for external users (uses DataFrame as the internal data structure).
+
+    In the future, the data handler's more detailed implementation should be refactored. Here are some guidelines:
+
+    It covers several components:
+
+    - [data loader] -> internal representation of the data -> data preprocessing -> interface adaptor for the fetch interface
+    - The workflow to combine them all:
+      The workflow may be very complicated. DataHandlerLP is one of the practices, but it can't satisfy all the requirements.
+      So leaving the flexibility to the user to implement the workflow is a more reasonable choice.
+    """
+
+    def __init__(self, *args, **kwargs):  # pylint: disable=W0246
+        """
+        We should define how to get ready for the fetching.
+        """
+        super().__init__(*args, **kwargs)
+
+    CS_ALL = "__all"  # return all columns with single-level index column
+    CS_RAW = "__raw"  # return raw data with multi-level index column
+
+    # data key
+    DK_R: DATA_KEY_TYPE = "raw"
+    DK_I: DATA_KEY_TYPE = "infer"
+    DK_L: DATA_KEY_TYPE = "learn"
+
+    @abstractmethod
+    def fetch(
+        self,
+        selector: Union[pd.Timestamp, slice, str, pd.Index] = slice(None, None),
+        level: Union[str, int] = "datetime",
+        col_set: Union[str, List[str]] = CS_ALL,
+        data_key: DATA_KEY_TYPE = DK_I,
+    ) -> pd.DataFrame:
+        pass
+
+
+class DataHandler(DataHandlerABC):
+    """
+    The motivation of DataHandler:
+
+    - It provides an implementation of BaseDataHandler that we implement with:
+        - Handling responses with an internal loaded DataFrame
+        - The DataFrame is loaded by a data loader.
+
     The steps to using a handler
     1. initialized data handler  (call by `init`).
     2. use the data.
@@ -144,16 +195,14 @@ class DataHandler(Serializable):
             self._data = lazy_sort_index(self.data_loader.load(self.instruments, self.start_time, self.end_time))
         # TODO: cache
 
-    CS_ALL = "__all"  # return all columns with single-level index column
-    CS_RAW = "__raw"  # return raw data with multi-level index column
-
     def fetch(
         self,
         selector: Union[pd.Timestamp, slice, str, pd.Index] = slice(None, None),
         level: Union[str, int] = "datetime",
-        col_set: Union[str, List[str]] = CS_ALL,
+        col_set: Union[str, List[str]] = DataHandlerABC.CS_ALL,
+        data_key: DATA_KEY_TYPE = DataHandlerABC.DK_I,
         squeeze: bool = False,
-        proc_func: Callable = None,
+        proc_func: Optional[Callable] = None,
     ) -> pd.DataFrame:
         """
         fetch data from underlying data source
@@ -216,6 +265,8 @@ class DataHandler(Serializable):
         -------
         pd.DataFrame.
         """
+        # DataHandler is an example with only one dataframe, so data_key is not used.
+        _ = data_key  # avoid linting errors (e.g., unused-argument)
         return self._fetch_data(
             data_storage=self._data,
             selector=selector,
@@ -230,7 +281,7 @@ class DataHandler(Serializable):
         data_storage,
         selector: Union[pd.Timestamp, slice, str, pd.Index] = slice(None, None),
         level: Union[str, int] = "datetime",
-        col_set: Union[str, List[str]] = CS_ALL,
+        col_set: Union[str, List[str]] = DataHandlerABC.CS_ALL,
         squeeze: bool = False,
         proc_func: Callable = None,
     ):
@@ -261,16 +312,9 @@ class DataHandler(Serializable):
                 data_df = fetch_df_by_col(data_df, col_set)
                 data_df = fetch_df_by_index(data_df, selector, level, fetch_orig=self.fetch_orig)
         elif isinstance(data_storage, BaseHandlerStorage):
-            if not data_storage.is_proc_func_supported():
-                if proc_func is not None:
-                    raise ValueError(f"proc_func is not supported by the storage {type(data_storage)}")
-                data_df = data_storage.fetch(
-                    selector=selector, level=level, col_set=col_set, fetch_orig=self.fetch_orig
-                )
-            else:
-                data_df = data_storage.fetch(
-                    selector=selector, level=level, col_set=col_set, fetch_orig=self.fetch_orig, proc_func=proc_func
-                )
+            if proc_func is not None:
+                raise ValueError(f"proc_func is not supported by the storage {type(data_storage)}")
+            data_df = data_storage.fetch(selector=selector, level=level, col_set=col_set, fetch_orig=self.fetch_orig)
         else:
             raise TypeError(f"data_storage should be pd.DataFrame|HashingStockStorage, not {type(data_storage)}")
 
@@ -282,7 +326,7 @@ class DataHandler(Serializable):
                 data_df = data_df.reset_index(level=level, drop=True)
         return data_df
 
-    def get_cols(self, col_set=CS_ALL) -> list:
+    def get_cols(self, col_set=DataHandlerABC.CS_ALL) -> list:
         """
         get the column names
 
@@ -336,11 +380,12 @@ class DataHandler(Serializable):
             yield cur_date, self.fetch(selector, **kwargs)
 
 
-DATA_KEY_TYPE = Literal["raw", "infer", "learn"]
-
-
 class DataHandlerLP(DataHandler):
     """
+    Motivation:
+    - For the case that we hope using different processor workflows for learning and inference;
+
+
     DataHandler with **(L)earnable (P)rocessor**
 
     This handler will produce three pieces of data in pd.DataFrame format.
@@ -374,12 +419,8 @@ class DataHandlerLP(DataHandler):
     _infer: pd.DataFrame  # data for inference
     _learn: pd.DataFrame  # data for learning models
 
-    # data key
-    DK_R: DATA_KEY_TYPE = "raw"
-    DK_I: DATA_KEY_TYPE = "infer"
-    DK_L: DATA_KEY_TYPE = "learn"
     # map data_key to attribute name
-    ATTR_MAP = {DK_R: "_data", DK_I: "_infer", DK_L: "_learn"}
+    ATTR_MAP = {DataHandler.DK_R: "_data", DataHandler.DK_I: "_infer", DataHandler.DK_L: "_learn"}
 
     # process type
     PTYPE_I = "independent"
@@ -622,7 +663,7 @@ class DataHandlerLP(DataHandler):
 
         # TODO: Be able to cache handler data. Save the memory for data processing
 
-    def _get_df_by_key(self, data_key: DATA_KEY_TYPE = DK_I) -> pd.DataFrame:
+    def _get_df_by_key(self, data_key: DATA_KEY_TYPE = DataHandlerABC.DK_I) -> pd.DataFrame:
         if data_key == self.DK_R and self.drop_raw:
             raise AttributeError(
                 "DataHandlerLP has not attribute _data, please set drop_raw = False if you want to use raw data"
@@ -635,7 +676,7 @@ class DataHandlerLP(DataHandler):
         selector: Union[pd.Timestamp, slice, str] = slice(None, None),
         level: Union[str, int] = "datetime",
         col_set=DataHandler.CS_ALL,
-        data_key: DATA_KEY_TYPE = DK_I,
+        data_key: DATA_KEY_TYPE = DataHandler.DK_I,
         squeeze: bool = False,
         proc_func: Callable = None,
     ) -> pd.DataFrame:
@@ -669,7 +710,7 @@ class DataHandlerLP(DataHandler):
             proc_func=proc_func,
         )
 
-    def get_cols(self, col_set=DataHandler.CS_ALL, data_key: DATA_KEY_TYPE = DK_I) -> list:
+    def get_cols(self, col_set=DataHandler.CS_ALL, data_key: DATA_KEY_TYPE = DataHandlerABC.DK_I) -> list:
         """
         get the column names
 

@@ -56,7 +56,7 @@ class ADARNN(Model):
         n_splits=2,
         GPU=0,
         seed=None,
-        **_
+        **_,
     ):
         # Set logger.
         self.logger = get_module_logger("ADARNN")
@@ -154,10 +154,7 @@ class ADARNN(Model):
         self.model.train()
         criterion = nn.MSELoss()
         dist_mat = torch.zeros(self.num_layers, self.len_seq).to(self.device)
-        len_loader = np.inf
-        for loader in train_loader_list:
-            if len(loader) < len_loader:
-                len_loader = len(loader)
+        out_weight_list = None
         for data_all in zip(*train_loader_list):
             #  for data_all in zip(*train_loader_list):
             self.train_optimizer.zero_grad()
@@ -217,8 +214,10 @@ class ADARNN(Model):
     def calc_all_metrics(pred):
         """pred is a pandas dataframe that has two attributes: score (pred) and label (real)"""
         res = {}
-        ic = pred.groupby(level="datetime").apply(lambda x: x.label.corr(x.score))
-        rank_ic = pred.groupby(level="datetime").apply(lambda x: x.label.corr(x.score, method="spearman"))
+        ic = pred.groupby(level="datetime", group_keys=False).apply(lambda x: x.label.corr(x.score))
+        rank_ic = pred.groupby(level="datetime", group_keys=False).apply(
+            lambda x: x.label.corr(x.score, method="spearman")
+        )
         res["ic"] = ic.mean()
         res["icir"] = ic.mean() / ic.std()
         res["ric"] = rank_ic.mean()
@@ -571,6 +570,7 @@ class TransferLoss:
         Returns:
             [tensor] -- transfer loss
         """
+        loss = None
         if self.loss_type in ("mmd_lin", "mmd"):
             mmdloss = MMD_loss(kernel_type="linear")
             loss = mmdloss(X, Y)

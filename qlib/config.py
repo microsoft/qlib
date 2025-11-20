@@ -27,6 +27,38 @@ from qlib.constant import REG_CN, REG_US, REG_TW
 if TYPE_CHECKING:
     from qlib.utils.time import Freq
 
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class MLflowSettings(BaseSettings):
+    uri: str = "file:" + str(Path(os.getcwd()).resolve() / "mlruns")
+    default_exp_name: str = "Experiment"
+
+
+class QSettings(BaseSettings):
+    """
+    Qlib's settings.
+    It tries to provide a default settings for most of Qlib's components.
+    But it would be a long journey to provide a comprehensive settings for all of Qlib's components.
+
+    Here is some design guidelines:
+    - The priority of settings is
+        - Actively passed-in settings, like `qlib.init(provider_uri=...)`
+        - The default settings
+            - QSettings tries to provide default settings for most of Qlib's components.
+    """
+
+    mlflow: MLflowSettings = MLflowSettings()
+    provider_uri: str = "~/.qlib/qlib_data/cn_data"
+
+    model_config = SettingsConfigDict(
+        env_prefix="QLIB_",
+        env_nested_delimiter="_",
+    )
+
+
+QSETTINGS = QSettings()
+
 
 class Config:
     def __init__(self, default_conf):
@@ -173,7 +205,11 @@ _default_config = {
                 "filters": ["field_not_found"],
             }
         },
-        "loggers": {"qlib": {"level": logging.DEBUG, "handlers": ["console"]}},
+        # Normally this should be set to `False` to avoid duplicated logging [1].
+        # However, due to bug in pytest, it requires log message to propagate to root logger to be captured by `caplog` [2].
+        # [1] https://github.com/microsoft/qlib/pull/1661
+        # [2] https://github.com/pytest-dev/pytest/issues/3697
+        "loggers": {"qlib": {"level": logging.DEBUG, "handlers": ["console"], "propagate": False}},
         # To let qlib work with other packages, we shouldn't disable existing loggers.
         # Note that this param is default to True according to the documentation of logging.
         "disable_existing_loggers": False,
@@ -183,8 +219,8 @@ _default_config = {
         "class": "MLflowExpManager",
         "module_path": "qlib.workflow.expm",
         "kwargs": {
-            "uri": "file:" + str(Path(os.getcwd()).resolve() / "mlruns"),
-            "default_exp_name": "Experiment",
+            "uri": QSETTINGS.mlflow.uri,
+            "default_exp_name": QSETTINGS.mlflow.default_exp_name,
         },
     },
     "pit_record_type": {
@@ -226,7 +262,7 @@ MODE_CONF = {
     },
     "client": {
         # config it in user's own code
-        "provider_uri": "~/.qlib/qlib_data/cn_data",
+        "provider_uri": QSETTINGS.provider_uri,
         # cache
         # Using parameter 'remote' to announce the client is using server_cache, and the writing access will be disabled.
         # Disable cache by default. Avoid introduce advanced features for beginners

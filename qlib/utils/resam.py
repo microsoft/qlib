@@ -109,7 +109,7 @@ def resam_ts_data(
     """
     Resample value from time-series data
 
-        - If `feature` has MultiIndex[instrument, datetime], apply the `method` to each instruemnt data with datetime in [start_time, end_time]
+        - If `feature` has MultiIndex[instrument, datetime], apply the `method` to each instrument data with datetime in [start_time, end_time]
             Example:
 
             .. code-block::
@@ -194,9 +194,9 @@ def resam_ts_data(
     if isinstance(feature.index, pd.MultiIndex):
         if callable(method):
             method_func = method
-            return feature.groupby(level="instrument").apply(method_func, **method_kwargs)
+            return feature.groupby(level="instrument", group_keys=False).apply(method_func, **method_kwargs)
         elif isinstance(method, str):
-            return getattr(feature.groupby(level="instrument"), method)(**method_kwargs)
+            return getattr(feature.groupby(level="instrument", group_keys=False), method)(**method_kwargs)
     else:
         if callable(method):
             method_func = method
@@ -222,7 +222,7 @@ def get_valid_value(series, last=True):
     Nan | float
         the first/last valid value
     """
-    return series.fillna(method="ffill").iloc[-1] if last else series.fillna(method="bfill").iloc[0]
+    return series.ffill().iloc[-1] if last else series.bfill().iloc[0]
 
 
 def _ts_data_valid(ts_feature, last=False):

@@ -5,8 +5,11 @@ This module covers some utility functions that operate on data or basic object
 """
 from copy import deepcopy
 from typing import List, Union
-import pandas as pd
+
 import numpy as np
+import pandas as pd
+
+from qlib.data.data import DatasetProvider
 
 
 def robust_zscore(x: pd.Series, zscore=False):
@@ -103,3 +106,12 @@ def update_config(base_config: dict, ext_config: Union[dict, List[dict]]):
                     # one of then are not dict. Then replace
                     base_config[key] = ec[key]
     return base_config
+
+
+def guess_horizon(label: List):
+    """
+    Try to guess the horizon by parsing label
+    """
+    expr = DatasetProvider.parse_fields(label)[0]
+    lft_etd, rght_etd = expr.get_extended_window_size()
+    return rght_etd

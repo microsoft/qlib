@@ -200,7 +200,7 @@ class Trainer:
 
         if ckpt_path is not None:
             _logger.info("Resuming states from %s", str(ckpt_path))
-            self.load_state_dict(torch.load(ckpt_path))
+            self.load_state_dict(torch.load(ckpt_path, weights_only=False))
         else:
             self.initialize()
 

@@ -326,8 +326,10 @@ class SBBStrategyEMA(SBBStrategyBase):
         if instruments is None:
             warnings.warn("`instruments` is not set, will load all stocks")
             self.instruments = "all"
-        if isinstance(instruments, str):
+        elif isinstance(instruments, str):
             self.instruments = D.instruments(instruments)
+        elif isinstance(instruments, List):
+            self.instruments = instruments
         self.freq = freq
         super(SBBStrategyEMA, self).__init__(
             outer_trade_decision, level_infra, common_infra, trade_exchange=trade_exchange, **kwargs
@@ -345,7 +347,7 @@ class SBBStrategyEMA(SBBStrategyBase):
         self.signal = {}
 
         if not signal_df.empty:
-            for stock_id, stock_val in signal_df.groupby(level="instrument"):
+            for stock_id, stock_val in signal_df.groupby(level="instrument", group_keys=False):
                 self.signal[stock_id] = stock_val["signal"].droplevel(level="instrument")
 
     def reset_level_infra(self, level_infra):
@@ -432,7 +434,7 @@ class ACStrategy(BaseStrategy):
         self.signal = {}
 
         if not signal_df.empty:
-            for stock_id, stock_val in signal_df.groupby(level="instrument"):
+            for stock_id, stock_val in signal_df.groupby(level="instrument", group_keys=False):
                 self.signal[stock_id] = stock_val["volatility"].droplevel(level="instrument")
 
     def reset_level_infra(self, level_infra):

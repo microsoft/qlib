@@ -82,7 +82,7 @@ def get_calendar_list(bench_code="CSI300") -> List[pd.Timestamp]:
             if bench_code.upper() == "ALL":
 
                 @deco_retry
-                def _get_calendar(month):
+                def _get_calendar_from_month(month):
                     _cal = []
                     try:
                         resp = requests.get(
@@ -98,7 +98,7 @@ def get_calendar_list(bench_code="CSI300") -> List[pd.Timestamp]:
                 month_range = pd.date_range(start="2000-01", end=pd.Timestamp.now() + pd.Timedelta(days=31), freq="M")
                 calendar = []
                 for _m in month_range:
-                    cal = _get_calendar(_m.strftime("%Y-%m"))
+                    cal = _get_calendar_from_month(_m.strftime("%Y-%m"))
                     if cal:
                         calendar += cal
                 calendar = list(filter(lambda x: x <= pd.Timestamp.now(), calendar))
@@ -202,18 +202,59 @@ def get_hs_stock_symbols() -> list:
         -------
             {600000.ss, 600001.ss, 600002.ss, 600003.ss, ...}
         """
-        url = "http://99.push2.eastmoney.com/api/qt/clist/get?pn=1&pz=10000&po=1&np=1&fs=m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23,m:0+t:81+s:2048&fields=f12"
-        try:
-            resp = requests.get(url, timeout=None)
-            resp.raise_for_status()
-        except requests.exceptions.HTTPError as e:
-            raise requests.exceptions.HTTPError(f"Request to {url} failed with status code {resp.status_code}") from e
+        # url = "http://99.push2.eastmoney.com/api/qt/clist/get?pn=1&pz=10000&po=1&np=1&fs=m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23,m:0+t:81+s:2048&fields=f12"
 
-        try:
-            _symbols = [_v["f12"] for _v in resp.json()["data"]["diff"]]
-        except Exception as e:
-            logger.warning("An error occurred while extracting data from the response.")
-            raise
+        base_url = "http://99.push2.eastmoney.com/api/qt/clist/get"
+        params = {
+            "pn": 1,  # page number
+            "pz": 100,  # page size, default to 100
+            "po": 1,
+            "np": 1,
+            "fs": "m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23,m:0+t:81+s:2048",
+            "fields": "f12",
+        }
+
+        _symbols = []
+        page = 1
+
+        while True:
+            params["pn"] = page
+            try:
+                resp = requests.get(base_url, params=params, timeout=None)
+                resp.raise_for_status()
+                data = resp.json()
+
+                # Check if response contains valid data
+                if not data or "data" not in data or not data["data"] or "diff" not in data["data"]:
+                    logger.warning(f"Invalid response structure on page {page}")
+                    break
+
+                # fetch the current page data
+                current_symbols = [_v["f12"] for _v in data["data"]["diff"]]
+
+                if not current_symbols:  # It's the last page if there is no data in current page
+                    logger.info(f"Last page reached: {page - 1}")
+                    break
+
+                _symbols.extend(current_symbols)
+
+                # show progress
+                logger.info(
+                    f"Page {page}: fetch {len(current_symbols)} stocks:[{current_symbols[0]} ... {current_symbols[-1]}]"
+                )
+
+                page += 1
+
+                # sleep time to avoid overloading the server
+                time.sleep(0.5)
+
+            except requests.exceptions.HTTPError as e:
+                raise requests.exceptions.HTTPError(
+                    f"Request to {base_url} failed with status code {resp.status_code}"
+                ) from e
+            except Exception as e:
+                logger.warning("An error occurred while extracting data from the response.")
+                raise
 
         if len(_symbols) < 3900:
             raise ValueError("The complete list of stocks is not available.")
@@ -767,7 +808,7 @@ def calc_paused_num(df: pd.DataFrame, _date_field_name, _symbol_field_name):
     all_nan_nums = 0
     # Record the number of consecutive occurrences of trading days that are not nan throughout the day
     not_nan_nums = 0
-    for _date, _df in df.groupby("_tmp_date"):
+    for _date, _df in df.groupby("_tmp_date", group_keys=False):
         _df["paused"] = 0
         if not _df.loc[_df["volume"] < 0].empty:
             logger.warning(f"volume < 0, will fill np.nan: {_date} {_symbol}")

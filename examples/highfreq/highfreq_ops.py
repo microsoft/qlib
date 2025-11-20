@@ -25,7 +25,7 @@ class DayLast(ElemOperator):
     def _load_internal(self, instrument, start_index, end_index, freq):
         _calendar = get_calendar_day(freq=freq)
         series = self.feature.load(instrument, start_index, end_index, freq)
-        return series.groupby(_calendar[series.index]).transform("last")
+        return series.groupby(_calendar[series.index], group_keys=False).transform("last")
 
 
 class FFillNan(ElemOperator):
@@ -44,7 +44,7 @@ class FFillNan(ElemOperator):
 
     def _load_internal(self, instrument, start_index, end_index, freq):
         series = self.feature.load(instrument, start_index, end_index, freq)
-        return series.fillna(method="ffill")
+        return series.ffill()
 
 
 class BFillNan(ElemOperator):
@@ -63,7 +63,7 @@ class BFillNan(ElemOperator):
 
     def _load_internal(self, instrument, start_index, end_index, freq):
         series = self.feature.load(instrument, start_index, end_index, freq)
-        return series.fillna(method="bfill")
+        return series.bfill()
 
 
 class Date(ElemOperator):

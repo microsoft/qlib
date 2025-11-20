@@ -55,13 +55,16 @@ Below is a typical config file of ``qrun``.
                 n_drop: 5
                 signal: <PRED>
         backtest:
-            limit_threshold: 0.095
+            start_time: 2017-01-01
+            end_time: 2020-08-01
             account: 100000000
             benchmark: *benchmark
-            deal_price: close
-            open_cost: 0.0005
-            close_cost: 0.0015
-            min_cost: 5
+            exchange_kwargs:
+                limit_threshold: 0.095
+                deal_price: close
+                open_cost: 0.0005
+                close_cost: 0.0015
+                min_cost: 5
     task:
         model:
             class: LGBModel
@@ -107,7 +110,7 @@ If users want to use ``qrun`` under debug mode, please use the following command
 
 .. code-block:: bash
 
-    python -m pdb qlib/workflow/cli.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
+    python -m pdb qlib/cli/run.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
 
 .. note::
 

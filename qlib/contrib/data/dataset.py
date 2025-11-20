@@ -6,6 +6,8 @@ import torch
 import warnings
 import numpy as np
 import pandas as pd
+from qlib.utils.data import guess_horizon
+from qlib.utils import init_instance_by_config
 
 from qlib.data.dataset import DatasetH
 
@@ -32,7 +34,7 @@ def _create_ts_slices(index, seq_len):
     assert index.is_monotonic_increasing, "index should be sorted"
 
     # number of dates for each instrument
-    sample_count_by_insts = index.to_series().groupby(level=0).size().values
+    sample_count_by_insts = index.to_series().groupby(level=0, group_keys=False).size().values
 
     # start index for each instrument
     start_index_of_insts = np.roll(np.cumsum(sample_count_by_insts), 1)
@@ -130,6 +132,14 @@ class MTSDatasetH(DatasetH):
         input_size=None,
         **kwargs,
     ):
+        if horizon == 0:
+            # Try to guess horizon
+            if isinstance(handler, (dict, str)):
+                handler = init_instance_by_config(handler)
+            assert "label" in getattr(handler.data_loader, "fields", None)
+            label = handler.data_loader.fields["label"][0][0]
+            horizon = guess_horizon([label])
+
         assert num_states == 0 or horizon > 0, "please specify `horizon` to avoid data leakage"
         assert memory_mode in ["sample", "daily"], "unsupported memory mode"
         assert memory_mode == "sample" or batch_size < 0, "daily memory requires daily sampling (`batch_size < 0`)"
