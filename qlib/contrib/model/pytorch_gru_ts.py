@@ -213,8 +213,8 @@ class GRU(Model):
         dl_valid.config(fillna_type="ffill+bfill")  # process nan brought by dataloader
 
         if reweighter is None:
-            wl_train = np.ones(len(dl_train))
-            wl_valid = np.ones(len(dl_valid))
+            wl_train = np.ones(len(dl_train), dtype=np.float32)
+            wl_valid = np.ones(len(dl_valid), dtype=np.float32)
         elif isinstance(reweighter, Reweighter):
             wl_train = reweighter.reweight(dl_train)
             wl_valid = reweighter.reweight(dl_valid)
