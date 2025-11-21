@@ -17,7 +17,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from qlib.data.dataset.weight import Reweighter
 
-from .pytorch_utils import count_parameters
+from .pytorch_utils import count_parameters, get_device
 from ...model.base import Model
 from ...data.dataset import DatasetH, TSDatasetH
 from ...data.dataset.handler import DataHandlerLP
@@ -83,7 +83,7 @@ class GeneralPTNN(Model):
         self.optimizer = optimizer.lower()
         self.loss = loss
         self.weight_decay = weight_decay
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        self.device = get_device(GPU)
         self.n_jobs = n_jobs
         self.seed = seed
 
@@ -249,8 +249,8 @@ class GeneralPTNN(Model):
             raise ValueError("Empty data from dataset, please check your dataset config.")
 
         if reweighter is None:
-            wl_train = np.ones(len(dl_train))
-            wl_valid = np.ones(len(dl_valid))
+            wl_train = np.ones(len(dl_train), dtype=np.float32)
+            wl_valid = np.ones(len(dl_valid), dtype=np.float32)
         elif isinstance(reweighter, Reweighter):
             wl_train = reweighter.reweight(dl_train)
             wl_valid = reweighter.reweight(dl_valid)

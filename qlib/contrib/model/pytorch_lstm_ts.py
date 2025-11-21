@@ -20,6 +20,7 @@ from ...model.base import Model
 from ...data.dataset.handler import DataHandlerLP
 from ...model.utils import ConcatDataset
 from ...data.dataset.weight import Reweighter
+from .pytorch_utils import get_device
 
 
 class LSTM(Model):
@@ -71,7 +72,7 @@ class LSTM(Model):
         self.early_stop = early_stop
         self.optimizer = optimizer.lower()
         self.loss = loss
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        self.device = get_device(GPU)
         self.n_jobs = n_jobs
         self.seed = seed
 
@@ -208,8 +209,8 @@ class LSTM(Model):
         dl_valid.config(fillna_type="ffill+bfill")  # process nan brought by dataloader
 
         if reweighter is None:
-            wl_train = np.ones(len(dl_train))
-            wl_valid = np.ones(len(dl_valid))
+            wl_train = np.ones(len(dl_train), dtype=np.float32)
+            wl_valid = np.ones(len(dl_valid), dtype=np.float32)
         elif isinstance(reweighter, Reweighter):
             wl_train = reweighter.reweight(dl_train)
             wl_valid = reweighter.reweight(dl_valid)

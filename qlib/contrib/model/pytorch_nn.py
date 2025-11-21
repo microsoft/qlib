@@ -17,7 +17,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from .pytorch_utils import count_parameters
+from .pytorch_utils import count_parameters, get_device
 from ...model.base import Model
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
@@ -89,10 +89,7 @@ class DNNModelPytorch(Model):
         self.eval_steps = eval_steps
         self.optimizer = optimizer.lower()
         self.loss_type = loss
-        if isinstance(GPU, str):
-            self.device = torch.device(GPU)
-        else:
-            self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        self.device = get_device(GPU)
         self.seed = seed
         self.weight_decay = weight_decay
         self.data_parall = data_parall
@@ -208,7 +205,7 @@ class DNNModelPytorch(Model):
                 all_df["x"][seg] = df["feature"]
                 all_df["y"][seg] = df["label"].copy()  # We have to use copy to remove the reference to release mem
                 if reweighter is None:
-                    all_df["w"][seg] = pd.DataFrame(np.ones_like(all_df["y"][seg].values), index=df.index)
+                    all_df["w"][seg] = pd.DataFrame(np.ones_like(all_df["y"][seg].values, dtype=np.float32), index=df.index)
                 elif isinstance(reweighter, Reweighter):
                     all_df["w"][seg] = pd.DataFrame(reweighter.reweight(df))
                 else:

@@ -21,6 +21,7 @@ from ...model.base import Model
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
 from torch.nn.modules.container import ModuleList
+from .pytorch_utils import get_device
 
 
 class LocalformerModel(Model):
@@ -56,7 +57,7 @@ class LocalformerModel(Model):
         self.optimizer = optimizer.lower()
         self.loss = loss
         self.n_jobs = n_jobs
-        self.device = torch.device("cuda:%d" % GPU if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        self.device = get_device(GPU)
         self.seed = seed
         self.logger = get_module_logger("TransformerModel")
         self.logger.info(

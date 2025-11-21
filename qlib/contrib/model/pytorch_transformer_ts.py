@@ -20,6 +20,7 @@ from torch.utils.data import DataLoader
 from ...model.base import Model
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
+from .pytorch_utils import get_device
 
 
 class TransformerModel(Model):
@@ -55,7 +56,7 @@ class TransformerModel(Model):
         self.optimizer = optimizer.lower()
         self.loss = loss
         self.n_jobs = n_jobs
-        self.device = torch.device("cuda:%d" % GPU if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        self.device = get_device(GPU)
         self.seed = seed
         self.logger = get_module_logger("TransformerModel")
         self.logger.info("Naive Transformer:" "\nbatch_size : {}" "\ndevice : {}".format(self.batch_size, self.device))

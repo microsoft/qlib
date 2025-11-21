@@ -19,7 +19,7 @@ from ...data.dataset.handler import DataHandlerLP
 from ...log import get_module_logger
 from ...model.base import Model
 from ...utils import get_or_create_path
-from .pytorch_utils import count_parameters
+from .pytorch_utils import count_parameters, get_device
 
 
 class GRU(Model):
@@ -70,7 +70,7 @@ class GRU(Model):
         self.early_stop = early_stop
         self.optimizer = optimizer.lower()
         self.loss = loss
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        self.device = get_device(GPU)
         self.seed = seed
 
         self.logger.info(
