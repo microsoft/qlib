@@ -205,7 +205,9 @@ class DNNModelPytorch(Model):
                 all_df["x"][seg] = df["feature"]
                 all_df["y"][seg] = df["label"].copy()  # We have to use copy to remove the reference to release mem
                 if reweighter is None:
-                    all_df["w"][seg] = pd.DataFrame(np.ones_like(all_df["y"][seg].values, dtype=np.float32), index=df.index)
+                    all_df["w"][seg] = pd.DataFrame(
+                        np.ones_like(all_df["y"][seg].values, dtype=np.float32), index=df.index
+                    )
                 elif isinstance(reweighter, Reweighter):
                     all_df["w"][seg] = pd.DataFrame(reweighter.reweight(df))
                 else:
