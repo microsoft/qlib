@@ -16,7 +16,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 from torch.autograd import Function
 
-from .pytorch_utils import count_parameters
+from .pytorch_utils import count_parameters, get_device
 from ...model.base import Model
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
@@ -69,7 +69,7 @@ class TabnetModel(Model):
         self.n_epochs = n_epochs
         self.logger = get_module_logger("TabNet")
         self.pretrain_n_epochs = pretrain_n_epochs
-        self.device = "cuda:%s" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu"
+        self.device = get_device(GPU)
         self.loss = loss
         self.metric = metric
         self.early_stop = early_stop

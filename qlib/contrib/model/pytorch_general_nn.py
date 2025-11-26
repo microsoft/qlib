@@ -17,7 +17,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from qlib.data.dataset.weight import Reweighter
 
-from .pytorch_utils import count_parameters
+from .pytorch_utils import count_parameters, get_device
 from ...model.base import Model
 from ...data.dataset import DatasetH, TSDatasetH
 from ...data.dataset.handler import DataHandlerLP
@@ -83,7 +83,7 @@ class GeneralPTNN(Model):
         self.optimizer = optimizer.lower()
         self.loss = loss
         self.weight_decay = weight_decay
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        self.device = get_device(GPU)
         self.n_jobs = n_jobs
         self.seed = seed
 
@@ -189,12 +189,12 @@ class GeneralPTNN(Model):
         """
         if data.dim() == 3:
             # it is a time series dataset
-            feature = data[:, :, 0:-1].to(self.device)
-            label = data[:, -1, -1].to(self.device)
+            feature = data[:, :, 0:-1].to(self.device, dtype=torch.float32)
+            label = data[:, -1, -1].to(self.device, dtype=torch.float32)
         elif data.dim() == 2:
             # it is a tabular dataset
-            feature = data[:, 0:-1].to(self.device)
-            label = data[:, -1].to(self.device)
+            feature = data[:, 0:-1].to(self.device, dtype=torch.float32)
+            label = data[:, -1].to(self.device, dtype=torch.float32)
         else:
             raise ValueError("Unsupported data shape.")
         return feature, label
@@ -205,8 +205,8 @@ class GeneralPTNN(Model):
         for data, weight in data_loader:
             feature, label = self._get_fl(data)
 
-            pred = self.dnn_model(feature.float())
-            loss = self.loss_fn(pred, label, weight.to(self.device))
+            pred = self.dnn_model(feature)
+            loss = self.loss_fn(pred, label, weight.to(self.device, dtype=torch.float32))
 
             self.train_optimizer.zero_grad()
             loss.backward()
@@ -223,8 +223,8 @@ class GeneralPTNN(Model):
             feature, label = self._get_fl(data)
 
             with torch.no_grad():
-                pred = self.dnn_model(feature.float())
-                loss = self.loss_fn(pred, label, weight.to(self.device))
+                pred = self.dnn_model(feature)
+                loss = self.loss_fn(pred, label, weight.to(self.device, dtype=torch.float32))
                 losses.append(loss.item())
 
                 score = self.metric_fn(pred, label)
@@ -357,10 +357,10 @@ class GeneralPTNN(Model):
 
         for data in test_loader:
             feature, _ = self._get_fl(data)
-            feature = feature.to(self.device)
+            feature = feature.to(self.device, dtype=torch.float32)
 
             with torch.no_grad():
-                pred = self.dnn_model(feature.float()).detach().cpu().numpy()
+                pred = self.dnn_model(feature).detach().cpu().numpy()
 
             preds.append(pred)
 

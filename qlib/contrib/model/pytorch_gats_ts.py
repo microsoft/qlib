@@ -16,7 +16,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from torch.utils.data import Sampler
 
-from .pytorch_utils import count_parameters
+from .pytorch_utils import count_parameters, get_device
 from ...model.base import Model
 from ...data.dataset.handler import DataHandlerLP
 from ...contrib.model.pytorch_lstm import LSTMModel
@@ -94,7 +94,7 @@ class GATs(Model):
         self.loss = loss
         self.base_model = base_model
         self.model_path = model_path
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        self.device = get_device(GPU)
         self.n_jobs = n_jobs
         self.seed = seed
 
@@ -198,10 +198,10 @@ class GATs(Model):
 
         for data in data_loader:
             data = data.squeeze()
-            feature = data[:, :, 0:-1].to(self.device)
-            label = data[:, -1, -1].to(self.device)
+            feature = data[:, :, 0:-1].to(self.device, dtype=torch.float32)
+            label = data[:, -1, -1].to(self.device, dtype=torch.float32)
 
-            pred = self.GAT_model(feature.float())
+            pred = self.GAT_model(feature)
             loss = self.loss_fn(pred, label)
 
             self.train_optimizer.zero_grad()
@@ -217,11 +217,11 @@ class GATs(Model):
 
         for data in data_loader:
             data = data.squeeze()
-            feature = data[:, :, 0:-1].to(self.device)
+            feature = data[:, :, 0:-1].to(self.device, dtype=torch.float32)
             # feature[torch.isnan(feature)] = 0
-            label = data[:, -1, -1].to(self.device)
+            label = data[:, -1, -1].to(self.device, dtype=torch.float32)
 
-            pred = self.GAT_model(feature.float())
+            pred = self.GAT_model(feature)
             loss = self.loss_fn(pred, label)
             losses.append(loss.item())
 
@@ -325,10 +325,10 @@ class GATs(Model):
 
         for data in test_loader:
             data = data.squeeze()
-            feature = data[:, :, 0:-1].to(self.device)
+            feature = data[:, :, 0:-1].to(self.device, dtype=torch.float32)
 
             with torch.no_grad():
-                pred = self.GAT_model(feature.float()).detach().cpu().numpy()
+                pred = self.GAT_model(feature).detach().cpu().numpy()
 
             preds.append(pred)
 

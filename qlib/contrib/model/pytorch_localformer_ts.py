@@ -21,6 +21,7 @@ from ...model.base import Model
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
 from torch.nn.modules.container import ModuleList
+from .pytorch_utils import get_device
 
 
 class LocalformerModel(Model):
@@ -56,7 +57,7 @@ class LocalformerModel(Model):
         self.optimizer = optimizer.lower()
         self.loss = loss
         self.n_jobs = n_jobs
-        self.device = torch.device("cuda:%d" % GPU if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        self.device = get_device(GPU)
         self.seed = seed
         self.logger = get_module_logger("TransformerModel")
         self.logger.info(
@@ -106,10 +107,10 @@ class LocalformerModel(Model):
         self.model.train()
 
         for data in data_loader:
-            feature = data[:, :, 0:-1].to(self.device)
-            label = data[:, -1, -1].to(self.device)
+            feature = data[:, :, 0:-1].to(self.device, dtype=torch.float32)
+            label = data[:, -1, -1].to(self.device, dtype=torch.float32)
 
-            pred = self.model(feature.float())  # .float()
+            pred = self.model(feature)
             loss = self.loss_fn(pred, label)
 
             self.train_optimizer.zero_grad()
@@ -124,11 +125,11 @@ class LocalformerModel(Model):
         losses = []
 
         for data in data_loader:
-            feature = data[:, :, 0:-1].to(self.device)
-            label = data[:, -1, -1].to(self.device)
+            feature = data[:, :, 0:-1].to(self.device, dtype=torch.float32)
+            label = data[:, -1, -1].to(self.device, dtype=torch.float32)
 
             with torch.no_grad():
-                pred = self.model(feature.float())  # .float()
+                pred = self.model(feature)
                 loss = self.loss_fn(pred, label)
                 losses.append(loss.item())
 
@@ -211,10 +212,10 @@ class LocalformerModel(Model):
         preds = []
 
         for data in test_loader:
-            feature = data[:, :, 0:-1].to(self.device)
+            feature = data[:, :, 0:-1].to(self.device, dtype=torch.float32)
 
             with torch.no_grad():
-                pred = self.model(feature.float()).detach().cpu().numpy()
+                pred = self.model(feature).detach().cpu().numpy()
 
             preds.append(pred)
 
