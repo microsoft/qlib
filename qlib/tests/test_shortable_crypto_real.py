@@ -1,10 +1,11 @@
 """Tests for shortable crypto backtest components (executor/exchange/position)."""
 
-# pylint: disable=C0301,W0718,C0116,R1710,R0914,C0411
+# pylint: disable=C0301,C0116,R1710,R0914,C0411
 import os
 from pathlib import Path
 import pytest
 import pandas as pd
+from loguru import logger
 
 import qlib
 import warnings
@@ -42,7 +43,8 @@ def _try_init_qlib():
             # Probe one simple call
             _ = D.instruments()
             return _p
-        except Exception:
+        except Exception as e:
+            logger.warning("qlib.init probe failed for %s: %s", p, e)
             continue
     pytest.skip("No valid crypto provider_uri found; skipping real-data tests")
 
@@ -107,7 +109,8 @@ def test_shortable_with_real_data_end_to_end():
     try:
         prev = g.nth(-2)
         sig = (last / prev - 1.0).dropna()
-    except Exception:
+    except Exception as e:
+        logger.warning("failed to compute previous values for signal: %s", e)
         sig = pd.Series(dtype=float)
 
     if sig.empty:

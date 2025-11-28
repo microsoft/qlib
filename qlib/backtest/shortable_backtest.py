@@ -7,19 +7,19 @@ This module provides the main executor and strategy components.
 
 Pylint notes:
 - C0301 (line-too-long): Disabled at module level due to verbose logging and URLs.
-- W0718 (broad-exception-caught): Used intentionally around optional hooks; safe and logged.
 - W0212 (protected-access): Access needed for adapting Qlib internals; guarded carefully.
 - W0201 (attribute-defined-outside-init): Account/position aliases injected post reset; intentional.
 - R0902/R0913/R0914/R0903: Complexity from executor/strategy wiring; contained locally.
 - W0237: Signature differs intentionally to match Qlib hooks; behavior preserved.
 """
 
-# pylint: disable=C0301,W0718,W0212,W0201,R0902,R0913,R0914,W0237,R0903
+# pylint: disable=C0301,W0212,W0201,R0902,R0913,R0914,W0237,R0903
 
 from __future__ import annotations
 
 import math
 from typing import Dict, List, Optional
+from loguru import logger
 import pandas as pd
 import numpy as np
 from qlib.backtest.executor import SimulatorExecutor
@@ -80,7 +80,8 @@ class ShortableAccount(Account):
         """Extend parent metrics with long/short-specific fields while keeping return shape unchanged."""
         try:
             df, meta = super().get_portfolio_metrics()
-        except Exception:
+        except Exception as e:
+            logger.warning("super().get_portfolio_metrics() fallback due to: %s", e)
             pm = super().get_portfolio_metrics()
             if isinstance(pm, tuple) and len(pm) == 2:
                 df, meta = pm
@@ -96,8 +97,8 @@ class ShortableAccount(Account):
                     "total_borrow_cost": pos.borrow_cost_accumulated,
                 }
                 meta = {**(meta or {}), **extra}
-        except Exception:
-            pass
+        except (AttributeError, KeyError, TypeError) as e:
+            logger.warning("adding extra portfolio meta failed: %s", e)
 
         return df, meta
 
@@ -168,8 +169,8 @@ class ShortableExecutor(SimulatorExecutor):
         try:
             if hasattr(self.borrow_fee_model, "set_days_per_year"):
                 self.borrow_fee_model.set_days_per_year(365 if self.region == "crypto" else 252)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("Failed to set days_per_year on borrow_fee_model: %s", e)
 
     def reset(self, start_time=None, end_time=None, init_cash=1e6, **kwargs):
         """
@@ -192,13 +193,15 @@ class ShortableExecutor(SimulatorExecutor):
                         "amount": old_pos.get_stock_amount(sid),
                         "price": old_pos.get_stock_price(sid),
                     }
-        except Exception:
+        except (AttributeError, KeyError, TypeError) as e:
+            logger.warning("Failed to build position_dict from old_pos: %s", e)
             position_dict = {}
 
         # Determine a safe initial cash if old_pos has no get_cash
         try:
             fallback_cash = old_pos.get_cash(include_settle=True) if hasattr(old_pos, "get_cash") else None
-        except Exception:
+        except (AttributeError, TypeError) as e:
+            logger.warning("Failed to get fallback_cash from old_pos: %s", e)
             fallback_cash = None
         if fallback_cash is None:
             try:
@@ -207,7 +210,8 @@ class ShortableExecutor(SimulatorExecutor):
                     if hasattr(self.trade_account.current_position, "get_cash")
                     else 1e6
                 )
-            except Exception:
+            except (AttributeError, TypeError) as e:
+                logger.warning("Failed to get fallback_cash from trade_account.current_position: %s", e)
                 fallback_cash = 1e6
 
         pos = ShortablePosition(cash=fallback_cash, position_dict=position_dict)
@@ -289,8 +293,8 @@ class ShortableExecutor(SimulatorExecutor):
             # Scale by step length (minute freq uses minutes-per-day proportion)
             try:
                 borrow_cost *= self._borrow_fee_step_multiplier()
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("_borrow_fee_step_multiplier failed: %s", e)
 
             if borrow_cost > 0:
                 self.account.current_position.add_borrow_cost(borrow_cost)
@@ -352,8 +356,9 @@ class ShortableExecutor(SimulatorExecutor):
 
             cal = D.calendar(freq=self.time_per_step, future=False)
             return date in cal
-        except Exception:
+        except Exception as e:
             # Fallback: weekdays only for traditional markets
+            logger.warning("calendar lookup failed, fallback to weekday test: %s", e)
             return date.weekday() < 5
 
     def _borrow_fee_step_multiplier(self) -> float:
@@ -372,7 +377,8 @@ class ShortableExecutor(SimulatorExecutor):
             if step_min <= 0:
                 return 1.0
             return float(step_min) / float(minutes_per_day)
-        except Exception:
+        except Exception as e:
+            logger.warning("_borrow_fee_step_multiplier parse failed: %s", e)
             return 1.0
 
     def get_portfolio_metrics(self) -> Dict:
@@ -578,8 +584,9 @@ class LongShortStrategy(BaseStrategy):
                     else:
                         # Skip this stock if price unavailable
                         continue
-                except Exception:
-                    # Price fetch failed; skip
+                except Exception as e:
+                    # Price fetch failed; skip but log for visibility
+                    logger.warning("price fetch failed for %s: %s", stock, e)
                     continue
         else:
             # Fallback: use a fixed price (testing only)
@@ -623,8 +630,8 @@ class LongShortStrategy(BaseStrategy):
                     )
                     if _valid(px):
                         price = float(px)
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning("trade_exchange.get_deal_price failed for %s: %s", od.stock_id, e)
 
             if not _valid(price):
                 price = None  # Don't use placeholder 100, avoid misjudging leverage

@@ -12,6 +12,7 @@ import sys
 import multiprocessing as mp
 import os
 import qlib
+from loguru import logger
 from qlib.utils import init_instance_by_config, flatten_dict
 from qlib.constant import REG_CRYPTO
 
@@ -45,7 +46,8 @@ if __name__ == "__main__":
         DATA_ROOTS_STR = " ".join(data_roots.values()).lower()
         IS_CN = ("cn_data" in DATA_ROOTS_STR) or ("cn\x5fdata" in DATA_ROOTS_STR)
         BENCHMARK_AUTO = "SH000300" if IS_CN else "BTCUSDT"
-    except Exception:  # pylint: disable=W0718
+    except Exception as e:
+        logger.warning("Failed to auto-detect data roots for benchmark selection: %s", e)
         BENCHMARK_AUTO = "SH000300"
 
     # Dataset & model
@@ -135,7 +137,8 @@ if __name__ == "__main__":
         from qlib.contrib.workflow.crypto_record_temp import CryptoPortAnaRecord as PortAnaRecord  # type: ignore
 
         print("Using contrib's crypto version of CryptoPortAnaRecord as PortAnaRecord")
-    except Exception:  # pylint: disable=W0718
+    except Exception as e:
+        logger.warning("Failed to import contrib crypto record; falling back to default: %s", e)
         from qlib.workflow.record_temp import PortAnaRecord
 
         print("Using default version of PortAnaRecord")

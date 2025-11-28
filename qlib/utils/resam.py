@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from loguru import logger
 
 from functools import partial
 from typing import Union, Callable, List
@@ -91,7 +92,8 @@ def get_higher_eq_freq_feature(instruments, fields, start_time=None, end_time=No
                     continue
                 try:
                     from .time import Freq as _Freq  # local import to avoid cycle  # pylint: disable=C0415
-                except Exception:
+                except ImportError as e:
+                    logger.warning("Failed to import local Freq in _list_supported_minute_freqs: %s", e)
                     continue
                 _f = _Freq(stem)
                 if _f.base == _Freq.NORM_FREQ_MINUTE:
@@ -105,8 +107,9 @@ def get_higher_eq_freq_feature(instruments, fields, start_time=None, end_time=No
                 return _f.count
 
             return sorted(set(freq_names), key=_minute_order)
-        except Exception:
-            # best effort
+        except Exception as e:
+            # best effort: if anything unexpected happens, log and return empty list
+            logger.warning("Error while listing supported minute freqs: %s", e)
             return []
 
     try:

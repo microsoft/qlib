@@ -3,10 +3,11 @@
 
 """Borrow fee models for short selling in Qlib backtests."""
 
-# pylint: disable=R1716,R0913,W0613,W0201,W0718
+# pylint: disable=R1716,R0913,W0613,W0201
 
 from abc import ABC, abstractmethod
 from typing import Dict, Optional
+from loguru import logger
 import pandas as pd
 
 
@@ -86,12 +87,12 @@ class FixedRateBorrowFeeModel(BaseBorrowFeeModel):
 
     def set_days_per_year(self, n: int) -> None:
         """Set days-per-year divisor used to convert annual rate to daily."""
-        try:  # pylint: disable=W0718  # robustness preferred; benign conversion
+        try:  # robustness preferred; benign conversion
             n = int(n)
             if n > 0:
                 self.daily_divisor = n
-        except Exception:  # pylint: disable=W0718
-            pass
+        except (ValueError, TypeError) as err:
+            logger.warning("Invalid days_per_year value passed to set_days_per_year: %s", err)
 
     def get_borrow_rate(self, stock_id: str, date: pd.Timestamp) -> float:
         """Get annual borrowing rate for a stock."""
@@ -170,12 +171,12 @@ class DynamicBorrowFeeModel(BaseBorrowFeeModel):
 
     def set_days_per_year(self, n: int) -> None:
         """Set days-per-year divisor used to convert annual rate to daily."""
-        try:  # pylint: disable=W0718
+        try:
             n = int(n)
             if n > 0:
                 self.daily_divisor = n
-        except Exception:  # pylint: disable=W0718
-            pass
+        except (ValueError, TypeError) as err:
+            logger.warning("Invalid days_per_year value passed to set_days_per_year: %s", err)
 
         # Cache for calculated rates
         self._rate_cache = {}
@@ -305,8 +306,8 @@ class TieredBorrowFeeModel(BaseBorrowFeeModel):
             n = int(n)
             if n > 0:
                 self.daily_divisor = n
-        except Exception:
-            pass
+        except (ValueError, TypeError) as err:
+            logger.warning("Invalid days_per_year value passed to set_days_per_year: %s", err)
 
     def get_borrow_rate(self, stock_id: str, date: pd.Timestamp) -> float:
         """Get base borrowing rate by stock category."""

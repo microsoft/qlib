@@ -9,13 +9,14 @@ crypto markets (e.g., 365-day annualization, product compounding) while keeping
 the default Qlib behavior unchanged for other users.
 """
 
-# pylint: disable=C0301,R0913,R0914,R0912,R0915,W0718,C0103
+# pylint: disable=C0301,R0913,R0914,R0912,R0915,C0103
 
 from __future__ import annotations
 
 from typing import List, Union
 
 import pandas as pd
+from loguru import logger
 
 from ..evaluate import risk_analysis as original_risk_analysis
 from ...utils import fill_placeholder, get_date_by_shift
@@ -93,8 +94,8 @@ class CryptoPortAnaRecord(PortAnaRecord):
                 ex_kwargs = dict(self.backtest_config.get("exchange_kwargs", {}) or {})
                 ex_kwargs.setdefault("freq", target_freq)
                 self.backtest_config["exchange_kwargs"] = ex_kwargs
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("Failed to determine/assign target_freq for crypto record: %s", e)
 
         # Run backtest
         portfolio_metric_dict, indicator_dict = normal_backtest(
@@ -120,8 +121,8 @@ class CryptoPortAnaRecord(PortAnaRecord):
                         "excess_w_cost": _crypto_risk_analysis((1 + (r - c)) / (1 + b) - 1, N=self.crypto_annual_days),
                         "annual_days": self.crypto_annual_days,
                     }
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning("Failed to attach crypto_metrics for freq %s: %s", _freq, e)
 
             artifact_objects.update({f"report_normal_{_freq}.pkl": report_normal})
             artifact_objects.update({f"positions_normal_{_freq}.pkl": positions_normal})

@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import qlib
+from loguru import logger
 from qlib.data import D
 from qlib.constant import REG_CRYPTO
 from qlib.backtest.decision import OrderDir
@@ -72,8 +73,8 @@ def main():
                         "rounded": rounded,
                     },
                 )
-            except Exception as e:
-                print(code, "error:", e)
+            except (KeyError, AttributeError, TypeError, ValueError) as e:
+                logger.warning("Error fetching trade info for %s: %s", code, e)
 
 
 if __name__ == "__main__":

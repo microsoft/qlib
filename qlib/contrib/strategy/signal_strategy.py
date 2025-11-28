@@ -619,12 +619,7 @@ class LongShortTopKStrategy(BaseSignalStrategy):
             def filter_stock(li):
                 return li
 
-        import copy as _copy  # local alias for deepcopy
-
-        # Use instance configuration; keep behavior unchanged (no external kwargs expected here)
-        risk_aversion = _copy.deepcopy(getattr(self, "risk_aversion", None))
-
-        current_temp: Position = _copy.deepcopy(self.trade_position)
+        current_temp: Position = copy.deepcopy(self.trade_position)
 
         # Build current long/short lists by sign of amount
         current_stock_list = current_temp.get_stock_list()
@@ -644,8 +639,8 @@ class LongShortTopKStrategy(BaseSignalStrategy):
                 try:
                     details = [(c, float(current_temp.get_stock_amount(c))) for c in short_now]
                     print(f"[LongShortTopKStrategy][{trade_start_time}] short_details: {details}")
-                except Exception:
-                    pass
+                except Exception as e:
+                    get_module_logger("LongShortTopKStrategy").debug("Failed to print short_details: %s", e)
 
         # ---- Long leg selection (descending score) ----
         last_long = pred_score.reindex(long_now).sort_values(ascending=False).index
