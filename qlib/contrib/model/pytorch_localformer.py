@@ -213,6 +213,8 @@ class LocalformerModel(Model):
 
         if self.use_gpu:
             torch.cuda.empty_cache()
+            if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+                torch.mps.empty_cache()
 
     def predict(self, dataset: DatasetH, segment: Union[Text, slice] = "test"):
         if not self.fitted:

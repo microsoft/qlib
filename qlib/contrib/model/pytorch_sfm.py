@@ -412,6 +412,8 @@ class SFM(Model):
         torch.save(best_param, save_path)
         if self.device != "cpu":
             torch.cuda.empty_cache()
+            if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+                torch.mps.empty_cache()
 
     def mse(self, pred, label):
         loss = (pred - label) ** 2

@@ -346,6 +346,8 @@ class TCTS(Model):
 
         if self.use_gpu:
             torch.cuda.empty_cache()
+            if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+                torch.mps.empty_cache()
 
         return best_loss
 

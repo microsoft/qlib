@@ -152,7 +152,6 @@ class DNNModelPytorch(Model):
                     mode="min",
                     factor=0.5,
                     patience=10,
-                    verbose=True,
                     threshold=0.0001,
                     threshold_mode="rel",
                     cooldown=0,
@@ -330,6 +329,8 @@ class DNNModelPytorch(Model):
             self.dnn_model.load_state_dict(torch.load(save_path, map_location=self.device))
         if self.use_gpu:
             torch.cuda.empty_cache()
+            if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+                torch.mps.empty_cache()
 
     def get_lr(self):
         assert len(self.train_optimizer.param_groups) == 1
