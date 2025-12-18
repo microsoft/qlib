@@ -10,7 +10,6 @@ import socketio
 
 import qlib
 
-from ..config import C
 from ..log import get_module_logger
 
 
