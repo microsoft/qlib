@@ -74,37 +74,37 @@ prerequisite:
 
 # Install the package in editable mode.
 dependencies:
-	python -m pip install -e .
+	python -m pip install --no-cache-dir -e .
 
 lightgbm:
-	python -m pip install lightgbm --prefer-binary
+	python -m pip install --no-cache-dir lightgbm --prefer-binary
 
 rl:
-	python -m pip install -e .[rl]
+	python -m pip install --no-cache-dir -e .[rl]
 
 develop:
-	python -m pip install -e .[dev]
+	python -m pip install --no-cache-dir -e .[dev]
 
 lint:
-	python -m pip install -e .[lint]
+	python -m pip install --no-cache-dir -e .[lint]
 
 docs:
-	python -m pip install -e .[docs]
+	python -m pip install --no-cache-dir -e .[docs]
 
 package:
-	python -m pip install -e .[package]
+	python -m pip install --no-cache-dir -e .[package]
 
 test:
-	python -m pip install -e .[test]
+	python -m pip install --no-cache-dir -e .[test]
 
 analysis:
-	python -m pip install -e .[analysis]
+	python -m pip install --no-cache-dir -e .[analysis]
 
 client:
-	python -m pip install -e .[client]
+	python -m pip install --no-cache-dir -e .[client]
 
 all:
-	python -m pip install -e .[pywinpty,dev,lint,docs,package,test,analysis,rl]
+	python -m pip install --no-cache-dir -e .[pywinpty,dev,lint,docs,package,test,analysis,rl]
 
 install: prerequisite dependencies
 
