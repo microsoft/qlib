@@ -5,9 +5,9 @@ from __future__ import annotations
 
 from typing import Any, Generic, TypeVar
 
-import gym
+import gymnasium as gym  
 import numpy as np
-from gym import spaces
+from gymnasium import spaces
 
 from qlib.typehint import final
 from .simulator import ActType, StateType
