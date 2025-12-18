@@ -104,7 +104,7 @@ client:
 	python -m pip install -e .[client]
 
 all:
-	python -m pip install -e .[pywinpty,dev,lint,docs,package,test,analysis,rl,client]
+	python -m pip install -e .[pywinpty,dev,lint,docs,package,test,analysis,rl]
 
 install: prerequisite dependencies
 
