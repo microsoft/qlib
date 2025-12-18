@@ -17,7 +17,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
-from .pytorch_utils import count_parameters
+from .pytorch_utils import count_parameters, get_device
 from ...model.base import Model
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
@@ -74,7 +74,7 @@ class ALSTM(Model):
         self.early_stop = early_stop
         self.optimizer = optimizer.lower()
         self.loss = loss
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        self.device = get_device(GPU)
         self.n_jobs = n_jobs
         self.seed = seed
 
@@ -171,11 +171,11 @@ class ALSTM(Model):
         self.ALSTM_model.train()
 
         for data, weight in data_loader:
-            feature = data[:, :, 0:-1].to(self.device)
-            label = data[:, -1, -1].to(self.device)
+            feature = data[:, :, 0:-1].to(self.device, dtype=torch.float32)
+            label = data[:, -1, -1].to(self.device, dtype=torch.float32)
 
-            pred = self.ALSTM_model(feature.float())
-            loss = self.loss_fn(pred, label, weight.to(self.device))
+            pred = self.ALSTM_model(feature)
+            loss = self.loss_fn(pred, label, weight.to(self.device, dtype=torch.float32))
 
             self.train_optimizer.zero_grad()
             loss.backward()
@@ -189,13 +189,13 @@ class ALSTM(Model):
         losses = []
 
         for data, weight in data_loader:
-            feature = data[:, :, 0:-1].to(self.device)
+            feature = data[:, :, 0:-1].to(self.device, dtype=torch.float32)
             # feature[torch.isnan(feature)] = 0
-            label = data[:, -1, -1].to(self.device)
+            label = data[:, -1, -1].to(self.device, dtype=torch.float32)
 
             with torch.no_grad():
-                pred = self.ALSTM_model(feature.float())
-                loss = self.loss_fn(pred, label, weight.to(self.device))
+                pred = self.ALSTM_model(feature)
+                loss = self.loss_fn(pred, label, weight.to(self.device, dtype=torch.float32))
                 losses.append(loss.item())
 
                 score = self.metric_fn(pred, label)
@@ -283,6 +283,8 @@ class ALSTM(Model):
 
         if self.use_gpu:
             torch.cuda.empty_cache()
+            if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+                torch.mps.empty_cache()
 
     def predict(self, dataset: DatasetH, segment: Union[Text, slice] = "test"):
         if not self.fitted:
@@ -295,10 +297,10 @@ class ALSTM(Model):
         preds = []
 
         for data in test_loader:
-            feature = data[:, :, 0:-1].to(self.device)
+            feature = data[:, :, 0:-1].to(self.device, dtype=torch.float32)
 
             with torch.no_grad():
-                pred = self.ALSTM_model(feature.float()).detach().cpu().numpy()
+                pred = self.ALSTM_model(feature).detach().cpu().numpy()
 
             preds.append(pred)
 

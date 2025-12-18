@@ -17,7 +17,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from qlib.contrib.model.pytorch_gru import GRUModel
 from qlib.contrib.model.pytorch_lstm import LSTMModel
-from qlib.contrib.model.pytorch_utils import count_parameters
+from qlib.contrib.model.pytorch_utils import count_parameters, get_device
 from qlib.data.dataset import DatasetH
 from qlib.data.dataset.handler import DataHandlerLP
 from qlib.log import get_module_logger
@@ -83,7 +83,7 @@ class ADD(Model):
         self.optimizer = optimizer.lower()
         self.base_model = base_model
         self.model_path = model_path
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        self.device = get_device(GPU)
         self.seed = seed
 
         self.gamma = gamma
@@ -415,6 +415,8 @@ class ADD(Model):
         torch.save(best_param, save_path)
         if self.use_gpu:
             torch.cuda.empty_cache()
+            if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+                torch.mps.empty_cache()
 
     def predict(self, dataset: DatasetH, segment: Union[Text, slice] = "test"):
         x_test = dataset.prepare(segment, col_set="feature", data_key=DataHandlerLP.DK_I)
