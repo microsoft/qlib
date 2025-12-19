@@ -514,6 +514,66 @@ class CsvWriter(LogWriter):
 class PickleWriter(LogWriter):
     """Dump logs to pickle files."""
 
+    SUPPORTED_TYPES = Any
+
+    all_records: list[dict[str, Any]]
+
+    def __init__(self, output_dir: Path, loglevel: int | LogLevel = LogLevel.PERIODIC):
+        super().__init__(loglevel)
+        self.output_dir = output_dir
+        self.output_dir.mkdir(exist_ok=True, parents=True)
+
+    def clear(self):
+        super().claer()
+        self.all_records = []
+
+    def log_episode(self, length: int, rewards: list[float], contents: list[dict[str, Any]]) -> None:
+        # FIXME Same as ConsoleLogger, needs a refactor to eliminate code-dup
+        episode_wise_contents: dict[str, list] = defaultdict(list)
+
+        for step_contents in contents:
+            for name, value in step_contents.items():
+                if isinstance(value, self.SUPPORTED_TYPES):
+                    logs[name].append(value)
+
+        self.all_records.append(logs)
+
+    def on_env_all_done(self) -> None:
+        # FIXME: this is temporary
+        pd.DataFrame.from_records(self.all_records).to_pickle(self.output_dir / "result.pkl")
+
+
+class ActionWriter(LogWriter):
+    """Dump policy actions to pickle files"""
+
+    all_records: dict[str, list[Any]]
+
+    def __init__(self, output_dir: Path, loglevel: int | LogLevel = LogLevel.DEBUG) -> None:
+        super().__init__(loglevel)
+        self.output_dir = output_dir
+        self.output_dir.mkdir(exist_ok=True)
+
+    def clear(self) -> None:
+        super().clear()
+        self.all_records = defaultdict(list)
+
+    def log_episode(self, length: int, rewards: List[float], contents: List[Dict[str, Any]]) -> None:
+        for step_index, step_contents in enumerate(contents):
+            for name, value in step_contents.items():
+                if name == "policy_act":
+                    self.all_records[name].append(value)
+                if name == "datetime":
+                    self.all_records["date"].extend([value.date()] * len(contents))
+                if name == "stock_id":
+                    self.all_records[name].extend([value] * len(contents))
+            self.all_records["step"].append(step_index)
+
+    def on_env_all_done(self) -> None:
+        # FIXME: this is temporary
+        pd.DataFrame.from_dict(self.all_records).set_index(["stock_id", "date"]).sort_index().to_pickle(
+            self.output_dir / "action.pkl"
+        )
+
 
 class TensorboardWriter(LogWriter):
     """Write logs to event files that can be visualized with tensorboard."""
