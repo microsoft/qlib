@@ -106,12 +106,11 @@ def handler_mod(task: dict, rolling_gen):
         rg (RollingGen): an instance of RollingGen
     """
     try:
-        interval = rolling_gen.ta.cal_interval(
-            task["dataset"]["kwargs"]["handler"]["kwargs"]["end_time"],
-            task["dataset"]["kwargs"]["segments"][rolling_gen.test_key][1],
-        )
-        # if end_time < the end of test_segments, then change end_time to allow load more data
-        if interval < 0:
+        handler_end_time = task["dataset"]["kwargs"]["handler"]["kwargs"]["end_time"]
+        test_seg_end_time = task["dataset"]["kwargs"]["segments"][rolling_gen.test_key][1]
+        # if the end of test_segments is None (open-ended segment, i.e., "until now") or end_time < the end of test_segments, 
+        # then change end_time to allow load more data
+        if test_seg_end_time is None or rolling_gen.ta.cal_interval(handler_end_time, test_seg_end_time) < 0:
             task["dataset"]["kwargs"]["handler"]["kwargs"]["end_time"] = copy.deepcopy(
                 task["dataset"]["kwargs"]["segments"][rolling_gen.test_key][1]
             )
