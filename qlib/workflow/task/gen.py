@@ -106,14 +106,13 @@ def handler_mod(task: dict, rolling_gen):
         rg (RollingGen): an instance of RollingGen
     """
     try:
-        handler_end_time = task["dataset"]["kwargs"]["handler"]["kwargs"]["end_time"]
+        handler_kwargs = task["dataset"]["kwargs"]["handler"]["kwargs"]
+        handler_end_time = handler_kwargs.get("end_time")
         test_seg_end_time = task["dataset"]["kwargs"]["segments"][rolling_gen.test_key][1]
-        # if the end of test_segments is None (open-ended segment, i.e., "until now") or end_time < the end of test_segments, 
+        # if the end of test_segments is None (open-ended segment, i.e., "until now") or end_time < the end of test_segments,
         # then change end_time to allow load more data
         if test_seg_end_time is None or rolling_gen.ta.cal_interval(handler_end_time, test_seg_end_time) < 0:
-            task["dataset"]["kwargs"]["handler"]["kwargs"]["end_time"] = copy.deepcopy(
-                task["dataset"]["kwargs"]["segments"][rolling_gen.test_key][1]
-            )
+            handler_kwargs["end_time"] = copy.deepcopy(test_seg_end_time)
     except KeyError:
         # Maybe dataset do not have handler, then do nothing.
         pass
