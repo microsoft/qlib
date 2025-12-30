@@ -1,3 +1,6 @@
+"""Signal-driven strategies including LongShortTopKStrategy (crypto-ready)."""
+
+# pylint: disable=C0301,R0912,R0915,R0902,R0913,R0914,C0411,W0511,W0718,W0612,W0613,C0209,W1309,C1802,C0115,C0116
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 import os
@@ -6,7 +9,7 @@ import warnings
 import numpy as np
 import pandas as pd
 
-from typing import Dict, List, Text, Tuple, Union
+from typing import Dict, List, Text, Tuple, Union, Optional
 from abc import ABC
 
 from qlib.data import D
@@ -409,8 +412,8 @@ class EnhancedIndexingStrategy(WeightStrategyBase):
         riskmodel_root,
         market="csi500",
         turn_limit=None,
-        name_mapping={},
-        optimizer_kwargs={},
+        name_mapping=None,
+        optimizer_kwargs=None,
         verbose=False,
         **kwargs,
     ):
@@ -422,11 +425,13 @@ class EnhancedIndexingStrategy(WeightStrategyBase):
         self.market = market
         self.turn_limit = turn_limit
 
+        name_mapping = {} if name_mapping is None else name_mapping
         self.factor_exp_path = name_mapping.get("factor_exp", self.FACTOR_EXP_NAME)
         self.factor_cov_path = name_mapping.get("factor_cov", self.FACTOR_COV_NAME)
         self.specific_risk_path = name_mapping.get("specific_risk", self.SPECIFIC_RISK_NAME)
         self.blacklist_path = name_mapping.get("blacklist", self.BLACKLIST_NAME)
 
+        optimizer_kwargs = {} if optimizer_kwargs is None else optimizer_kwargs
         self.optimizer = EnhancedIndexingOptimizer(**optimizer_kwargs)
 
         self.verbose = verbose
@@ -520,3 +525,455 @@ class EnhancedIndexingStrategy(WeightStrategyBase):
             self.logger.info("total holding weight: {:.6f}".format(weight.sum()))
 
         return target_weight_position
+
+
+class LongShortTopKStrategy(BaseSignalStrategy):
+    """
+    Strict TopK-aligned Long-Short strategy.
+
+    - Uses shift=1 signals (previous bar's signal for current trading) like TopkDropoutStrategy
+    - Maintains separate TopK pools for long and short legs with independent rotation (n_drop)
+    - Respects tradability checks and limit rules consistent with TopkDropoutStrategy
+    - Requires a shortable exchange to open short positions; otherwise SELL will be clipped by Exchange
+    """
+
+    def __init__(
+        self,
+        *,
+        topk_long: int,
+        topk_short: int,
+        n_drop_long: int,
+        n_drop_short: int,
+        method_sell: str = "bottom",
+        method_buy: str = "top",
+        hold_thresh: int = 1,
+        only_tradable: bool = False,
+        forbid_all_trade_at_limit: bool = True,
+        rebalance_to_weights: bool = True,
+        long_share: Optional[float] = None,
+        debug: bool = False,
+        **kwargs,
+    ) -> None:
+        super().__init__(**kwargs)
+        self.topk_long = topk_long
+        self.topk_short = topk_short
+        self.n_drop_long = n_drop_long
+        self.n_drop_short = n_drop_short
+        self.method_sell = method_sell
+        self.method_buy = method_buy
+        self.hold_thresh = hold_thresh
+        self.only_tradable = only_tradable
+        self.forbid_all_trade_at_limit = forbid_all_trade_at_limit
+        self.rebalance_to_weights = rebalance_to_weights
+        # When both legs enabled, split risk_degree by long_share (0~1). None -> 0.5 default.
+        self.long_share = long_share
+        self._debug = debug
+
+    def generate_trade_decision(self, execute_result=None):
+        # Align time windows (shift=1)
+        trade_step = self.trade_calendar.get_trade_step()
+        trade_start_time, trade_end_time = self.trade_calendar.get_step_time(trade_step)
+        pred_start_time, pred_end_time = self.trade_calendar.get_step_time(trade_step, shift=1)
+        pred_score = self.signal.get_signal(start_time=pred_start_time, end_time=pred_end_time)
+        if isinstance(pred_score, pd.DataFrame):
+            pred_score = pred_score.iloc[:, 0]
+        if pred_score is None:
+            return TradeDecisionWO([], self)
+
+        # Helper functions copied from TopkDropoutStrategy semantics
+        if self.only_tradable:
+
+            def get_first_n(li, n, reverse=False):
+                cur_n = 0
+                res = []
+                for si in reversed(li) if reverse else li:
+                    if self.trade_exchange.is_stock_tradable(
+                        stock_id=si, start_time=trade_start_time, end_time=trade_end_time
+                    ):
+                        res.append(si)
+                        cur_n += 1
+                        if cur_n >= n:
+                            break
+                return res[::-1] if reverse else res
+
+            def get_last_n(li, n):
+                return get_first_n(li, n, reverse=True)
+
+            def filter_stock(li):
+                return [
+                    si
+                    for si in li
+                    if self.trade_exchange.is_stock_tradable(
+                        stock_id=si, start_time=trade_start_time, end_time=trade_end_time
+                    )
+                ]
+
+        else:
+
+            def get_first_n(li, n):
+                return list(li)[:n]
+
+            def get_last_n(li, n):
+                return list(li)[-n:]
+
+            def filter_stock(li):
+                return li
+
+        current_temp: Position = copy.deepcopy(self.trade_position)
+
+        # Build current long/short lists by sign of amount
+        current_stock_list = current_temp.get_stock_list()
+        long_now = []  # amounts > 0
+        short_now = []  # amounts < 0
+        for code in current_stock_list:
+            amt = current_temp.get_stock_amount(code)
+            if amt > 0:
+                long_now.append(code)
+            elif amt < 0:
+                short_now.append(code)
+        if self._debug:
+            print(
+                f"[LongShortTopKStrategy][{trade_start_time}] init_pos: longs={len(long_now)}, shorts={len(short_now)}"
+            )
+            if short_now:
+                try:
+                    details = [(c, float(current_temp.get_stock_amount(c))) for c in short_now]
+                    print(f"[LongShortTopKStrategy][{trade_start_time}] short_details: {details}")
+                except Exception as e:
+                    get_module_logger("LongShortTopKStrategy").debug("Failed to print short_details: %s", e)
+
+        # ---- Long leg selection (descending score) ----
+        last_long = pred_score.reindex(long_now).sort_values(ascending=False).index
+        n_to_add_long = max(0, self.n_drop_long + self.topk_long - len(last_long))
+        if self.method_buy == "top":
+            today_long_candi = get_first_n(
+                pred_score[~pred_score.index.isin(last_long)].sort_values(ascending=False).index,
+                n_to_add_long,
+            )
+        elif self.method_buy == "random":
+            topk_candi = get_first_n(pred_score.sort_values(ascending=False).index, self.topk_long)
+            candi = list(filter(lambda x: x not in last_long, topk_candi))
+            try:
+                today_long_candi = (
+                    list(np.random.choice(candi, n_to_add_long, replace=False)) if n_to_add_long > 0 else []
+                )
+            except ValueError:
+                today_long_candi = candi
+        else:
+            raise NotImplementedError
+        comb_long = pred_score.reindex(last_long.union(pd.Index(today_long_candi))).sort_values(ascending=False).index
+        if self.method_sell == "bottom":
+            sell_long = last_long[last_long.isin(get_last_n(comb_long, self.n_drop_long))]
+        elif self.method_sell == "random":
+            candi = filter_stock(last_long)
+            try:
+                sell_long = pd.Index(np.random.choice(candi, self.n_drop_long, replace=False) if len(candi) else [])
+            except ValueError:
+                sell_long = pd.Index(candi)
+        else:
+            raise NotImplementedError
+        buy_long = today_long_candi[: len(sell_long) + self.topk_long - len(last_long)]
+
+        # ---- Short leg selection (ascending score) ----
+        last_short = pred_score.reindex(short_now).sort_values(ascending=True).index
+        n_to_add_short = max(0, self.n_drop_short + self.topk_short - len(last_short))
+        if self.method_buy == "top":  # for short, "top" means most negative i.e., ascending
+            today_short_candi = get_first_n(
+                pred_score[~pred_score.index.isin(last_short)].sort_values(ascending=True).index,
+                n_to_add_short,
+            )
+        elif self.method_buy == "random":
+            topk_candi = get_first_n(pred_score.sort_values(ascending=True).index, self.topk_short)
+            candi = list(filter(lambda x: x not in last_short, topk_candi))
+            try:
+                today_short_candi = (
+                    list(np.random.choice(candi, n_to_add_short, replace=False)) if n_to_add_short > 0 else []
+                )
+            except ValueError:
+                today_short_candi = candi
+        else:
+            raise NotImplementedError
+        comb_short = pred_score.reindex(last_short.union(pd.Index(today_short_candi))).sort_values(ascending=True).index
+        if self.method_sell == "bottom":  # for short, bottom means highest scores among shorts (least negative)
+            cover_short = last_short[last_short.isin(get_last_n(comb_short, self.n_drop_short))]
+        elif self.method_sell == "random":
+            candi = filter_stock(last_short)
+            try:
+                cover_short = pd.Index(np.random.choice(candi, self.n_drop_short, replace=False) if len(candi) else [])
+            except ValueError:
+                cover_short = pd.Index(candi)
+        else:
+            raise NotImplementedError
+        open_short = today_short_candi[: len(cover_short) + self.topk_short - len(last_short)]
+
+        # ---- Rebalance to target weights to bound gross leverage and net exposure ----
+        # Determine final long/short sets considering hold_thresh and tradability
+        def can_trade(code: str, direction: int) -> bool:
+            return self.trade_exchange.is_stock_tradable(
+                stock_id=code,
+                start_time=trade_start_time,
+                end_time=trade_end_time,
+                direction=None if self.forbid_all_trade_at_limit else direction,
+            )
+
+        time_per_step = self.trade_calendar.get_freq()
+
+        # apply hold_thresh when removing
+        actual_sold_longs = set()
+        for code in last_long:
+            if (
+                code in sell_long
+                and current_temp.get_stock_count(code, bar=time_per_step) >= self.hold_thresh
+                and can_trade(code, OrderDir.SELL)
+            ):
+                actual_sold_longs.add(code)
+
+        actual_covered_shorts = set()
+        # Align with TopK: in long-only mode, fully cover any existing shorts (not limited by n_drop_short or hold_thresh)
+        long_only_mode = (self.topk_short is None) or (self.topk_short <= 0)
+        if long_only_mode:
+            # Only cover when there is a real negative position to avoid false positives
+            for code in last_short:
+                if current_temp.get_stock_amount(code) < 0 and can_trade(code, OrderDir.BUY):
+                    actual_covered_shorts.add(code)
+        else:
+            for code in last_short:
+                if (
+                    code in cover_short
+                    and current_temp.get_stock_count(code, bar=time_per_step) >= self.hold_thresh
+                    and can_trade(code, OrderDir.BUY)
+                ):
+                    actual_covered_shorts.add(code)
+        if self._debug:
+            print(
+                f"[LongShortTopKStrategy][{trade_start_time}] cover_shorts={len(actual_covered_shorts)} buy_longs_plan={len(buy_long)} open_shorts_plan={len(open_short)}"
+            )
+
+        # Preserve raw planned lists before tradability filtering to align with TopK semantics
+        raw_buy_long = list(buy_long)
+        raw_open_short = list(open_short)
+
+        buy_long = [c for c in buy_long if can_trade(c, OrderDir.BUY)]
+        open_short = [c for c in open_short if can_trade(c, OrderDir.SELL)]
+        open_short = [c for c in open_short if c not in buy_long]  # avoid overlap
+
+        final_long_set = (set(long_now) - actual_sold_longs) | set(buy_long)
+        final_short_set = (set(short_now) - actual_covered_shorts) | set(open_short)
+
+        # Optional: TopK-style no-rebalance branch (symmetric long/short)
+        if not self.rebalance_to_weights:
+            order_list: List[Order] = []
+            cash = current_temp.get_cash()
+
+            # 1) Sell dropped longs entirely
+            for code in long_now:
+                if code in actual_sold_longs and can_trade(code, OrderDir.SELL):
+                    sell_amount = current_temp.get_stock_amount(code=code)
+                    if sell_amount <= 0:
+                        continue
+                    sell_order = Order(
+                        stock_id=code,
+                        amount=sell_amount,
+                        start_time=trade_start_time,
+                        end_time=trade_end_time,
+                        direction=OrderDir.SELL,
+                    )
+                    if self.trade_exchange.check_order(sell_order):
+                        order_list.append(sell_order)
+                        trade_val, trade_cost, trade_price = self.trade_exchange.deal_order(
+                            sell_order, position=current_temp
+                        )
+                        cash += trade_val - trade_cost
+
+            # Snapshot cash AFTER long sells but BEFORE short covers
+            # TopK-style long leg should allocate based on this snapshot to avoid
+            # short-cover cash consumption leaking into long-buy budget.
+            cash_after_long_sells = cash
+
+            # 2) Cover dropped shorts entirely (BUY to cover)
+            for code in short_now:
+                if code in actual_covered_shorts and can_trade(code, OrderDir.BUY):
+                    cover_amount = abs(current_temp.get_stock_amount(code=code))
+                    if cover_amount <= 0:
+                        continue
+                    cover_order = Order(
+                        stock_id=code,
+                        amount=cover_amount,
+                        start_time=trade_start_time,
+                        end_time=trade_end_time,
+                        direction=OrderDir.BUY,
+                    )
+                    if self.trade_exchange.check_order(cover_order):
+                        order_list.append(cover_order)
+                        trade_val, trade_cost, trade_price = self.trade_exchange.deal_order(
+                            cover_order, position=current_temp
+                        )
+                        cash -= trade_val + trade_cost  # covering consumes cash
+
+            # 3) Buy new longs with equal cash split, honoring risk_degree
+            rd = float(self.get_risk_degree(trade_step))
+            # Allocate long/short share: support long_share; degenerate for single-leg mode
+            short_only_mode = (self.topk_long is None) or (self.topk_long <= 0)
+            share = self.long_share if (self.long_share is not None) else 0.5
+            if long_only_mode:
+                rd_long, rd_short = rd, 0.0
+            elif short_only_mode:
+                rd_long, rd_short = 0.0, rd
+            else:
+                rd_long, rd_short = rd * share, rd * (1.0 - share)
+            if self._debug:
+                print(
+                    f"[LongShortTopKStrategy][{trade_start_time}] rd={rd:.4f} rd_long={rd_long:.4f} rd_short={rd_short:.4f} cash_after_long_sells={cash_after_long_sells:.2f}"
+                )
+            # Align with TopK: use cash snapshot after long sells; split by planned count (raw)
+            value_per_buy = cash_after_long_sells * rd_long / len(raw_buy_long) if len(raw_buy_long) > 0 else 0.0
+            for code in raw_buy_long:
+                if not can_trade(code, OrderDir.BUY):
+                    continue
+                price = self.trade_exchange.get_deal_price(
+                    stock_id=code, start_time=trade_start_time, end_time=trade_end_time, direction=OrderDir.BUY
+                )
+                if price is None or not np.isfinite(price) or price <= 0:
+                    continue
+                buy_amount = value_per_buy / float(price)
+                factor = self.trade_exchange.get_factor(
+                    stock_id=code, start_time=trade_start_time, end_time=trade_end_time
+                )
+                buy_amount = self.trade_exchange.round_amount_by_trade_unit(buy_amount, factor)
+                if buy_amount <= 0:
+                    continue
+                buy_order = Order(
+                    stock_id=code,
+                    amount=buy_amount,
+                    start_time=trade_start_time,
+                    end_time=trade_end_time,
+                    direction=OrderDir.BUY,
+                )
+                order_list.append(buy_order)
+
+            # 4) Open new shorts equally by target short notional derived from rd
+            # Compute current short notional after covering
+            def _get_price(sid: str, direction: int):
+                px = self.trade_exchange.get_deal_price(
+                    stock_id=sid, start_time=trade_start_time, end_time=trade_end_time, direction=direction
+                )
+                return float(px) if (px is not None and np.isfinite(px) and px > 0) else None
+
+            # Recompute equity after previous simulated deals
+            # For TopK parity, compute equity BEFORE executing new long buys and BEFORE opening new shorts
+            # i.e., after simulated sells/covers above.
+            equity = max(1e-12, float(current_temp.calculate_value()))
+
+            # Sum current short notional
+            current_short_value = 0.0
+            for sid in current_temp.get_stock_list():
+                amt = current_temp.get_stock_amount(sid)
+                if amt < 0:
+                    px = _get_price(sid, OrderDir.BUY)  # price to cover
+                    if px is not None:
+                        current_short_value += abs(float(amt)) * px
+
+            # Use the same rd_short allocation as above
+            # Note: if short_only_mode, rd_long = 0 and rd_short = rd
+            # Reuse the rd_short computed earlier
+            desired_short_value = equity * rd_short
+            remaining_short_value = max(0.0, desired_short_value - current_short_value)
+            # Align with TopK: split by planned short-open count (raw), then check tradability
+            value_per_short_open = remaining_short_value / len(raw_open_short) if len(raw_open_short) > 0 else 0.0
+            if self._debug:
+                print(
+                    f"[LongShortTopKStrategy][{trade_start_time}] equity={equity:.2f} cur_short_val={current_short_value:.2f} desired_short_val={desired_short_value:.2f} rem_short_val={remaining_short_value:.2f} v_per_short={value_per_short_open:.2f}"
+                )
+
+            for code in raw_open_short:
+                if not can_trade(code, OrderDir.SELL):
+                    continue
+                price = _get_price(code, OrderDir.SELL)
+                if price is None:
+                    continue
+                sell_amount = value_per_short_open / float(price)
+                factor = self.trade_exchange.get_factor(
+                    stock_id=code, start_time=trade_start_time, end_time=trade_end_time
+                )
+                sell_amount = self.trade_exchange.round_amount_by_trade_unit(sell_amount, factor)
+                if sell_amount <= 0:
+                    continue
+                sell_order = Order(
+                    stock_id=code,
+                    amount=sell_amount,
+                    start_time=trade_start_time,
+                    end_time=trade_end_time,
+                    direction=OrderDir.SELL,
+                )
+                order_list.append(sell_order)
+
+            return TradeDecisionWO(order_list, self)
+
+        # Target weights
+        rd = float(self.get_risk_degree(trade_step))
+        share = self.long_share if (self.long_share is not None) else 0.5
+        long_total = 0.0
+        short_total = 0.0
+        if len(final_long_set) > 0 and len(final_short_set) > 0:
+            long_total = rd * share
+            short_total = rd * (1.0 - share)
+        elif len(final_long_set) > 0:
+            long_total = rd
+        elif len(final_short_set) > 0:
+            short_total = rd
+
+        target_weight: Dict[str, float] = {}
+        if len(final_long_set) > 0:
+            lw = long_total / len(final_long_set)
+            for c in final_long_set:
+                target_weight[c] = lw
+        if len(final_short_set) > 0:
+            sw = -short_total / len(final_short_set)
+            for c in final_short_set:
+                target_weight[c] = sw
+
+        # Stocks to liquidate
+        for c in current_temp.get_stock_list():
+            if c not in target_weight:
+                target_weight[c] = 0.0
+
+        # Generate orders by comparing current vs target
+        order_list: List[Order] = []
+        equity = max(1e-12, float(current_temp.calculate_value()))
+        for code, tw in target_weight.items():
+            # get price
+            # We select direction by desired delta later, here just fetch a price using BUY as placeholder if needed
+            price_buy = self.trade_exchange.get_deal_price(
+                stock_id=code, start_time=trade_start_time, end_time=trade_end_time, direction=OrderDir.BUY
+            )
+            price_sell = self.trade_exchange.get_deal_price(
+                stock_id=code, start_time=trade_start_time, end_time=trade_end_time, direction=OrderDir.SELL
+            )
+            price = price_buy if price_buy else price_sell
+            if not price or price <= 0:
+                continue
+            cur_amount = float(current_temp.get_stock_amount(code)) if code in current_temp.get_stock_list() else 0.0
+            cur_value = cur_amount * price
+            tgt_value = tw * equity
+            delta_value = tgt_value - cur_value
+            if abs(delta_value) <= 0:
+                continue
+            direction = OrderDir.BUY if delta_value > 0 else OrderDir.SELL
+            if not can_trade(code, direction):
+                continue
+            delta_amount = abs(delta_value) / price
+            factor = self.trade_exchange.get_factor(stock_id=code, start_time=trade_start_time, end_time=trade_end_time)
+            delta_amount = self.trade_exchange.round_amount_by_trade_unit(delta_amount, factor)
+            if delta_amount <= 0:
+                continue
+            order_list.append(
+                Order(
+                    stock_id=code,
+                    amount=delta_amount,
+                    start_time=trade_start_time,
+                    end_time=trade_end_time,
+                    direction=direction,
+                )
+            )
+
+        return TradeDecisionWO(order_list, self)
