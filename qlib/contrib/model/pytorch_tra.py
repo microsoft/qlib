@@ -27,7 +27,12 @@ from qlib.log import get_module_logger
 from qlib.model.base import Model
 from qlib.contrib.data.dataset import MTSDatasetH
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
+if torch.cuda.is_available():
+    device = torch.device("cuda")
+elif torch.backends.mps.is_available():
+    device = torch.device("mps")
+else:
+    device = torch.device("cpu")
 
 
 class TRAModel(Model):
@@ -281,6 +286,23 @@ class TRAModel(Model):
         metrics = []
         for batch in tqdm(data_set):
             data, state, label, count = batch["data"], batch["state"], batch["label"], batch["daily_count"]
+            
+            # MPS Fix: Ensure inputs are float32 and contiguous before converting to tensor
+            if not isinstance(data, torch.Tensor):
+                data = torch.as_tensor(np.ascontiguousarray(data, dtype=np.float32), device=device)
+            elif data.device != device:
+                data = data.to(device)
+                
+            if not isinstance(state, torch.Tensor):
+                state = torch.as_tensor(np.ascontiguousarray(state, dtype=np.float32), device=device)
+            elif state.device != device:
+                state = state.to(device)
+                
+            if not isinstance(label, torch.Tensor):
+                label = torch.as_tensor(np.ascontiguousarray(label, dtype=np.float32), device=device)
+            elif label.device != device:
+                label = label.to(device)
+
             index = batch["daily_index"] if self.use_daily_transport else batch["index"]
 
             with torch.no_grad():
@@ -738,19 +760,11 @@ def evaluate(pred):
 def shoot_infs(inp_tensor):
     """Replaces inf by maximum of tensor"""
     mask_inf = torch.isinf(inp_tensor)
-    ind_inf = torch.nonzero(mask_inf, as_tuple=False)
-    if len(ind_inf) > 0:
-        for ind in ind_inf:
-            if len(ind) == 2:
-                inp_tensor[ind[0], ind[1]] = 0
-            elif len(ind) == 1:
-                inp_tensor[ind[0]] = 0
+    # Vectorized implementation to avoid manual loop which crashes MPS
+    if mask_inf.any():
+        inp_tensor[mask_inf] = 0
         m = torch.max(inp_tensor)
-        for ind in ind_inf:
-            if len(ind) == 2:
-                inp_tensor[ind[0], ind[1]] = m
-            elif len(ind) == 1:
-                inp_tensor[ind[0]] = m
+        inp_tensor[mask_inf] = m
     return inp_tensor
 
 

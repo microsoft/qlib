@@ -447,7 +447,7 @@ class MLflowRecorder(Recorder):
         for name, data in kwargs.items():
             self.client.log_param(self.id, name, data)
 
-    @AsyncCaller.async_dec(ac_attr="async_log")
+    # @AsyncCaller.async_dec(ac_attr="async_log")
     def log_metrics(self, step=None, **kwargs):
         for name, data in kwargs.items():
             self.client.log_metric(self.id, name, data, step=step)

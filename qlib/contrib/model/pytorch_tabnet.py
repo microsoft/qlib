@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 from typing import Text, Union
 import copy
+import sys
 from ...utils import get_or_create_path
 from ...log import get_module_logger
 
@@ -69,7 +70,12 @@ class TabnetModel(Model):
         self.n_epochs = n_epochs
         self.logger = get_module_logger("TabNet")
         self.pretrain_n_epochs = pretrain_n_epochs
-        self.device = "cuda:%s" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu"
+        if torch.cuda.is_available() and GPU >= 0:
+            self.device = torch.device("cuda:%d" % GPU)
+        elif torch.backends.mps.is_available() and GPU >= 0:
+            self.device = torch.device("mps")
+        else:
+            self.device = torch.device("cpu")
         self.loss = loss
         self.metric = metric
         self.early_stop = early_stop
@@ -212,7 +218,10 @@ class TabnetModel(Model):
         torch.save(best_param, save_path)
 
         if self.use_gpu:
-            torch.cuda.empty_cache()
+            if self.device.type == "cuda":
+                torch.cuda.empty_cache()
+            elif self.device.type == "mps" and hasattr(torch, "mps") and hasattr(torch.mps, "empty_cache"):
+                torch.mps.empty_cache()
 
     def predict(self, dataset: DatasetH, segment: Union[Text, slice] = "test"):
         if not self.fitted:
@@ -221,8 +230,13 @@ class TabnetModel(Model):
         x_test = dataset.prepare(segment, col_set="feature", data_key=DataHandlerLP.DK_I)
         index = x_test.index
         self.tabnet_model.eval()
-        x_values = torch.from_numpy(x_test.values)
-        x_values[torch.isnan(x_values)] = 0
+        
+        x_values_np = x_test.values.astype(np.float32).copy()
+        if not x_values_np.flags['C_CONTIGUOUS']:
+            x_values_np = np.ascontiguousarray(x_values_np)
+        x_values_np = np.nan_to_num(x_values_np, nan=0.0)
+        x_values = torch.as_tensor(x_values_np, dtype=torch.float32).to(self.device)
+        
         sample_num = x_values.shape[0]
         preds = []
 
@@ -232,8 +246,8 @@ class TabnetModel(Model):
             else:
                 end = begin + self.batch_size
 
-            x_batch = x_values[begin:end].float().to(self.device)
-            priors = torch.ones(end - begin, self.d_feat).to(self.device)
+            x_batch = x_values[begin:end]
+            priors = torch.ones(end - begin, self.d_feat, device=self.device)
 
             with torch.no_grad():
                 pred = self.tabnet_model(x_batch, priors).detach().cpu().numpy()
@@ -244,10 +258,18 @@ class TabnetModel(Model):
 
     def test_epoch(self, data_x, data_y):
         # prepare training data
-        x_values = torch.from_numpy(data_x.values)
-        y_values = torch.from_numpy(np.squeeze(data_y.values))
-        x_values[torch.isnan(x_values)] = 0
-        y_values[torch.isnan(y_values)] = 0
+        x_values_np = data_x.values.astype(np.float32).copy()
+        if not x_values_np.flags['C_CONTIGUOUS']:
+            x_values_np = np.ascontiguousarray(x_values_np)
+        x_values_np = np.nan_to_num(x_values_np, nan=0.0)
+        x_values = torch.as_tensor(x_values_np, dtype=torch.float32).to(self.device)
+        
+        y_values_np = np.squeeze(data_y.values).astype(np.float32).copy()
+        if not y_values_np.flags['C_CONTIGUOUS']:
+            y_values_np = np.ascontiguousarray(y_values_np)
+        y_values_np = np.nan_to_num(y_values_np, nan=0.0)
+        y_values = torch.as_tensor(y_values_np, dtype=torch.float32).to(self.device)
+        
         self.tabnet_model.eval()
 
         scores = []
@@ -258,9 +280,13 @@ class TabnetModel(Model):
         for i in range(len(indices))[:: self.batch_size]:
             if len(indices) - i < self.batch_size:
                 break
-            feature = x_values[indices[i : i + self.batch_size]].float().to(self.device)
-            label = y_values[indices[i : i + self.batch_size]].float().to(self.device)
-            priors = torch.ones(self.batch_size, self.d_feat).to(self.device)
+            
+            idx = indices[i : i + self.batch_size]
+            idx_tensor = torch.tensor(idx, device=self.device)
+            
+            feature = x_values[idx_tensor]
+            label = y_values[idx_tensor]
+            priors = torch.ones(self.batch_size, self.d_feat, device=self.device)
             with torch.no_grad():
                 pred = self.tabnet_model(feature, priors)
                 loss = self.loss_fn(pred, label)
@@ -272,10 +298,18 @@ class TabnetModel(Model):
         return np.mean(losses), np.mean(scores)
 
     def train_epoch(self, x_train, y_train):
-        x_train_values = torch.from_numpy(x_train.values)
-        y_train_values = torch.from_numpy(np.squeeze(y_train.values))
-        x_train_values[torch.isnan(x_train_values)] = 0
-        y_train_values[torch.isnan(y_train_values)] = 0
+        x_train_values_np = x_train.values.astype(np.float32).copy()
+        if not x_train_values_np.flags['C_CONTIGUOUS']:
+            x_train_values_np = np.ascontiguousarray(x_train_values_np)
+        x_train_values_np = np.nan_to_num(x_train_values_np, nan=0.0)
+        x_train_values = torch.as_tensor(x_train_values_np, dtype=torch.float32).to(self.device)
+        
+        y_train_values_np = np.squeeze(y_train.values).astype(np.float32).copy()
+        if not y_train_values_np.flags['C_CONTIGUOUS']:
+            y_train_values_np = np.ascontiguousarray(y_train_values_np)
+        y_train_values_np = np.nan_to_num(y_train_values_np, nan=0.0)
+        y_train_values = torch.as_tensor(y_train_values_np, dtype=torch.float32).to(self.device)
+        
         self.tabnet_model.train()
 
         indices = np.arange(len(x_train_values))
@@ -285,9 +319,12 @@ class TabnetModel(Model):
             if len(indices) - i < self.batch_size:
                 break
 
-            feature = x_train_values[indices[i : i + self.batch_size]].float().to(self.device)
-            label = y_train_values[indices[i : i + self.batch_size]].float().to(self.device)
-            priors = torch.ones(self.batch_size, self.d_feat).to(self.device)
+            idx = indices[i : i + self.batch_size]
+            idx_tensor = torch.tensor(idx, device=self.device)
+
+            feature = x_train_values[idx_tensor]
+            label = y_train_values[idx_tensor]
+            priors = torch.ones(self.batch_size, self.d_feat, device=self.device)
             pred = self.tabnet_model(feature, priors)
             loss = self.loss_fn(pred, label)
 
@@ -297,8 +334,17 @@ class TabnetModel(Model):
             self.train_optimizer.step()
 
     def pretrain_epoch(self, x_train):
-        train_set = torch.from_numpy(x_train.values)
-        train_set[torch.isnan(train_set)] = 0
+        # Force copy and float32
+        x_train_np = x_train.values.astype(np.float32).copy()
+        
+        # Handle NaNs
+        x_train_np = np.nan_to_num(x_train_np, nan=0.0)
+        
+        x_train_np = np.ascontiguousarray(x_train_np)
+        
+        # Move entire dataset to device to avoid CPU-MPS interaction issues
+        train_set = torch.as_tensor(x_train_np, dtype=torch.float32).to(self.device)
+        
         indices = np.arange(len(train_set))
         np.random.shuffle(indices)
 
@@ -309,14 +355,23 @@ class TabnetModel(Model):
             if len(indices) - i < self.batch_size:
                 break
 
-            S_mask = torch.bernoulli(torch.empty(self.batch_size, self.d_feat).fill_(self.ps))
-            x_train_values = train_set[indices[i : i + self.batch_size]] * (1 - S_mask)
-            y_train_values = train_set[indices[i : i + self.batch_size]] * (S_mask)
+            probs = torch.full((self.batch_size, self.d_feat), float(self.ps), device=self.device)
+            S_mask = torch.bernoulli(probs)
+            
+            idx = indices[i : i + self.batch_size]
+            
+            # Indexing on device
+            idx_tensor = torch.tensor(idx, device=self.device)
+            batch_data = train_set[idx_tensor]
+            
+            x_train_values = batch_data * (1 - S_mask)
+            y_train_values = batch_data * S_mask
 
-            S_mask = S_mask.to(self.device)
-            feature = x_train_values.float().to(self.device)
-            label = y_train_values.float().to(self.device)
+            # feature and label are already on device
+            feature = x_train_values
+            label = y_train_values
             priors = 1 - S_mask
+            
             (vec, sparse_loss) = self.tabnet_model(feature, priors)
             f = self.tabnet_decoder(vec)
             loss = self.pretrain_loss_fn(label, f, S_mask)
@@ -326,8 +381,14 @@ class TabnetModel(Model):
             self.pretrain_optimizer.step()
 
     def pretrain_test_epoch(self, x_train):
-        train_set = torch.from_numpy(x_train.values)
-        train_set[torch.isnan(train_set)] = 0
+        x_train_np = x_train.values.astype(np.float32).copy()
+        if not x_train_np.flags['C_CONTIGUOUS']:
+            x_train_np = np.ascontiguousarray(x_train_np)
+        x_train_np = np.nan_to_num(x_train_np, nan=0.0)
+        
+        # Move entire dataset to device to avoid CPU-MPS interaction issues
+        train_set = torch.as_tensor(x_train_np, dtype=torch.float32).to(self.device)
+        
         indices = np.arange(len(train_set))
 
         self.tabnet_model.eval()
@@ -338,15 +399,22 @@ class TabnetModel(Model):
         for i in range(len(indices))[:: self.batch_size]:
             if len(indices) - i < self.batch_size:
                 break
+            
+            # Create S_mask on device directly
+            probs = torch.full((self.batch_size, self.d_feat), float(self.ps), device=self.device)
+            S_mask = torch.bernoulli(probs)
+            
+            idx = indices[i : i + self.batch_size]
+            idx_tensor = torch.tensor(idx, device=self.device)
+            batch_data = train_set[idx_tensor]
 
-            S_mask = torch.bernoulli(torch.empty(self.batch_size, self.d_feat).fill_(self.ps))
-            x_train_values = train_set[indices[i : i + self.batch_size]] * (1 - S_mask)
-            y_train_values = train_set[indices[i : i + self.batch_size]] * (S_mask)
+            x_train_values = batch_data * (1 - S_mask)
+            y_train_values = batch_data * S_mask
 
-            feature = x_train_values.float().to(self.device)
-            label = y_train_values.float().to(self.device)
-            S_mask = S_mask.to(self.device)
+            feature = x_train_values
+            label = y_train_values
             priors = 1 - S_mask
+            
             with torch.no_grad():
                 (vec, sparse_loss) = self.tabnet_model(feature, priors)
                 f = self.tabnet_decoder(vec)
@@ -427,7 +495,7 @@ class TabNet_Decoder(nn.Module):
             self.steps.append(DecoderStep(inp_dim, out_dim, self.shared, n_ind, vbs))
 
     def forward(self, x):
-        out = torch.zeros(x.size(0), self.out_dim).to(x.device)
+        out = torch.zeros(x.size(0), self.out_dim, device=x.device)
         for step in self.steps:
             out += step(x)
         return out
@@ -471,8 +539,8 @@ class TabNet(nn.Module):
         x = self.bn(x)
         x_a = self.first_step(x)[:, self.n_d :]
         sparse_loss = []
-        out = torch.zeros(x.size(0), self.n_d).to(x.device)
-        for step in self.steps:
+        out = torch.zeros(x.size(0), self.n_d, device=x.device)
+        for i, step in enumerate(self.steps):
             x_te, loss = step(x, x_a, priors)
             out += F.relu(x_te[:, : self.n_d])  # split the feature from feat_transformer
             x_a = x_te[:, self.n_d :]
@@ -495,12 +563,14 @@ class GBN(nn.Module):
         self.vbs = vbs
 
     def forward(self, x):
-        if x.size(0) <= self.vbs:  # can not be chunked
-            return self.bn(x)
-        else:
-            chunk = torch.chunk(x, x.size(0) // self.vbs, 0)
-            res = [self.bn(y) for y in chunk]
-            return torch.cat(res, 0)
+        return self.bn(x)
+        # x = x.contiguous()
+        # if x.size(0) <= self.vbs:  # can not be chunked
+        #     return self.bn(x)
+        # else:
+        #     chunk = torch.chunk(x, x.size(0) // self.vbs, 0)
+        #     res = [self.bn(y) for y in chunk]
+        #     return torch.cat(res, 0)
 
 
 class GLU(nn.Module):
@@ -522,7 +592,7 @@ class GLU(nn.Module):
 
     def forward(self, x):
         x = self.bn(self.fc(x))
-        return torch.mul(x[:, : self.od], torch.sigmoid(x[:, self.od :]))
+        return torch.mul(x[:, : self.od].contiguous(), torch.sigmoid(x[:, self.od :].contiguous()))
 
 
 class AttentionTransformer(nn.Module):
@@ -611,8 +681,9 @@ class SparsemaxFunction(Function):
     @staticmethod
     def forward(ctx, input, dim=-1):
         ctx.dim = dim
+        input = input.contiguous()
         max_val, _ = input.max(dim=dim, keepdim=True)
-        input -= max_val  # same numerical stability trick as for softmax
+        input = input - max_val  # same numerical stability trick as for softmax
         tau, supp_size = SparsemaxFunction.threshold_and_support(input, dim=dim)
         output = torch.clamp(input - tau, min=0)
         ctx.save_for_backward(supp_size, output)
@@ -622,6 +693,7 @@ class SparsemaxFunction(Function):
     def backward(ctx, grad_output):
         supp_size, output = ctx.saved_tensors
         dim = ctx.dim
+        grad_output = grad_output.contiguous()
         grad_input = grad_output.clone()
         grad_input[output == 0] = 0
 
@@ -632,12 +704,13 @@ class SparsemaxFunction(Function):
 
     @staticmethod
     def threshold_and_support(input, dim=-1):
+        input = input.contiguous()
         input_srt, _ = torch.sort(input, descending=True, dim=dim)
         input_cumsum = input_srt.cumsum(dim) - 1
         rhos = make_ix_like(input, dim)
         support = rhos * input_srt > input_cumsum
 
         support_size = support.sum(dim=dim).unsqueeze(dim)
-        tau = input_cumsum.gather(dim, support_size - 1)
+        tau = input_cumsum.gather(dim, support_size.long() - 1)
         tau /= support_size.to(input.dtype)
         return tau, support_size

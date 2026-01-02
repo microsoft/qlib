@@ -1,0 +1,1 @@
+/opt/anaconda3/envs/qlib/bin/qrun /Users/aronyang/Documents/GitHub/qlib/examples/benchmarks/LSTM/workflow_config_lstm_Alpha158.yaml LSTM run_all_model_records

@@ -795,9 +795,7 @@ def fill_placeholder(config: dict, config_extend: dict):
                 try:
                     value = get_item_from_obj(config, m.groupdict()["name_path"])
                 except (KeyError, ValueError, IndexError):
-                    get_module_logger("fill_placeholder").info(
-                        f"{value} lookes like a placeholder, but it can't match to any given values"
-                    )
+                    pass
         return value
 
     item_keys = None

@@ -1,0 +1,91 @@
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   benchmarks/ALSTM/workflow_config_alstm_Alpha158.yaml
+	modified:   benchmarks/CatBoost/workflow_config_catboost_Alpha158.yaml
+	modified:   benchmarks/CatBoost/workflow_config_catboost_Alpha158_csi500.yaml
+	modified:   benchmarks/CatBoost/workflow_config_catboost_Alpha360.yaml
+	modified:   benchmarks/CatBoost/workflow_config_catboost_Alpha360_csi500.yaml
+	modified:   benchmarks/GRU/workflow_config_gru_Alpha158.yaml
+	modified:   benchmarks/LSTM/workflow_config_lstm_Alpha158.yaml
+	modified:   benchmarks/LightGBM/workflow_config_lightgbm_Alpha158_multi_freq.yaml
+	modified:   benchmarks/SFM/workflow_config_sfm_Alpha360.yaml
+	modified:   benchmarks/TFT/libs/tft_model.py
+	modified:   benchmarks/TFT/libs/utils.py
+	modified:   benchmarks/TFT/tft.py
+	modified:   benchmarks/TRA/workflow_config_tra_Alpha158_full.yaml
+	modified:   benchmarks/TRA/workflow_config_tra_Alpha360.yaml
+	modified:   benchmarks/Transformer/workflow_config_transformer_Alpha158.yaml
+	modified:   benchmarks/Transformer/workflow_config_transformer_Alpha360.yaml
+	modified:   data_demo/data_cache_demo.py
+	modified:   rl/simple_example.ipynb
+	modified:   run_all_model.py
+	modified:   workflow_by_code.ipynb
+	modified:   ../qlib/backtest/__init__.py
+	modified:   ../qlib/contrib/data/dataset.py
+	modified:   ../qlib/contrib/meta/data_selection/dataset.py
+	modified:   ../qlib/contrib/model/pytorch_adarnn.py
+	modified:   ../qlib/contrib/model/pytorch_add.py
+	modified:   ../qlib/contrib/model/pytorch_alstm.py
+	modified:   ../qlib/contrib/model/pytorch_alstm_ts.py
+	modified:   ../qlib/contrib/model/pytorch_gats.py
+	modified:   ../qlib/contrib/model/pytorch_gats_ts.py
+	modified:   ../qlib/contrib/model/pytorch_general_nn.py
+	modified:   ../qlib/contrib/model/pytorch_gru.py
+	modified:   ../qlib/contrib/model/pytorch_gru_ts.py
+	modified:   ../qlib/contrib/model/pytorch_hist.py
+	modified:   ../qlib/contrib/model/pytorch_igmtf.py
+	modified:   ../qlib/contrib/model/pytorch_krnn.py
+	modified:   ../qlib/contrib/model/pytorch_localformer.py
+	modified:   ../qlib/contrib/model/pytorch_localformer_ts.py
+	modified:   ../qlib/contrib/model/pytorch_lstm.py
+	modified:   ../qlib/contrib/model/pytorch_lstm_ts.py
+	modified:   ../qlib/contrib/model/pytorch_nn.py
+	modified:   ../qlib/contrib/model/pytorch_sandwich.py
+	modified:   ../qlib/contrib/model/pytorch_sfm.py
+	modified:   ../qlib/contrib/model/pytorch_tabnet.py
+	modified:   ../qlib/contrib/model/pytorch_tcn.py
+	modified:   ../qlib/contrib/model/pytorch_tcn_ts.py
+	modified:   ../qlib/contrib/model/pytorch_tcts.py
+	modified:   ../qlib/contrib/model/pytorch_tra.py
+	modified:   ../qlib/contrib/model/pytorch_transformer.py
+	modified:   ../qlib/contrib/model/pytorch_transformer_ts.py
+	modified:   ../qlib/contrib/model/tcn.py
+	modified:   ../qlib/contrib/rolling/ddgda.py
+	modified:   ../qlib/data/dataset/handler.py
+	modified:   ../qlib/rl/interpreter.py
+	modified:   ../qlib/rl/order_execution/policy.py
+	modified:   ../qlib/rl/utils/env_wrapper.py
+	modified:   ../qlib/rl/utils/finite_env.py
+	modified:   ../qlib/utils/__init__.py
+	modified:   ../qlib/workflow/record_temp.py
+	modified:   ../qlib/workflow/recorder.py
+	modified:   ../scripts/data_collector/utils.py
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	../.github/copilot-instructions.md
+	../TODO_OPT.md
+	Users/
+	benchmarks/ADARNN/inspect_model.py
+	benchmarks/CatBoost/catboost_info/
+	benchmarks/HIST/qlib_csi300_stock2concept.npy
+	catboost_info/
+	check_versions.py
+	data_demo/new_task.yaml
+	output/
+	qlib_tft_model/
+	run_all_model_records/
+	run_all_model_records_Alpha158_2025-12-21_09:44:29/
+	run_all_model_records_Alpha158_2025-12-21_09:48:34/
+	run_all_model_records_Alpha158_2025-12-21_09:49:40/
+	run_all_model_records_Alpha360_2025-12-20_19:27:28/
+	run_all_model_records_Alpha360_2025-12-21_09:44:00/
+	table_Alpha360_2025-12-20_19:27:28.md
+	../qlib/_version.py
+	../workflow_output.log
+
+no changes added to commit (use "git add" and/or "git commit -a")

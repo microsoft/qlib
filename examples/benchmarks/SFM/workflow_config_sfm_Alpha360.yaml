@@ -53,7 +53,7 @@ task:
             freq_dim: 25
             dropout_W: 0.5
             dropout_U: 0.5
-            n_epochs: 20
+            n_epochs: 200
             lr: 1e-3
             batch_size: 1600
             early_stop: 20

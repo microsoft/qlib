@@ -5,6 +5,13 @@
 from __future__ import division
 from __future__ import print_function
 
+import os
+import platform
+
+# Set OMP_NUM_THREADS to 1 only on macOS to avoid OpenMP/MPS conflicts
+if platform.system() == "Darwin":
+    os.environ["OMP_NUM_THREADS"] = "1"
+
 import numpy as np
 import pandas as pd
 import copy
@@ -94,7 +101,12 @@ class GATs(Model):
         self.loss = loss
         self.base_model = base_model
         self.model_path = model_path
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        if torch.cuda.is_available() and GPU >= 0:
+            self.device = torch.device("cuda:%d" % GPU)
+        elif torch.backends.mps.is_available() and GPU >= 0:
+            self.device = torch.device("mps")
+        else:
+            self.device = torch.device("cpu")
         self.n_jobs = n_jobs
         self.seed = seed
 
@@ -198,10 +210,10 @@ class GATs(Model):
 
         for data in data_loader:
             data = data.squeeze()
-            feature = data[:, :, 0:-1].to(self.device)
-            label = data[:, -1, -1].to(self.device)
+            feature = data[:, :, 0:-1].float().to(self.device)
+            label = data[:, -1, -1].float().to(self.device)
 
-            pred = self.GAT_model(feature.float())
+            pred = self.GAT_model(feature)
             loss = self.loss_fn(pred, label)
 
             self.train_optimizer.zero_grad()
@@ -217,11 +229,11 @@ class GATs(Model):
 
         for data in data_loader:
             data = data.squeeze()
-            feature = data[:, :, 0:-1].to(self.device)
+            feature = data[:, :, 0:-1].float().to(self.device)
             # feature[torch.isnan(feature)] = 0
-            label = data[:, -1, -1].to(self.device)
+            label = data[:, -1, -1].float().to(self.device)
 
-            pred = self.GAT_model(feature.float())
+            pred = self.GAT_model(feature)
             loss = self.loss_fn(pred, label)
             losses.append(loss.item())
 
@@ -309,8 +321,10 @@ class GATs(Model):
         self.GAT_model.load_state_dict(best_param)
         torch.save(best_param, save_path)
 
-        if self.use_gpu:
+        if self.device.type == "cuda":
             torch.cuda.empty_cache()
+        elif self.device.type == "mps" and hasattr(torch, "mps") and hasattr(torch.mps, "empty_cache"):
+            torch.mps.empty_cache()
 
     def predict(self, dataset):
         if not self.fitted:
@@ -325,10 +339,10 @@ class GATs(Model):
 
         for data in test_loader:
             data = data.squeeze()
-            feature = data[:, :, 0:-1].to(self.device)
+            feature = data[:, :, 0:-1].float().to(self.device)
 
             with torch.no_grad():
-                pred = self.GAT_model(feature.float()).detach().cpu().numpy()
+                pred = self.GAT_model(feature).detach().cpu().numpy()
 
             preds.append(pred)
 
