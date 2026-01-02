@@ -92,7 +92,12 @@ class DNNModelPytorch(Model):
         if isinstance(GPU, str):
             self.device = torch.device(GPU)
         else:
-            self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+            if torch.cuda.is_available() and GPU >= 0:
+                self.device = torch.device("cuda:%d" % GPU)
+            elif torch.backends.mps.is_available() and GPU >= 0:
+                self.device = torch.device("mps")
+            else:
+                self.device = torch.device("cpu")
         self.seed = seed
         self.weight_decay = weight_decay
         self.data_parall = data_parall
@@ -131,7 +136,11 @@ class DNNModelPytorch(Model):
             self.dnn_model = init_instance_by_config({"class": pt_model_uri, "kwargs": pt_model_kwargs})
 
             if self.data_parall:
-                self.dnn_model = DataParallel(self.dnn_model).to(self.device)
+                if self.device.type == "mps":
+                    self.logger.warning("DataParallel is not supported on MPS. Disabling data_parall.")
+                    self.data_parall = False
+                else:
+                    self.dnn_model = DataParallel(self.dnn_model).to(self.device)
         else:
             self.dnn_model = init_model
 
@@ -199,6 +208,8 @@ class DNNModelPytorch(Model):
         vars = ["x", "y", "w"]
         all_df = defaultdict(dict)  # x_train, x_valid y_train, y_valid w_train, w_valid
         all_t = defaultdict(dict)  # tensors
+        all_index = {} # Store indices for metric calculation
+        
         for seg in segments:
             if seg in dataset.segments:
                 # df_train df_valid
@@ -206,7 +217,9 @@ class DNNModelPytorch(Model):
                     seg, col_set=["feature", "label"], data_key=self.valid_key if seg == "valid" else DataHandlerLP.DK_L
                 )
                 all_df["x"][seg] = df["feature"]
-                all_df["y"][seg] = df["label"].copy()  # We have to use copy to remove the reference to release mem
+                all_df["y"][seg] = df["label"]
+                all_index[seg] = df.index # Save index
+                
                 if reweighter is None:
                     all_df["w"][seg] = pd.DataFrame(np.ones_like(all_df["y"][seg].values), index=df.index)
                 elif isinstance(reweighter, Reweighter):
@@ -216,14 +229,19 @@ class DNNModelPytorch(Model):
 
                 # get tensors
                 for v in vars:
-                    all_t[v][seg] = torch.from_numpy(all_df[v][seg].values).float()
-                    # if seg == "valid": # accelerate the eval of validation
-                    all_t[v][seg] = all_t[v][seg].to(self.device)  # This will consume a lot of memory !!!!
+                    values = all_df[v][seg].values
+                    if self.device.type == 'mps':
+                        # Keep as numpy for MPS to avoid Segfaults during indexing
+                        all_t[v][seg] = np.ascontiguousarray(values, dtype=np.float32)
+                    else:
+                        all_t[v][seg] = torch.tensor(values, dtype=torch.float32).to(self.device)
 
                 evals_result[seg] = []
                 # free memory
                 del df
                 del all_df["x"]
+                del all_df["y"]
+                del all_df["w"]
                 gc.collect()
 
         save_path = get_or_create_path(save_path)
@@ -245,10 +263,20 @@ class DNNModelPytorch(Model):
             loss = AverageMeter()
             self.dnn_model.train()
             self.train_optimizer.zero_grad()
+            
             choice = np.random.choice(train_num, self.batch_size)
-            x_batch_auto = all_t["x"]["train"][choice].to(self.device)
-            y_batch_auto = all_t["y"]["train"][choice].to(self.device)
-            w_batch_auto = all_t["w"]["train"][choice].to(self.device)
+            
+            if self.device.type == 'mps':
+                # Data is numpy array, slice then convert
+                x_batch_auto = torch.from_numpy(all_t["x"]["train"][choice]).to(self.device)
+                y_batch_auto = torch.from_numpy(all_t["y"]["train"][choice]).to(self.device)
+                w_batch_auto = torch.from_numpy(all_t["w"]["train"][choice]).to(self.device)
+            else:
+                # Data is tensor
+                choice_tensor = torch.tensor(choice, dtype=torch.long).to(self.device)
+                x_batch_auto = all_t["x"]["train"][choice_tensor]
+                y_batch_auto = all_t["y"]["train"][choice_tensor]
+                w_batch_auto = all_t["w"]["train"][choice_tensor]
 
             # forward
             preds = self.dnn_model(x_batch_auto)
@@ -271,11 +299,22 @@ class DNNModelPytorch(Model):
 
                         # forward
                         preds = self._nn_predict(all_t["x"]["valid"], return_cpu=False)
-                        cur_loss_val = self.get_loss(preds, all_t["w"]["valid"], all_t["y"]["valid"], self.loss_type)
+                        
+                        # Handle validation data which might be numpy arrays on MPS
+                        valid_w = all_t["w"]["valid"]
+                        valid_y = all_t["y"]["valid"]
+                        if self.device.type == 'mps' and not isinstance(valid_w, torch.Tensor):
+                             valid_w = torch.from_numpy(valid_w).to(self.device)
+                        if self.device.type == 'mps' and not isinstance(valid_y, torch.Tensor):
+                             valid_y = torch.from_numpy(valid_y).to(self.device)
+
+                        cur_loss_val = self.get_loss(preds, valid_w, valid_y, self.loss_type)
                         loss_val = cur_loss_val.item()
                         metric_val = (
                             self.get_metric(
-                                preds.reshape(-1), all_t["y"]["valid"].reshape(-1), all_df["y"]["valid"].index
+                                preds.reshape(-1), 
+                                all_t["y"]["valid"] if isinstance(all_t["y"]["valid"], torch.Tensor) else torch.from_numpy(all_t["y"]["valid"]).to(self.device).reshape(-1),
+                                all_index["valid"]
                             )
                             .detach()
                             .cpu()
@@ -289,8 +328,8 @@ class DNNModelPytorch(Model):
                             metric_train = (
                                 self.get_metric(
                                     self._nn_predict(all_t["x"]["train"], return_cpu=False),
-                                    all_t["y"]["train"].reshape(-1),
-                                    all_df["y"]["train"].index,
+                                    all_t["y"]["train"] if isinstance(all_t["y"]["train"], torch.Tensor) else torch.from_numpy(all_t["y"]["train"]).to(self.device).reshape(-1),
+                                    all_index["train"]
                                 )
                                 .detach()
                                 .cpu()
@@ -330,9 +369,23 @@ class DNNModelPytorch(Model):
 
         if has_valid:
             # restore the optimal parameters after training
-            self.dnn_model.load_state_dict(torch.load(save_path, map_location=self.device))
-        if self.use_gpu:
+            self.logger.info("Restoring optimal parameters...")
+            # Load to CPU first to avoid potential MPS issues during load
+            state_dict = torch.load(save_path, map_location="cpu")
+            self.logger.info("Loaded state dict to CPU")
+            self.dnn_model.load_state_dict(state_dict)
+            self.logger.info("Loaded state dict to model")
+            self.dnn_model.to(self.device)
+            self.logger.info("Moved model to device")
+            
+        if self.device.type == "cuda":
             torch.cuda.empty_cache()
+        elif self.device.type == "mps" and hasattr(torch, "mps") and hasattr(torch.mps, "empty_cache"):
+            pass # torch.mps.empty_cache()
+        
+        self.logger.info("Fit method finished")
+        # Free the memory of training data
+        self._numpy_arrays = []
 
     def get_lr(self):
         assert len(self.train_optimizer.param_groups) == 1
@@ -360,18 +413,25 @@ class DNNModelPytorch(Model):
         1) test inference (data may come from CPU and expect the output data is on CPU)
         2) evaluation on training (data may come from GPU)
         """
-        if not isinstance(data, torch.Tensor):
-            if isinstance(data, pd.DataFrame):
-                data = data.values
-            data = torch.Tensor(data)
-        data = data.to(self.device)
+        if isinstance(data, pd.DataFrame):
+            data = data.values
+        
+        # If data is numpy, keep it as numpy for batching
+        # If data is tensor, keep it as tensor
+        
         preds = []
         self.dnn_model.eval()
         with torch.no_grad():
             batch_size = 8096
             for i in range(0, len(data), batch_size):
                 x = data[i : i + batch_size]
+                if not isinstance(x, torch.Tensor):
+                    # Ensure contiguous and correct type for MPS safety
+                    x = np.ascontiguousarray(x, dtype=np.float32)
+                    x = torch.from_numpy(x)
+                
                 preds.append(self.dnn_model(x.to(self.device)).detach().reshape(-1))
+        
         if return_cpu:
             preds = np.concatenate([pr.cpu().numpy() for pr in preds])
         else:

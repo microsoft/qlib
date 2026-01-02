@@ -1,0 +1,1 @@
+[{'class': 'DropCol', 'kwargs': {'col_list': ['VWAP0']}}, {'class': 'CSZFillna', 'kwargs': {'fields_group': 'feature'}}]

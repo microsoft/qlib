@@ -70,7 +70,12 @@ class GRU(Model):
         self.early_stop = early_stop
         self.optimizer = optimizer.lower()
         self.loss = loss
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        if torch.cuda.is_available() and GPU >= 0:
+            self.device = torch.device("cuda:%d" % GPU)
+        elif torch.backends.mps.is_available() and GPU >= 0:
+            self.device = torch.device("mps")
+        else:
+            self.device = torch.device("cpu")
         self.seed = seed
 
         self.logger.info(
@@ -154,8 +159,8 @@ class GRU(Model):
         raise ValueError("unknown metric `%s`" % self.metric)
 
     def train_epoch(self, x_train, y_train):
-        x_train_values = x_train.values
-        y_train_values = np.squeeze(y_train.values)
+        x_train_values = x_train
+        y_train_values = np.squeeze(y_train)
 
         self.gru_model.train()
 
@@ -166,8 +171,8 @@ class GRU(Model):
             if len(indices) - i < self.batch_size:
                 break
 
-            feature = torch.from_numpy(x_train_values[indices[i : i + self.batch_size]]).float().to(self.device)
-            label = torch.from_numpy(y_train_values[indices[i : i + self.batch_size]]).float().to(self.device)
+            feature = torch.from_numpy(x_train_values[indices[i : i + self.batch_size]]).to(self.device)
+            label = torch.from_numpy(y_train_values[indices[i : i + self.batch_size]]).to(self.device)
 
             pred = self.gru_model(feature)
             loss = self.loss_fn(pred, label)
@@ -179,8 +184,8 @@ class GRU(Model):
 
     def test_epoch(self, data_x, data_y):
         # prepare training data
-        x_values = data_x.values
-        y_values = np.squeeze(data_y.values)
+        x_values = data_x
+        y_values = np.squeeze(data_y)
 
         self.gru_model.eval()
 
@@ -188,23 +193,21 @@ class GRU(Model):
         losses = []
 
         indices = np.arange(len(x_values))
+        test_batch_size = self.batch_size * 10
 
-        for i in range(len(indices))[:: self.batch_size]:
-            if len(indices) - i < self.batch_size:
-                break
-
-            feature = torch.from_numpy(x_values[indices[i : i + self.batch_size]]).float().to(self.device)
-            label = torch.from_numpy(y_values[indices[i : i + self.batch_size]]).float().to(self.device)
+        for i in range(0, len(indices), test_batch_size):
+            feature = torch.from_numpy(x_values[indices[i : i + test_batch_size]]).to(self.device)
+            label = torch.from_numpy(y_values[indices[i : i + test_batch_size]]).to(self.device)
 
             with torch.no_grad():
                 pred = self.gru_model(feature)
                 loss = self.loss_fn(pred, label)
-                losses.append(loss.item())
+                losses.append(loss)
 
                 score = self.metric_fn(pred, label)
-                scores.append(score.item())
+                scores.append(score)
 
-        return np.mean(losses), np.mean(scores)
+        return torch.stack(losses).mean().item(), torch.stack(scores).mean().item()
 
     def fit(
         self,
@@ -229,12 +232,12 @@ class GRU(Model):
             raise ValueError("Empty training data from dataset, please check your dataset config.")
 
         df_train = df_train.dropna()
-        x_train, y_train = df_train["feature"], df_train["label"]
+        x_train, y_train = df_train["feature"].values.astype(np.float32), df_train["label"].values.astype(np.float32)
 
         # check if validation data is provided
         if not df_valid.empty:
             df_valid = df_valid.dropna()
-            x_valid, y_valid = df_valid["feature"], df_valid["label"]
+            x_valid, y_valid = df_valid["feature"].values.astype(np.float32), df_valid["label"].values.astype(np.float32)
         else:
             x_valid, y_valid = None, None
 
@@ -286,8 +289,10 @@ class GRU(Model):
             for i, v in enumerate(v_l):
                 rec.log_metrics(step=i, **{k: v})
 
-        if self.use_gpu:
+        if self.device.type == "cuda":
             torch.cuda.empty_cache()
+        elif self.device.type == "mps" and hasattr(torch, "mps") and hasattr(torch.mps, "empty_cache"):
+            torch.mps.empty_cache()
 
     def predict(self, dataset: DatasetH, segment: Union[Text, slice] = "test"):
         if not self.fitted:
@@ -306,7 +311,12 @@ class GRU(Model):
             else:
                 end = begin + self.batch_size
 
-            x_batch = torch.from_numpy(x_values[begin:end]).float().to(self.device)
+            x_slice = x_values[begin:end]
+            
+            if not x_slice.flags['C_CONTIGUOUS']:
+                x_slice = np.ascontiguousarray(x_slice)
+            
+            x_batch = torch.from_numpy(x_slice).float().to(self.device)
 
             with torch.no_grad():
                 pred = self.gru_model(x_batch).detach().cpu().numpy()

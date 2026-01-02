@@ -1,0 +1,14 @@
+artifact_uri: file:///Users/aronyang/Documents/GitHub/qlib/examples/run_all_model_records/359097524621352841/0c12e39a750d49a5ad791c19c1d0ce69/artifacts
+end_time: 1766495851005
+entry_point_name: ''
+experiment_id: '359097524621352841'
+lifecycle_stage: active
+run_id: 0c12e39a750d49a5ad791c19c1d0ce69
+run_name: mlflow_recorder
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1766495463750
+status: 4
+tags: []
+user_id: aronyang

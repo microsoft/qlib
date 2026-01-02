@@ -3,6 +3,13 @@
 from __future__ import division
 from __future__ import print_function
 
+import os
+import platform
+
+# Set OMP_NUM_THREADS to 1 only on macOS to avoid OpenMP/MPS conflicts
+if platform.system() == "Darwin":
+    os.environ["OMP_NUM_THREADS"] = "1"
+
 from torch.utils.data import DataLoader
 
 
@@ -83,7 +90,12 @@ class GeneralPTNN(Model):
         self.optimizer = optimizer.lower()
         self.loss = loss
         self.weight_decay = weight_decay
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        if torch.cuda.is_available() and GPU >= 0:
+            self.device = torch.device("cuda:%d" % GPU)
+        elif torch.backends.mps.is_available() and GPU >= 0:
+            self.device = torch.device("mps")
+        else:
+            self.device = torch.device("cpu")
         self.n_jobs = n_jobs
         self.seed = seed
 
@@ -189,12 +201,12 @@ class GeneralPTNN(Model):
         """
         if data.dim() == 3:
             # it is a time series dataset
-            feature = data[:, :, 0:-1].to(self.device)
-            label = data[:, -1, -1].to(self.device)
+            feature = data[:, :, 0:-1].float().to(self.device)
+            label = data[:, -1, -1].float().to(self.device)
         elif data.dim() == 2:
             # it is a tabular dataset
-            feature = data[:, 0:-1].to(self.device)
-            label = data[:, -1].to(self.device)
+            feature = data[:, 0:-1].float().to(self.device)
+            label = data[:, -1].float().to(self.device)
         else:
             raise ValueError("Unsupported data shape.")
         return feature, label
@@ -206,7 +218,7 @@ class GeneralPTNN(Model):
             feature, label = self._get_fl(data)
 
             pred = self.dnn_model(feature.float())
-            loss = self.loss_fn(pred, label, weight.to(self.device))
+            loss = self.loss_fn(pred, label, weight.float().to(self.device))
 
             self.train_optimizer.zero_grad()
             loss.backward()
@@ -224,13 +236,13 @@ class GeneralPTNN(Model):
 
             with torch.no_grad():
                 pred = self.dnn_model(feature.float())
-                loss = self.loss_fn(pred, label, weight.to(self.device))
-                losses.append(loss.item())
+                loss = self.loss_fn(pred, label, weight.float().to(self.device))
+                losses.append(loss)
 
                 score = self.metric_fn(pred, label)
-                scores.append(score.item())
+                scores.append(score)
 
-        return np.mean(losses), np.mean(scores)
+        return torch.stack(losses).mean().item(), torch.stack(scores).mean().item()
 
     def fit(
         self,
@@ -265,11 +277,23 @@ class GeneralPTNN(Model):
             # If it is a tabular, we convert the dataframe to numpy to be indexable by DataLoader
             dl_train = dl_train.values
             dl_valid = dl_valid.values
+            
+            # Ensure contiguous
+            if not dl_train.flags['C_CONTIGUOUS']:
+                dl_train = np.ascontiguousarray(dl_train)
+            if not dl_valid.flags['C_CONTIGUOUS']:
+                dl_valid = np.ascontiguousarray(dl_valid)
+            
+            # Manual shuffle for training data
+            indices = np.arange(len(dl_train))
+            np.random.shuffle(indices)
+            dl_train = dl_train[indices]
+            wl_train = wl_train[indices]
 
         train_loader = DataLoader(
             ConcatDataset(dl_train, wl_train),
             batch_size=self.batch_size,
-            shuffle=True,
+            shuffle=False,  # Disable shuffle to prevent crash on MPS
             num_workers=self.n_jobs,
             drop_last=True,
         )
@@ -328,8 +352,10 @@ class GeneralPTNN(Model):
         self.dnn_model.load_state_dict(best_param)
         torch.save(best_param, save_path)
 
-        if self.use_gpu:
+        if self.device.type == "cuda":
             torch.cuda.empty_cache()
+        elif self.device.type == "mps" and hasattr(torch, "mps") and hasattr(torch.mps, "empty_cache"):
+            torch.mps.empty_cache()
 
     def predict(
         self,
@@ -350,6 +376,8 @@ class GeneralPTNN(Model):
             # If it is a tabular, we convert the dataframe to numpy to be indexable by DataLoader
             index = dl_test.index
             dl_test = dl_test.values
+            if not dl_test.flags['C_CONTIGUOUS']:
+                dl_test = np.ascontiguousarray(dl_test)
 
         test_loader = DataLoader(dl_test, batch_size=self.batch_size, num_workers=self.n_jobs)
         self.dnn_model.eval()

@@ -61,7 +61,7 @@ task:
             dropout: 0.0
             n_epochs: 200
             lr: 1e-3
-            early_stop: 10
+            early_stop: 20
             batch_size: 800
             metric: loss
             loss: mse

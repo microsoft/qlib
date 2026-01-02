@@ -80,7 +80,12 @@ class HIST(Model):
         self.model_path = model_path
         self.stock2concept = stock2concept
         self.stock_index = stock_index
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        if torch.cuda.is_available() and GPU >= 0:
+            self.device = torch.device("cuda:%d" % GPU)
+        elif torch.backends.mps.is_available() and GPU >= 0:
+            self.device = torch.device("mps")
+        else:
+            self.device = torch.device("cpu")
         self.seed = seed
 
         self.logger.info(
@@ -155,7 +160,7 @@ class HIST(Model):
         mask = ~torch.isnan(label)
 
         if self.loss == "mse":
-            return self.mse(pred[mask], label[mask])
+            return self.mse(pred.squeeze()[mask], label[mask])
 
         raise ValueError("unknown loss `%s`" % self.loss)
 
@@ -163,15 +168,15 @@ class HIST(Model):
         mask = torch.isfinite(label)
 
         if self.metric == "ic":
-            x = pred[mask]
+            x = pred.squeeze()[mask]
             y = label[mask]
 
             vx = x - torch.mean(x)
             vy = y - torch.mean(y)
             return torch.sum(vx * vy) / (torch.sqrt(torch.sum(vx**2)) * torch.sqrt(torch.sum(vy**2)))
 
-        if self.metric == ("", "loss"):
-            return -self.loss_fn(pred[mask], label[mask])
+        if self.metric in ("", "loss"):
+            return -self.loss_fn(pred, label)
 
         raise ValueError("unknown metric `%s`" % self.metric)
 
@@ -181,18 +186,30 @@ class HIST(Model):
         daily_index = np.roll(np.cumsum(daily_count), 1)
         daily_index[0] = 0
         if shuffle:
-            # shuffle data
-            daily_shuffle = list(zip(daily_index, daily_count))
-            np.random.shuffle(daily_shuffle)
-            daily_index, daily_count = zip(*daily_shuffle)
+            # shuffle the daily batches
+            idx = np.arange(len(daily_count))
+            np.random.shuffle(idx)
+            daily_index = daily_index[idx]
+            daily_count = daily_count[idx]
         return daily_index, daily_count
 
     def train_epoch(self, x_train, y_train, stock_index):
         stock2concept_matrix = np.load(self.stock2concept)
+        self.logger.info(f"stock2concept_matrix shape: {stock2concept_matrix.shape}, dtype: {stock2concept_matrix.dtype}")
+        self.logger.info(f"stock2concept_matrix flags: {stock2concept_matrix.flags}")
+        
+        # Force copy and cast to float32
+        stock2concept_matrix = np.array(stock2concept_matrix, dtype=np.float32, copy=True)
+        if not stock2concept_matrix.flags['C_CONTIGUOUS']:
+            stock2concept_matrix = np.ascontiguousarray(stock2concept_matrix)
+        
+        self.logger.info("stock2concept_matrix reloaded as float32 contiguous copy")
+
         x_train_values = x_train.values
         y_train_values = np.squeeze(y_train.values)
         stock_index = stock_index.values
         stock_index[np.isnan(stock_index)] = 733
+        stock_index = stock_index.astype("int")
         self.HIST_model.train()
 
         # organize the train data into daily batches
@@ -200,9 +217,21 @@ class HIST(Model):
 
         for idx, count in zip(daily_index, daily_count):
             batch = slice(idx, idx + count)
-            feature = torch.from_numpy(x_train_values[batch]).float().to(self.device)
-            concept_matrix = torch.from_numpy(stock2concept_matrix[stock_index[batch]]).float().to(self.device)
-            label = torch.from_numpy(y_train_values[batch]).float().to(self.device)
+            
+            feature_np = np.ascontiguousarray(x_train_values[batch], dtype=np.float32)
+            feature = torch.from_numpy(feature_np).to(self.device)
+            
+            stock_idx_batch = stock_index[batch]
+            if not stock_idx_batch.flags['C_CONTIGUOUS']:
+                stock_idx_batch = np.ascontiguousarray(stock_idx_batch)
+
+            concept_matrix_np = np.take(stock2concept_matrix, stock_idx_batch, axis=0)
+            concept_matrix_np = np.ascontiguousarray(concept_matrix_np, dtype=np.float32)
+            concept_matrix = torch.from_numpy(concept_matrix_np).to(self.device)
+            
+            label_np = np.ascontiguousarray(y_train_values[batch], dtype=np.float32)
+            label = torch.from_numpy(label_np).to(self.device)
+            
             pred = self.HIST_model(feature, concept_matrix)
             loss = self.loss_fn(pred, label)
 
@@ -214,23 +243,47 @@ class HIST(Model):
     def test_epoch(self, data_x, data_y, stock_index):
         # prepare training data
         stock2concept_matrix = np.load(self.stock2concept)
+        self.logger.info(f"stock2concept_matrix shape: {stock2concept_matrix.shape}")
+        
         x_values = data_x.values
         y_values = np.squeeze(data_y.values)
         stock_index = stock_index.values
-        stock_index[np.isnan(stock_index)] = 733
+        
+        # Check if stock_index needs processing
+        if stock_index.dtype != int:
+             self.logger.info(f"stock_index dtype before processing: {stock_index.dtype}")
+             # Only check for NaNs if it's a float array
+             if np.issubdtype(stock_index.dtype, np.floating):
+                 stock_index[np.isnan(stock_index)] = 733
+             stock_index = stock_index.astype("int")
+        
+        self.logger.info(f"stock_index min: {stock_index.min()}, max: {stock_index.max()}")
+
+        self.logger.info("Calling model.eval()")
         self.HIST_model.eval()
+        self.logger.info("Model set to eval mode")
 
         scores = []
         losses = []
 
         # organize the test data into daily batches
+        self.logger.info("Calling get_daily_inter")
         daily_index, daily_count = self.get_daily_inter(data_x, shuffle=False)
+        self.logger.info(f"get_daily_inter returned {len(daily_index)} batches")
 
         for idx, count in zip(daily_index, daily_count):
             batch = slice(idx, idx + count)
-            feature = torch.from_numpy(x_values[batch]).float().to(self.device)
-            concept_matrix = torch.from_numpy(stock2concept_matrix[stock_index[batch]]).float().to(self.device)
-            label = torch.from_numpy(y_values[batch]).float().to(self.device)
+            
+            feature_np = np.ascontiguousarray(x_values[batch], dtype=np.float32)
+            feature = torch.from_numpy(feature_np).to(self.device)
+            
+            concept_matrix_np = stock2concept_matrix[stock_index[batch]]
+            concept_matrix_np = np.ascontiguousarray(concept_matrix_np, dtype=np.float32)
+            concept_matrix = torch.from_numpy(concept_matrix_np).to(self.device)
+
+            label_np = np.ascontiguousarray(y_values[batch], dtype=np.float32)
+            label = torch.from_numpy(label_np).to(self.device)
+            
             with torch.no_grad():
                 pred = self.HIST_model(feature, concept_matrix)
                 loss = self.loss_fn(pred, label)
@@ -260,10 +313,8 @@ class HIST(Model):
             urllib.request.urlretrieve(url, self.stock2concept)
 
         stock_index = np.load(self.stock_index, allow_pickle=True).item()
-        df_train["stock_index"] = 733
-        df_train["stock_index"] = df_train.index.get_level_values("instrument").map(stock_index)
-        df_valid["stock_index"] = 733
-        df_valid["stock_index"] = df_valid.index.get_level_values("instrument").map(stock_index)
+        df_train["stock_index"] = df_train.index.get_level_values("instrument").map(stock_index).fillna(733).astype(int)
+        df_valid["stock_index"] = df_valid.index.get_level_values("instrument").map(stock_index).fillna(733).astype(int)
 
         x_train, y_train, stock_index_train = df_train["feature"], df_train["label"], df_train["stock_index"]
         x_valid, y_valid, stock_index_valid = df_valid["feature"], df_valid["label"], df_valid["stock_index"]
@@ -286,7 +337,7 @@ class HIST(Model):
 
         if self.model_path is not None:
             self.logger.info("Loading pretrained model...")
-            pretrained_model.load_state_dict(torch.load(self.model_path))
+            pretrained_model.load_state_dict(torch.load(self.model_path, map_location=self.device))
 
         model_dict = self.HIST_model.state_dict()
         pretrained_dict = {
@@ -351,8 +402,14 @@ class HIST(Model):
 
         for idx, count in zip(daily_index, daily_count):
             batch = slice(idx, idx + count)
-            x_batch = torch.from_numpy(x_values[batch]).float().to(self.device)
-            concept_matrix = torch.from_numpy(stock2concept_matrix[stock_index_test[batch]]).float().to(self.device)
+            x_slice = x_values[batch]
+            
+            x_slice = np.ascontiguousarray(x_slice, dtype=np.float32)
+            x_batch = torch.from_numpy(x_slice).to(self.device)
+            
+            concept_matrix_np = stock2concept_matrix[stock_index_test[batch]]
+            concept_matrix_np = np.ascontiguousarray(concept_matrix_np, dtype=np.float32)
+            concept_matrix = torch.from_numpy(concept_matrix_np).to(self.device)
 
             with torch.no_grad():
                 pred = self.HIST_model(x_batch, concept_matrix).detach().cpu().numpy()
@@ -429,27 +486,44 @@ class HISTModel(nn.Module):
         return cos_similarity
 
     def forward(self, x, concept_matrix):
-        device = torch.device(torch.get_device(x))
+        # print("Forward start")
+        device = x.device
 
         x_hidden = x.reshape(len(x), self.d_feat, -1)  # [N, F, T]
         x_hidden = x_hidden.permute(0, 2, 1)  # [N, T, F]
+        # print("Before RNN")
         x_hidden, _ = self.rnn(x_hidden)
+        # print("After RNN")
         x_hidden = x_hidden[:, -1, :]
+        
+        # DEBUG: Return early to test RNN stability
+        # return torch.sum(x_hidden, dim=1)
 
         # Predefined Concept Module
 
         stock_to_concept = concept_matrix
 
+        # print("Before sum")
         stock_to_concept_sum = torch.sum(stock_to_concept, 0).reshape(1, -1).repeat(stock_to_concept.shape[0], 1)
+        # print("After sum")
         stock_to_concept_sum = stock_to_concept_sum.mul(concept_matrix)
 
-        stock_to_concept_sum = stock_to_concept_sum + (
-            torch.ones(stock_to_concept.shape[0], stock_to_concept.shape[1]).to(device)
-        )
+        # FIX: Use scalar addition to avoid creating large tensor on MPS which causes segfault
+        stock_to_concept_sum = stock_to_concept_sum + 1.0
+        
         stock_to_concept = stock_to_concept / stock_to_concept_sum
+        # print("Before mm")
         hidden = torch.t(stock_to_concept).mm(x_hidden)
-
+        # print("After mm")
+        
         hidden = hidden[hidden.sum(1) != 0]
+
+        concept_to_stock = self.cal_cos_similarity(x_hidden, hidden)
+
+        # Original code below (commented out)
+        # hidden = torch.t(stock_to_concept).mm(x_hidden)
+        # hidden = hidden[hidden.sum(1) != 0]
+
 
         concept_to_stock = self.cal_cos_similarity(x_hidden, hidden)
         concept_to_stock = self.softmax_t2s(concept_to_stock)
@@ -467,7 +541,7 @@ class HISTModel(nn.Module):
         i_stock_to_concept = self.cal_cos_similarity(i_shared_info, hidden)
         dim = i_stock_to_concept.shape[0]
         diag = i_stock_to_concept.diagonal(0)
-        i_stock_to_concept = i_stock_to_concept * (torch.ones(dim, dim) - torch.eye(dim)).to(device)
+        i_stock_to_concept = i_stock_to_concept * (1 - torch.eye(dim, device=device))
         row = torch.linspace(0, dim - 1, dim).to(device).long()
         column = i_stock_to_concept.max(1)[1].long()
         value = i_stock_to_concept.max(1)[0]

@@ -75,7 +75,7 @@ task:
       model_config: *model_config
       model_type: RNN
       lr: 1e-3
-      n_epochs: 100
+      n_epochs: 200
       max_steps_per_epoch:
       early_stop: 20
       logdir: output/Alpha158_full

@@ -47,7 +47,7 @@ task:
             num_leaves: 100
             thread_count: 20
             grow_policy: Lossguide
-            bootstrap_type: Poisson
+            bootstrap_type: Bernoulli
     dataset:
         class: DatasetH
         module_path: qlib.data.dataset

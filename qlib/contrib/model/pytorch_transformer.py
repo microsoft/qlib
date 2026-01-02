@@ -5,6 +5,13 @@
 from __future__ import division
 from __future__ import print_function
 
+import os
+import platform
+
+# Set OMP_NUM_THREADS to 1 only on macOS to avoid OpenMP/MPS conflicts
+if platform.system() == "Darwin":
+    os.environ["OMP_NUM_THREADS"] = "1"
+
 import numpy as np
 import pandas as pd
 from typing import Text, Union
@@ -57,7 +64,12 @@ class TransformerModel(Model):
         self.optimizer = optimizer.lower()
         self.loss = loss
         self.n_jobs = n_jobs
-        self.device = torch.device("cuda:%d" % GPU if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        if torch.cuda.is_available() and GPU >= 0:
+            self.device = torch.device("cuda:%d" % GPU)
+        elif torch.backends.mps.is_available() and GPU >= 0:
+            self.device = torch.device("mps")
+        else:
+            self.device = torch.device("cpu")
         self.seed = seed
         self.logger = get_module_logger("TransformerModel")
         self.logger.info("Naive Transformer:" "\nbatch_size : {}" "\ndevice : {}".format(self.batch_size, self.device))
@@ -209,8 +221,10 @@ class TransformerModel(Model):
         self.model.load_state_dict(best_param)
         torch.save(best_param, save_path)
 
-        if self.use_gpu:
+        if self.device.type == "cuda":
             torch.cuda.empty_cache()
+        elif self.device.type == "mps" and hasattr(torch, "mps") and hasattr(torch.mps, "empty_cache"):
+            torch.mps.empty_cache()
 
     def predict(self, dataset: DatasetH, segment: Union[Text, slice] = "test"):
         if not self.fitted:
@@ -229,7 +243,12 @@ class TransformerModel(Model):
             else:
                 end = begin + self.batch_size
 
-            x_batch = torch.from_numpy(x_values[begin:end]).float().to(self.device)
+            x_slice = x_values[begin:end]
+            
+            if not x_slice.flags['C_CONTIGUOUS']:
+                x_slice = np.ascontiguousarray(x_slice)
+            
+            x_batch = torch.from_numpy(x_slice).float().to(self.device)
 
             with torch.no_grad():
                 pred = self.model(x_batch).detach().cpu().numpy()
@@ -242,12 +261,21 @@ class TransformerModel(Model):
 class PositionalEncoding(nn.Module):
     def __init__(self, d_model, max_len=1000):
         super(PositionalEncoding, self).__init__()
-        pe = torch.zeros(max_len, d_model)
-        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
-        pe[:, 0::2] = torch.sin(position * div_term)
-        pe[:, 1::2] = torch.cos(position * div_term)
+        d_model = int(d_model)
+        max_len = int(max_len)
+        
+        # Use NumPy for all calculations to avoid PyTorch math crashes on macOS/MPS
+        pe_np = np.zeros((max_len, d_model), dtype=np.float32)
+        position_np = np.arange(0, max_len, dtype=np.float32)[:, np.newaxis]
+        div_term_np = np.exp(np.arange(0, d_model, 2, dtype=np.float32) * (-math.log(10000.0) / d_model))
+        
+        pe_np[:, 0::2] = np.sin(position_np * div_term_np)
+        pe_np[:, 1::2] = np.cos(position_np * div_term_np)
+        
+        # Convert to tensor at the end
+        pe = torch.from_numpy(pe_np)
         pe = pe.unsqueeze(0).transpose(0, 1)
+        
         self.register_buffer("pe", pe)
 
     def forward(self, x):

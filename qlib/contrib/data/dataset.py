@@ -12,12 +12,23 @@ from qlib.utils import init_instance_by_config
 from qlib.data.dataset import DatasetH
 
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
+device = "cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available() else "cpu")
 
 
 def _to_tensor(x):
     if not isinstance(x, torch.Tensor):
-        return torch.tensor(x, dtype=torch.float, device=device)  # pylint: disable=E1101
+        if isinstance(x, np.ndarray):
+            x = np.ascontiguousarray(x)
+            x = torch.from_numpy(x)
+        else:
+            x = torch.tensor(x)
+            
+        if x.dtype != torch.float32:
+            x = x.float()
+            
+        if str(x.device) != str(device): # Handle device mismatch
+            x = x.to(device)
+        return x
     return x
 
 

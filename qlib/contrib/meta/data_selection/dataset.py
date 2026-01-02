@@ -95,19 +95,26 @@ class InternalData:
             pred = rec.load_object("pred.pkl")
             task = rec.load_object("task")
             data_key = task["dataset"]["kwargs"]["segments"]["train"]
+            # Convert slice to tuple for hashability (DDG-DA uses deepcopy_basic_type which preserves slices)
+            if isinstance(data_key, slice):
+                data_key = (data_key.start, data_key.stop)
             key_l.append(data_key)
             ic_l.append(delayed(self._calc_perf)(pred.iloc[:, 0], label_df.iloc[:, 0]))
 
-        ic_l = Parallel(n_jobs=-1)(ic_l)
+        ic_l = Parallel(n_jobs=-1, backend="threading")(ic_l)
         self.data_ic_df = pd.DataFrame(dict(zip(key_l, ic_l)))
+        # Convert to MultiIndex to support slicing in _prepare_meta_ipt
+        if not self.data_ic_df.empty:
+             self.data_ic_df.columns = pd.MultiIndex.from_tuples(self.data_ic_df.columns)
+
         self.data_ic_df = self.data_ic_df.sort_index().sort_index(axis=1)
 
         del self.dh  # handler is not useful now
 
     def _calc_perf(self, pred, label):
         df = pd.DataFrame({"pred": pred, "label": label})
-        df = df.groupby("datetime", group_keys=False).corr(method="spearman")
-        corr = df.loc(axis=0)[:, "pred"]["label"].droplevel(axis=0, level=-1)
+        df = df.groupby(level=0).corr(method="spearman")
+        corr = df.xs("pred", level=1)["label"]
         return corr
 
     def update(self):
@@ -166,8 +173,13 @@ class MetaTaskDS(MetaTask):
 
             sample_time_belong = np.zeros((d_train.shape[0], time_perf.shape[1]))
             for i, col in enumerate(time_perf.columns):
+                # Handle both tuple and slice column names (DDG-DA uses deepcopy_basic_type)
+                if isinstance(col, slice):
+                    col_start, col_end = col.start, col.stop
+                else:
+                    col_start, col_end = col[0], col[1]
                 # these two lines of code occupied 20% of the time of initializing MetaTaskDS
-                slc = slice(*d_train.index.slice_locs(start=col[0], end=col[1]))
+                slc = slice(*d_train.index.slice_locs(start=col_start, end=col_end))
                 sample_time_belong[slc, i] = 1.0
 
             # If you want that last month also belongs to the last time_perf
@@ -195,7 +207,9 @@ class MetaTaskDS(MetaTask):
             if suffix == "seg":
                 fill_value = {}
                 for col in meta_info_norm.columns:
-                    fill_value[col] = meta_info_norm.loc[meta_info_norm[col].isna(), :].dropna(axis=1).mean().max()
+                    # Convert slice to tuple for dict key (DDG-DA uses deepcopy_basic_type)
+                    col_key = (col.start, col.stop) if isinstance(col, slice) else col
+                    fill_value[col_key] = meta_info_norm.loc[meta_info_norm[col].isna(), :].dropna(axis=1).mean().max()
                 fill_value = pd.Series(fill_value).sort_index()
                 # The NaN Values are filled segment-wise. Below is an exampleof fill_value
                 # 2009-01-05  2009-02-06    0.145809
@@ -356,21 +370,32 @@ class MetaDatasetDS(MetaTaskDataset):
 
         """
         ic_df = self.internal_data.data_ic_df
+        print(f"DEBUG: ic_df index dtype: {ic_df.index.dtype}")
+        if len(ic_df.index) > 0:
+             print(f"DEBUG: ic_df index sample: {ic_df.index[:5]}")
 
         segs = task["dataset"]["kwargs"]["segments"]
         end = max(segs[k][1] for k in ("train", "valid") if k in segs)
-        ic_df_avail = ic_df.loc[:end, pd.IndexSlice[:, :end]]
+
+        # Use boolean indexing for columns to avoid MultiIndex slicing issues with pd.IndexSlice
+        # We want columns where the second level (end_time) is <= end
+        col_mask = ic_df.columns.get_level_values(1) <= end
+        ic_df_avail = ic_df.loc[:end, col_mask]
 
         # meta data set focus on the **information** instead of preprocess
         # 1) filter the overlap info
         def mask_overlap(s):
             """
             mask overlap information
-            data after self.name[end] with self.trunc_days that contains future info are also considered as overlap info
-
             Approximately the diagnal + horizon length of data are masked.
             """
-            start, end = s.name
+            # Handle both tuple and slice column names (DDG-DA uses deepcopy_basic_type)
+            if isinstance(s.name, slice):
+                start, end = s.name.start, s.name.stop
+            else:
+                start, end = s.name
+            end = get_date_by_shift(trading_date=end, shift=self.trunc_days - 1, future=True)
+            return s.mask((s.index >= start) & (s.index <= end))
             end = get_date_by_shift(trading_date=end, shift=self.trunc_days - 1, future=True)
             return s.mask((s.index >= start) & (s.index <= end))
 

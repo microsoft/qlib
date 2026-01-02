@@ -1,0 +1,1 @@
+/opt/anaconda3/envs/qlib/bin/qrun /Users/aronyang/Documents/GitHub/qlib/examples/benchmarks/TCN/workflow_config_tcn_Alpha360.yaml TCN run_all_model_records

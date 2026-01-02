@@ -21,6 +21,11 @@ from ...model.base import Model
 from ...data.dataset.handler import DataHandlerLP
 from .tcn import TemporalConvNet
 
+import os
+import platform
+
+if platform.system() == "Darwin":
+    os.environ["OMP_NUM_THREADS"] = "1"
 
 class TCN(Model):
     """TCN Model
@@ -73,8 +78,14 @@ class TCN(Model):
         self.early_stop = early_stop
         self.optimizer = optimizer.lower()
         self.loss = loss
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        if torch.cuda.is_available() and GPU >= 0:
+            self.device = torch.device("cuda:%d" % GPU)
+        elif torch.backends.mps.is_available() and GPU >= 0:
+            self.device = torch.device("mps")
+        else:
+            self.device = torch.device("cpu")
         self.n_jobs = n_jobs
+
         self.seed = seed
 
         self.logger.info(
@@ -167,10 +178,10 @@ class TCN(Model):
 
         for data in data_loader:
             data = torch.transpose(data, 1, 2)
-            feature = data[:, 0:-1, :].to(self.device)
-            label = data[:, -1, -1].to(self.device)
+            feature = data[:, 0:-1, :].float().to(self.device)
+            label = data[:, -1, -1].float().to(self.device)
 
-            pred = self.TCN_model(feature.float())
+            pred = self.TCN_model(feature)
             loss = self.loss_fn(pred, label)
 
             self.train_optimizer.zero_grad()
@@ -186,19 +197,19 @@ class TCN(Model):
 
         for data in data_loader:
             data = torch.transpose(data, 1, 2)
-            feature = data[:, 0:-1, :].to(self.device)
+            feature = data[:, 0:-1, :].float().to(self.device)
             # feature[torch.isnan(feature)] = 0
-            label = data[:, -1, -1].to(self.device)
+            label = data[:, -1, -1].float().to(self.device)
 
             with torch.no_grad():
-                pred = self.TCN_model(feature.float())
+                pred = self.TCN_model(feature)
                 loss = self.loss_fn(pred, label)
-                losses.append(loss.item())
+                losses.append(loss)
 
                 score = self.metric_fn(pred, label)
-                scores.append(score.item())
+                scores.append(score)
 
-        return np.mean(losses), np.mean(scores)
+        return torch.stack(losses).mean().item(), torch.stack(scores).mean().item()
 
     def fit(
         self,
@@ -260,8 +271,10 @@ class TCN(Model):
         self.TCN_model.load_state_dict(best_param)
         torch.save(best_param, save_path)
 
-        if self.use_gpu:
+        if self.device.type == "cuda":
             torch.cuda.empty_cache()
+        elif self.device.type == "mps" and hasattr(torch, "mps") and hasattr(torch.mps, "empty_cache"):
+            torch.mps.empty_cache()
 
     def predict(self, dataset):
         if not self.fitted:

@@ -276,7 +276,12 @@ class KRNN(Model):
         self.early_stop = early_stop
         self.optimizer = optimizer.lower()
         self.loss = loss
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        if torch.cuda.is_available() and GPU >= 0:
+            self.device = torch.device("cuda:%d" % GPU)
+        elif torch.backends.mps.is_available() and GPU >= 0:
+            self.device = torch.device("mps")
+        else:
+            self.device = torch.device("cpu")
         self.seed = seed
 
         self.logger.info(
@@ -484,8 +489,10 @@ class KRNN(Model):
         self.krnn_model.load_state_dict(best_param)
         torch.save(best_param, save_path)
 
-        if self.use_gpu:
+        if self.device.type == "cuda":
             torch.cuda.empty_cache()
+        elif self.device.type == "mps" and hasattr(torch, "mps") and hasattr(torch.mps, "empty_cache"):
+            torch.mps.empty_cache()
 
     def predict(self, dataset: DatasetH, segment: Union[Text, slice] = "test"):
         if not self.fitted:
@@ -503,7 +510,13 @@ class KRNN(Model):
                 end = sample_num
             else:
                 end = begin + self.batch_size
-            x_batch = torch.from_numpy(x_values[begin:end]).float().to(self.device)
+            
+            x_slice = x_values[begin:end]
+            
+            if not x_slice.flags['C_CONTIGUOUS']:
+                x_slice = np.ascontiguousarray(x_slice)
+            
+            x_batch = torch.from_numpy(x_slice).float().to(self.device)
             with torch.no_grad():
                 pred = self.krnn_model(x_batch).detach().cpu().numpy()
             preds.append(pred)

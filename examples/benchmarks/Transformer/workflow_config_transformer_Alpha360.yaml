@@ -49,6 +49,8 @@ task:
         kwargs:
             d_feat: 6
             seed: 0
+            n_epochs: 200
+            early_stop: 20
     dataset:
         class: DatasetH
         module_path: qlib.data.dataset

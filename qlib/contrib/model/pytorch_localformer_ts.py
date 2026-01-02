@@ -22,6 +22,13 @@ from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
 from torch.nn.modules.container import ModuleList
 
+import os
+import platform
+
+# Set OMP_NUM_THREADS to 1 only on macOS to avoid OpenMP/MPS conflicts
+if platform.system() == "Darwin":
+    os.environ["OMP_NUM_THREADS"] = "1"
+
 
 class LocalformerModel(Model):
     def __init__(
@@ -56,7 +63,12 @@ class LocalformerModel(Model):
         self.optimizer = optimizer.lower()
         self.loss = loss
         self.n_jobs = n_jobs
-        self.device = torch.device("cuda:%d" % GPU if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        if torch.cuda.is_available() and GPU >= 0:
+            self.device = torch.device("cuda:%d" % GPU)
+        elif torch.backends.mps.is_available() and GPU >= 0:
+            self.device = torch.device("mps")
+        else:
+            self.device = torch.device("cpu")
         self.seed = seed
         self.logger = get_module_logger("TransformerModel")
         self.logger.info(
@@ -106,10 +118,10 @@ class LocalformerModel(Model):
         self.model.train()
 
         for data in data_loader:
-            feature = data[:, :, 0:-1].to(self.device)
-            label = data[:, -1, -1].to(self.device)
+            feature = data[:, :, 0:-1].float().to(self.device)
+            label = data[:, -1, -1].float().to(self.device)
 
-            pred = self.model(feature.float())  # .float()
+            pred = self.model(feature)  # .float()
             loss = self.loss_fn(pred, label)
 
             self.train_optimizer.zero_grad()
@@ -124,11 +136,11 @@ class LocalformerModel(Model):
         losses = []
 
         for data in data_loader:
-            feature = data[:, :, 0:-1].to(self.device)
-            label = data[:, -1, -1].to(self.device)
+            feature = data[:, :, 0:-1].float().to(self.device)
+            label = data[:, -1, -1].float().to(self.device)
 
             with torch.no_grad():
-                pred = self.model(feature.float())  # .float()
+                pred = self.model(feature)  # .float()
                 loss = self.loss_fn(pred, label)
                 losses.append(loss.item())
 
@@ -150,6 +162,11 @@ class LocalformerModel(Model):
 
         dl_train.config(fillna_type="ffill+bfill")  # process nan brought by dataloader
         dl_valid.config(fillna_type="ffill+bfill")  # process nan brought by dataloader
+
+        # On macOS, setting num_workers > 0 can cause segmentation faults with MPS/multiprocessing
+        # Force n_jobs to 0 on macOS to run in the main process
+        if platform.system() == "Darwin":
+            self.n_jobs = 0
 
         train_loader = DataLoader(
             dl_train, batch_size=self.batch_size, shuffle=True, num_workers=self.n_jobs, drop_last=True
@@ -197,8 +214,10 @@ class LocalformerModel(Model):
         self.model.load_state_dict(best_param)
         torch.save(best_param, save_path)
 
-        if self.use_gpu:
+        if self.device.type == "cuda":
             torch.cuda.empty_cache()
+        elif self.device.type == "mps" and hasattr(torch, "mps") and hasattr(torch.mps, "empty_cache"):
+            torch.mps.empty_cache()
 
     def predict(self, dataset):
         if not self.fitted:
@@ -211,10 +230,10 @@ class LocalformerModel(Model):
         preds = []
 
         for data in test_loader:
-            feature = data[:, :, 0:-1].to(self.device)
+            feature = data[:, :, 0:-1].float().to(self.device)
 
             with torch.no_grad():
-                pred = self.model(feature.float()).detach().cpu().numpy()
+                pred = self.model(feature).detach().cpu().numpy()
 
             preds.append(pred)
 

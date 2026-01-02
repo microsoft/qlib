@@ -83,7 +83,12 @@ class ADD(Model):
         self.optimizer = optimizer.lower()
         self.base_model = base_model
         self.model_path = model_path
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        if torch.cuda.is_available() and GPU >= 0:
+            self.device = torch.device("cuda:%d" % GPU)
+        elif torch.backends.mps.is_available() and GPU >= 0:
+            self.device = torch.device("mps")
+        else:
+            self.device = torch.device("cpu")
         self.seed = seed
 
         self.gamma = gamma
@@ -258,9 +263,21 @@ class ADD(Model):
 
         for idx, count in zip(daily_index, daily_count):
             batch = slice(idx, idx + count)
-            feature = torch.from_numpy(x_values[batch]).float().to(self.device)
-            label_excess = torch.from_numpy(y_values[batch]).float().to(self.device)
-            label_market = torch.from_numpy(m_values[batch]).long().to(self.device)
+            
+            feature_np = x_values[batch]
+            if not feature_np.flags['C_CONTIGUOUS']:
+                feature_np = np.ascontiguousarray(feature_np)
+            feature = torch.from_numpy(feature_np).float().to(self.device)
+            
+            label_excess_np = y_values[batch]
+            if not label_excess_np.flags['C_CONTIGUOUS']:
+                label_excess_np = np.ascontiguousarray(label_excess_np)
+            label_excess = torch.from_numpy(label_excess_np).float().to(self.device)
+            
+            label_market_np = m_values[batch]
+            if not label_market_np.flags['C_CONTIGUOUS']:
+                label_market_np = np.ascontiguousarray(label_market_np)
+            label_market = torch.from_numpy(label_market_np).long().to(self.device)
 
             metrics = {}
             preds = self.ADD_model(feature)
@@ -287,9 +304,21 @@ class ADD(Model):
             if len(indices) - i < self.batch_size:
                 break
             batch = indices[i : i + self.batch_size]
-            feature = torch.from_numpy(x_train_values[batch]).float().to(self.device)
-            label_excess = torch.from_numpy(y_train_values[batch]).float().to(self.device)
-            label_market = torch.from_numpy(m_train_values[batch]).long().to(self.device)
+            
+            feature_np = x_train_values[batch]
+            if not feature_np.flags['C_CONTIGUOUS']:
+                feature_np = np.ascontiguousarray(feature_np)
+            feature = torch.from_numpy(feature_np).float().to(self.device)
+            
+            label_excess_np = y_train_values[batch]
+            if not label_excess_np.flags['C_CONTIGUOUS']:
+                label_excess_np = np.ascontiguousarray(label_excess_np)
+            label_excess = torch.from_numpy(label_excess_np).float().to(self.device)
+            
+            label_market_np = m_train_values[batch]
+            if not label_market_np.flags['C_CONTIGUOUS']:
+                label_market_np = np.ascontiguousarray(label_market_np)
+            label_market = torch.from_numpy(label_market_np).long().to(self.device)
 
             preds = self.ADD_model(feature)
 
@@ -413,8 +442,10 @@ class ADD(Model):
         best_param = copy.deepcopy(self.ADD_model.state_dict())
         save_path = get_or_create_path(save_path)
         torch.save(best_param, save_path)
-        if self.use_gpu:
+        if self.device.type == "cuda":
             torch.cuda.empty_cache()
+        elif self.device.type == "mps" and hasattr(torch, "mps") and hasattr(torch.mps, "empty_cache"):
+            torch.mps.empty_cache()
 
     def predict(self, dataset: DatasetH, segment: Union[Text, slice] = "test"):
         x_test = dataset.prepare(segment, col_set="feature", data_key=DataHandlerLP.DK_I)
@@ -427,7 +458,12 @@ class ADD(Model):
 
         for idx, count in zip(daily_index, daily_count):
             batch = slice(idx, idx + count)
-            x_batch = torch.from_numpy(x_values[batch]).float().to(self.device)
+            x_slice = x_values[batch]
+            
+            if not x_slice.flags['C_CONTIGUOUS']:
+                x_slice = np.ascontiguousarray(x_slice)
+            
+            x_batch = torch.from_numpy(x_slice).float().to(self.device)
 
             with torch.no_grad():
                 pred = self.ADD_model(x_batch)

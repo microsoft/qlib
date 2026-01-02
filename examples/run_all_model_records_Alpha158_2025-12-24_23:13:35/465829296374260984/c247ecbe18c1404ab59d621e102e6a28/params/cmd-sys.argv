@@ -1,0 +1,1 @@
+/opt/anaconda3/envs/qlib/bin/qrun /Users/aronyang/Documents/GitHub/qlib/examples/benchmarks/MLP/workflow_config_mlp_Alpha158.yaml MLP run_all_model_records

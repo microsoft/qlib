@@ -1,0 +1,1 @@
+[{'class': 'DropCol', 'kwargs': {'col_list': ['VWAP0']}}, {'class': 'DropnaProcessor', 'kwargs': {'fields_group': 'feature'}}, 'DropnaLabel', {'class': 'CSZScoreNorm', 'kwargs': {'fields_group': 'label'}}]

@@ -75,7 +75,12 @@ class GATs(Model):
         self.loss = loss
         self.base_model = base_model
         self.model_path = model_path
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        if torch.cuda.is_available() and GPU >= 0:
+            self.device = torch.device("cuda:%d" % GPU)
+        elif torch.backends.mps.is_available() and GPU >= 0:
+            self.device = torch.device("mps")
+        else:
+            self.device = torch.device("cpu")
         self.seed = seed
 
         self.logger.info(
@@ -183,8 +188,17 @@ class GATs(Model):
 
         for idx, count in zip(daily_index, daily_count):
             batch = slice(idx, idx + count)
-            feature = torch.from_numpy(x_train_values[batch]).float().to(self.device)
-            label = torch.from_numpy(y_train_values[batch]).float().to(self.device)
+            
+            x_slice = x_train_values[batch]
+            if not x_slice.flags['C_CONTIGUOUS']:
+                x_slice = np.ascontiguousarray(x_slice)
+            
+            y_slice = y_train_values[batch]
+            if not y_slice.flags['C_CONTIGUOUS']:
+                y_slice = np.ascontiguousarray(y_slice)
+            
+            feature = torch.from_numpy(x_slice).float().to(self.device)
+            label = torch.from_numpy(y_slice).float().to(self.device)
 
             pred = self.GAT_model(feature)
             loss = self.loss_fn(pred, label)
@@ -209,8 +223,17 @@ class GATs(Model):
 
         for idx, count in zip(daily_index, daily_count):
             batch = slice(idx, idx + count)
-            feature = torch.from_numpy(x_values[batch]).float().to(self.device)
-            label = torch.from_numpy(y_values[batch]).float().to(self.device)
+            
+            x_slice = x_values[batch]
+            if not x_slice.flags['C_CONTIGUOUS']:
+                x_slice = np.ascontiguousarray(x_slice)
+            
+            y_slice = y_values[batch]
+            if not y_slice.flags['C_CONTIGUOUS']:
+                y_slice = np.ascontiguousarray(y_slice)
+            
+            feature = torch.from_numpy(x_slice).float().to(self.device)
+            label = torch.from_numpy(y_slice).float().to(self.device)
 
             pred = self.GAT_model(feature)
             loss = self.loss_fn(pred, label)
@@ -295,8 +318,10 @@ class GATs(Model):
         self.GAT_model.load_state_dict(best_param)
         torch.save(best_param, save_path)
 
-        if self.use_gpu:
+        if self.device.type == "cuda":
             torch.cuda.empty_cache()
+        elif self.device.type == "mps" and hasattr(torch, "mps") and hasattr(torch.mps, "empty_cache"):
+            torch.mps.empty_cache()
 
     def predict(self, dataset: DatasetH, segment: Union[Text, slice] = "test"):
         if not self.fitted:
@@ -313,7 +338,12 @@ class GATs(Model):
 
         for idx, count in zip(daily_index, daily_count):
             batch = slice(idx, idx + count)
-            x_batch = torch.from_numpy(x_values[batch]).float().to(self.device)
+            x_slice = x_values[batch]
+            
+            if not x_slice.flags['C_CONTIGUOUS']:
+                x_slice = np.ascontiguousarray(x_slice)
+            
+            x_batch = torch.from_numpy(x_slice).float().to(self.device)
 
             with torch.no_grad():
                 pred = self.GAT_model(x_batch).detach().cpu().numpy()

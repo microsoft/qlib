@@ -1,0 +1,1 @@
+/opt/anaconda3/envs/qlib/bin/qrun /Users/aronyang/Documents/GitHub/qlib/examples/benchmarks/GRU/workflow_config_gru_Alpha158.yaml GRU run_all_model_records

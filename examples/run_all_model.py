@@ -61,18 +61,7 @@ def cal_mean_std(results) -> dict:
     return mean_std
 
 
-# function to create the environment ofr an anaconda environment
-def create_env():
-    # create env
-    temp_dir = tempfile.mkdtemp()
-    env_path = Path(temp_dir).absolute()
-    sys.stderr.write(f"Creating Virtual Environment with path: {env_path}...\n")
-    execute(f"conda create --prefix {env_path} python=3.7 -y")
-    python_path = env_path / "bin" / "python"  # TODO: FIX ME!
-    sys.stderr.write("\n")
-    # get anaconda activate path
-    conda_activate = Path(os.environ["CONDA_PREFIX"]) / "bin" / "activate"  # TODO: FIX ME!
-    return temp_dir, env_path, python_path, conda_activate
+
 
 
 # function to execute the cmd
@@ -100,9 +89,13 @@ def execute(cmd, wait_when_err=False, raise_err=True):
 def get_all_folders(models, exclude) -> dict:
     folders = dict()
     if isinstance(models, str):
-        model_list = models.split(",")
-        models = [m.lower().strip("[ ]") for m in model_list]
-    elif isinstance(models, list):
+        if models.lower() == "all":
+            models = None
+        else:
+            model_list = models.split(",")
+            models = [m.lower().strip("[ ]") for m in model_list]
+
+    if isinstance(models, list):
         models = [m.lower() for m in models]
     elif models is None:
         models = [f.name.lower() for f in os.scandir("benchmarks")]
@@ -314,55 +307,18 @@ class ModelRunner:
                 sys.stderr.write(f"There is no {dataset}.yaml file in {folders[fn]}")
                 continue
             sys.stderr.write("\n")
-            # create env by anaconda
-            temp_dir, env_path, python_path, conda_activate = create_env()
-
-            # install requirements.txt
-            sys.stderr.write("Installing requirements.txt...\n")
-            with open(req_path) as f:
-                content = f.read()
-            if "torch" in content:
-                # automatically install pytorch according to nvidia's version
-                execute(
-                    f"{python_path} -m pip install light-the-torch", wait_when_err=wait_when_err
-                )  # for automatically installing torch according to the nvidia driver
-                execute(
-                    f"{env_path / 'bin' / 'ltt'} install --install-cmd '{python_path} -m pip install {{packages}}' -- -r {req_path}",
-                    wait_when_err=wait_when_err,
-                )
-            else:
-                execute(f"{python_path} -m pip install -r {req_path}", wait_when_err=wait_when_err)
-            sys.stderr.write("\n")
+            
+            # create temp dir for yaml file
+            temp_dir = tempfile.mkdtemp()
 
             # read yaml, remove seed kwargs of model, and then save file in the temp_dir
             yaml_path = gen_yaml_file_without_seed_kwargs(yaml_path, temp_dir)
-            # setup gpu for tft
-            if fn == "TFT":
-                execute(
-                    f"conda install -y --prefix {env_path} anaconda cudatoolkit=10.0 && conda install -y --prefix {env_path} cudnn",
-                    wait_when_err=wait_when_err,
-                )
-                sys.stderr.write("\n")
-            # install qlib
-            sys.stderr.write("Installing qlib...\n")
-            execute(f"{python_path} -m pip install --upgrade pip", wait_when_err=wait_when_err)  # TODO: FIX ME!
-            execute(f"{python_path} -m pip install --upgrade cython", wait_when_err=wait_when_err)  # TODO: FIX ME!
-            if fn == "TFT":
-                execute(
-                    f"cd {env_path} && {python_path} -m pip install --upgrade --force-reinstall --ignore-installed PyYAML -e {qlib_uri}",
-                    wait_when_err=wait_when_err,
-                )  # TODO: FIX ME!
-            else:
-                execute(
-                    f"cd {env_path} && {python_path} -m pip install --upgrade --force-reinstall -e {qlib_uri}",
-                    wait_when_err=wait_when_err,
-                )  # TODO: FIX ME!
-            sys.stderr.write("\n")
+            
             # run workflow_by_config for multiple times
             for i in range(times):
                 sys.stderr.write(f"Running the model: {fn} for iteration {i+1}...\n")
                 errs = execute(
-                    f"{python_path} {env_path / 'bin' / 'qrun'} {yaml_path} {fn} {exp_folder_name}",
+                    f"qrun {yaml_path} {fn} {exp_folder_name}",
                     wait_when_err=wait_when_err,
                 )
                 if errs is not None:
@@ -370,11 +326,9 @@ class ModelRunner:
                     _errs.update({i: errs})
                     errors[fn] = _errs
                 sys.stderr.write("\n")
-            # remove env
-            sys.stderr.write(f"Deleting the environment: {env_path}...\n")
-            if wait_before_rm_env:
-                input("Press Enter to Continue")
-            shutil.rmtree(env_path)
+            
+            # remove temp dir
+            shutil.rmtree(temp_dir)
         # print errors
         sys.stderr.write(f"Here are some of the errors of the models...\n")
         pprint(errors)

@@ -1,0 +1,47 @@
+benchmark: SH000300
+data_handler_config: {end_time: 2020-08-01, fit_end_time: 2014-12-31, 
+    fit_start_time: 2008-01-01, instruments: csi300, start_time: 2008-01-01}
+market: csi300
+port_analysis_config: &id001
+  backtest:
+    account: 100000000
+    benchmark: SH000300
+    end_time: 2020-08-01
+    exchange_kwargs: {close_cost: 0.0015, deal_price: close, limit_threshold: 
+        0.095, min_cost: 5, open_cost: 0.0005}
+    start_time: 2017-01-01
+  strategy:
+    class: TopkDropoutStrategy
+    kwargs: {n_drop: 5, signal: <PRED>, topk: 50}
+    module_path: qlib.contrib.strategy
+qlib_init: {provider_uri: ~/.qlib/qlib_data/cn_data, region: cn}
+sys:
+  path: [/Users/aronyang/Documents/GitHub/qlib/examples/benchmarks/LightGBM]
+task:
+  dataset:
+    class: DatasetH
+    kwargs:
+      handler: 
+        file:///Users/aronyang/Documents/GitHub/qlib/examples/data_demo/handler.pkl
+      segments:
+        test: [2017-01-01, 2020-08-01]
+        train: [2008-01-01, 2014-12-31]
+        valid: [2015-01-01, 2016-12-31]
+    module_path: qlib.data.dataset
+  model:
+    class: LGBModel
+    kwargs: {colsample_bytree: 0.8879, lambda_l1: 205.6999, lambda_l2: 580.9768, 
+        learning_rate: 0.2, loss: mse, max_depth: 8, num_leaves: 210, 
+        num_threads: 20, subsample: 0.8789}
+    module_path: qlib.contrib.model.gbdt
+  record:
+  - class: SignalRecord
+    kwargs: {dataset: <DATASET>, model: <MODEL>}
+    module_path: qlib.workflow.record_temp
+  - class: SigAnaRecord
+    kwargs: {ana_long_short: false, ann_scaler: 252}
+    module_path: qlib.workflow.record_temp
+  - class: PortAnaRecord
+    kwargs:
+      config: *id001
+    module_path: qlib.workflow.record_temp

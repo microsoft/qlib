@@ -41,30 +41,31 @@ class SFM_Model(nn.Module):
         self.hidden_dim = hidden_size
         self.device = device
 
-        self.W_i = nn.Parameter(init.xavier_uniform_(torch.empty((self.input_dim, self.hidden_dim))))
-        self.U_i = nn.Parameter(init.orthogonal_(torch.empty(self.hidden_dim, self.hidden_dim)))
+        # Use xavier_uniform_ instead of orthogonal_ to avoid Segfault on macOS MPS environment
+        self.W_i = nn.Parameter(init.xavier_uniform_(torch.zeros((self.input_dim, self.hidden_dim))))
+        self.U_i = nn.Parameter(init.xavier_uniform_(torch.zeros(self.hidden_dim, self.hidden_dim)))
         self.b_i = nn.Parameter(torch.zeros(self.hidden_dim))
 
-        self.W_ste = nn.Parameter(init.xavier_uniform_(torch.empty(self.input_dim, self.hidden_dim)))
-        self.U_ste = nn.Parameter(init.orthogonal_(torch.empty(self.hidden_dim, self.hidden_dim)))
+        self.W_ste = nn.Parameter(init.xavier_uniform_(torch.zeros(self.input_dim, self.hidden_dim)))
+        self.U_ste = nn.Parameter(init.xavier_uniform_(torch.zeros(self.hidden_dim, self.hidden_dim)))
         self.b_ste = nn.Parameter(torch.ones(self.hidden_dim))
 
-        self.W_fre = nn.Parameter(init.xavier_uniform_(torch.empty(self.input_dim, self.freq_dim)))
-        self.U_fre = nn.Parameter(init.orthogonal_(torch.empty(self.hidden_dim, self.freq_dim)))
+        self.W_fre = nn.Parameter(init.xavier_uniform_(torch.zeros(self.input_dim, self.freq_dim)))
+        self.U_fre = nn.Parameter(init.xavier_uniform_(torch.zeros(self.hidden_dim, self.freq_dim)))
         self.b_fre = nn.Parameter(torch.ones(self.freq_dim))
 
-        self.W_c = nn.Parameter(init.xavier_uniform_(torch.empty(self.input_dim, self.hidden_dim)))
-        self.U_c = nn.Parameter(init.orthogonal_(torch.empty(self.hidden_dim, self.hidden_dim)))
+        self.W_c = nn.Parameter(init.xavier_uniform_(torch.zeros(self.input_dim, self.hidden_dim)))
+        self.U_c = nn.Parameter(init.xavier_uniform_(torch.zeros(self.hidden_dim, self.hidden_dim)))
         self.b_c = nn.Parameter(torch.zeros(self.hidden_dim))
 
-        self.W_o = nn.Parameter(init.xavier_uniform_(torch.empty(self.input_dim, self.hidden_dim)))
-        self.U_o = nn.Parameter(init.orthogonal_(torch.empty(self.hidden_dim, self.hidden_dim)))
+        self.W_o = nn.Parameter(init.xavier_uniform_(torch.zeros(self.input_dim, self.hidden_dim)))
+        self.U_o = nn.Parameter(init.xavier_uniform_(torch.zeros(self.hidden_dim, self.hidden_dim)))
         self.b_o = nn.Parameter(torch.zeros(self.hidden_dim))
 
-        self.U_a = nn.Parameter(init.orthogonal_(torch.empty(self.freq_dim, 1)))
+        self.U_a = nn.Parameter(init.xavier_uniform_(torch.zeros(self.freq_dim, 1)))
         self.b_a = nn.Parameter(torch.zeros(self.hidden_dim))
 
-        self.W_p = nn.Parameter(init.xavier_uniform_(torch.empty(self.hidden_dim, self.output_dim)))
+        self.W_p = nn.Parameter(init.xavier_uniform_(torch.zeros(self.hidden_dim, self.output_dim)))
         self.b_p = nn.Parameter(torch.zeros(self.output_dim))
 
         self.activation = nn.Tanh()
@@ -73,6 +74,11 @@ class SFM_Model(nn.Module):
         self.fc_out = nn.Linear(self.output_dim, 1)
 
         self.states = []
+        
+        # Pre-compute constants for performance
+        self.register_buffer("const_1", torch.tensor(1.0).float())
+        array = np.array([float(ii) / self.freq_dim for ii in range(self.freq_dim)])
+        self.register_buffer("const_freq", torch.tensor(array).float())
 
     def forward(self, input):
         input = input.reshape(len(input), self.input_dim, -1)  # [N, F, T]
@@ -169,10 +175,9 @@ class SFM_Model(nn.Module):
 
     def get_constants(self, x):
         constants = []
-        constants.append([torch.tensor(1.0).to(self.device) for _ in range(6)])
-        constants.append([torch.tensor(1.0).to(self.device) for _ in range(7)])
-        array = np.array([float(ii) / self.freq_dim for ii in range(self.freq_dim)])
-        constants.append(torch.tensor(array).to(self.device))
+        constants.append([self.const_1 for _ in range(6)])
+        constants.append([self.const_1 for _ in range(7)])
+        constants.append(self.const_freq)
 
         self.states[5:] = constants
 
@@ -233,7 +238,12 @@ class SFM(Model):
         self.eval_steps = eval_steps
         self.optimizer = optimizer.lower()
         self.loss = loss
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        if torch.cuda.is_available() and GPU >= 0:
+            self.device = torch.device("cuda:%d" % GPU)
+        elif torch.backends.mps.is_available() and GPU >= 0:
+            self.device = torch.device("mps")
+        else:
+            self.device = torch.device("cpu")
         self.seed = seed
 
         self.logger.info(
@@ -307,8 +317,8 @@ class SFM(Model):
 
     def test_epoch(self, data_x, data_y):
         # prepare training data
-        x_values = data_x.values
-        y_values = np.squeeze(data_y.values)
+        x_values = data_x
+        y_values = np.squeeze(data_y)
 
         self.sfm_model.eval()
 
@@ -316,26 +326,26 @@ class SFM(Model):
         losses = []
 
         indices = np.arange(len(x_values))
+        test_batch_size = self.batch_size * 10
 
-        for i in range(len(indices))[:: self.batch_size]:
-            if len(indices) - i < self.batch_size:
-                break
+        for i in range(0, len(indices), test_batch_size):
+            # Ensure contiguous arrays for slicing to avoid issues with PyTorch on MPS
+            feature = torch.from_numpy(np.ascontiguousarray(x_values[indices[i : i + test_batch_size]])).to(self.device)
+            label = torch.from_numpy(np.ascontiguousarray(y_values[indices[i : i + test_batch_size]])).to(self.device)
 
-            feature = torch.from_numpy(x_values[indices[i : i + self.batch_size]]).float().to(self.device)
-            label = torch.from_numpy(y_values[indices[i : i + self.batch_size]]).float().to(self.device)
+            with torch.no_grad():
+                pred = self.sfm_model(feature)
+                loss = self.loss_fn(pred, label)
+                losses.append(loss)
 
-            pred = self.sfm_model(feature)
-            loss = self.loss_fn(pred, label)
-            losses.append(loss.item())
+                score = self.metric_fn(pred, label)
+                scores.append(score)
 
-            score = self.metric_fn(pred, label)
-            scores.append(score.item())
-
-        return np.mean(losses), np.mean(scores)
+        return torch.stack(losses).mean().item(), torch.stack(scores).mean().item()
 
     def train_epoch(self, x_train, y_train):
-        x_train_values = x_train.values
-        y_train_values = np.squeeze(y_train.values)
+        x_train_values = x_train
+        y_train_values = np.squeeze(y_train)
 
         self.sfm_model.train()
 
@@ -346,8 +356,9 @@ class SFM(Model):
             if len(indices) - i < self.batch_size:
                 break
 
-            feature = torch.from_numpy(x_train_values[indices[i : i + self.batch_size]]).float().to(self.device)
-            label = torch.from_numpy(y_train_values[indices[i : i + self.batch_size]]).float().to(self.device)
+            # Ensure contiguous arrays for slicing to avoid issues with PyTorch on MPS
+            feature = torch.from_numpy(np.ascontiguousarray(x_train_values[indices[i : i + self.batch_size]])).to(self.device)
+            label = torch.from_numpy(np.ascontiguousarray(y_train_values[indices[i : i + self.batch_size]])).to(self.device)
 
             pred = self.sfm_model(feature)
             loss = self.loss_fn(pred, label)
@@ -370,8 +381,8 @@ class SFM(Model):
         )
         if df_train.empty or df_valid.empty:
             raise ValueError("Empty data from dataset, please check your dataset config.")
-        x_train, y_train = df_train["feature"], df_train["label"]
-        x_valid, y_valid = df_valid["feature"], df_valid["label"]
+        x_train, y_train = df_train["feature"].values.astype(np.float32), df_train["label"].values.astype(np.float32)
+        x_valid, y_valid = df_valid["feature"].values.astype(np.float32), df_valid["label"].values.astype(np.float32)
 
         save_path = get_or_create_path(save_path)
         stop_steps = 0
@@ -410,8 +421,10 @@ class SFM(Model):
         self.logger.info("best score: %.6lf @ %d" % (best_score, best_epoch))
         self.sfm_model.load_state_dict(best_param)
         torch.save(best_param, save_path)
-        if self.device != "cpu":
+        if self.device.type == "cuda":
             torch.cuda.empty_cache()
+        elif self.device.type == "mps" and hasattr(torch, "mps") and hasattr(torch.mps, "empty_cache"):
+            torch.mps.empty_cache()
 
     def mse(self, pred, label):
         loss = (pred - label) ** 2
@@ -450,7 +463,12 @@ class SFM(Model):
             else:
                 end = begin + self.batch_size
 
-            x_batch = torch.from_numpy(x_values[begin:end]).float().to(self.device)
+            x_slice = x_values[begin:end]
+            
+            if not x_slice.flags['C_CONTIGUOUS']:
+                x_slice = np.ascontiguousarray(x_slice)
+            
+            x_batch = torch.from_numpy(x_slice).float().to(self.device)
 
             with torch.no_grad():
                 pred = self.sfm_model(x_batch).detach().cpu().numpy()

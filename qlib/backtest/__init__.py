@@ -203,11 +203,15 @@ def get_strategy_executor(
         exchange_kwargs["start_time"] = start_time
     if "end_time" not in exchange_kwargs:
         exchange_kwargs["end_time"] = end_time
+    logger.info("DEBUG: Calling get_exchange")
     trade_exchange = get_exchange(**exchange_kwargs)
+    logger.info("DEBUG: get_exchange finished")
 
     common_infra = CommonInfrastructure(trade_account=trade_account, trade_exchange=trade_exchange)
+    logger.info("DEBUG: Initializing strategy")
     trade_strategy = init_instance_by_config(strategy, accept_types=BaseStrategy)
     trade_strategy.reset_common_infra(common_infra)
+    logger.info("DEBUG: Initializing executor")
     trade_executor = init_instance_by_config(executor, accept_types=BaseExecutor)
     trade_executor.reset_common_infra(common_infra)
 
@@ -263,6 +267,8 @@ def backtest(
         It is organized in a dict format
 
     """
+    logger.info("DEBUG: Entering backtest function")
+    logger.info(f"DEBUG: start_time={start_time}, end_time={end_time}")
     trade_strategy, trade_executor = get_strategy_executor(
         start_time,
         end_time,
@@ -273,7 +279,11 @@ def backtest(
         exchange_kwargs,
         pos_type=pos_type,
     )
-    return backtest_loop(start_time, end_time, trade_strategy, trade_executor)
+    logger.info("DEBUG: get_strategy_executor finished")
+    logger.info("DEBUG: Calling backtest_loop")
+    res = backtest_loop(start_time, end_time, trade_strategy, trade_executor)
+    logger.info("DEBUG: backtest_loop finished")
+    return res
 
 
 def collect_data(

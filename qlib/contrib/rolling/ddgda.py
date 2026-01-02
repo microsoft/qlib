@@ -240,7 +240,7 @@ class DDGDA(Rolling):
         sim_task = replace_task_handler_with_cache(sim_task, self.working_dir)
 
         if self.sim_task_model == "gbdt":
-            sim_task["model"].setdefault("kwargs", {}).update({"early_stopping_rounds": None, "num_boost_round": 150})
+            sim_task["model"].setdefault("kwargs", {}).update({"early_stopping_rounds": 10, "num_boost_round": 150})
 
         exp_name_sim = f"data_sim_s{self.step}"
 

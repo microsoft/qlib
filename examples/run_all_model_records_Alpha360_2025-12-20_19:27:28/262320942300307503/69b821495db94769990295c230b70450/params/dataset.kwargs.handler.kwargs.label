@@ -1,0 +1,1 @@
+['Ref($close, -2) / Ref($close, -1) - 1']

@@ -473,16 +473,21 @@ class PortAnaRecord(ACRecordTemp):
 
         # if the backtesting time range is not set, it will automatically extract time range from the prediction file
         dt_values = pred.index.get_level_values("datetime")
-        if self.backtest_config["start_time"] is None:
+        if self.backtest_config.get("start_time") is None:
             self.backtest_config["start_time"] = dt_values.min()
-        if self.backtest_config["end_time"] is None:
+        if self.backtest_config.get("end_time") is None:
             self.backtest_config["end_time"] = get_date_by_shift(dt_values.max(), 1)
+
+        # Clean up backtest_config
+        self.backtest_config.pop("verbose", None)
 
         artifact_objects = {}
         # custom strategy and get backtest
+        logger.info("DEBUG: Starting normal_backtest...")
         portfolio_metric_dict, indicator_dict = normal_backtest(
             executor=self.executor_config, strategy=self.strategy_config, **self.backtest_config
         )
+        logger.info("DEBUG: Finished normal_backtest.")
         for _freq, (report_normal, positions_normal) in portfolio_metric_dict.items():
             artifact_objects.update({f"report_normal_{_freq}.pkl": report_normal})
             artifact_objects.update({f"positions_normal_{_freq}.pkl": positions_normal})

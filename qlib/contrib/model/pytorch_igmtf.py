@@ -74,7 +74,12 @@ class IGMTF(Model):
         self.loss = loss
         self.base_model = base_model
         self.model_path = model_path
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        if torch.cuda.is_available() and GPU >= 0:
+            self.device = torch.device("cuda:%d" % GPU)
+        elif torch.backends.mps.is_available() and GPU >= 0:
+            self.device = torch.device("mps")
+        else:
+            self.device = torch.device("cpu")
         self.seed = seed
 
         self.logger.info(
@@ -189,13 +194,24 @@ class IGMTF(Model):
 
         for idx, count in zip(daily_index, daily_count):
             batch = slice(idx, idx + count)
-            feature = torch.from_numpy(x_train_values[batch]).float().to(self.device)
+            feature_np = np.ascontiguousarray(x_train_values[batch], dtype=np.float32)
+            feature = torch.from_numpy(feature_np).to(self.device)
             out = self.igmtf_model(feature, get_hidden=True)
-            train_hidden.append(out.detach().cpu())
-            train_hidden_day.append(out.detach().cpu().mean(dim=0).unsqueeze(dim=0))
+            
+            # Safer move to CPU via Numpy (copying data)
+            out_cpu = torch.tensor(out.detach().cpu().numpy())
+            train_hidden.append(out_cpu)
+            
+            # Calculate mean on CPU to avoid MPS issues
+            out_mean = out_cpu.mean(dim=0).unsqueeze(dim=0)
+            train_hidden_day.append(out_mean)
 
         train_hidden = np.asarray(train_hidden, dtype=object)
         train_hidden_day = torch.cat(train_hidden_day)
+        
+        # Move to MPS if available
+        if self.device.type == 'mps':
+            train_hidden_day = train_hidden_day.to('mps')
 
         return train_hidden, train_hidden_day
 
@@ -209,8 +225,10 @@ class IGMTF(Model):
 
         for idx, count in zip(daily_index, daily_count):
             batch = slice(idx, idx + count)
-            feature = torch.from_numpy(x_train_values[batch]).float().to(self.device)
-            label = torch.from_numpy(y_train_values[batch]).float().to(self.device)
+            feature_np = np.ascontiguousarray(x_train_values[batch], dtype=np.float32)
+            feature = torch.from_numpy(feature_np).to(self.device)
+            label_np = np.ascontiguousarray(y_train_values[batch], dtype=np.float32)
+            label = torch.from_numpy(label_np).to(self.device)
             pred = self.igmtf_model(feature, train_hidden=train_hidden, train_hidden_day=train_hidden_day)
             loss = self.loss_fn(pred, label)
 
@@ -233,8 +251,10 @@ class IGMTF(Model):
 
         for idx, count in zip(daily_index, daily_count):
             batch = slice(idx, idx + count)
-            feature = torch.from_numpy(x_values[batch]).float().to(self.device)
-            label = torch.from_numpy(y_values[batch]).float().to(self.device)
+            feature_np = np.ascontiguousarray(x_values[batch], dtype=np.float32)
+            feature = torch.from_numpy(feature_np).to(self.device)
+            label_np = np.ascontiguousarray(y_values[batch], dtype=np.float32)
+            label = torch.from_numpy(label_np).to(self.device)
 
             pred = self.igmtf_model(feature, train_hidden=train_hidden, train_hidden_day=train_hidden_day)
             loss = self.loss_fn(pred, label)
@@ -321,8 +341,10 @@ class IGMTF(Model):
         self.igmtf_model.load_state_dict(best_param)
         torch.save(best_param, save_path)
 
-        if self.use_gpu:
+        if self.device.type == "cuda":
             torch.cuda.empty_cache()
+        elif self.device.type == "mps" and hasattr(torch, "mps") and hasattr(torch.mps, "empty_cache"):
+            torch.mps.empty_cache()
 
     def predict(self, dataset: DatasetH, segment: Union[Text, slice] = "test"):
         if not self.fitted:
@@ -339,7 +361,10 @@ class IGMTF(Model):
 
         for idx, count in zip(daily_index, daily_count):
             batch = slice(idx, idx + count)
-            x_batch = torch.from_numpy(x_values[batch]).float().to(self.device)
+            x_slice = x_values[batch]
+            
+            x_slice = np.ascontiguousarray(x_slice, dtype=np.float32)
+            x_batch = torch.from_numpy(x_slice).to(self.device)
 
             with torch.no_grad():
                 pred = (
@@ -389,17 +414,42 @@ class IGMTFModel(nn.Module):
         self.d_feat = d_feat
 
     def cal_cos_similarity(self, x, y):  # the 2nd dimension of x and y are the same
-        xy = x.mm(torch.t(y))
-        x_norm = torch.sqrt(torch.sum(x * x, dim=1)).reshape(-1, 1)
-        y_norm = torch.sqrt(torch.sum(y * y, dim=1)).reshape(-1, 1)
-        cos_similarity = xy / (x_norm.mm(torch.t(y_norm)) + 1e-6)
+        x = x.contiguous()
+        y = y.contiguous()
+        
+        y_t = y.t()
+        xy = x.mm(y_t)
+        
+        x_sq = x * x
+        x_sum = torch.sum(x_sq, dim=1)
+        x_norm = torch.sqrt(x_sum).reshape(-1, 1)
+        
+        y_sq = y * y
+        y_sum = torch.sum(y_sq, dim=1)
+        y_norm = torch.sqrt(y_sum).reshape(-1, 1)
+        
+        y_norm_t = y_norm.t()
+        norm_mm = x_norm.mm(y_norm_t)
+        
+        denom = norm_mm + 1e-6
+        cos_similarity = xy / denom
+        
         return cos_similarity
 
     def sparse_dense_mul(self, s, d):
+        original_device = s.device
+        if original_device.type == 'mps':
+            s = s.cpu()
+            d = d.cpu()
+
         i = s._indices()
         v = s._values()
         dv = d[i[0, :], i[1, :]]  # get values from relevant entries of dense matrix
-        return torch.sparse.FloatTensor(i, v * dv, s.size())
+        res = torch.sparse_coo_tensor(i, v * dv, s.size(), device=s.device)
+
+        if original_device.type == 'mps':
+            return res.to(original_device)
+        return res
 
     def forward(self, x, get_hidden=False, train_hidden=None, train_hidden_day=None, k_day=10, n_neighbor=10):
         # x: [N, F*T]
@@ -414,29 +464,80 @@ class IGMTFModel(nn.Module):
             return mini_batch_out
 
         mini_batch_out_day = torch.mean(mini_batch_out, dim=0).unsqueeze(0)
-        day_similarity = self.cal_cos_similarity(mini_batch_out_day, train_hidden_day.to(device))
-        day_index = torch.topk(day_similarity, k_day, dim=1)[1]
-        sample_train_hidden = train_hidden[day_index.long().cpu()].squeeze()
-        sample_train_hidden = torch.cat(list(sample_train_hidden)).to(device)
-        sample_train_hidden = self.lins(sample_train_hidden)
-        cos_similarity = self.cal_cos_similarity(self.project1(mini_batch_out), self.project2(sample_train_hidden))
 
-        row = (
-            torch.linspace(0, x.shape[0] - 1, x.shape[0])
-            .reshape([-1, 1])
-            .repeat(1, n_neighbor)
-            .reshape(1, -1)
-            .to(device)
-        )
-        column = torch.topk(cos_similarity, n_neighbor, dim=1)[1].reshape(1, -1)
-        mask = torch.sparse_coo_tensor(
-            torch.cat([row, column]),
-            torch.ones([row.shape[1]]).to(device) / n_neighbor,
-            (x.shape[0], sample_train_hidden.shape[0]),
-        )
-        cos_similarity = self.sparse_dense_mul(mask, cos_similarity)
+        if device.type == 'mps':
+            # Ensure train_hidden_day is on MPS
+            if train_hidden_day.device.type != 'mps':
+                train_hidden_day = train_hidden_day.to('mps')
+            
+            # Run similarity on MPS (dense operations are fine)
+            day_similarity = self.cal_cos_similarity(mini_batch_out_day, train_hidden_day)
+            
+            # Move to CPU for topk if needed, or keep on MPS
+            # topk is supported on MPS
+            day_index = torch.topk(day_similarity, k_day, dim=1)[1]
+            
+            # train_hidden contains CPU tensors (from get_train_hidden)
+            # day_index needs to be on CPU to index the list?
+            # train_hidden is a numpy array of tensors.
+            # We need to convert day_index to CPU to use it as index for numpy array
+            day_index_cpu = day_index.cpu()
+            
+            sample_train_hidden = train_hidden[day_index_cpu.long()].squeeze()
+            
+            # Move sample_train_hidden to MPS
+            sample_train_hidden_dev = torch.cat(list(sample_train_hidden)).to(device)
+            
+            sample_train_hidden_dev = self.lins(sample_train_hidden_dev)
+            
+            # Project on MPS
+            p1 = self.project1(mini_batch_out)
+            p2 = self.project2(sample_train_hidden_dev)
+            
+            # Similarity on MPS
+            cos_similarity = self.cal_cos_similarity(p1, p2)
+            
+            # Dense implementation on MPS to avoid CPU segfaults and sparse errors
+            # 1. Find topk indices
+            topk_values, topk_indices = torch.topk(cos_similarity, n_neighbor, dim=1)
+            
+            # 2. Create a dense mask
+            mask = torch.zeros_like(cos_similarity)
+            mask.scatter_(1, topk_indices, 1.0 / n_neighbor)
+            
+            # 3. Apply mask
+            cos_similarity_masked = cos_similarity * mask
+            
+            # 4. Multiply with p2
+            agg_out = torch.mm(cos_similarity_masked, p2)
+            
+            # Restore sample_train_hidden for consistency if needed
+            sample_train_hidden = sample_train_hidden_dev
 
-        agg_out = torch.sparse.mm(cos_similarity, self.project2(sample_train_hidden))
+        else:
+            day_similarity = self.cal_cos_similarity(mini_batch_out_day, train_hidden_day.to(device))
+            day_index = torch.topk(day_similarity, k_day, dim=1)[1]
+            sample_train_hidden = train_hidden[day_index.long().cpu()].squeeze()
+            sample_train_hidden = torch.cat(list(sample_train_hidden)).to(device)
+            sample_train_hidden = self.lins(sample_train_hidden)
+            cos_similarity = self.cal_cos_similarity(self.project1(mini_batch_out), self.project2(sample_train_hidden))
+
+            row = (
+                torch.linspace(0, x.shape[0] - 1, x.shape[0])
+                .long()
+                .reshape([-1, 1])
+                .repeat(1, n_neighbor)
+                .reshape(1, -1)
+                .to(device)
+            )
+            column = torch.topk(cos_similarity, n_neighbor, dim=1)[1].reshape(1, -1)
+            mask = torch.sparse_coo_tensor(
+                torch.cat([row, column]),
+                torch.ones([row.shape[1]]).to(device) / n_neighbor,
+                (x.shape[0], sample_train_hidden.shape[0]),
+            )
+            cos_similarity = self.sparse_dense_mul(mask, cos_similarity)
+            agg_out = torch.sparse.mm(cos_similarity, self.project2(sample_train_hidden))
         # out = self.fc_out(out).squeeze()
         out = self.fc_out_pred(torch.cat([mini_batch_out, agg_out], axis=1)).squeeze()
         return out
