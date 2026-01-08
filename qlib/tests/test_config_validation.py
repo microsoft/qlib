@@ -1,12 +1,12 @@
 import pytest
-from qlib.config import C, Config
+
+from qlib.config import Config
 
 
 def test_missing_provider_uri_raises():
-    
     default_conf = {
         "provider_uri": None,
-        "region": "us"
+        "region": "us",
     }
 
     cfg = Config(default_conf)
