@@ -286,7 +286,32 @@ class FileFeatureStorage(FileStorageMixin, FeatureStorage):
     def __init__(self, instrument: str, field: str, freq: str, provider_uri: dict = None, **kwargs):
         super(FileFeatureStorage, self).__init__(instrument, field, freq, **kwargs)
         self._provider_uri = None if provider_uri is None else C.DataPathManager.format_provider_uri(provider_uri)
-        self.file_name = f"{instrument.lower()}/{field.lower()}.{freq.lower()}.bin"
+        # self.file_name = f"{instrument.lower()}/{field.lower()}.{freq.lower()}.bin"
+
+    @property
+    def file_name(self) -> str:
+        # Check if the file exists with the original instrument name
+        # If not, check if it exists with the lowercase instrument name
+        # If neither, return the original instrument name (for creating new files)
+        
+        # NOTE: This depends on self.dpm and self.storage_name which are properties of FileStorageMixin/BaseStorage.
+        # self.storage_name for FeatureStorage is likely "feature".
+        
+        base_uri = self.dpm.get_data_uri(self.freq).joinpath(f"{self.storage_name}s")
+        
+        # Candidate 1: Original Case (Preferred for correct behavior on Linux)
+        name_orig = f"{self.instrument}/{self.field.lower()}.{self.freq.lower()}.bin"
+        if (base_uri / name_orig).exists():
+            return name_orig
+            
+        # Candidate 2: Lowercase (Backward Compatibility)
+        name_lower = f"{self.instrument.lower()}/{self.field.lower()}.{self.freq.lower()}.bin"
+        if (base_uri / name_lower).exists():
+            return name_lower
+            
+        # Default: Original Case (For new files)
+        return name_orig
+
 
     def clear(self):
         with self.uri.open("wb") as _:
