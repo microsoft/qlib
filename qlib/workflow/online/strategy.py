@@ -182,6 +182,8 @@ class RollingStrategy(OnlineStrategy):
         self.logger.info(
             f"The interval between current time {calendar_latest} and last rolling test begin time {max_test[0]} is {self.ta.cal_interval(calendar_latest, max_test[0])}, the rolling step is {self.rg.step}"
         )
+        if self.ta.cal_interval(calendar_latest, max_test[0]) < self.rg.step:
+            return []
         res = []
         for rec in latest_records:
             task = rec.load_object("task")
