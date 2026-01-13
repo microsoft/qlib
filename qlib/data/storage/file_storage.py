@@ -286,7 +286,29 @@ class FileFeatureStorage(FileStorageMixin, FeatureStorage):
     def __init__(self, instrument: str, field: str, freq: str, provider_uri: dict = None, **kwargs):
         super(FileFeatureStorage, self).__init__(instrument, field, freq, **kwargs)
         self._provider_uri = None if provider_uri is None else C.DataPathManager.format_provider_uri(provider_uri)
-        self.file_name = f"{instrument.lower()}/{field.lower()}.{freq.lower()}.bin"
+        
+        base_uri = self.dpm.get_data_uri(self.freq) # Assuming dpm is available and get_data_uri provides the base path
+
+        # Candidate 1: Original Case (Preferred for correct behavior on Linux)
+        name_orig = f"{instrument}/{field.lower()}.{freq.lower()}.bin"
+        if (base_uri / name_orig).exists():
+            self.file_name = name_orig
+            return
+
+        # Candidate 2: Uppercase (Fix for lowercase input finding uppercase folder on case-sensitive OS)
+        name_upper = f"{instrument.upper()}/{field.lower()}.{freq.lower()}.bin"
+        if (base_uri / name_upper).exists():
+            self.file_name = name_upper
+            return
+            
+        # Candidate 3: Lowercase (Backward Compatibility)
+        name_lower = f"{instrument.lower()}/{field.lower()}.{freq.lower()}.bin"
+        if (base_uri / name_lower).exists():
+            self.file_name = name_lower
+            return
+            
+        # Default: Original Case (For new files)
+        self.file_name = name_orig
 
     def clear(self):
         with self.uri.open("wb") as _:
