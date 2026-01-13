@@ -303,8 +303,13 @@ class FileFeatureStorage(FileStorageMixin, FeatureStorage):
         name_orig = f"{self.instrument}/{self.field.lower()}.{self.freq.lower()}.bin"
         if (base_uri / name_orig).exists():
             return name_orig
+
+        # Candidate 2: Uppercase (Fix for lowercase input finding uppercase folder on case-sensitive OS)
+        name_upper = f"{self.instrument.upper()}/{self.field.lower()}.{self.freq.lower()}.bin"
+        if (base_uri / name_upper).exists():
+            return name_upper
             
-        # Candidate 2: Lowercase (Backward Compatibility)
+        # Candidate 3: Lowercase (Backward Compatibility)
         name_lower = f"{self.instrument.lower()}/{self.field.lower()}.{self.freq.lower()}.bin"
         if (base_uri / name_lower).exists():
             return name_lower
