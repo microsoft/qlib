@@ -1,12 +1,12 @@
-from loguru import logger
 import os
 from typing import Optional
 
 import fire
 import pandas as pd
-import qlib
+from loguru import logger
 from tqdm import tqdm
 
+import qlib
 from qlib.data import D
 
 
@@ -36,6 +36,7 @@ class DataHealthChecker:
         self.large_step_threshold_price = large_step_threshold_price
         self.large_step_threshold_volume = large_step_threshold_volume
         self.missing_data_num = missing_data_num
+        self.qlib_dir = os.path.abspath(os.path.expanduser(qlib_dir))
 
         if csv_path:
             assert os.path.isdir(csv_path), f"{csv_path} should be a directory."
@@ -67,6 +68,34 @@ class DataHealthChecker:
             )
             self.data[instrument] = df
         print(df)
+
+    def check_features_dir_lowercase(self) -> Optional[pd.DataFrame]:
+        """
+        Check whether all subdirectories under qlib_dir/features are named in lowercase.
+        This check is only applicable when qlib_dir is provided.
+        """
+        if not self.qlib_dir:
+            return None
+
+        features_dir = os.path.join(self.qlib_dir, "features")
+        if not os.path.isdir(features_dir):
+            logger.warning(f"`features` directory not found under {self.qlib_dir}")
+            return None
+
+        bad_dirs = []
+        for name in os.listdir(features_dir):
+            full_path = os.path.join(features_dir, name)
+            if os.path.isdir(full_path) and name != name.lower():
+                bad_dirs.append(name)
+
+        if bad_dirs:
+            result_df = pd.DataFrame({"non_lowercase_dir": bad_dirs})
+            return result_df
+        else:
+            logger.info(
+                f"✅ All subdirectories under `{os.path.join(self.qlib_dir, 'features')}` are named in lowercase."
+            )
+            return None
 
     def check_missing_data(self) -> Optional[pd.DataFrame]:
         """Check if any data is missing in the DataFrame."""
@@ -177,11 +206,13 @@ class DataHealthChecker:
         check_large_step_changes_result = self.check_large_step_changes()
         check_required_columns_result = self.check_required_columns()
         check_missing_factor_result = self.check_missing_factor()
+        check_features_dir_case_result = self.check_features_dir_lowercase()
         if (
             check_large_step_changes_result is not None
             or check_large_step_changes_result is not None
             or check_required_columns_result is not None
             or check_missing_factor_result is not None
+            or check_features_dir_case_result is not None
         ):
             print(f"\nSummary of data health check ({len(self.data)} files checked):")
             print("-------------------------------------------------")
@@ -197,6 +228,11 @@ class DataHealthChecker:
             if isinstance(check_missing_factor_result, pd.DataFrame):
                 logger.warning(f"The factor column does not exist or is empty")
                 print(check_missing_factor_result)
+            if isinstance(check_features_dir_case_result, pd.DataFrame):
+                logger.warning(
+                    f"Some subdirectories under `{os.path.join(self.qlib_dir, 'features')}` contain uppercase letters, please rename them to lowercase manually."
+                )
+                print(check_features_dir_case_result)
 
 
 if __name__ == "__main__":
