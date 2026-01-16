@@ -69,10 +69,19 @@ class DataHealthChecker:
             self.data[instrument] = df
         print(df)
 
+    # NOTE:
+    # This check is added due to a known issue in Qlib where feature paths
+    # are constructed using lowercased instrument names. On case-sensitive
+    # file systems (e.g. Linux), uppercase directory names under `features/`
+    # will cause data loading failures.
+    #
+    # See: https://github.com/microsoft/qlib/issues/2053
     def check_features_dir_lowercase(self) -> Optional[pd.DataFrame]:
         """
-        Check whether all subdirectories under qlib_dir/features are named in lowercase.
-        This check is only applicable when qlib_dir is provided.
+        Check whether all subdirectories under `<qlib_dir>/features` are named in lowercase.
+
+        This validation helps prevent data loading issues on case-sensitive
+        file systems caused by uppercase instrument directory names.
         """
         if not self.qlib_dir:
             return None
