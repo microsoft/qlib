@@ -4,6 +4,9 @@
 import torch.nn as nn
 
 
+import torch
+
+
 def count_parameters(models_or_parameters, unit="m"):
     """
     This function is to obtain the storage size unit of a (or multiple) models.
@@ -35,3 +38,19 @@ def count_parameters(models_or_parameters, unit="m"):
     elif unit is not None:
         raise ValueError("Unknown unit: {:}".format(unit))
     return counts
+
+
+def get_device_type(device):
+    if isinstance(device, torch.device):
+        return device.type
+    return str(device).split(":")[0]
+
+
+def empty_cache(device):
+    dtype = get_device_type(device)
+    if dtype == "cuda":
+        torch.cuda.empty_cache()
+    elif dtype == "xpu":
+        torch.xpu.empty_cache()
+    elif dtype == "mps":
+        torch.mps.empty_cache()

@@ -62,11 +62,11 @@ task:
             n_epochs: 200
             lr: 1e-3
             early_stop: 10
-            batch_size: 800
+            batch_size: 2000
             metric: loss
             loss: mse
-            n_jobs: 20
-            GPU: 0
+            n_jobs: 6
+            GPU: "xpu"
     dataset:
         class: TSDatasetH
         module_path: qlib.data.dataset
