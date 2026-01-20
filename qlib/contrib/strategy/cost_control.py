@@ -14,7 +14,6 @@ class SoftTopkStrategy(WeightStrategyBase):
         order_generator_cls_or_obj=OrderGenWInteract,
         max_sold_weight=1.0,
         trade_impact_limit=None,
-        priority="IMPACT_FIRST",
         risk_degree=0.95,
         buy_method="first_fill",
         **kwargs,
@@ -27,9 +26,9 @@ class SoftTopkStrategy(WeightStrategyBase):
         topk : int
             The number of top-N stocks to be held in the portfolio.
         trade_impact_limit : float
-            Maximum weight change for each stock in one trade.
-        priority : str
-            "COMPLIANCE_FIRST" or "IMPACT_FIRST".
+            Maximum weight change for each stock in one trade. If None, fallback to max_sold_weight.
+        max_sold_weight : float
+            Backward-compatible alias for trade_impact_limit. Use 1.0 to effectively disable the limit.
         risk_degree : float
             The target percentage of total value to be invested.
         """
@@ -39,7 +38,6 @@ class SoftTopkStrategy(WeightStrategyBase):
 
         self.topk = topk
         self.trade_impact_limit = trade_impact_limit if trade_impact_limit is not None else max_sold_weight
-        self.priority = priority.upper()
         self.risk_degree = risk_degree
         self.buy_method = buy_method
 
@@ -55,6 +53,9 @@ class SoftTopkStrategy(WeightStrategyBase):
         if self.topk is None or self.topk <= 0:
             return {}
 
+        def apply_impact_limit(weight):
+            return weight if self.trade_impact_limit is None else min(weight, self.trade_impact_limit)
+
         ideal_per_stock = self.risk_degree / self.topk
         ideal_list = score.sort_values(ascending=False).iloc[: self.topk].index.tolist()
 
@@ -63,11 +64,7 @@ class SoftTopkStrategy(WeightStrategyBase):
 
         # --- Case A: Cold Start ---
         if not cur_weights:
-            fill = (
-                ideal_per_stock
-                if self.priority == "COMPLIANCE_FIRST"
-                else min(ideal_per_stock, self.trade_impact_limit)
-            )
+            fill = apply_impact_limit(ideal_per_stock)
             return {code: fill for code in ideal_list}
 
         # --- Case B: Rebalancing ---
@@ -82,12 +79,12 @@ class SoftTopkStrategy(WeightStrategyBase):
                 continue
 
             if t not in ideal_list:
-                sell = cur if self.priority == "COMPLIANCE_FIRST" else min(cur, self.trade_impact_limit)
+                sell = apply_impact_limit(cur)
                 next_weights[t] -= sell
                 released_cash += sell
             elif cur > ideal_per_stock + 1e-8:
                 excess = cur - ideal_per_stock
-                sell = excess if self.priority == "COMPLIANCE_FIRST" else min(excess, self.trade_impact_limit)
+                sell = apply_impact_limit(excess)
                 next_weights[t] -= sell
                 released_cash += sell
 
@@ -112,10 +109,8 @@ class SoftTopkStrategy(WeightStrategyBase):
                     # Every stock gets its fair share based on its distance to target
                     share_of_budget = (shortfall / total_shortfall) * available_to_spend
 
-                    # Capped by impact limit or compliance priority
-                    max_buy_cap = (
-                        shortfall if self.priority == "COMPLIANCE_FIRST" else min(shortfall, self.trade_impact_limit)
-                    )
+                    # Capped by impact limit
+                    max_buy_cap = apply_impact_limit(shortfall)
 
                     next_weights[t] += min(share_of_budget, max_buy_cap)
 

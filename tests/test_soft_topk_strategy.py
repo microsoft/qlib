@@ -21,16 +21,15 @@ def test_soft_topk_logic():
     risk_degree = 0.95
     impact_limit = 0.1  # Max change per step
 
-    def create_test_strategy(priority):
+    def create_test_strategy(impact_limit_value):
         strat = SoftTopkStrategy.__new__(SoftTopkStrategy)
         strat.topk = topk
         strat.risk_degree = risk_degree
-        strat.trade_impact_limit = impact_limit
-        strat.priority = priority.upper()
+        strat.trade_impact_limit = impact_limit_value
         return strat
 
-    # 1. Test IMPACT_FIRST: Expect deterministic sell and limited buy
-    strat_i = create_test_strategy("IMPACT_FIRST")
+    # 1. With impact limit: Expect deterministic sell and limited buy
+    strat_i = create_test_strategy(impact_limit)
     res_i = strat_i.generate_target_weight_position(scores, current_pos, None, None)
 
     # A should be exactly 0.8 - 0.1 = 0.7
@@ -42,8 +41,8 @@ def test_soft_topk_logic():
     assert abs(res_i["C"] - 0.075) < 1e-8
     assert abs(res_i["D"] - 0.075) < 1e-8
 
-    # 2. Test COMPLIANCE_FIRST: Expect full liquidation and full target fill
-    strat_c = create_test_strategy("COMPLIANCE_FIRST")
+    # 2. Without impact limit: Expect full liquidation and full target fill
+    strat_c = create_test_strategy(1.0)
     res_c = strat_c.generate_target_weight_position(scores, current_pos, None, None)
 
     # A, B not in topk -> Liquidated
