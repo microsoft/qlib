@@ -7,13 +7,11 @@ import importlib
 import time
 import bisect
 import pickle
-import random
 import requests
 import functools
 from pathlib import Path
 from typing import Iterable, Tuple, List
 
-import akshare as ak
 import numpy as np
 import pandas as pd
 from loguru import logger
@@ -81,6 +79,8 @@ def get_calendar_list(bench_code="CSI300") -> List[pd.Timestamp]:
             calendar = df.index.get_level_values(level="date").map(pd.Timestamp).unique().tolist()
         else:
             if bench_code.upper() == "ALL":
+                import akshare as ak  # pylint: disable=C0415
+
                 trade_date_df = ak.tool_trade_date_hist_sina()
                 trade_date_list = trade_date_df["trade_date"].tolist()
                 trade_date_list = [pd.Timestamp(d) for d in trade_date_list]
