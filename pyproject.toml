@@ -69,8 +69,10 @@ rl = [
   "torch",
   "numpy<2.0.0",
 ]
+# We exclude black version 26.1.0 due to known issues with nbqa when formatting Jupyter notebooks,
+# which can cause false-positive --check results and inconsistent notebook formatting.
 lint = [
-  "black",
+  "black!=26.1.0",
   "pylint",
   "mypy<1.5.0",
   "flake8",
