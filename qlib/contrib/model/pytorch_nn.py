@@ -5,6 +5,7 @@
 from __future__ import division
 from __future__ import print_function
 from collections import defaultdict
+import inspect
 
 import os
 import gc
@@ -146,34 +147,27 @@ class DNNModelPytorch(Model):
             raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
 
         if scheduler == "default":
-            # In torch version 2.7.0, the verbose parameter has been removed. Reference Link:
-            # https://github.com/pytorch/pytorch/pull/147301/files#diff-036a7470d5307f13c9a6a51c3a65dd014f00ca02f476c545488cd856bea9bcf2L1313
-            if str(torch.__version__).split("+", maxsplit=1)[0] <= "2.6.0":
-                # Reduce learning rate when loss has stopped decrease
-                self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(  # pylint: disable=E1123
-                    self.train_optimizer,
-                    mode="min",
-                    factor=0.5,
-                    patience=10,
-                    verbose=True,
-                    threshold=0.0001,
-                    threshold_mode="rel",
-                    cooldown=0,
-                    min_lr=0.00001,
-                    eps=1e-08,
-                )
-            else:
-                self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-                    self.train_optimizer,
-                    mode="min",
-                    factor=0.5,
-                    patience=10,
-                    threshold=0.0001,
-                    threshold_mode="rel",
-                    cooldown=0,
-                    min_lr=0.00001,
-                    eps=1e-08,
-                )
+            # In torch 2.7.0+, the verbose parameter is removed. Detect support instead of version compare.
+            scheduler_kwargs = dict(
+                mode="min",
+                factor=0.5,
+                patience=10,
+                threshold=0.0001,
+                threshold_mode="rel",
+                cooldown=0,
+                min_lr=0.00001,
+                eps=1e-08,
+            )
+            try:
+                signature = inspect.signature(torch.optim.lr_scheduler.ReduceLROnPlateau.__init__)
+            except (TypeError, ValueError):
+                signature = None
+            if signature and "verbose" in signature.parameters:
+                scheduler_kwargs["verbose"] = True
+            # Reduce learning rate when loss has stopped decrease
+            self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(  # pylint: disable=E1123
+                self.train_optimizer, **scheduler_kwargs
+            )
         elif scheduler is None:
             self.scheduler = None
         else:
