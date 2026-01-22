@@ -1,0 +1,62 @@
+simulator:
+  data_granularity: 5
+  time_per_step: 30
+  vol_limit: null
+  fee_rate: 0.002
+env:
+  concurrency: 24
+  parallel_mode: shmem
+action_interpreter:
+  class: CategoricalATActionInterpreter
+  kwargs:
+    values: [-1, 0, 1]
+    max_step: 8
+  module_path: qlib.rl.algorithm_trading.interpreter
+state_interpreter:
+  class: FullHistoryATStateInterpreter
+  kwargs:
+    data_dim: 5
+    data_ticks: 48  # 48 = 240 min / 5 min
+    max_step: 8
+    processed_data_provider:
+      class: PickleProcessedDataProvider
+      module_path: qlib.rl.data.pickle_styled
+      kwargs:
+        data_dir: ./data/pickle_dataframe/feature
+  module_path: qlib.rl.algorithm_trading.interpreter
+reward:
+  class: LongShortReward
+  kwargs:
+    trans_fee: 0.002
+    scale: 1000
+  module_path: qlib.rl.algorithm_trading.reward
+data:
+  source:
+    task_dir: ./data/tasks
+    data_dir: ./data/pickle_dataframe/backtest
+    total_time: 240
+    default_start_time_index: 0
+    default_end_time_index: 235
+    proc_data_dim: 5
+  num_workers: 0
+  queue_size: 20
+network:
+  class: Recurrent
+  module_path: qlib.rl.algorithm_trading.network
+policy:
+  class: PPO
+  kwargs:
+    lr: 0.0001
+  module_path: qlib.rl.algorithm_trading.policy
+runtime:
+  seed: 42
+  use_cuda: false
+trainer:
+  max_epoch: 500
+  repeat_per_collect: 20
+  earlystop_patience: 5
+  episode_per_collect: 10000
+  batch_size: 1024
+  val_every_n_epoch: 5
+  checkpoint_path: ./outputs/algorithm_trading
+  checkpoint_every_n_iters: 1
