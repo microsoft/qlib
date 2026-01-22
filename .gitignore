@@ -22,6 +22,7 @@ dist/
 qlib/VERSION.txt
 qlib/data/_libs/expanding.cpp
 qlib/data/_libs/rolling.cpp
+qlib/_version.py
 examples/estimator/estimator_example/
 examples/rl/data/
 examples/rl/checkpoints/
