@@ -317,6 +317,6 @@ class TFTModel(ModelFT):
         for attr in drop_attrs:
             orig_attr[attr] = getattr(self, attr)
             setattr(self, attr, None)
-        super(TFTModel, self).to_pickle(path)
+        super(TFTModel, self).to_hdf(path, key="data")
         for attr in drop_attrs:
             setattr(self, attr, orig_attr[attr])
