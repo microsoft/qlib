@@ -1,9 +1,10 @@
 repos:
--   repo: https://github.com/psf/black
-    rev: 23.7.0
-    hooks:
-    -   id: black
-        args: ["qlib", "-l 120"]
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  rev: v0.7.1
+  hooks:
+    - id: ruff
+      args: [ --fix ]
+    - id: ruff-format
 
 -   repo: https://github.com/PyCQA/flake8
     rev: 4.0.1
