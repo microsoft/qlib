@@ -668,6 +668,16 @@ class DataHandlerLP(DataHandler):
             raise AttributeError(
                 "DataHandlerLP has not attribute _data, please set drop_raw = False if you want to use raw data"
             )
+        
+        # Check if the attribute exists before accessing it
+        attr_name = self.ATTR_MAP[data_key]
+        if not hasattr(self, attr_name):
+             # If _infer is missing, try to use _shared_df or _data as fallback if appropriate,
+             # or re-run process_data to generate it.
+             # For now, let's try to re-generate it if it's missing.
+             if attr_name == "_infer" or attr_name == "_learn":
+                 self.process_data()
+
         df = getattr(self, self.ATTR_MAP[data_key])
         return df
 

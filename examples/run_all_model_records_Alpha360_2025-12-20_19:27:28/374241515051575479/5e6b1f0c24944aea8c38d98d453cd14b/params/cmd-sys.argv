@@ -1,0 +1,1 @@
+/opt/anaconda3/envs/qlib/bin/qrun /Users/aronyang/Documents/GitHub/qlib/examples/benchmarks/ADD/workflow_config_add_Alpha360.yaml ADD run_all_model_records

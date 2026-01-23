@@ -1,0 +1,1 @@
+/opt/anaconda3/envs/qlib/bin/qrun /Users/aronyang/Documents/GitHub/qlib/examples/benchmarks/GATs/workflow_config_gats_Alpha360.yaml GATs run_all_model_records

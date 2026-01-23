@@ -33,7 +33,7 @@ import data_formatters.base
 import libs.utils as utils
 import numpy as np
 import pandas as pd
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 # Layer definitions.
 concat = tf.keras.backend.concatenate

@@ -47,7 +47,7 @@ if __name__ == "__main__":
 
     # save new task
     with new_task_path.open("w") as f:
-        yaml.safe_dump(new_task_config, f, indent=4, sort_keys=False)
+        yaml.dump(new_task_config, f)
 
     # 4) train model with new task
     with TimeInspector.logt("The time for task with handler cache:"):

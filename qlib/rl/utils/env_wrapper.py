@@ -6,8 +6,8 @@ from __future__ import annotations
 import weakref
 from typing import Any, Callable, cast, Dict, Generic, Iterable, Iterator, Optional, Tuple
 
-import gym
-from gym import Space
+import gymnasium as gym
+from gymnasium import Space
 
 from qlib.rl.aux_info import AuxiliaryInfoCollector
 from qlib.rl.interpreter import ActionInterpreter, ObsType, PolicyActType, StateInterpreter

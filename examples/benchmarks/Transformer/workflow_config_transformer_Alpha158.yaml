@@ -57,6 +57,8 @@ task:
         kwargs:
             seed: 0
             n_jobs: 20
+            n_epochs: 200
+            early_stop: 20
     dataset:
         class: TSDatasetH
         module_path: qlib.data.dataset

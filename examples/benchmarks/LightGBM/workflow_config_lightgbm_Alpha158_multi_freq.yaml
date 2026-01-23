@@ -29,7 +29,7 @@ data_handler_config: &data_handler_config
 port_analysis_config: &port_analysis_config
     strategy:
         class: TopkDropoutStrategy
-        module_path: qlib.contrib.strategy.strategy
+        module_path: qlib.contrib.strategy
         kwargs:
             topk: 50
             n_drop: 5

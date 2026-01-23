@@ -1,0 +1,1 @@
+/opt/anaconda3/envs/qlib/bin/qrun /Users/aronyang/Documents/GitHub/qlib/examples/benchmarks/CatBoost/workflow_config_catboost_Alpha158.yaml CatBoost run_all_model_records

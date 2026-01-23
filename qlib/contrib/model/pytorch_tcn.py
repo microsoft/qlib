@@ -75,7 +75,12 @@ class TCN(Model):
         self.early_stop = early_stop
         self.optimizer = optimizer.lower()
         self.loss = loss
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        if torch.cuda.is_available() and GPU >= 0:
+            self.device = torch.device("cuda:%d" % GPU)
+        elif torch.backends.mps.is_available() and GPU >= 0:
+            self.device = torch.device("mps")
+        else:
+            self.device = torch.device("cpu")
         self.seed = seed
 
         self.logger.info(
@@ -195,23 +200,28 @@ class TCN(Model):
         losses = []
 
         indices = np.arange(len(x_values))
+        batch_size = self.batch_size * 10
 
-        for i in range(len(indices))[:: self.batch_size]:
-            if len(indices) - i < self.batch_size:
-                break
+        for i in range(len(indices))[:: batch_size]:
+            if len(indices) - i < batch_size:
+                end_idx = len(indices)
+            else:
+                end_idx = i + batch_size
 
-            feature = torch.from_numpy(x_values[indices[i : i + self.batch_size]]).float().to(self.device)
-            label = torch.from_numpy(y_values[indices[i : i + self.batch_size]]).float().to(self.device)
+            feature = torch.from_numpy(x_values[indices[i:end_idx]]).float().to(self.device)
+            label = torch.from_numpy(y_values[indices[i:end_idx]]).float().to(self.device)
 
             with torch.no_grad():
                 pred = self.tcn_model(feature)
                 loss = self.loss_fn(pred, label)
-                losses.append(loss.item())
+                losses.append(loss)
 
                 score = self.metric_fn(pred, label)
-                scores.append(score.item())
+                scores.append(score)
 
-        return np.mean(losses), np.mean(scores)
+        if len(losses) > 0:
+            return torch.stack(losses).mean().item(), torch.stack(scores).mean().item()
+        return 0, 0
 
     def fit(
         self,
@@ -266,8 +276,10 @@ class TCN(Model):
         self.tcn_model.load_state_dict(best_param)
         torch.save(best_param, save_path)
 
-        if self.use_gpu:
+        if self.device.type == "cuda":
             torch.cuda.empty_cache()
+        elif self.device.type == "mps" and hasattr(torch, "mps") and hasattr(torch.mps, "empty_cache"):
+            torch.mps.empty_cache()
 
     def predict(self, dataset: DatasetH, segment: Union[Text, slice] = "test"):
         if not self.fitted:
@@ -279,14 +291,21 @@ class TCN(Model):
         x_values = x_test.values
         sample_num = x_values.shape[0]
         preds = []
+        batch_size = self.batch_size * 4
 
-        for begin in range(sample_num)[:: self.batch_size]:
-            if sample_num - begin < self.batch_size:
+        for begin in range(sample_num)[:: batch_size]:
+            if sample_num - begin < batch_size:
                 end = sample_num
             else:
-                end = begin + self.batch_size
+                end = begin + batch_size
 
-            x_batch = torch.from_numpy(x_values[begin:end]).float().to(self.device)
+            x_slice = x_values[begin:end]
+            
+            # Ensure contiguous array to avoid potential issues with torch.from_numpy
+            if not x_slice.flags['C_CONTIGUOUS']:
+                x_slice = np.ascontiguousarray(x_slice)
+            
+            x_batch = torch.from_numpy(x_slice).float().to(self.device)
 
             with torch.no_grad():
                 pred = self.tcn_model(x_batch).detach().cpu().numpy()

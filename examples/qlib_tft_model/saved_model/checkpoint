@@ -1,0 +1,2 @@
+model_checkpoint_path: "TemporalFusionTransformer.ckpt"
+all_model_checkpoint_paths: "TemporalFusionTransformer.ckpt"

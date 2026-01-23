@@ -199,13 +199,28 @@ def get_hs_stock_symbols() -> list:
             "fields": "f12",
         }
 
+        # Use a Session with retry/backoff to mitigate transient 5xx/502 errors
+        from requests.adapters import HTTPAdapter
+        from urllib3.util.retry import Retry
+
+        session = requests.Session()
+        retries = Retry(
+            total=5,
+            backoff_factor=0.5,
+            status_forcelist=(429, 500, 502, 503, 504),
+            allowed_methods=frozenset(["GET", "POST"]),
+        )
+        adapter = HTTPAdapter(max_retries=retries)
+        session.mount("http://", adapter)
+        session.mount("https://", adapter)
+
         _symbols = []
         page = 1
 
         while True:
             params["pn"] = page
             try:
-                resp = requests.get(base_url, params=params, timeout=None)
+                resp = session.get(base_url, params=params, timeout=10)
                 resp.raise_for_status()
                 data = resp.json()
 
@@ -215,7 +230,12 @@ def get_hs_stock_symbols() -> list:
                     break
 
                 # fetch the current page data
-                current_symbols = [_v["f12"] for _v in data["data"]["diff"]]
+                # data["data"]["diff"] could be a list or dict depending on API; handle both
+                diff = data["data"]["diff"]
+                if isinstance(diff, dict):
+                    current_symbols = [_v["f12"] for _v in diff.values()]
+                else:
+                    current_symbols = [_v["f12"] for _v in diff]
 
                 if not current_symbols:  # It's the last page if there is no data in current page
                     logger.info(f"Last page reached: {page - 1}")
@@ -233,13 +253,17 @@ def get_hs_stock_symbols() -> list:
                 # sleep time to avoid overloading the server
                 time.sleep(0.5)
 
-            except requests.exceptions.HTTPError as e:
-                raise requests.exceptions.HTTPError(
-                    f"Request to {base_url} failed with status code {resp.status_code}"
-                ) from e
+            except requests.exceptions.RequestException as e:
+                # Log the error and retry from the outer loop; if persistent, allow outer logic to retry
+                logger.warning(f"Request error on page {page}: {e}")
+                # Break to allow caller to decide (outer loop in get_hs_stock_symbols will retry)
+                break
+            except ValueError as e:
+                logger.warning(f"JSON decode / value error on page {page}: {e}")
+                break
             except Exception as e:
-                logger.warning("An error occurred while extracting data from the response.")
-                raise
+                logger.warning(f"Unexpected error on page {page}: {e}")
+                break
 
         if len(_symbols) < 3900:
             raise ValueError("The complete list of stocks is not available.")
@@ -256,19 +280,45 @@ def get_hs_stock_symbols() -> list:
     if _HS_SYMBOLS is None:
         symbols = set()
         _retry = 60
-        # It may take multiple times to get the complete
-        while len(symbols) < MINIMUM_SYMBOLS_NUM:
-            symbols |= _get_symbol()
+        # Try up to `_retry` times to collect a complete list. Use cache as fallback.
+        for _i in range(_retry):
+            try:
+                fetched = _get_symbol()
+            except Exception as e:
+                logger.warning(f"Attempt {_i+1}/{_retry} failed to fetch symbols: {e}")
+                fetched = set()
+
+            if fetched:
+                symbols |= fetched
+
+            if len(symbols) >= MINIMUM_SYMBOLS_NUM:
+                break
+
             time.sleep(3)
 
         symbol_cache_path = Path("~/.cache/hs_symbols_cache.pkl").expanduser().resolve()
         symbol_cache_path.parent.mkdir(parents=True, exist_ok=True)
-        if symbol_cache_path.exists():
-            with symbol_cache_path.open("rb") as fp:
-                cache_symbols = pickle.load(fp)
-                symbols |= cache_symbols
-        with symbol_cache_path.open("wb") as fp:
-            pickle.dump(symbols, fp)
+        # If we didn't get enough symbols from network, try to use cached symbols
+        if len(symbols) < MINIMUM_SYMBOLS_NUM and symbol_cache_path.exists():
+            try:
+                with symbol_cache_path.open("rb") as fp:
+                    cache_symbols = pickle.load(fp)
+                    logger.info(f"Using cached hs symbols ({len(cache_symbols)}) as fallback")
+                    symbols |= cache_symbols
+            except Exception as e:
+                logger.warning(f"Failed to load hs symbols cache: {e}")
+
+        # Persist what we have (network + cache merged)
+        try:
+            with symbol_cache_path.open("wb") as fp:
+                pickle.dump(symbols, fp)
+        except Exception as e:
+            logger.warning(f"Failed to write hs symbols cache: {e}")
+
+        if len(symbols) < MINIMUM_SYMBOLS_NUM:
+            raise ValueError(
+                f"The complete list of stocks is not available after {_retry} attempts and cache fallback (got {len(symbols)})."
+            )
 
         _HS_SYMBOLS = sorted(list(symbols))
 

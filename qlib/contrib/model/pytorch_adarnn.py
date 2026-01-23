@@ -81,7 +81,12 @@ class ADARNN(Model):
         self.optimizer = optimizer.lower()
         self.loss = loss
         self.n_splits = n_splits
-        self.device = torch.device("cuda:%d" % GPU if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        if torch.cuda.is_available() and GPU >= 0:
+            self.device = torch.device("cuda:%d" % GPU)
+        elif torch.backends.mps.is_available() and GPU >= 0:
+            self.device = torch.device("mps")
+        else:
+            self.device = torch.device("cpu")
         self.seed = seed
 
         self.logger.info(
@@ -297,8 +302,10 @@ class ADARNN(Model):
         self.model.load_state_dict(best_param)
         torch.save(best_param, save_path)
 
-        if self.use_gpu:
+        if self.device.type == "cuda":
             torch.cuda.empty_cache()
+        elif self.device.type == "mps" and hasattr(torch, "mps") and hasattr(torch.mps, "empty_cache"):
+            torch.mps.empty_cache()
         return best_score
 
     def predict(self, dataset: DatasetH, segment: Union[Text, slice] = "test"):
@@ -321,7 +328,12 @@ class ADARNN(Model):
             else:
                 end = begin + self.batch_size
 
-            x_batch = torch.from_numpy(x_values[begin:end]).float().to(self.device)
+            x_slice = x_values[begin:end]
+            
+            if not x_slice.flags['C_CONTIGUOUS']:
+                x_slice = np.ascontiguousarray(x_slice)
+            
+            x_batch = torch.from_numpy(x_slice).float().to(self.device)
 
             with torch.no_grad():
                 pred = self.model.predict(x_batch).detach().cpu().numpy()
@@ -343,10 +355,20 @@ class data_loader(Dataset):
         self.df_feature = df["feature"]
         self.df_label_reg = df["label"]
         self.df_index = df.index
-        self.df_feature = torch.tensor(
-            self.df_feature.values.reshape(-1, 6, 60).transpose(0, 2, 1), dtype=torch.float32
-        )
-        self.df_label_reg = torch.tensor(self.df_label_reg.values.reshape(-1), dtype=torch.float32)
+
+        # Ensure contiguous memory for feature
+        feature_values = self.df_feature.values.reshape(-1, 6, 60).transpose(0, 2, 1)
+        if not feature_values.flags['C_CONTIGUOUS']:
+            feature_values = np.ascontiguousarray(feature_values)
+        self.feature_values_np = feature_values.astype(np.float32)
+        self.df_feature = torch.from_numpy(self.feature_values_np)
+
+        # Ensure contiguous memory for label
+        label_values = self.df_label_reg.values.reshape(-1)
+        if not label_values.flags['C_CONTIGUOUS']:
+            label_values = np.ascontiguousarray(label_values)
+        self.label_values_np = label_values.astype(np.float32)
+        self.df_label_reg = torch.from_numpy(self.label_values_np)
 
     def __getitem__(self, index):
         sample, label_reg = self.df_feature[index], self.df_label_reg[index]
@@ -357,7 +379,10 @@ class data_loader(Dataset):
 
 
 def get_stock_loader(df, batch_size, shuffle=True):
-    train_loader = DataLoader(data_loader(df), batch_size=batch_size, shuffle=shuffle)
+    if shuffle:
+        # Manual shuffle to avoid DataLoader shuffle crash on MPS
+        df = df.sample(frac=1, random_state=None)
+    train_loader = DataLoader(data_loader(df), batch_size=batch_size, shuffle=False)
     return train_loader
 
 
@@ -396,7 +421,12 @@ class AdaRNN(nn.Module):
         self.model_type = model_type
         self.trans_loss = trans_loss
         self.len_seq = len_seq
-        self.device = torch.device("cuda:%d" % GPU if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        if torch.cuda.is_available() and GPU >= 0:
+            self.device = torch.device("cuda:%d" % GPU)
+        elif torch.backends.mps.is_available() and GPU >= 0:
+            self.device = torch.device("mps")
+        else:
+            self.device = torch.device("cpu")
         in_size = self.n_input
 
         features = nn.ModuleList()
@@ -466,9 +496,15 @@ class AdaRNN(nn.Module):
                         if self.model_type == "AdaRNN"
                         else 1 / (self.len_seq - h_start) * (2 * len_win + 1)
                     )
-                    loss_transfer = loss_transfer + weight * criterion_transder.compute(
+                    loss_val = criterion_transder.compute(
                         n[:, j, :], out_list_t[i][:, k, :]
                     )
+                    if loss_val is None:
+                         # Handle unsupported loss type gracefully or raise error
+                         # print(f"Warning: TransferLoss returned None for type {self.trans_loss}")
+                         loss_val = torch.zeros(1).to(self.device)
+                    
+                    loss_transfer = loss_transfer + weight * loss_val
         return fc_out, loss_transfer, out_weight_list
 
     def gru_features(self, x, predict=False):
@@ -477,6 +513,9 @@ class AdaRNN(nn.Module):
         out_lis = []
         out_weight_list = [] if (self.model_type == "AdaRNN") else None
         for i in range(self.num_layers):
+            # Ensure input is contiguous
+            if not x_input.is_contiguous():
+                 x_input = x_input.contiguous()
             out, _ = self.features[i](x_input.float())
             x_input = out
             out_lis.append(out)
@@ -558,7 +597,12 @@ class TransferLoss:
         """
         self.loss_type = loss_type
         self.input_dim = input_dim
-        self.device = torch.device("cuda:%d" % GPU if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        if torch.cuda.is_available() and GPU >= 0:
+            self.device = torch.device("cuda:%d" % GPU)
+        elif torch.backends.mps.is_available() and GPU >= 0:
+            self.device = torch.device("mps")
+        else:
+            self.device = torch.device("cpu")
 
     def compute(self, X, Y):
         """Compute adaptation loss

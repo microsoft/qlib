@@ -1,11 +1,18 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+import os
+import platform
+
+# 使用 TensorFlow 1.x 兼容模式（TFT 代码使用 TF1 API）
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
+
 from pathlib import Path
 from typing import Union
 import numpy as np
 import pandas as pd
-import tensorflow.compat.v1 as tf
+
 import data_formatters.base
 import expt_settings.configs
 import libs.hyperparam_opt
@@ -14,7 +21,7 @@ import libs.utils as utils
 import os
 import datetime as dte
 
-
+from qlib.log import get_module_logger
 from qlib.model.base import ModelFT
 from qlib.data.dataset import DatasetH
 from qlib.data.dataset.handler import DataHandlerLP
@@ -114,9 +121,9 @@ def process_qlib_data(df, dataset, fillna=False):
     dates = pd.to_datetime(temp_df.index)
     temp_df["date"] = dates
     temp_df["day_of_week"] = dates.dayofweek
-    temp_df["month"] = dates.month
+    temp_df["month"] = dates.month - 1  # 转换为 0-11 范围以匹配嵌入层
     temp_df["year"] = dates.year
-    temp_df["const"] = 1.0
+    temp_df["const"] = 0  # 嵌入层索引从0开始，只有1个类别
     return temp_df
 
 
@@ -153,11 +160,19 @@ def transform_df(df, col_name="LABEL0"):
 
 class TFTModel(ModelFT):
     """TFT Model"""
+    exclude_attr = ["model", "tf_graph", "sess", "data_formatter"]
 
     def __init__(self, **kwargs):
+        self.logger = get_module_logger("TFTModel")
         self.model = None
         self.params = {"DATASET": "Alpha158", "label_shift": 5}
         self.params.update(kwargs)
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        for attr in self.exclude_attr:
+            if attr not in self.__dict__:
+                self.__dict__[attr] = None
 
     def _prepare_data(self, dataset: DatasetH):
         df_train, df_valid = dataset.prepare(
@@ -189,7 +204,11 @@ class TFTModel(ModelFT):
         self.expt_name = DATASET
         self.label_col = LABEL_COL
 
-        use_gpu = (True, self.gpu_id)
+        # macOS 没有 CUDA，强制使用 CPU
+        if platform.system() == "Darwin":
+            use_gpu = (False, 0)
+        else:
+            use_gpu = (True, self.gpu_id)
         # ===========================Training Process===========================
         ModelClass = libs.tft_model.TemporalFusionTransformer
         if not isinstance(self.data_formatter, data_formatters.base.GenericDataFormatter):
@@ -217,7 +236,7 @@ class TFTModel(ModelFT):
             os.makedirs(self.model_folder)
         params["model_folder"] = self.model_folder
 
-        print("*** Begin training ***")
+        self.logger.info("*** Begin training ***")
         best_loss = np.Inf
 
         tf.reset_default_graph()
@@ -229,7 +248,7 @@ class TFTModel(ModelFT):
             self.model = ModelClass(params, use_cudnn=use_gpu[0])
             self.sess.run(tf.global_variables_initializer())
             self.model.fit(train_df=train, valid_df=valid)
-            print("*** Finished training ***")
+            self.logger.info("*** Finished training ***")
             saved_model_dir = self.model_folder + "/" + "saved_model"
             if not os.path.exists(saved_model_dir):
                 os.makedirs(saved_model_dir)
@@ -246,7 +265,7 @@ class TFTModel(ModelFT):
             #    extract_numerical_data(targets), extract_numerical_data(p90_forecast),
             #    0.9)
             tf.keras.backend.set_session(default_keras_session)
-        print("Training completed at {}.".format(dte.datetime.now()))
+        self.logger.info("Training completed at {}.".format(dte.datetime.now()))
         # ===========================Training Process===========================
 
     def predict(self, dataset):
@@ -266,7 +285,7 @@ class TFTModel(ModelFT):
         params = self.data_formatter.get_default_model_params()
         params = {**params, **fixed_params}
 
-        print("*** Begin predicting ***")
+        self.logger.info("*** Begin predicting ***")
         tf.reset_default_graph()
 
         with self.tf_graph.as_default():
