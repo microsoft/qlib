@@ -34,7 +34,12 @@ def get_or_create_path(path: Optional[Text] = None, return_dir: bool = False):
         if not os.path.exists(temp_dir):
             os.makedirs(temp_dir)
         if return_dir:
-            _, path = tempfile.mkdtemp(dir=temp_dir)
+            # `mkdtemp` returns the created directory path directly, while `mkstemp`
+            # returns a tuple of `(fd, path)`.  The previous implementation tried to
+            # unpack the return value of `mkdtemp` into two variables, which raises a
+            # `ValueError` at runtime.  This branch should therefore assign the path
+            # directly without unpacking.
+            path = tempfile.mkdtemp(dir=temp_dir)
         else:
             _, path = tempfile.mkstemp(dir=temp_dir)
     return path
