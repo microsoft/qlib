@@ -133,9 +133,7 @@ class Config:
 
 
         C.set_conf_from_C(config)
-
-        if not skip_register:
-            C.validate()
+        C.validate()
 
         if C.logging_config:
             set_log_with_config(C.logging_config)
