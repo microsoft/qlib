@@ -8,7 +8,6 @@ import os
 import yaml
 import json
 import copy
-import pickle
 import logging
 import importlib
 import subprocess
@@ -18,6 +17,7 @@ import numpy as np
 from abc import abstractmethod
 
 from ...log import get_module_logger, TimeInspector
+from ...utils.pickle_utils import restricted_pickle_load
 from hyperopt import fmin, tpe
 from hyperopt import STATUS_OK, STATUS_FAIL
 
@@ -136,7 +136,7 @@ class QLibTuner(Tuner):
         exp_result_dir = os.path.join(self.ex_dir, QLibTuner.EXP_RESULT_DIR.format(estimator_ex_id))
         exp_result_path = os.path.join(exp_result_dir, QLibTuner.EXP_RESULT_NAME)
         with open(exp_result_path, "rb") as fp:
-            analysis_df = pickle.load(fp)
+            analysis_df = restricted_pickle_load(fp)
 
         # 4. Get the backtest factor which user want to optimize, if user want to maximize the factor, then reverse the result
         res = analysis_df.loc[self.optim_config.report_type].loc[self.optim_config.report_factor]
