@@ -254,7 +254,7 @@ class RLStrategy(BaseStrategy, metaclass=ABCMeta):
         policy :
             RL policy for generate action
         """
-        super(RLStrategy, self).__init__(outer_trade_decision, level_infra, common_infra, **kwargs)
+        super().__init__(outer_trade_decision, level_infra, common_infra, **kwargs)
         self.policy = policy
 
 
@@ -283,7 +283,7 @@ class RLIntStrategy(RLStrategy, metaclass=ABCMeta):
         end_time : Union[str, pd.Timestamp], optional
             end time of trading, by default None
         """
-        super(RLIntStrategy, self).__init__(policy, outer_trade_decision, level_infra, common_infra, **kwargs)
+        super().__init__(policy, outer_trade_decision, level_infra, common_infra, **kwargs)
 
         self.policy = policy
         self.state_interpreter = init_instance_by_config(state_interpreter, accept_types=StateInterpreter)

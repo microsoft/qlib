@@ -154,7 +154,7 @@ class MetaModelDS(MetaTaskModel):
 
         if len(meta_tasks_l[1]):
             R.log_params(
-                **dict(proxy_test_begin=meta_tasks_l[1][0].task["dataset"]["kwargs"]["segments"]["test"])
+                **{"proxy_test_begin": meta_tasks_l[1][0].task["dataset"]["kwargs"]["segments"]["test"]}
             )  # debug: record when the test phase starts
 
         self.tn = PredNet(

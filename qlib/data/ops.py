@@ -112,7 +112,7 @@ class NpElemOperator(ElemOperator):
 
     def __init__(self, feature, func):
         self.func = func
-        super(NpElemOperator, self).__init__(feature)
+        super().__init__(feature)
 
     def _load_internal(self, instrument, start_index, end_index, *args):
         series = self.feature.load(instrument, start_index, end_index, *args)
@@ -134,7 +134,7 @@ class Abs(NpElemOperator):
     """
 
     def __init__(self, feature):
-        super(Abs, self).__init__(feature, "abs")
+        super().__init__(feature, "abs")
 
 
 class Sign(NpElemOperator):
@@ -152,7 +152,7 @@ class Sign(NpElemOperator):
     """
 
     def __init__(self, feature):
-        super(Sign, self).__init__(feature, "sign")
+        super().__init__(feature, "sign")
 
     def _load_internal(self, instrument, start_index, end_index, *args):
         """
@@ -179,7 +179,7 @@ class Log(NpElemOperator):
     """
 
     def __init__(self, feature):
-        super(Log, self).__init__(feature, "log")
+        super().__init__(feature, "log")
 
 
 class Mask(NpElemOperator):
@@ -199,7 +199,7 @@ class Mask(NpElemOperator):
     """
 
     def __init__(self, feature, instrument):
-        super(Mask, self).__init__(feature, "mask")
+        super().__init__(feature, "mask")
         self.instrument = instrument
 
     def __str__(self):
@@ -224,7 +224,7 @@ class Not(NpElemOperator):
     """
 
     def __init__(self, feature):
-        super(Not, self).__init__(feature, "bitwise_not")
+        super().__init__(feature, "bitwise_not")
 
 
 #################### Pair-Wise Operator ####################
@@ -296,7 +296,7 @@ class NpPairOperator(PairOperator):
 
     def __init__(self, feature_left, feature_right, func):
         self.func = func
-        super(NpPairOperator, self).__init__(feature_left, feature_right)
+        super().__init__(feature_left, feature_right)
 
     def _load_internal(self, instrument, start_index, end_index, *args):
         assert any(
@@ -352,7 +352,7 @@ class Power(NpPairOperator):
     """
 
     def __init__(self, feature_left, feature_right):
-        super(Power, self).__init__(feature_left, feature_right, "power")
+        super().__init__(feature_left, feature_right, "power")
 
 
 class Add(NpPairOperator):
@@ -372,7 +372,7 @@ class Add(NpPairOperator):
     """
 
     def __init__(self, feature_left, feature_right):
-        super(Add, self).__init__(feature_left, feature_right, "add")
+        super().__init__(feature_left, feature_right, "add")
 
 
 class Sub(NpPairOperator):
@@ -392,7 +392,7 @@ class Sub(NpPairOperator):
     """
 
     def __init__(self, feature_left, feature_right):
-        super(Sub, self).__init__(feature_left, feature_right, "subtract")
+        super().__init__(feature_left, feature_right, "subtract")
 
 
 class Mul(NpPairOperator):
@@ -412,7 +412,7 @@ class Mul(NpPairOperator):
     """
 
     def __init__(self, feature_left, feature_right):
-        super(Mul, self).__init__(feature_left, feature_right, "multiply")
+        super().__init__(feature_left, feature_right, "multiply")
 
 
 class Div(NpPairOperator):
@@ -432,7 +432,7 @@ class Div(NpPairOperator):
     """
 
     def __init__(self, feature_left, feature_right):
-        super(Div, self).__init__(feature_left, feature_right, "divide")
+        super().__init__(feature_left, feature_right, "divide")
 
 
 class Greater(NpPairOperator):
@@ -452,7 +452,7 @@ class Greater(NpPairOperator):
     """
 
     def __init__(self, feature_left, feature_right):
-        super(Greater, self).__init__(feature_left, feature_right, "maximum")
+        super().__init__(feature_left, feature_right, "maximum")
 
 
 class Less(NpPairOperator):
@@ -472,7 +472,7 @@ class Less(NpPairOperator):
     """
 
     def __init__(self, feature_left, feature_right):
-        super(Less, self).__init__(feature_left, feature_right, "minimum")
+        super().__init__(feature_left, feature_right, "minimum")
 
 
 class Gt(NpPairOperator):
@@ -492,7 +492,7 @@ class Gt(NpPairOperator):
     """
 
     def __init__(self, feature_left, feature_right):
-        super(Gt, self).__init__(feature_left, feature_right, "greater")
+        super().__init__(feature_left, feature_right, "greater")
 
 
 class Ge(NpPairOperator):
@@ -512,7 +512,7 @@ class Ge(NpPairOperator):
     """
 
     def __init__(self, feature_left, feature_right):
-        super(Ge, self).__init__(feature_left, feature_right, "greater_equal")
+        super().__init__(feature_left, feature_right, "greater_equal")
 
 
 class Lt(NpPairOperator):
@@ -532,7 +532,7 @@ class Lt(NpPairOperator):
     """
 
     def __init__(self, feature_left, feature_right):
-        super(Lt, self).__init__(feature_left, feature_right, "less")
+        super().__init__(feature_left, feature_right, "less")
 
 
 class Le(NpPairOperator):
@@ -552,7 +552,7 @@ class Le(NpPairOperator):
     """
 
     def __init__(self, feature_left, feature_right):
-        super(Le, self).__init__(feature_left, feature_right, "less_equal")
+        super().__init__(feature_left, feature_right, "less_equal")
 
 
 class Eq(NpPairOperator):
@@ -572,7 +572,7 @@ class Eq(NpPairOperator):
     """
 
     def __init__(self, feature_left, feature_right):
-        super(Eq, self).__init__(feature_left, feature_right, "equal")
+        super().__init__(feature_left, feature_right, "equal")
 
 
 class Ne(NpPairOperator):
@@ -592,7 +592,7 @@ class Ne(NpPairOperator):
     """
 
     def __init__(self, feature_left, feature_right):
-        super(Ne, self).__init__(feature_left, feature_right, "not_equal")
+        super().__init__(feature_left, feature_right, "not_equal")
 
 
 class And(NpPairOperator):
@@ -612,7 +612,7 @@ class And(NpPairOperator):
     """
 
     def __init__(self, feature_left, feature_right):
-        super(And, self).__init__(feature_left, feature_right, "bitwise_and")
+        super().__init__(feature_left, feature_right, "bitwise_and")
 
 
 class Or(NpPairOperator):
@@ -632,7 +632,7 @@ class Or(NpPairOperator):
     """
 
     def __init__(self, feature_left, feature_right):
-        super(Or, self).__init__(feature_left, feature_right, "bitwise_or")
+        super().__init__(feature_left, feature_right, "bitwise_or")
 
 
 #################### Triple-wise Operator ####################
@@ -795,7 +795,7 @@ class Ref(Rolling):
     """
 
     def __init__(self, feature, N):
-        super(Ref, self).__init__(feature, N, "ref")
+        super().__init__(feature, N, "ref")
 
     def _load_internal(self, instrument, start_index, end_index, *args):
         series = self.feature.load(instrument, start_index, end_index, *args)
@@ -841,7 +841,7 @@ class Mean(Rolling):
     """
 
     def __init__(self, feature, N):
-        super(Mean, self).__init__(feature, N, "mean")
+        super().__init__(feature, N, "mean")
 
 
 class Sum(Rolling):
@@ -861,7 +861,7 @@ class Sum(Rolling):
     """
 
     def __init__(self, feature, N):
-        super(Sum, self).__init__(feature, N, "sum")
+        super().__init__(feature, N, "sum")
 
 
 class Std(Rolling):
@@ -881,7 +881,7 @@ class Std(Rolling):
     """
 
     def __init__(self, feature, N):
-        super(Std, self).__init__(feature, N, "std")
+        super().__init__(feature, N, "std")
 
 
 class Var(Rolling):
@@ -901,7 +901,7 @@ class Var(Rolling):
     """
 
     def __init__(self, feature, N):
-        super(Var, self).__init__(feature, N, "var")
+        super().__init__(feature, N, "var")
 
 
 class Skew(Rolling):
@@ -923,7 +923,7 @@ class Skew(Rolling):
     def __init__(self, feature, N):
         if N != 0 and N < 3:
             raise ValueError("The rolling window size of Skewness operation should >= 3")
-        super(Skew, self).__init__(feature, N, "skew")
+        super().__init__(feature, N, "skew")
 
 
 class Kurt(Rolling):
@@ -945,7 +945,7 @@ class Kurt(Rolling):
     def __init__(self, feature, N):
         if N != 0 and N < 4:
             raise ValueError("The rolling window size of Kurtosis operation should >= 5")
-        super(Kurt, self).__init__(feature, N, "kurt")
+        super().__init__(feature, N, "kurt")
 
 
 class Max(Rolling):
@@ -965,7 +965,7 @@ class Max(Rolling):
     """
 
     def __init__(self, feature, N):
-        super(Max, self).__init__(feature, N, "max")
+        super().__init__(feature, N, "max")
 
 
 class IdxMax(Rolling):
@@ -985,7 +985,7 @@ class IdxMax(Rolling):
     """
 
     def __init__(self, feature, N):
-        super(IdxMax, self).__init__(feature, N, "idxmax")
+        super().__init__(feature, N, "idxmax")
 
     def _load_internal(self, instrument, start_index, end_index, *args):
         series = self.feature.load(instrument, start_index, end_index, *args)
@@ -1013,7 +1013,7 @@ class Min(Rolling):
     """
 
     def __init__(self, feature, N):
-        super(Min, self).__init__(feature, N, "min")
+        super().__init__(feature, N, "min")
 
 
 class IdxMin(Rolling):
@@ -1033,7 +1033,7 @@ class IdxMin(Rolling):
     """
 
     def __init__(self, feature, N):
-        super(IdxMin, self).__init__(feature, N, "idxmin")
+        super().__init__(feature, N, "idxmin")
 
     def _load_internal(self, instrument, start_index, end_index, *args):
         series = self.feature.load(instrument, start_index, end_index, *args)
@@ -1061,7 +1061,7 @@ class Quantile(Rolling):
     """
 
     def __init__(self, feature, N, qscore):
-        super(Quantile, self).__init__(feature, N, "quantile")
+        super().__init__(feature, N, "quantile")
         self.qscore = qscore
 
     def __str__(self):
@@ -1093,7 +1093,7 @@ class Med(Rolling):
     """
 
     def __init__(self, feature, N):
-        super(Med, self).__init__(feature, N, "median")
+        super().__init__(feature, N, "median")
 
 
 class Mad(Rolling):
@@ -1113,7 +1113,7 @@ class Mad(Rolling):
     """
 
     def __init__(self, feature, N):
-        super(Mad, self).__init__(feature, N, "mad")
+        super().__init__(feature, N, "mad")
 
     def _load_internal(self, instrument, start_index, end_index, *args):
         series = self.feature.load(instrument, start_index, end_index, *args)
@@ -1147,7 +1147,7 @@ class Rank(Rolling):
     """
 
     def __init__(self, feature, N):
-        super(Rank, self).__init__(feature, N, "rank")
+        super().__init__(feature, N, "rank")
 
     # for compatiblity of python 3.7, which doesn't support pandas 1.4.0+ which implements Rolling.rank
     def _load_internal(self, instrument, start_index, end_index, *args):
@@ -1185,7 +1185,7 @@ class Count(Rolling):
     """
 
     def __init__(self, feature, N):
-        super(Count, self).__init__(feature, N, "count")
+        super().__init__(feature, N, "count")
 
 
 class Delta(Rolling):
@@ -1205,7 +1205,7 @@ class Delta(Rolling):
     """
 
     def __init__(self, feature, N):
-        super(Delta, self).__init__(feature, N, "delta")
+        super().__init__(feature, N, "delta")
 
     def _load_internal(self, instrument, start_index, end_index, *args):
         series = self.feature.load(instrument, start_index, end_index, *args)
@@ -1243,7 +1243,7 @@ class Slope(Rolling):
     """
 
     def __init__(self, feature, N):
-        super(Slope, self).__init__(feature, N, "slope")
+        super().__init__(feature, N, "slope")
 
     def _load_internal(self, instrument, start_index, end_index, *args):
         series = self.feature.load(instrument, start_index, end_index, *args)
@@ -1271,7 +1271,7 @@ class Rsquare(Rolling):
     """
 
     def __init__(self, feature, N):
-        super(Rsquare, self).__init__(feature, N, "rsquare")
+        super().__init__(feature, N, "rsquare")
 
     def _load_internal(self, instrument, start_index, end_index, *args):
         _series = self.feature.load(instrument, start_index, end_index, *args)
@@ -1300,7 +1300,7 @@ class Resi(Rolling):
     """
 
     def __init__(self, feature, N):
-        super(Resi, self).__init__(feature, N, "resi")
+        super().__init__(feature, N, "resi")
 
     def _load_internal(self, instrument, start_index, end_index, *args):
         series = self.feature.load(instrument, start_index, end_index, *args)
@@ -1328,7 +1328,7 @@ class WMA(Rolling):
     """
 
     def __init__(self, feature, N):
-        super(WMA, self).__init__(feature, N, "wma")
+        super().__init__(feature, N, "wma")
 
     def _load_internal(self, instrument, start_index, end_index, *args):
         series = self.feature.load(instrument, start_index, end_index, *args)
@@ -1363,7 +1363,7 @@ class EMA(Rolling):
     """
 
     def __init__(self, feature, N):
-        super(EMA, self).__init__(feature, N, "ema")
+        super().__init__(feature, N, "ema")
 
     def _load_internal(self, instrument, start_index, end_index, *args):
         series = self.feature.load(instrument, start_index, end_index, *args)
@@ -1483,10 +1483,10 @@ class Corr(PairRolling):
     """
 
     def __init__(self, feature_left, feature_right, N):
-        super(Corr, self).__init__(feature_left, feature_right, N, "corr")
+        super().__init__(feature_left, feature_right, N, "corr")
 
     def _load_internal(self, instrument, start_index, end_index, *args):
-        res: pd.Series = super(Corr, self)._load_internal(instrument, start_index, end_index, *args)
+        res: pd.Series = super()._load_internal(instrument, start_index, end_index, *args)
 
         # NOTE: Load uses MemCache, so calling load again will not cause performance degradation
         series_left = self.feature_left.load(instrument, start_index, end_index, *args)
@@ -1517,7 +1517,7 @@ class Cov(PairRolling):
     """
 
     def __init__(self, feature_left, feature_right, N):
-        super(Cov, self).__init__(feature_left, feature_right, N, "cov")
+        super().__init__(feature_left, feature_right, N, "cov")
 
 
 #################### Operator which only support data with time index ####################

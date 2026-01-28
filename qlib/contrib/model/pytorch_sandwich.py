@@ -302,7 +302,7 @@ class Sandwich(Model):
     def fit(
         self,
         dataset: DatasetH,
-        evals_result=dict(),
+        evals_result={},
         save_path=None,
     ):
         df_train, df_valid, df_test = dataset.prepare(

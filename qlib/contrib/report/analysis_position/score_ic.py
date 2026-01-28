@@ -59,10 +59,10 @@ def score_ic_graph(pred_label: pd.DataFrame, show_notebook: bool = True, **kwarg
 
     _figure = ScatterGraph(
         _ic_df,
-        layout=dict(
-            title="Score IC",
-            xaxis=dict(tickangle=45, rangebreaks=kwargs.get("rangebreaks", guess_plotly_rangebreaks(_ic_df.index))),
-        ),
+        layout={
+            "title": "Score IC",
+            "xaxis": {"tickangle": 45, "rangebreaks": kwargs.get("rangebreaks", guess_plotly_rangebreaks(_ic_df.index))},
+        },
         graph_kwargs={"mode": "lines+markers"},
     ).figure
     if show_notebook:

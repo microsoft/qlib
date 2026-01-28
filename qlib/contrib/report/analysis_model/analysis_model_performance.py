@@ -56,9 +56,7 @@ def _group_return(pred_label: pd.DataFrame = None, reverse: bool = False, N: int
     # Cumulative Return By Group
     group_scatter_figure = ScatterGraph(
         t_df.cumsum(),
-        layout=dict(
-            title="Cumulative Return",
-            xaxis=dict(tickangle=45, rangebreaks=kwargs.get("rangebreaks", guess_plotly_rangebreaks(t_df.index))),
+        layout={"title": "Cumulative Return", "xaxis": dict(tickangle=45, rangebreaks=kwargs.get("rangebreaks", guess_plotly_rangebreaks(t_df.index})),
         ),
     ).figure
 
@@ -66,13 +64,8 @@ def _group_return(pred_label: pd.DataFrame = None, reverse: bool = False, N: int
     _bin_size = float(((t_df.max() - t_df.min()) / 20).min())
     group_hist_figure = SubplotsGraph(
         t_df,
-        kind_map=dict(kind="DistplotGraph", kwargs=dict(bin_size=_bin_size)),
-        subplots_kwargs=dict(
-            rows=1,
-            cols=2,
-            print_grid=False,
-            subplot_titles=["long-short", "long-average"],
-        ),
+        kind_map={"kind": "DistplotGraph", "kwargs": dict(bin_size=_bin_size}),
+        subplots_kwargs={"rows": 1, "cols": 2, "print_grid": False, "subplot_titles": ["long-short", "long-average"]},
     ).figure
 
     return group_scatter_figure, group_hist_figure
@@ -174,8 +167,8 @@ def _pred_ic(
 
     ic_heatmap_figure = HeatmapGraph(
         _monthly_ic.unstack(),
-        layout=dict(title="Monthly IC", xaxis=dict(dtick=1), yaxis=dict(tickformat="04d", dtick=1)),
-        graph_kwargs=dict(xtype="array", ytype="array"),
+        layout={"title": "Monthly IC", "xaxis": dict(dtick=1}, yaxis={"tickformat": "04d", "dtick": 1}),
+        graph_kwargs={"xtype": "array", "ytype": "array"},
     ).figure
 
     dist = stats.norm
@@ -191,29 +184,18 @@ def _pred_ic(
     _sub_graph_data = [
         (
             "IC",
-            dict(
-                row=1,
-                col=1,
-                name="",
-                kind="DistplotGraph",
-                graph_kwargs=dict(bin_size=_bin_size),
+            {"row": 1, "col": 1, "name": "", "kind": "DistplotGraph", "graph_kwargs": dict(bin_size=_bin_size},
             ),
         ),
-        (_qqplot_fig, dict(row=1, col=2)),
+        (_qqplot_fig, {"row": 1, "col": 2}),
     ]
     ic_hist_figure = SubplotsGraph(
         _ic_df.dropna(),
-        kind_map=dict(kind="HistogramGraph", kwargs=dict()),
-        subplots_kwargs=dict(
-            rows=1,
-            cols=2,
-            print_grid=False,
-            subplot_titles=["IC", "IC %s Dist. Q-Q" % dist_name],
-        ),
+        kind_map={"kind": "HistogramGraph", "kwargs": {}},
+        subplots_kwargs={"rows": 1, "cols": 2, "print_grid": False, "subplot_titles": ["IC", "IC %s Dist. Q-Q" % dist_name]},
         sub_graph_data=_sub_graph_data,
-        layout=dict(
-            yaxis2=dict(title="Observed Quantile"),
-            xaxis2=dict(title=f"{dist_name} Distribution Quantile"),
+        layout={"yaxis2": dict(title="Observed Quantile"},
+            xaxis2={"title": f"{dist_name} Distribution Quantile"},
         ),
     ).figure
 
@@ -229,9 +211,7 @@ def _pred_autocorr(pred_label: pd.DataFrame, lag=1, **kwargs) -> tuple:
     _df = ac.to_frame("value")
     ac_figure = ScatterGraph(
         _df,
-        layout=dict(
-            title="Auto Correlation",
-            xaxis=dict(tickangle=45, rangebreaks=kwargs.get("rangebreaks", guess_plotly_rangebreaks(_df.index))),
+        layout={"title": "Auto Correlation", "xaxis": dict(tickangle=45, rangebreaks=kwargs.get("rangebreaks", guess_plotly_rangebreaks(_df.index})),
         ),
     ).figure
     return (ac_figure,)
@@ -260,9 +240,7 @@ def _pred_turnover(pred_label: pd.DataFrame, N=5, lag=1, **kwargs) -> tuple:
     )
     turnover_figure = ScatterGraph(
         r_df,
-        layout=dict(
-            title="Top-Bottom Turnover",
-            xaxis=dict(tickangle=45, rangebreaks=kwargs.get("rangebreaks", guess_plotly_rangebreaks(r_df.index))),
+        layout={"title": "Top-Bottom Turnover", "xaxis": dict(tickangle=45, rangebreaks=kwargs.get("rangebreaks", guess_plotly_rangebreaks(r_df.index})),
         ),
     ).figure
     return (turnover_figure,)
@@ -282,9 +260,8 @@ def ic_figure(ic_df: pd.DataFrame, show_nature_day=True, **kwargs) -> go.Figure:
         ic_df = ic_df.reindex(date_index)
     ic_bar_figure = BarGraph(
         ic_df,
-        layout=dict(
-            title="Information Coefficient (IC)",
-            xaxis=dict(tickangle=45, rangebreaks=kwargs.get("rangebreaks", guess_plotly_rangebreaks(ic_df.index))),
+        layout={"title": "Information Coefficient (IC}",
+            xaxis={"tickangle": 45, "rangebreaks": kwargs.get("rangebreaks", guess_plotly_rangebreaks(ic_df.index})),
         ),
     ).figure
     return ic_bar_figure

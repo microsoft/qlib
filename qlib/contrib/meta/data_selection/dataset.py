@@ -175,14 +175,7 @@ class MetaTaskDS(MetaTask):
             sample_time_belong[sample_time_belong.sum(axis=1) != 1, -1] = 1.0
 
             self.processed_meta_input.update(
-                dict(
-                    X=d_train["feature"],
-                    y=d_train["label"].iloc[:, 0],
-                    X_test=d_test["feature"],
-                    y_test=d_test["label"].iloc[:, 0],
-                    time_belong=sample_time_belong,
-                    test_idx=d_test["label"].index,
-                )
+                {"X": d_train["feature"], "y": d_train["label"].iloc[:, 0], "X_test": d_test["feature"], "y_test": d_test["label"].iloc[:, 0], "time_belong": sample_time_belong, "test_idx": d_test["label"].index}
             )
 
         # TODO: set device: I think this is not necessary to converting data format.

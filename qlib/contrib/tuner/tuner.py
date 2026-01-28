@@ -197,7 +197,7 @@ class QLibTuner(Tuner):
             data_label_space_name = None
 
         # 4. Combine the searching space
-        space = dict()
+        space = {}
         space.update({"model_space": model_space})
         space.update({"strategy_space": strategy_space})
         if data_label_space_name is not None:

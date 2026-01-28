@@ -174,9 +174,9 @@ class LogWriter(Generic[ObsType, ActType]):
 
         # Information, logs of one episode is stored here.
         # This assumes that episode is not too long to fit into the memory.
-        self.episode_lengths = dict()
-        self.episode_rewards = dict()
-        self.episode_logs = dict()
+        self.episode_lengths = {}
+        self.episode_rewards = {}
+        self.episode_logs = {}
 
         self.clear()
 

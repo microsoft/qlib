@@ -172,7 +172,7 @@ class SignalRecord(RecordTemp):
     @staticmethod
     def generate_label(dataset):
         with class_casting(dataset, DatasetH):
-            params = dict(segments="test", col_set="label", data_key=DataHandlerLP.DK_R)
+            params = {"segments": "test", "col_set": "label", "data_key": DataHandlerLP.DK_R}
             try:
                 # Assume the backend handler is DataHandlerLP
                 raw_label = dataset.prepare(**params)
@@ -498,7 +498,7 @@ class PortAnaRecord(ACRecordTemp):
                 )
             else:
                 report_normal, _ = portfolio_metric_dict.get(_analysis_freq)
-                analysis = dict()
+                analysis = {}
                 analysis["excess_return_without_cost"] = risk_analysis(
                     report_normal["return"] - report_normal["bench"], freq=_analysis_freq
                 )

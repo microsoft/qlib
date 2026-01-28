@@ -75,7 +75,7 @@ class SeriesDFilter(BaseDFilter):
         keep: bool
             whether to keep the instruments of which features don't exist in the filter time span.
         """
-        super(SeriesDFilter, self).__init__()
+        super().__init__()
         self.filter_start_time = pd.Timestamp(fstart_time) if fstart_time else None
         self.filter_end_time = pd.Timestamp(fend_time) if fend_time else None
         self.keep = keep
@@ -278,7 +278,7 @@ class NameDFilter(SeriesDFilter):
         name_rule_re: str
             regular expression for the name rule.
         """
-        super(NameDFilter, self).__init__(fstart_time, fend_time)
+        super().__init__(fstart_time, fend_time)
         self.name_rule_re = name_rule_re
 
     def _getFilterSeries(self, instruments, fstart, fend):
@@ -335,7 +335,7 @@ class ExpressionDFilter(SeriesDFilter):
         rule_expression: str
             an input expression for the rule.
         """
-        super(ExpressionDFilter, self).__init__(fstart_time, fend_time, keep=keep)
+        super().__init__(fstart_time, fend_time, keep=keep)
         self.rule_expression = rule_expression
 
     def _getFilterSeries(self, instruments, fstart, fend):

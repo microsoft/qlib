@@ -233,7 +233,7 @@ class GATs(Model):
     def fit(
         self,
         dataset,
-        evals_result=dict(),
+        evals_result={},
         save_path=None,
     ):
         dl_train = dataset.prepare("train", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)

@@ -58,7 +58,7 @@ class Recorder:
 
     @property
     def info(self):
-        output = dict()
+        output = {}
         output["class"] = "Recorder"
         output["id"] = self.id
         output["name"] = self.name
@@ -261,7 +261,7 @@ class MLflowRecorder(Recorder):
     """
 
     def __init__(self, experiment_id, uri, name=None, mlflow_run=None):
-        super(MLflowRecorder, self).__init__(experiment_id, name)
+        super().__init__(experiment_id, name)
         self._uri = uri
         self._artifact_uri = None
         self.client = mlflow.tracking.MlflowClient(tracking_uri=self._uri)

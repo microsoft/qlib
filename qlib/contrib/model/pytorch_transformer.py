@@ -157,7 +157,7 @@ class TransformerModel(Model):
     def fit(
         self,
         dataset: DatasetH,
-        evals_result=dict(),
+        evals_result={},
         save_path=None,
     ):
         df_train, df_valid, df_test = dataset.prepare(
@@ -241,7 +241,7 @@ class TransformerModel(Model):
 
 class PositionalEncoding(nn.Module):
     def __init__(self, d_model, max_len=1000):
-        super(PositionalEncoding, self).__init__()
+        super().__init__()
         pe = torch.zeros(max_len, d_model)
         position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
         div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
@@ -257,7 +257,7 @@ class PositionalEncoding(nn.Module):
 
 class Transformer(nn.Module):
     def __init__(self, d_feat=6, d_model=8, nhead=4, num_layers=2, dropout=0.5, device=None):
-        super(Transformer, self).__init__()
+        super().__init__()
         self.feature_layer = nn.Linear(d_feat, d_model)
         self.pos_encoder = PositionalEncoding(d_model)
         self.encoder_layer = nn.TransformerEncoderLayer(d_model=d_model, nhead=nhead, dropout=dropout)

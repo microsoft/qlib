@@ -190,7 +190,7 @@ class DNNModelPytorch(Model):
     def fit(
         self,
         dataset: DatasetH,
-        evals_result=dict(),
+        evals_result={},
         verbose=True,
         save_path=None,
         reweighter=None,
@@ -425,7 +425,7 @@ class AverageMeter:
 
 class Net(nn.Module):
     def __init__(self, input_dim, output_dim=1, layers=(256,), act="LeakyReLU"):
-        super(Net, self).__init__()
+        super().__init__()
 
         layers = [input_dim] + list(layers)
         dnn_layers = []

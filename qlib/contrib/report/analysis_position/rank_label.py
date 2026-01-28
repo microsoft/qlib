@@ -30,7 +30,7 @@ def _get_figure_with_position(
         end_date=end_date,
     )
 
-    res_dict = dict()
+    res_dict = {}
     _pos_gp = _position_df.groupby(level=1, group_keys=False)
     for _item in _pos_gp:
         _date = _item[0]
@@ -50,12 +50,10 @@ def _get_figure_with_position(
     for _col in _res_df.columns:
         yield ScatterGraph(
             _res_df.loc[:, [_col]],
-            layout=dict(
-                title=_col,
-                xaxis=dict(type="category", tickangle=45),
-                yaxis=dict(title="lable-rank-ratio: %"),
+            layout={"title": _col, "xaxis": dict(type="category", tickangle=45},
+                yaxis={"title": "lable-rank-ratio: %"},
             ),
-            graph_kwargs=dict(mode="lines+markers"),
+            graph_kwargs={"mode": "lines+markers"},
         ).figure
 
 

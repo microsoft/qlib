@@ -561,7 +561,7 @@ class PandasOrderIndicator(BaseOrderIndicator):
     """
 
     def __init__(self) -> None:
-        super(PandasOrderIndicator, self).__init__()
+        super().__init__()
         self.data: Dict[str, PandasSingleMetric] = OrderedDict()
 
     def assign(self, col: str, metric: Union[dict, pd.Series]) -> None:
@@ -609,7 +609,7 @@ class NumpyOrderIndicator(BaseOrderIndicator):
     """
 
     def __init__(self) -> None:
-        super(NumpyOrderIndicator, self).__init__()
+        super().__init__()
         self.data: Dict[str, SingleData] = OrderedDict()
 
     def assign(self, col: str, metric: dict) -> None:

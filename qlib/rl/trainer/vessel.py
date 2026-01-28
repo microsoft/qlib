@@ -109,7 +109,7 @@ class TrainingVessel(TrainingVesselBase):
     - ``buffer_size``: Size of replay buffer.
     - ``episode_per_iter``: Episodes per collect at training. Can be overridden by fast dev run.
     - ``update_kwargs``: Keyword arguments appearing in ``policy.update``.
-      For example, ``dict(repeat=10, batch_size=64)``.
+      For example, ``{"repeat": 10, "batch_size": 64}``.
     """
 
     def __init__(

@@ -284,15 +284,15 @@ class DDGDA(Rolling):
         # The tasks include all training tasks and test tasks.
 
         # 2) preparing meta dataset
-        kwargs = dict(
-            task_tpl=proxy_forecast_model_task,
-            step=self.step,
-            segments=self.segments,  # keep test period consistent with the dataset yaml
-            trunc_days=1 + self.horizon,
-            hist_step_n=self.hist_step_n,
-            fill_method=fill_method,
-            rolling_ext_days=0,
-        )
+        kwargs = {
+            "task_tpl": proxy_forecast_model_task,
+            "step": self.step,
+            "segments": self.segments,  # keep test period consistent with the dataset yaml
+            "trunc_days": 1 + self.horizon,
+            "hist_step_n": self.hist_step_n,
+            "fill_method": fill_method,
+            "rolling_ext_days": 0,
+        }
         # NOTE:
         # the input of meta model (internal data) are shared between proxy model and final forecasting model
         # but their task test segment are not aligned! It worked in my previous experiment.
@@ -349,15 +349,15 @@ class DDGDA(Rolling):
         task_l = super().get_task_list()
 
         # 2.2) create meta dataset for final dataset
-        kwargs = dict(
-            task_tpl=task_l,
-            step=step,
-            segments=0.0,  # all the tasks are for testing
-            trunc_days=trunc_days,
-            hist_step_n=hist_step_n,
-            fill_method=fill_method,
-            task_mode=MetaTask.PROC_MODE_TRANSFER,
-        )
+        kwargs = {
+            "task_tpl": task_l,
+            "step": step,
+            "segments": 0.0,  # all the tasks are for testing
+            "trunc_days": trunc_days,
+            "hist_step_n": hist_step_n,
+            "fill_method": fill_method,
+            "task_mode": MetaTask.PROC_MODE_TRANSFER,
+        }
 
         with self._internal_data_path.open("rb") as f:
             internal_data = pickle.load(f)

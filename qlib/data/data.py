@@ -578,7 +578,7 @@ class DatasetProvider(abc.ABC):
             )
         )
 
-        new_data = dict()
+        new_data = {}
         for inst in sorted(data.keys()):
             if len(data[inst]) > 0:
                 # NOTE: Python version >= 3.6; in versions after python3.6, dict will always guarantee the insertion order
@@ -609,7 +609,7 @@ class DatasetProvider(abc.ABC):
         # NOTE: This place is compatible with windows, windows multi-process is spawn
         C.register_from_C(g_config)
 
-        obj = dict()
+        obj = {}
         for field in column_names:
             #  The client does not have expression provider, the data will be loaded from cache using static method.
             obj[field] = ExpressionD.expression(inst, field, start_time, end_time, freq)

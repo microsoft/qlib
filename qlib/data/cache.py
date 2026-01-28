@@ -490,13 +490,13 @@ class DiskExpressionCache(ExpressionCache):
     """Prepared cache mechanism for server."""
 
     def __init__(self, provider, **kwargs):
-        super(DiskExpressionCache, self).__init__(provider)
+        super().__init__(provider)
         self.r = get_redis_connection()
         # remote==True means client is using this module, writing behaviour will not be allowed.
         self.remote = kwargs.get("remote", False)
 
     def get_cache_dir(self, freq: str = None) -> Path:
-        return super(DiskExpressionCache, self).get_cache_dir(C.features_cache_dir_name, freq)
+        return super().get_cache_dir(C.features_cache_dir_name, freq)
 
     def _uri(self, instrument, field, start_time, end_time, freq):
         field = remove_fields_space(field)
@@ -647,7 +647,7 @@ class DiskDatasetCache(DatasetCache):
     """Prepared cache mechanism for server."""
 
     def __init__(self, provider, **kwargs):
-        super(DiskDatasetCache, self).__init__(provider)
+        super().__init__(provider)
         self.r = get_redis_connection()
         self.remote = kwargs.get("remote", False)
 
@@ -656,7 +656,7 @@ class DiskDatasetCache(DatasetCache):
         return hash_args(*DatasetCache.normalize_uri_args(instruments, fields, freq), disk_cache, inst_processors)
 
     def get_cache_dir(self, freq: str = None) -> Path:
-        return super(DiskDatasetCache, self).get_cache_dir(C.dataset_cache_dir_name, freq)
+        return super().get_cache_dir(C.dataset_cache_dir_name, freq)
 
     @classmethod
     def read_data_from_cache(cls, cache_path: Union[str, Path], start_time, end_time, fields):
@@ -1064,7 +1064,7 @@ class SimpleDatasetCache(DatasetCache):
     """Simple dataset cache that can be used locally or on client."""
 
     def __init__(self, provider):
-        super(SimpleDatasetCache, self).__init__(provider)
+        super().__init__(provider)
         try:
             self.local_cache_path: Path = Path(C["local_cache_path"]).expanduser().resolve()
         except (KeyError, TypeError):

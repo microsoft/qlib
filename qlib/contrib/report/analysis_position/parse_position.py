@@ -73,10 +73,7 @@ def parse_position(position: dict = None) -> pd.DataFrame:
 
         result_df = pd.concat([result_df, _trading_day_df], sort=True)
 
-        previous_data = dict(
-            date=_trading_date,
-            code_list=_trading_day_df[_trading_day_df["status"] != -1].index,
-        )
+        previous_data = {"date": _trading_date, "code_list": _trading_day_df[_trading_day_df["status"] != -1].index}
 
     result_df.reset_index(inplace=True)
     result_df.rename(columns={"date": "datetime", "index": "instrument"}, inplace=True)
