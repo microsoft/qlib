@@ -13,6 +13,7 @@ import random
 import shutil
 import time
 import traceback
+import tarfile
 
 from arctic import Arctic, chunkstore
 import arctic
@@ -165,20 +166,27 @@ def add_data(tick_date, doc_type, stock_name_dict):
         return
     try:
         begin_time = time.time()
-        os.system(f"cp {DATABASE_PATH}/{tick_date + '_{}.tar.gz'.format(doc_type)} {DATA_PATH}/")
 
-        os.system(
-            f"tar -xvzf {DATA_PATH}/{tick_date + '_{}.tar.gz'.format(doc_type)} -C {DATA_PATH}/ {tick_date + '_' + doc_type}/SH"
-        )
-        os.system(
-            f"tar -xvzf {DATA_PATH}/{tick_date + '_{}.tar.gz'.format(doc_type)} -C {DATA_PATH}/ {tick_date + '_' + doc_type}/SZ"
-        )
-        os.system(f"chmod 777 {DATA_PATH}")
-        os.system(f"chmod 777 {DATA_PATH}/{tick_date + '_' + doc_type}")
-        os.system(f"chmod 777 {DATA_PATH}/{tick_date + '_' + doc_type}/SH")
-        os.system(f"chmod 777 {DATA_PATH}/{tick_date + '_' + doc_type}/SZ")
-        os.system(f"chmod 777 {DATA_PATH}/{tick_date + '_' + doc_type}/SH/{tick_date}")
-        os.system(f"chmod 777 {DATA_PATH}/{tick_date + '_' + doc_type}/SZ/{tick_date}")
+        # Copy TAR.GZ to DATA_PATH
+        src_file = os.path.join(DATABASE_PATH, f"{tick_date}_{doc_type}.tar.gz")
+        dst_dir = DATA_PATH
+        shutil.copy(src_file, dst_dir)
+
+        # Tar extraction process
+        tar_path = os.path.join(DATA_PATH, f"{tick_date}_{doc_type}.tar.gz")
+        extract_path = lambda subfolder: os.path.join(DATA_PATH, f"{tick_date}_{doc_type}", subfolder)
+        os.makedirs(extract_path("SH"), exist_ok=True)
+        os.makedirs(extract_path("SZ"), exist_ok=True)
+
+        with tarfile.open(tar_path, "r:gz") as tar:
+            tar.extractall(path=extract_path("SH"))
+            tar.extractall(path=extract_path("SZ"))
+
+        # Permissions assignment
+        os.chmod(DATA_PATH, 0o755)
+        path_to_modify = os.path.join(DATA_PATH, f"{tick_date}_{doc_type}")
+        if os.path.exists(path_to_modify):
+            os.chmod(path_to_modify, 0o755)
 
         print("tick_date={}".format(tick_date))
 
