@@ -360,7 +360,7 @@ class NestedExecutor(BaseExecutor):
         self._skip_empty_decision = skip_empty_decision
         self._align_range_limit = align_range_limit
 
-        super(NestedExecutor, self).__init__(
+        super().__init__(
             time_per_step=time_per_step,
             start_time=start_time,
             end_time=end_time,
@@ -380,7 +380,7 @@ class NestedExecutor(BaseExecutor):
         # NOTE: please refer to the docs of BaseExecutor.reset_common_infra for the meaning of `copy_trade_account`
 
         # The first level follow the `copy_trade_account` from the upper level
-        super(NestedExecutor, self).reset_common_infra(common_infra, copy_trade_account=copy_trade_account)
+        super().reset_common_infra(common_infra, copy_trade_account=copy_trade_account)
 
         # The lower level have to copy the trade_account
         self.inner_executor.reset_common_infra(common_infra, copy_trade_account=True)
@@ -544,7 +544,7 @@ class SimulatorExecutor(BaseExecutor):
         trade_type: str
             please refer to the doc of `TT_SERIAL` & `TT_PARAL`
         """
-        super(SimulatorExecutor, self).__init__(
+        super().__init__(
             time_per_step=time_per_step,
             start_time=start_time,
             end_time=end_time,

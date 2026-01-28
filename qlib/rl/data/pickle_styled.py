@@ -106,7 +106,7 @@ class SimpleIntradayBacktestData(BaseIntradayBacktestData):
         deal_price: DealPriceType = "close",
         order_dir: int | None = None,
     ) -> None:
-        super(SimpleIntradayBacktestData, self).__init__()
+        super().__init__()
 
         backtest = _read_pickle((data_dir if isinstance(data_dir, Path) else Path(data_dir)) / stock_id)
         backtest = backtest.loc[pd.IndexSlice[stock_id, :, date]]

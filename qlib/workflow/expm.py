@@ -427,7 +427,7 @@ class MLflowExpManager(ExpManager):
             exps = self.client.search_experiments(view_type=ViewType.ACTIVE_ONLY)
         else:
             exps = self.client.list_experiments(view_type=ViewType.ACTIVE_ONLY)  # pylint: disable=E1101
-        experiments = dict()
+        experiments = {}
         for exp in exps:
             experiment = MLflowExperiment(exp.experiment_id, exp.name, self.uri)
             experiments[exp.name] = experiment

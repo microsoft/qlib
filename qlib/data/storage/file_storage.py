@@ -75,7 +75,7 @@ class FileStorageMixin:
 
 class FileCalendarStorage(FileStorageMixin, CalendarStorage):
     def __init__(self, freq: str, future: bool, provider_uri: dict = None, **kwargs):
-        super(FileCalendarStorage, self).__init__(freq, future, **kwargs)
+        super().__init__(freq, future, **kwargs)
         self.future = future
         self._provider_uri = None if provider_uri is None else C.DataPathManager.format_provider_uri(provider_uri)
         self.enable_read_cache = True  # TODO: make it configurable
@@ -196,7 +196,7 @@ class FileInstrumentStorage(FileStorageMixin, InstrumentStorage):
     SYMBOL_FIELD_NAME = "instrument"
 
     def __init__(self, market: str, freq: str, provider_uri: dict = None, **kwargs):
-        super(FileInstrumentStorage, self).__init__(market, freq, **kwargs)
+        super().__init__(market, freq, **kwargs)
         self._provider_uri = None if provider_uri is None else C.DataPathManager.format_provider_uri(provider_uri)
         self.file_name = f"{market.lower()}.txt"
 
@@ -204,7 +204,7 @@ class FileInstrumentStorage(FileStorageMixin, InstrumentStorage):
         if not self.uri.exists():
             self._write_instrument()
 
-        _instruments = dict()
+        _instruments = {}
         df = pd.read_csv(
             self.uri,
             sep="\t",
@@ -284,7 +284,7 @@ class FileInstrumentStorage(FileStorageMixin, InstrumentStorage):
 
 class FileFeatureStorage(FileStorageMixin, FeatureStorage):
     def __init__(self, instrument: str, field: str, freq: str, provider_uri: dict = None, **kwargs):
-        super(FileFeatureStorage, self).__init__(instrument, field, freq, **kwargs)
+        super().__init__(instrument, field, freq, **kwargs)
         self._provider_uri = None if provider_uri is None else C.DataPathManager.format_provider_uri(provider_uri)
         self.file_name = f"{instrument.lower()}/{field.lower()}.{freq.lower()}.bin"
 

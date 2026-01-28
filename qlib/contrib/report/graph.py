@@ -34,8 +34,8 @@ class BaseGraph:
         """
         self._df = df
 
-        self._layout = dict() if layout is None else layout
-        self._graph_kwargs = dict() if graph_kwargs is None else graph_kwargs
+        self._layout = {} if layout is None else layout
+        self._graph_kwargs = {} if graph_kwargs is None else graph_kwargs
         self._name_dict = name_dict
 
         self.data = None
@@ -220,7 +220,7 @@ class SubplotsGraph:
         :param df: pd.DataFrame
 
         :param kind_map: dict, subplots graph kind and kwargs
-            eg: dict(kind='ScatterGraph', kwargs=dict())
+            eg: {"kind": 'ScatterGraph', "kwargs": {}}
 
         :param layout: `go.Layout` parameters
 
@@ -275,7 +275,7 @@ class SubplotsGraph:
 
         self._kind_map = kind_map
         if self._kind_map is None:
-            self._kind_map = dict(kind="ScatterGraph", kwargs=dict())
+            self._kind_map = {"kind": "ScatterGraph", "kwargs": {}}
 
         self._subplots_kwargs = subplots_kwargs
         if self._subplots_kwargs is None:
@@ -307,13 +307,7 @@ class SubplotsGraph:
             res_name = column_name.replace("_", " ")
             _temp_row_data = (
                 column_name,
-                dict(
-                    row=row,
-                    col=col,
-                    name=res_name,
-                    kind=self._kind_map["kind"],
-                    graph_kwargs=self._kind_map["kwargs"],
-                ),
+                {"row": row, "col": col, "name": res_name, "kind": self._kind_map["kind"], "graph_kwargs": self._kind_map["kwargs"]},
             )
             self._sub_graph_data.append(_temp_row_data)
             self._subplot_titles.append(res_name)
@@ -326,7 +320,7 @@ class SubplotsGraph:
         # Default cols, rows
         _cols = 2
         _rows = math.ceil(len(self._df.columns) / 2)
-        self._subplots_kwargs = dict()
+        self._subplots_kwargs = {}
         self._subplots_kwargs["rows"] = _rows
         self._subplots_kwargs["cols"] = _cols
         self._subplots_kwargs["shared_xaxes"] = False
@@ -351,11 +345,7 @@ class SubplotsGraph:
                 _graph_kwargs = column_map.get("graph_kwargs", self._kind_map.get("kwargs", {}))
                 _graph_obj = BaseGraph.get_instance_with_graph_parameters(
                     kind,
-                    **dict(
-                        df=self._df.loc[:, [column_name]],
-                        name_dict={column_name: temp_name},
-                        graph_kwargs=_graph_kwargs,
-                    ),
+                    **{"df": self._df.loc[:, [column_name]], "name_dict": {column_name: temp_name}, "graph_kwargs": _graph_kwargs},
                 )
             else:
                 raise TypeError()

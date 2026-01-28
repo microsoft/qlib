@@ -310,7 +310,7 @@ class SAOEStrategy(RLStrategy):
         data_granularity: int = 1,
         **kwargs: Any,
     ) -> None:
-        super(SAOEStrategy, self).__init__(
+        super().__init__(
             policy=policy,
             outer_trade_decision=outer_trade_decision,
             level_infra=level_infra,
@@ -341,7 +341,7 @@ class SAOEStrategy(RLStrategy):
         )
 
     def reset(self, outer_trade_decision: BaseTradeDecision | None = None, **kwargs: Any) -> None:
-        super(SAOEStrategy, self).reset(outer_trade_decision=outer_trade_decision, **kwargs)
+        super().reset(outer_trade_decision=outer_trade_decision, **kwargs)
 
         self.adapter_dict = {}
         self._last_step_range = (0, 0)
@@ -456,7 +456,7 @@ class SAOEIntStrategy(SAOEStrategy):
         common_infra: CommonInfrastructure | None = None,
         **kwargs: Any,
     ) -> None:
-        super(SAOEIntStrategy, self).__init__(
+        super().__init__(
             policy=policy,
             outer_trade_decision=outer_trade_decision,
             level_infra=level_infra,

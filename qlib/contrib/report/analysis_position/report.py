@@ -87,32 +87,29 @@ def _report_figure(df: pd.DataFrame) -> [list, tuple]:
     report_df = _temp_df
 
     # Create figure
-    _default_kind_map = dict(kind="ScatterGraph", kwargs={"mode": "lines+markers"})
+    _default_kind_map = {"kind": "ScatterGraph", "kwargs": {"mode": "lines+markers"}}
     _temp_fill_args = {"fill": "tozeroy", "mode": "lines+markers"}
     _column_row_col_dict = [
-        ("cum_bench", dict(row=1, col=1)),
-        ("cum_return_wo_cost", dict(row=1, col=1)),
-        ("cum_return_w_cost", dict(row=1, col=1)),
-        ("return_wo_mdd", dict(row=2, col=1, graph_kwargs=_temp_fill_args)),
-        ("return_w_cost_mdd", dict(row=3, col=1, graph_kwargs=_temp_fill_args)),
-        ("cum_ex_return_wo_cost", dict(row=4, col=1)),
-        ("cum_ex_return_w_cost", dict(row=4, col=1)),
-        ("turnover", dict(row=5, col=1)),
-        ("cum_ex_return_w_cost_mdd", dict(row=6, col=1, graph_kwargs=_temp_fill_args)),
-        ("cum_ex_return_wo_cost_mdd", dict(row=7, col=1, graph_kwargs=_temp_fill_args)),
+        ("cum_bench", {"row": 1, "col": 1}),
+        ("cum_return_wo_cost", {"row": 1, "col": 1}),
+        ("cum_return_w_cost", {"row": 1, "col": 1}),
+        ("return_wo_mdd", {"row": 2, "col": 1, "graph_kwargs": _temp_fill_args}),
+        ("return_w_cost_mdd", {"row": 3, "col": 1, "graph_kwargs": _temp_fill_args}),
+        ("cum_ex_return_wo_cost", {"row": 4, "col": 1}),
+        ("cum_ex_return_w_cost", {"row": 4, "col": 1}),
+        ("turnover", {"row": 5, "col": 1}),
+        ("cum_ex_return_w_cost_mdd", {"row": 6, "col": 1, "graph_kwargs": _temp_fill_args}),
+        ("cum_ex_return_wo_cost_mdd", {"row": 7, "col": 1, "graph_kwargs": _temp_fill_args}),
     ]
 
-    _subplot_layout = dict()
+    _subplot_layout = {}
     for i in range(1, 8):
         # yaxis
-        _subplot_layout.update({"yaxis{}".format(i): dict(zeroline=True, showline=True, showticklabels=True)})
+        _subplot_layout.update({"yaxis{}".format(i): {"zeroline": True, "showline": True, "showticklabels": True}})
         _show_line = i == 7
-        _subplot_layout.update({"xaxis{}".format(i): dict(showline=_show_line, type="category", tickangle=45)})
+        _subplot_layout.update({"xaxis{}".format(i): {"showline": _show_line, "type": "category", "tickangle": 45}})
 
-    _layout_style = dict(
-        height=1200,
-        title=" ",
-        shapes=[
+    _layout_style = {"height": 1200, "title": " ", "shapes": [
             {
                 "type": "rect",
                 "xref": "x",
@@ -141,17 +138,9 @@ def _report_figure(df: pd.DataFrame) -> [list, tuple]:
                     "width": 0,
                 },
             },
-        ],
-    )
+        ]}
 
-    _subplot_kwargs = dict(
-        shared_xaxes=True,
-        vertical_spacing=0.01,
-        rows=7,
-        cols=1,
-        row_width=[1, 1, 1, 3, 1, 1, 3],
-        print_grid=False,
-    )
+    _subplot_kwargs = {"shared_xaxes": True, "vertical_spacing": 0.01, "rows": 7, "cols": 1, "row_width": [1, 1, 1, 3, 1, 1, 3], "print_grid": False}
     figure = SubplotsGraph(
         df=report_df,
         layout=_layout_style,

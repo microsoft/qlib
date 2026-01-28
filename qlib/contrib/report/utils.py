@@ -71,4 +71,4 @@ def guess_plotly_rangebreaks(dt_index: pd.DatetimeIndex):
     for gap, d in zip(gaps, dt_idx[:-1]):
         if gap > min_gap:
             gaps_to_break.setdefault(gap - min_gap, []).append(d + min_gap)
-    return [dict(values=v, dvalue=int(k.total_seconds() * 1000)) for k, v in gaps_to_break.items()]
+    return [{"values": v, "dvalue": int(k.total_seconds(} * 1000)) for k, v in gaps_to_break.items()]

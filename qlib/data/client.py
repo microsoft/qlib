@@ -20,7 +20,7 @@ class Client:
     """
 
     def __init__(self, host, port):
-        super(Client, self).__init__()
+        super().__init__()
         self.sio = socketio.Client()
         self.server_host = host
         self.server_port = port

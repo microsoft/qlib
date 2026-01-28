@@ -151,7 +151,7 @@ class TabnetModel(Model):
     def fit(
         self,
         dataset: DatasetH,
-        evals_result=dict(),
+        evals_result={},
         save_path=None,
     ):
         if self.pretrain:

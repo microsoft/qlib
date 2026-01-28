@@ -242,7 +242,7 @@ class ADARNN(Model):
     def fit(
         self,
         dataset: DatasetH,
-        evals_result=dict(),
+        evals_result={},
         save_path=None,
     ):
         df_train, df_valid = dataset.prepare(
@@ -387,7 +387,7 @@ class AdaRNN(nn.Module):
         trans_loss="mmd",
         GPU=0,
     ):
-        super(AdaRNN, self).__init__()
+        super().__init__()
         self.use_bottleneck = use_bottleneck
         self.n_input = n_input
         self.num_layers = len(n_hiddens)
@@ -618,7 +618,7 @@ class ReverseLayerF(Function):
 
 class Discriminator(nn.Module):
     def __init__(self, input_dim=256, hidden_dim=256):
-        super(Discriminator, self).__init__()
+        super().__init__()
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
         self.dis1 = nn.Linear(input_dim, hidden_dim)
@@ -668,7 +668,7 @@ def CORAL(source, target, device):
 
 class MMD_loss(nn.Module):
     def __init__(self, kernel_type="linear", kernel_mul=2.0, kernel_num=5):
-        super(MMD_loss, self).__init__()
+        super().__init__()
         self.kernel_num = kernel_num
         self.kernel_mul = kernel_mul
         self.fix_sigma = None
@@ -715,7 +715,7 @@ class MMD_loss(nn.Module):
 
 class Mine_estimator(nn.Module):
     def __init__(self, input_dim=2048, hidden_dim=512):
-        super(Mine_estimator, self).__init__()
+        super().__init__()
         self.mine_model = Mine(input_dim, hidden_dim)
 
     def forward(self, X, Y):
@@ -729,7 +729,7 @@ class Mine_estimator(nn.Module):
 
 class Mine(nn.Module):
     def __init__(self, input_dim=2048, hidden_dim=512):
-        super(Mine, self).__init__()
+        super().__init__()
         self.fc1_x = nn.Linear(input_dim, hidden_dim)
         self.fc1_y = nn.Linear(input_dim, hidden_dim)
         self.fc2 = nn.Linear(hidden_dim, 1)

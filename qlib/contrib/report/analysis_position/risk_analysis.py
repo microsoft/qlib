@@ -25,7 +25,7 @@ def _get_risk_analysis_data_with_report(
     :return:
     """
 
-    analysis = dict()
+    analysis = {}
     # if not report_long_short_df.empty:
     #     analysis["pred_long"] = risk_analysis(report_long_short_df["long"])
     #     analysis["pred_short"] = risk_analysis(report_long_short_df["short"])
@@ -120,7 +120,7 @@ def _get_risk_analysis_figure(analysis_df: pd.DataFrame) -> Iterable[py.Figure]:
 
     _figure = SubplotsGraph(
         _get_all_risk_analysis(analysis_df),
-        kind_map=dict(kind="BarGraph", kwargs={}),
+        kind_map={"kind": "BarGraph", "kwargs": {}},
         subplots_kwargs={"rows": 1, "cols": 4},
     ).figure
     return (_figure,)
@@ -154,7 +154,7 @@ def _get_monthly_risk_analysis_figure(report_normal_df: pd.DataFrame) -> Iterabl
         _temp_df = _get_monthly_analysis_with_feature(_monthly_df, _feature)
         yield ScatterGraph(
             _temp_df,
-            layout=dict(title=_feature, xaxis=dict(type="category", tickangle=45)),
+            layout={"title": _feature, "xaxis": dict(type="category", tickangle=45}),
             graph_kwargs={"mode": "lines+markers"},
         ).figure
 
@@ -221,7 +221,7 @@ def risk_analysis_graph(
                 analysis_freq = "{0}{1}".format(*Freq.parse(FREQ))
                 # backtest info
                 report_normal_df, positions_normal = portfolio_metric_dict.get(analysis_freq)
-                analysis = dict()
+                analysis = {}
                 analysis["excess_return_without_cost"] = risk_analysis(
                     report_normal_df["return"] - report_normal_df["bench"], freq=analysis_freq
                 )

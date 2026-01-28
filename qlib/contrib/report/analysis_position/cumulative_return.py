@@ -61,21 +61,7 @@ def _get_cum_return_data_with_position(
         buy_mean = (buy_value / buy_weight) if buy_weight else 0
 
         result_list.append(
-            dict(
-                hold_value=hold_value,
-                hold_mean=hold_mean,
-                hold_weight=hold_weight,
-                buy_value=buy_value,
-                buy_mean=buy_mean,
-                buy_weight=buy_weight,
-                sell_value=sell_value,
-                sell_mean=sell_mean,
-                sell_weight=sell_weight,
-                buy_minus_sell_value=buy_value - sell_value,
-                buy_minus_sell_mean=buy_mean - sell_mean,
-                buy_plus_sell_weight=buy_weight + sell_weight,
-                date=date,
-            )
+            {"hold_value": hold_value, "hold_mean": hold_mean, "hold_weight": hold_weight, "buy_value": buy_value, "buy_mean": buy_mean, "buy_weight": buy_weight, "sell_value": sell_value, "sell_mean": sell_mean, "sell_weight": sell_weight, "buy_minus_sell_value": buy_value - sell_value, "buy_minus_sell_mean": buy_mean - sell_mean, "buy_plus_sell_weight": buy_weight + sell_weight, "date": date}
         )
 
     r_df = pd.DataFrame(data=result_list)
@@ -113,22 +99,21 @@ def _get_figure_with_position(
         sub_graph_data = [
             (
                 "cum_{}".format(_t_name),
-                dict(row=1, col=1, graph_kwargs={"mode": "lines+markers", "xaxis": "x3"}),
+                {"row": 1, "col": 1, "graph_kwargs": {"mode": "lines+markers", "xaxis": "x3"}},
             ),
             (
                 "{}_weight".format(_t_name.replace("minus", "plus") if "minus" in _t_name else _t_name),
-                dict(row=2, col=1),
+                {"row": 2, "col": 1},
             ),
             (
                 "{}_value".format(_t_name),
-                dict(row=1, col=2, kind="HistogramGraph", graph_kwargs={}),
+                {"row": 1, "col": 2, "kind": "HistogramGraph", "graph_kwargs": {}},
             ),
         ]
 
-        _default_xaxis = dict(showline=False, zeroline=True, tickangle=45)
-        _default_yaxis = dict(zeroline=True, showline=True, showticklabels=True)
-        sub_graph_layout = dict(
-            xaxis1=dict(**_default_xaxis, type="category", showticklabels=False),
+        _default_xaxis = {"showline": False, "zeroline": True, "tickangle": 45}
+        _default_yaxis = {"zeroline": True, "showline": True, "showticklabels": True}
+        sub_graph_layout = {"xaxis1": dict(**_default_xaxis, type="category", showticklabels=False},
             xaxis3=dict(**_default_xaxis, type="category"),
             xaxis2=_default_xaxis,
             yaxis1=dict(**_default_yaxis, title=_t_name),
@@ -137,9 +122,7 @@ def _get_figure_with_position(
         )
 
         mean_value = cum_return_df["{}_value".format(_t_name)].mean()
-        layout = dict(
-            height=500,
-            title=f"{_t_name}(the red line in the histogram on the right represents the average)",
+        layout = {"height": 500, "title": f"{_t_name}(the red line in the histogram on the right represents the average}",
             shapes=[
                 {
                     "type": "line",
@@ -155,20 +138,12 @@ def _get_figure_with_position(
             ],
         )
 
-        kind_map = dict(kind="ScatterGraph", kwargs=dict(mode="lines+markers"))
+        kind_map = {"kind": "ScatterGraph", "kwargs": dict(mode="lines+markers"})
         specs = [
             [{"rowspan": 1}, {"rowspan": 2}],
             [{"rowspan": 1}, None],
         ]
-        subplots_kwargs = dict(
-            vertical_spacing=0.01,
-            rows=2,
-            cols=2,
-            row_width=[1, 2],
-            column_width=[3, 1],
-            print_grid=False,
-            specs=specs,
-        )
+        subplots_kwargs = {"vertical_spacing": 0.01, "rows": 2, "cols": 2, "row_width": [1, 2], "column_width": [3, 1], "print_grid": False, "specs": specs}
         yield SubplotsGraph(
             cum_return_df,
             layout=layout,
