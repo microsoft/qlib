@@ -124,5 +124,6 @@ def rank_label_graph(
     _figures = _get_figure_with_position(position, label_data, start_date, end_date)
     if show_notebook:
         ScatterGraph.show_graph_in_notebook(_figures)
+        return None
     else:
         return _figures

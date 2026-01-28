@@ -226,13 +226,13 @@ class ACRecordTemp(RecordTemp):
                 pass  # continue to generating metrics
             else:
                 logger.info("The results has previously generated, Generation skipped.")
-                return
+                return None
 
         try:
             self.check()
         except FileNotFoundError:
             logger.warning("The dependent data does not exists. Generation skipped.")
-            return
+            return None
         artifact_dict = self._generate(*args, **kwargs)
         if isinstance(artifact_dict, dict):
             self.save(**artifact_dict)
@@ -320,7 +320,7 @@ class SigAnaRecord(ACRecordTemp):
             label = self.load("label.pkl")
         if label is None or not isinstance(label, pd.DataFrame) or label.empty:
             logger.warning(f"Empty label.")
-            return
+            return None
         ic, ric = calc_ic(pred.iloc[:, 0], label.iloc[:, self.label_col])
         metrics = {
             "IC": ic.mean(),

@@ -304,7 +304,7 @@ class MLflowExperiment(Experiment):
                 raise ValueError(
                     "No valid recorder has been found, please make sure the input recorder id is correct."
                 ) from mlflow_exp
-        elif recorder_name is not None:
+        else:  # recorder_name is not None (guaranteed by assert above)
             logger.warning(
                 f"Please make sure the recorder name {recorder_name} is unique, we will only return the latest recorder if there exist several matched the given name."
             )
