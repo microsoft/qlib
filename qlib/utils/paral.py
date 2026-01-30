@@ -65,8 +65,7 @@ def datetime_groupby_apply(
             delayed(_naive_group_apply)(sub_df) for idx, sub_df in df.resample(resample_rule, level=level)
         )
         return pd.concat(dfs, axis=axis).sort_index()
-    else:
-        return _naive_group_apply(df)
+    return _naive_group_apply(df)
 
 
 class AsyncCaller:
@@ -121,8 +120,7 @@ class AsyncCaller:
             def wrapper(self, *args, **kwargs):
                 if isinstance(getattr(self, ac_attr, None), Callable):
                     return getattr(self, ac_attr)(func, self, *args, **kwargs)
-                else:
-                    return func(self, *args, **kwargs)
+                return func(self, *args, **kwargs)
 
             return wrapper
 
@@ -221,10 +219,10 @@ def _replace_and_get_dt(complex_iter):
     if isinstance(complex_iter, DelayedTask):
         dt = complex_iter
         return dt, [dt]
-    elif is_delayed_tuple(complex_iter):
+    if is_delayed_tuple(complex_iter):
         dt = DelayedTuple(complex_iter)
         return dt, [dt]
-    elif isinstance(complex_iter, (list, tuple)):
+    if isinstance(complex_iter, (list, tuple)):
         new_ci = []
         dt_all = []
         for item in complex_iter:
@@ -232,7 +230,7 @@ def _replace_and_get_dt(complex_iter):
             new_ci.append(new_item)
             dt_all += dt_list
         return new_ci, dt_all
-    elif isinstance(complex_iter, dict):
+    if isinstance(complex_iter, dict):
         new_ci = {}
         dt_all = []
         for key, item in complex_iter.items():
@@ -240,8 +238,7 @@ def _replace_and_get_dt(complex_iter):
             new_ci[key] = new_item
             dt_all += dt_list
         return new_ci, dt_all
-    else:
-        return complex_iter, []
+    return complex_iter, []
 
 
 def _recover_dt(complex_iter):
@@ -258,12 +255,11 @@ def _recover_dt(complex_iter):
     """
     if isinstance(complex_iter, DelayedTask):
         return complex_iter.get_replacement()
-    elif isinstance(complex_iter, (list, tuple)):
+    if isinstance(complex_iter, (list, tuple)):
         return [_recover_dt(item) for item in complex_iter]
-    elif isinstance(complex_iter, dict):
+    if isinstance(complex_iter, dict):
         return {key: _recover_dt(item) for key, item in complex_iter.items()}
-    else:
-        return complex_iter
+    return complex_iter
 
 
 def complex_parallel(paral: Parallel, complex_iter):

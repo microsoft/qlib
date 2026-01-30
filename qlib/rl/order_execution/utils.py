@@ -30,8 +30,7 @@ def price_advantage(
     if baseline_price == 0:  # something is wrong with data. Should be nan here
         if isinstance(exec_price, float):
             return 0.0
-        else:
-            return np.zeros_like(exec_price)
+        return np.zeros_like(exec_price)
     if direction == OrderDir.BUY:
         res = (1 - exec_price / baseline_price) * 10000
     elif direction == OrderDir.SELL:
@@ -41,8 +40,7 @@ def price_advantage(
     res_wo_nan: np.ndarray = np.nan_to_num(res, nan=0.0)
     if res_wo_nan.size == 1:
         return res_wo_nan.item()
-    else:
-        return cast(float_or_ndarray, res_wo_nan)
+    return cast(float_or_ndarray, res_wo_nan)
 
 
 def get_simulator_executor(executor: BaseExecutor) -> SimulatorExecutor:

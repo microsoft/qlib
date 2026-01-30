@@ -326,9 +326,8 @@ class Trainer:
     def _min_loglevel(self):
         if not self.loggers:
             return LogLevel.PERIODIC
-        else:
-            # To save bandwidth
-            return min(lg.loglevel for lg in self.loggers)
+        # To save bandwidth
+        return min(lg.loglevel for lg in self.loggers)
 
 
 @contextmanager

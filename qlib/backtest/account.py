@@ -79,12 +79,16 @@ class Account:
     def __init__(
         self,
         init_cash: float = 1e9,
-        position_dict: dict = {},
+        position_dict: dict = None,
         freq: str = "day",
-        benchmark_config: dict = {},
+        benchmark_config: dict = None,
         pos_type: str = "Position",
         port_metr_enabled: bool = True,
     ) -> None:
+        if position_dict is None:
+            position_dict = {}
+        if benchmark_config is None:
+            benchmark_config = {}
         """the trade account of backtest.
 
         Parameters
@@ -306,11 +310,19 @@ class Account:
         trade_exchange: Exchange,
         atomic: bool,
         outer_trade_decision: BaseTradeDecision,
-        trade_info: list = [],
-        inner_order_indicators: List[BaseOrderIndicator] = [],
-        decision_list: List[Tuple[BaseTradeDecision, pd.Timestamp, pd.Timestamp]] = [],
-        indicator_config: dict = {},
+        trade_info: list = None,
+        inner_order_indicators: List[BaseOrderIndicator] = None,
+        decision_list: List[Tuple[BaseTradeDecision, pd.Timestamp, pd.Timestamp]] = None,
+        indicator_config: dict = None,
     ) -> None:
+        if trade_info is None:
+            trade_info = []
+        if inner_order_indicators is None:
+            inner_order_indicators = []
+        if decision_list is None:
+            decision_list = []
+        if indicator_config is None:
+            indicator_config = {}
         """update trade indicators and order indicators in each bar end"""
         # TODO: will skip empty decisions make it faster?  `outer_trade_decision.empty():`
 
@@ -342,11 +354,19 @@ class Account:
         trade_exchange: Exchange,
         atomic: bool,
         outer_trade_decision: BaseTradeDecision,
-        trade_info: list = [],
-        inner_order_indicators: List[BaseOrderIndicator] = [],
-        decision_list: List[Tuple[BaseTradeDecision, pd.Timestamp, pd.Timestamp]] = [],
-        indicator_config: dict = {},
+        trade_info: list = None,
+        inner_order_indicators: List[BaseOrderIndicator] = None,
+        decision_list: List[Tuple[BaseTradeDecision, pd.Timestamp, pd.Timestamp]] = None,
+        indicator_config: dict = None,
     ) -> None:
+        if trade_info is None:
+            trade_info = []
+        if inner_order_indicators is None:
+            inner_order_indicators = []
+        if decision_list is None:
+            decision_list = []
+        if indicator_config is None:
+            indicator_config = {}
         """update account at each trading bar step
 
         Parameters
@@ -379,7 +399,7 @@ class Account:
         """
         if atomic is True and trade_info is None:
             raise ValueError("trade_info is necessary in atomic executor")
-        elif atomic is False and inner_order_indicators is None:
+        if atomic is False and inner_order_indicators is None:
             raise ValueError("inner_order_indicators is necessary in un-atomic executor")
 
         # update current position and hold bar count in each bar end
@@ -409,8 +429,7 @@ class Account:
             _portfolio_metrics = self.portfolio_metrics.generate_portfolio_metrics_dataframe()
             _positions = self.get_hist_positions()
             return _portfolio_metrics, _positions
-        else:
-            raise ValueError("generate_portfolio_metrics should be True if you want to generate portfolio_metrics")
+        raise ValueError("generate_portfolio_metrics should be True if you want to generate portfolio_metrics")
 
     def get_trade_indicator(self) -> Indicator:
         """get the trade indicator instance, which has pa/pos/ffr info."""

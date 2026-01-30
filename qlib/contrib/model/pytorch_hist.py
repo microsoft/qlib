@@ -14,8 +14,8 @@ import copy
 from ...utils import get_or_create_path
 from ...log import get_module_logger
 import torch
-import torch.nn as nn
-import torch.optim as optim
+from torch import nn
+from torch import optim
 from .pytorch_utils import count_parameters
 from ...model.base import Model
 from ...data.dataset import DatasetH
@@ -80,44 +80,11 @@ class HIST(Model):
         self.model_path = model_path
         self.stock2concept = stock2concept
         self.stock_index = stock_index
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        self.device = torch.device(f"cuda:{GPU}" if torch.cuda.is_available() and GPU >= 0 else "cpu")
         self.seed = seed
 
         self.logger.info(
-            "HIST parameters setting:"
-            "\nd_feat : {}"
-            "\nhidden_size : {}"
-            "\nnum_layers : {}"
-            "\ndropout : {}"
-            "\nn_epochs : {}"
-            "\nlr : {}"
-            "\nmetric : {}"
-            "\nearly_stop : {}"
-            "\noptimizer : {}"
-            "\nloss_type : {}"
-            "\nbase_model : {}"
-            "\nmodel_path : {}"
-            "\nstock2concept : {}"
-            "\nstock_index : {}"
-            "\nuse_GPU : {}"
-            "\nseed : {}".format(
-                d_feat,
-                hidden_size,
-                num_layers,
-                dropout,
-                n_epochs,
-                lr,
-                metric,
-                early_stop,
-                optimizer.lower(),
-                loss,
-                base_model,
-                model_path,
-                stock2concept,
-                stock_index,
-                GPU,
-                seed,
-            )
+            f"HIST parameters setting:\nd_feat : {d_feat}\nhidden_size : {hidden_size}\nnum_layers : {num_layers}\ndropout : {dropout}\nn_epochs : {n_epochs}\nlr : {lr}\nmetric : {metric}\nearly_stop : {early_stop}\noptimizer : {optimizer.lower()}\nloss_type : {loss}\nbase_model : {base_model}\nmodel_path : {model_path}\nstock2concept : {stock2concept}\nstock_index : {stock_index}\nuse_GPU : {GPU}\nseed : {seed}"
         )
 
         if self.seed is not None:
@@ -131,14 +98,14 @@ class HIST(Model):
             dropout=self.dropout,
             base_model=self.base_model,
         )
-        self.logger.info("model:\n{:}".format(self.HIST_model))
-        self.logger.info("model size: {:.4f} MB".format(count_parameters(self.HIST_model)))
+        self.logger.info(f"model:\n{self.HIST_model:}")
+        self.logger.info(f"model size: {count_parameters(self.HIST_model):.4f} MB")
         if optimizer.lower() == "adam":
             self.train_optimizer = optim.Adam(self.HIST_model.parameters(), lr=self.lr)
         elif optimizer.lower() == "gd":
             self.train_optimizer = optim.SGD(self.HIST_model.parameters(), lr=self.lr)
         else:
-            raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
+            raise NotImplementedError(f"optimizer {optimizer} is not supported!")
 
         self.fitted = False
         self.HIST_model.to(self.device)
@@ -157,7 +124,7 @@ class HIST(Model):
         if self.loss == "mse":
             return self.mse(pred[mask], label[mask])
 
-        raise ValueError("unknown loss `%s`" % self.loss)
+        raise ValueError(f"unknown loss `{self.loss}`")
 
     def metric_fn(self, pred, label):
         mask = torch.isfinite(label)
@@ -173,7 +140,7 @@ class HIST(Model):
         if self.metric == ("", "loss"):
             return -self.loss_fn(pred[mask], label[mask])
 
-        raise ValueError("unknown metric `%s`" % self.metric)
+        raise ValueError(f"unknown metric `{self.metric}`")
 
     def get_daily_inter(self, df, shuffle=False):
         # organize the train data into daily batches
@@ -244,10 +211,12 @@ class HIST(Model):
     def fit(
         self,
         dataset: DatasetH,
-        evals_result=dict(),
+        evals_result=None,
         save_path=None,
     ):
-        df_train, df_valid, df_test = dataset.prepare(
+        if evals_result is None:
+            evals_result = {}
+        df_train, df_valid, _df_test = dataset.prepare(
             ["train", "valid", "test"],
             col_set=["feature", "label"],
             data_key=DataHandlerLP.DK_L,
@@ -282,7 +251,7 @@ class HIST(Model):
         elif self.base_model == "GRU":
             pretrained_model = GRUModel()
         else:
-            raise ValueError("unknown base model name `%s`" % self.base_model)
+            raise ValueError(f"unknown base model name `{self}`".base_model)
 
         if self.model_path is not None:
             self.logger.info("Loading pretrained model...")
@@ -306,9 +275,9 @@ class HIST(Model):
             self.train_epoch(x_train, y_train, stock_index_train)
 
             self.logger.info("evaluating...")
-            train_loss, train_score = self.test_epoch(x_train, y_train, stock_index_train)
-            val_loss, val_score = self.test_epoch(x_valid, y_valid, stock_index_valid)
-            self.logger.info("train %.6f, valid %.6f" % (train_score, val_score))
+            _train_loss, train_score = self.test_epoch(x_train, y_train, stock_index_train)
+            _val_loss, val_score = self.test_epoch(x_valid, y_valid, stock_index_valid)
+            self.logger.info(f"train {train_score:.6f}, valid {val_score:.6f}")
             evals_result["train"].append(train_score)
             evals_result["valid"].append(val_score)
 
@@ -323,7 +292,7 @@ class HIST(Model):
                     self.logger.info("early stop")
                     break
 
-        self.logger.info("best score: %.6lf @ %d" % (best_score, best_epoch))
+        self.logger.info(f"best score: {best_score:.6f} @ {best_epoch}")
         self.HIST_model.load_state_dict(best_param)
         torch.save(best_param, save_path)
 
@@ -386,7 +355,7 @@ class HISTModel(nn.Module):
                 dropout=dropout,
             )
         else:
-            raise ValueError("unknown base model name `%s`" % base_model)
+            raise ValueError(f"unknown base model name `{base_model}`")
 
         self.fc_es = nn.Linear(hidden_size, hidden_size)
         torch.nn.init.xavier_uniform_(self.fc_es.weight)

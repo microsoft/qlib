@@ -99,7 +99,8 @@ def collect_data_loop(
         indicator_dict: INDICATOR_METRIC = {}
 
         for executor in all_executors:
-            key = "{}{}".format(*Freq.parse(executor.time_per_step))
+            _freq_parsed = Freq.parse(executor.time_per_step)
+            key = f"{_freq_parsed[0]}{_freq_parsed[1]}"
             if executor.trade_account.is_port_metr_enabled():
                 portfolio_dict[key] = executor.trade_account.get_portfolio_metrics()
 

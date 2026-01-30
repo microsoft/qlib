@@ -147,7 +147,7 @@ class HashingStockStorage(BaseHandlerStorage):
                 raise TypeError(
                     "I forget why would this case appear. But I think it does not make sense. So we raise a error for that case."
                 )
-            elif isinstance(selector, (list, str)):
+            if isinstance(selector, (list, str)):
                 stock_selector = selector
 
         if not isinstance(stock_selector, (list, str)) and stock_selector != slice(None):
@@ -185,7 +185,6 @@ class HashingStockStorage(BaseHandlerStorage):
             return pd.DataFrame(
                 index=pd.MultiIndex.from_arrays([[], []], names=index_names), columns=self.columns, dtype=np.float32
             )
-        elif len(fetch_stock_df_list) == 1:
+        if len(fetch_stock_df_list) == 1:
             return fetch_stock_df_list[0]
-        else:
-            return pd.concat(fetch_stock_df_list, sort=False, copy=~fetch_orig)
+        return pd.concat(fetch_stock_df_list, sort=False, copy=~fetch_orig)

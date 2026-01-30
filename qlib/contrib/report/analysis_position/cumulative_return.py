@@ -112,15 +112,15 @@ def _get_figure_with_position(
     for _t_name in ["buy", "sell", "buy_minus_sell", "hold"]:
         sub_graph_data = [
             (
-                "cum_{}".format(_t_name),
+                f"cum_{_t_name}",
                 dict(row=1, col=1, graph_kwargs={"mode": "lines+markers", "xaxis": "x3"}),
             ),
             (
-                "{}_weight".format(_t_name.replace("minus", "plus") if "minus" in _t_name else _t_name),
+                f"{(_t_name.replace("minus", "plus") if "minus" in _t_name else _t_name)}_weight",
                 dict(row=2, col=1),
             ),
             (
-                "{}_value".format(_t_name),
+                f"{_t_name}_value",
                 dict(row=1, col=2, kind="HistogramGraph", graph_kwargs={}),
             ),
         ]
@@ -136,7 +136,7 @@ def _get_figure_with_position(
             yaxis3=_default_yaxis,
         )
 
-        mean_value = cum_return_df["{}_value".format(_t_name)].mean()
+        mean_value = cum_return_df[f"{_t_name}_value"].mean()
         layout = dict(
             height=500,
             title=f"{_t_name}(the red line in the histogram on the right represents the average)",

@@ -14,18 +14,15 @@ def data_to_tensor(data, device="cpu", raise_error=False):
     if isinstance(data, torch.Tensor):
         if device == "cpu":
             return data.cpu()
-        else:
-            return data.to(device)
+        return data.to(device)
     if isinstance(data, (pd.DataFrame, pd.Series)):
         return data_to_tensor(torch.from_numpy(data.values).float(), device)
-    elif isinstance(data, np.ndarray):
+    if isinstance(data, np.ndarray):
         return data_to_tensor(torch.from_numpy(data).float(), device)
-    elif isinstance(data, (tuple, list)):
+    if isinstance(data, (tuple, list)):
         return [data_to_tensor(i, device) for i in data]
-    elif isinstance(data, dict):
+    if isinstance(data, dict):
         return {k: data_to_tensor(v, device) for k, v in data.items()}
-    else:
-        if raise_error:
-            raise ValueError(f"Unsupported data type: {type(data)}.")
-        else:
-            return data
+    if raise_error:
+        raise ValueError(f"Unsupported data type: {type(data)}.")
+    return data

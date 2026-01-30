@@ -117,12 +117,11 @@ class PandasQuote(BaseQuote):
         stock_data = resam_ts_data(self.data[stock_id][field], start_time, end_time, method=method)
         if stock_data is None:
             return None
-        elif isinstance(stock_data, (bool, np.bool_, int, float, np.number)):
+        if isinstance(stock_data, (bool, np.bool_, int, float, np.number)):
             return stock_data
-        elif isinstance(stock_data, pd.Series):
+        if isinstance(stock_data, pd.Series):
             return idd.SingleData(stock_data)
-        else:
-            raise ValueError(f"stock data from resam_ts_data must be a number, pd.Series or pd.DataFrame")
+        raise ValueError(f"stock data from resam_ts_data must be a number, pd.Series or pd.DataFrame")
 
 
 class NumpyQuote(BaseQuote):
@@ -142,7 +141,7 @@ class NumpyQuote(BaseQuote):
             quote_dict[stock_id].sort_index()  # To support more flexible slicing, we must sort data first
         self.data = quote_dict
 
-        n, unit = Freq.parse(freq)
+        _n, unit = Freq.parse(freq)
         if unit in Freq.SUPPORT_CAL_LIST:
             self.freq = Freq.get_timedelta(1, unit)
         else:
@@ -186,22 +185,20 @@ class NumpyQuote(BaseQuote):
         # FIXME: why not call the method of data directly?
         if method == "sum":
             return np.nansum(data)
-        elif method == "mean":
+        if method == "mean":
             return np.nanmean(data)
-        elif method == "last":
+        if method == "last":
             # FIXME: I've never seen that this method was called.
             # Please merge it with "ts_data_last"
             return data[-1]
-        elif method == "all":
+        if method == "all":
             return data.all()
-        elif method == "ts_data_last":
+        if method == "ts_data_last":
             valid_data = data.loc[~data.isna().data.astype(bool)]
             if len(valid_data) == 0:
                 return None
-            else:
-                return valid_data.iloc[-1]
-        else:
-            raise ValueError(f"{method} is not supported")
+            return valid_data.iloc[-1]
+        raise ValueError(f"{method} is not supported")
 
 
 class BaseSingleMetric:
@@ -356,8 +353,7 @@ class BaseOrderIndicator:
         if new_col is not None:
             self.data[new_col] = tmp_metric
             return None
-        else:
-            return tmp_metric
+        return tmp_metric
 
     def get_metric_series(self, metric: str) -> pd.Series:
         """return the single metric with pd.Series format.
@@ -440,66 +436,58 @@ class SingleMetric(BaseSingleMetric):
     def __add__(self, other):
         if isinstance(other, (int, float)):
             return self.__class__(self.metric + other)
-        elif isinstance(other, self.__class__):
+        if isinstance(other, self.__class__):
             return self.__class__(self.metric + other.metric)
-        else:
-            return NotImplemented
+        return NotImplemented
 
     def __sub__(self, other):
         if isinstance(other, (int, float)):
             return self.__class__(self.metric - other)
-        elif isinstance(other, self.__class__):
+        if isinstance(other, self.__class__):
             return self.__class__(self.metric - other.metric)
-        else:
-            return NotImplemented
+        return NotImplemented
 
     def __rsub__(self, other):
         if isinstance(other, (int, float)):
             return self.__class__(other - self.metric)
-        elif isinstance(other, self.__class__):
+        if isinstance(other, self.__class__):
             return self.__class__(other.metric - self.metric)
-        else:
-            return NotImplemented
+        return NotImplemented
 
     def __mul__(self, other):
         if isinstance(other, (int, float)):
             return self.__class__(self.metric * other)
-        elif isinstance(other, self.__class__):
+        if isinstance(other, self.__class__):
             return self.__class__(self.metric * other.metric)
-        else:
-            return NotImplemented
+        return NotImplemented
 
     def __truediv__(self, other):
         if isinstance(other, (int, float)):
             return self.__class__(self.metric / other)
-        elif isinstance(other, self.__class__):
+        if isinstance(other, self.__class__):
             return self.__class__(self.metric / other.metric)
-        else:
-            return NotImplemented
+        return NotImplemented
 
     def __eq__(self, other):
         if isinstance(other, (int, float)):
             return self.__class__(self.metric == other)
-        elif isinstance(other, self.__class__):
+        if isinstance(other, self.__class__):
             return self.__class__(self.metric == other.metric)
-        else:
-            return NotImplemented
+        return NotImplemented
 
     def __gt__(self, other):
         if isinstance(other, (int, float)):
             return self.__class__(self.metric > other)
-        elif isinstance(other, self.__class__):
+        if isinstance(other, self.__class__):
             return self.__class__(self.metric > other.metric)
-        else:
-            return NotImplemented
+        return NotImplemented
 
     def __lt__(self, other):
         if isinstance(other, (int, float)):
             return self.__class__(self.metric < other)
-        elif isinstance(other, self.__class__):
+        if isinstance(other, self.__class__):
             return self.__class__(self.metric < other.metric)
-        else:
-            return NotImplemented
+        return NotImplemented
 
     def __len__(self):
         return len(self.metric)
@@ -508,7 +496,9 @@ class SingleMetric(BaseSingleMetric):
 class PandasSingleMetric(SingleMetric):
     """Each SingleMetric is based on pd.Series."""
 
-    def __init__(self, metric: Union[dict, pd.Series] = {}):
+    def __init__(self, metric: Union[dict, pd.Series] = None):
+        if metric is None:
+            metric = {}
         if isinstance(metric, dict):
             self.metric = pd.Series(metric)
         elif isinstance(metric, pd.Series):
@@ -570,14 +560,12 @@ class PandasOrderIndicator(BaseOrderIndicator):
     def get_index_data(self, metric: str) -> SingleData:
         if metric in self.data:
             return idd.SingleData(self.data[metric].metric)
-        else:
-            return idd.SingleData()
+        return idd.SingleData()
 
     def get_metric_series(self, metric: str) -> Union[pd.Series]:
         if metric in self.data:
             return self.data[metric].metric
-        else:
-            return pd.Series()
+        return pd.Series()
 
     def to_series(self):
         return {k: v.metric for k, v in self.data.items()}
@@ -618,8 +606,7 @@ class NumpyOrderIndicator(BaseOrderIndicator):
     def get_index_data(self, metric: str) -> SingleData:
         if metric in self.data:
             return self.data[metric]
-        else:
-            return idd.SingleData()
+        return idd.SingleData()
 
     def get_metric_series(self, metric: str) -> Union[pd.Series]:
         return self.data[metric].to_series()

@@ -8,9 +8,9 @@ from typing import Text, Union
 import numpy as np
 import pandas as pd
 import torch
-import torch.nn as nn
+from torch import nn
 import torch.nn.functional as F
-import torch.optim as optim
+from torch import optim
 from torch.autograd import Function
 from qlib.contrib.model.pytorch_utils import count_parameters
 from qlib.data.dataset import DatasetH
@@ -81,40 +81,11 @@ class ADARNN(Model):
         self.optimizer = optimizer.lower()
         self.loss = loss
         self.n_splits = n_splits
-        self.device = torch.device("cuda:%d" % GPU if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        self.device = torch.device(f"cuda:{GPU}" if torch.cuda.is_available() and GPU >= 0 else "cpu")
         self.seed = seed
 
         self.logger.info(
-            "ADARNN parameters setting:"
-            "\nd_feat : {}"
-            "\nhidden_size : {}"
-            "\nnum_layers : {}"
-            "\ndropout : {}"
-            "\nn_epochs : {}"
-            "\nlr : {}"
-            "\nmetric : {}"
-            "\nbatch_size : {}"
-            "\nearly_stop : {}"
-            "\noptimizer : {}"
-            "\nloss_type : {}"
-            "\nvisible_GPU : {}"
-            "\nuse_GPU : {}"
-            "\nseed : {}".format(
-                d_feat,
-                hidden_size,
-                num_layers,
-                dropout,
-                n_epochs,
-                lr,
-                metric,
-                batch_size,
-                early_stop,
-                optimizer.lower(),
-                loss,
-                GPU,
-                self.use_gpu,
-                seed,
-            )
+            f"ADARNN parameters setting:\nd_feat : {d_feat}\nhidden_size : {hidden_size}\nnum_layers : {num_layers}\ndropout : {dropout}\nn_epochs : {n_epochs}\nlr : {lr}\nmetric : {metric}\nbatch_size : {batch_size}\nearly_stop : {early_stop}\noptimizer : {optimizer.lower()}\nloss_type : {loss}\nvisible_GPU : {GPU}\nuse_GPU : {self.use_gpu}\nseed : {seed}"
         )
 
         if self.seed is not None:
@@ -133,15 +104,15 @@ class ADARNN(Model):
             len_seq=len_seq,
             trans_loss=loss_type,
         )
-        self.logger.info("model:\n{:}".format(self.model))
-        self.logger.info("model size: {:.4f} MB".format(count_parameters(self.model)))
+        self.logger.info(f"model:\n{self.model:}")
+        self.logger.info(f"model size: {count_parameters(self.model):.4f} MB")
 
         if optimizer.lower() == "adam":
             self.train_optimizer = optim.Adam(self.model.parameters(), lr=self.lr)
         elif optimizer.lower() == "gd":
             self.train_optimizer = optim.SGD(self.model.parameters(), lr=self.lr)
         else:
-            raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
+            raise NotImplementedError(f"optimizer {optimizer} is not supported!")
 
         self.fitted = False
         self.model.to(self.device)
@@ -177,7 +148,7 @@ class ADARNN(Model):
                 continue
 
             total_loss = torch.zeros(1).to(self.device)
-            for i, n in enumerate(index):
+            for _i, n in enumerate(index):
                 feature_s = list_feat[n[0]]
                 feature_t = list_feat[n[1]]
                 label_reg_s = list_label[n[0]]
@@ -206,9 +177,8 @@ class ADARNN(Model):
             if epoch > self.pre_epoch:
                 weight_mat = self.model.update_weight_Boosting(weight_mat, dist_old, dist_mat)
             return weight_mat, dist_mat
-        else:
-            weight_mat = self.transform_type(out_weight_list)
-            return weight_mat, None
+        weight_mat = self.transform_type(out_weight_list)
+        return weight_mat, None
 
     @staticmethod
     def calc_all_metrics(pred):
@@ -235,16 +205,18 @@ class ADARNN(Model):
         return metrics
 
     def log_metrics(self, mode, metrics):
-        metrics = ["{}/{}: {:.6f}".format(k, mode, v) for k, v in metrics.items()]
+        metrics = [f"{k}/{mode}: {v:.6f}" for k, v in metrics.items()]
         metrics = ", ".join(metrics)
         self.logger.info(metrics)
 
     def fit(
         self,
         dataset: DatasetH,
-        evals_result=dict(),
+        evals_result=None,
         save_path=None,
     ):
+        if evals_result is None:
+            evals_result = {}
         df_train, df_valid = dataset.prepare(
             ["train", "valid"],
             col_set=["feature", "label"],
@@ -293,7 +265,7 @@ class ADARNN(Model):
                     self.logger.info("early stop")
                     break
 
-        self.logger.info("best score: %.6lf @ %d" % (best_score, best_epoch))
+        self.logger.info(f"best score: {best_score:.6f} @ {best_epoch}")
         self.model.load_state_dict(best_param)
         torch.save(best_param, save_path)
 
@@ -379,7 +351,7 @@ class AdaRNN(nn.Module):
         use_bottleneck=False,
         bottleneck_width=256,
         n_input=128,
-        n_hiddens=[64, 64],
+        n_hiddens=None,
         n_output=6,
         dropout=0.0,
         len_seq=9,
@@ -387,6 +359,8 @@ class AdaRNN(nn.Module):
         trans_loss="mmd",
         GPU=0,
     ):
+        if n_hiddens is None:
+            n_hiddens = [64, 64]
         super(AdaRNN, self).__init__()
         self.use_bottleneck = use_bottleneck
         self.n_input = n_input
@@ -396,7 +370,7 @@ class AdaRNN(nn.Module):
         self.model_type = model_type
         self.trans_loss = trans_loss
         self.len_seq = len_seq
-        self.device = torch.device("cuda:%d" % GPU if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        self.device = torch.device(f"cuda:{GPU}" if torch.cuda.is_available() and GPU >= 0 else "cpu")
         in_size = self.n_input
 
         features = nn.ModuleList()
@@ -558,7 +532,7 @@ class TransferLoss:
         """
         self.loss_type = loss_type
         self.input_dim = input_dim
-        self.device = torch.device("cuda:%d" % GPU if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        self.device = torch.device(f"cuda:{GPU}" if torch.cuda.is_available() and GPU >= 0 else "cpu")
 
     def compute(self, X, Y):
         """Compute adaptation loss
@@ -699,7 +673,7 @@ class MMD_loss(nn.Module):
     def forward(self, source, target):
         if self.kernel_type == "linear":
             return self.linear_mmd(source, target)
-        elif self.kernel_type == "rbf":
+        if self.kernel_type == "rbf":
             batch_size = int(source.size()[0])
             kernels = self.guassian_kernel(
                 source, target, kernel_mul=self.kernel_mul, kernel_num=self.kernel_num, fix_sigma=self.fix_sigma

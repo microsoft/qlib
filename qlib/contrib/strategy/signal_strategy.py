@@ -255,7 +255,7 @@ class TopkDropoutStrategy(BaseSignalStrategy):
                 # is order executable
                 if self.trade_exchange.check_order(sell_order):
                     sell_order_list.append(sell_order)
-                    trade_val, trade_cost, trade_price = self.trade_exchange.deal_order(
+                    trade_val, trade_cost, _trade_price = self.trade_exchange.deal_order(
                         sell_order, position=current_temp
                     )
                     # update cash
@@ -409,11 +409,15 @@ class EnhancedIndexingStrategy(WeightStrategyBase):
         riskmodel_root,
         market="csi500",
         turn_limit=None,
-        name_mapping={},
-        optimizer_kwargs={},
+        name_mapping=None,
+        optimizer_kwargs=None,
         verbose=False,
         **kwargs,
     ):
+        if name_mapping is None:
+            name_mapping = {}
+        if optimizer_kwargs is None:
+            optimizer_kwargs = {}
         super().__init__(**kwargs)
 
         self.logger = get_module_logger("EnhancedIndexingStrategy")
@@ -515,8 +519,8 @@ class EnhancedIndexingStrategy(WeightStrategyBase):
         target_weight_position = {stock: weight for stock, weight in zip(universe, weight) if weight > 0}
 
         if self.verbose:
-            self.logger.info("trade date: {:%Y-%m-%d}".format(trade_date))
-            self.logger.info("number of holding stocks: {}".format(len(target_weight_position)))
-            self.logger.info("total holding weight: {:.6f}".format(weight.sum()))
+            self.logger.info(f"trade date: {trade_date:%Y-%m-%d}")
+            self.logger.info(f"number of holding stocks: {len(target_weight_position)}")
+            self.logger.info(f"total holding weight: {weight.sum():.6f}")
 
         return target_weight_position

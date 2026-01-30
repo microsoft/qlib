@@ -148,8 +148,8 @@ class SepDataFrame:
 class SDFLoc:
     """Mock Class"""
 
-    def __init__(self, sdf: SepDataFrame, join):
-        self._sdf = sdf
+    def __init__(self, sep_df: SepDataFrame, join):
+        self._sdf = sep_df
         self.axis = None
         self.join = join
 
@@ -161,28 +161,25 @@ class SDFLoc:
         if self.axis == 1:
             if isinstance(args, str):
                 return self._sdf[args]
-            elif isinstance(args, (tuple, list)):
+            if isinstance(args, (tuple, list)):
                 new_df_dict = {k: self._sdf[k] for k in args}
                 return SepDataFrame(new_df_dict, join=self.join if self.join in args else args[0], skip_align=True)
-            else:
-                raise NotImplementedError(f"This type of input is not supported")
+            raise NotImplementedError(f"This type of input is not supported")
         elif self.axis == 0:
             return SepDataFrame(
                 {k: df.loc(axis=0)[args] for k, df in self._sdf._df_dict.items()}, join=self.join, skip_align=True
             )
-        else:
-            df = self._sdf
-            if isinstance(args, tuple):
-                ax0, *ax1 = args
-                if len(ax1) == 0:
-                    ax1 = None
-                if ax1 is not None:
-                    df = df.loc(axis=1)[ax1]
-                if ax0 is not None:
-                    df = df.loc(axis=0)[ax0]
-                return df
-            else:
-                return df.loc(axis=0)[args]
+        df = self._sdf
+        if isinstance(args, tuple):
+            ax0, *ax1 = args
+            if len(ax1) == 0:
+                ax1 = None
+            if ax1 is not None:
+                df = df.loc(axis=1)[ax1]
+            if ax0 is not None:
+                df = df.loc(axis=0)[ax0]
+            return df
+        return df.loc(axis=0)[args]
 
 
 # Patch pandas DataFrame

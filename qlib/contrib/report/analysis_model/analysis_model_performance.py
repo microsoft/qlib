@@ -37,8 +37,7 @@ def _group_return(pred_label: pd.DataFrame = None, reverse: bool = False, N: int
     # Group
     t_df = pd.DataFrame(
         {
-            "Group%d"
-            % (i + 1): pred_label_drop.groupby(level="datetime", group_keys=False)["label"].apply(
+            f"Group{i + 1}": pred_label_drop.groupby(level="datetime", group_keys=False)["label"].apply(
                 lambda x: x[len(x) // N * i : len(x) // N * (i + 1)].mean()  # pylint: disable=W0640
             )
             for i in range(N)
@@ -47,7 +46,7 @@ def _group_return(pred_label: pd.DataFrame = None, reverse: bool = False, N: int
     t_df.index = pd.to_datetime(t_df.index)
 
     # Long-Short
-    t_df["long-short"] = t_df["Group1"] - t_df["Group%d" % N]
+    t_df["long-short"] = t_df["Group1"] - t_df[f"Group{N}"]
 
     # Long-Average
     t_df["long-average"] = t_df["Group1"] - pred_label.groupby(level="datetime", group_keys=False)["label"].mean()
@@ -208,7 +207,7 @@ def _pred_ic(
             rows=1,
             cols=2,
             print_grid=False,
-            subplot_titles=["IC", "IC %s Dist. Q-Q" % dist_name],
+            subplot_titles=["IC", f"IC {dist_name} Dist. Q-Q"],
         ),
         sub_graph_data=_sub_graph_data,
         layout=dict(
@@ -296,11 +295,13 @@ def model_performance_graph(
     N: int = 5,
     reverse=False,
     rank=False,
-    graph_names: list = ["group_return", "pred_ic", "pred_autocorr"],
+    graph_names: list = None,
     show_notebook: bool = True,
     show_nature_day: bool = False,
     **kwargs,
 ) -> [list, tuple]:
+    if graph_names is None:
+        graph_names = ["group_return", "pred_ic", "pred_autocorr"]
     r"""Model performance
 
     :param pred_label: index is **pd.MultiIndex**, index name is **[instrument, datetime]**; columns names is **[score, label]**.

@@ -12,9 +12,9 @@ from typing import Text, Union
 import numpy as np
 import pandas as pd
 import torch
-import torch.nn as nn
+from torch import nn
 import torch.nn.functional as F
-import torch.optim as optim
+from torch import optim
 from qlib.contrib.model.pytorch_gru import GRUModel
 from qlib.contrib.model.pytorch_lstm import LSTMModel
 from qlib.contrib.model.pytorch_utils import count_parameters
@@ -83,7 +83,7 @@ class ADD(Model):
         self.optimizer = optimizer.lower()
         self.base_model = base_model
         self.model_path = model_path
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        self.device = torch.device(f"cuda:{GPU}" if torch.cuda.is_available() and GPU >= 0 else "cpu")
         self.seed = seed
 
         self.gamma = gamma
@@ -91,46 +91,7 @@ class ADD(Model):
         self.mu = mu
 
         self.logger.info(
-            "ADD parameters setting:"
-            "\nd_feat : {}"
-            "\nhidden_size : {}"
-            "\nnum_layers : {}"
-            "\ndropout : {}"
-            "\ndec_dropout : {}"
-            "\nn_epochs : {}"
-            "\nlr : {}"
-            "\nmetric : {}"
-            "\nbatch_size : {}"
-            "\nearly_stop : {}"
-            "\noptimizer : {}"
-            "\nbase_model : {}"
-            "\nmodel_path : {}"
-            "\ngamma : {}"
-            "\ngamma_clip : {}"
-            "\nmu : {}"
-            "\ndevice : {}"
-            "\nuse_GPU : {}"
-            "\nseed : {}".format(
-                d_feat,
-                hidden_size,
-                num_layers,
-                dropout,
-                dec_dropout,
-                n_epochs,
-                lr,
-                metric,
-                batch_size,
-                early_stop,
-                optimizer.lower(),
-                base_model,
-                model_path,
-                gamma,
-                gamma_clip,
-                mu,
-                self.device,
-                self.use_gpu,
-                seed,
-            )
+            f"ADD parameters setting:\nd_feat : {d_feat}\nhidden_size : {hidden_size}\nnum_layers : {num_layers}\ndropout : {dropout}\ndec_dropout : {dec_dropout}\nn_epochs : {n_epochs}\nlr : {lr}\nmetric : {metric}\nbatch_size : {batch_size}\nearly_stop : {early_stop}\noptimizer : {optimizer.lower()}\nbase_model : {base_model}\nmodel_path : {model_path}\ngamma : {gamma}\ngamma_clip : {gamma_clip}\nmu : {mu}\ndevice : {self.device}\nuse_GPU : {self.use_gpu}\nseed : {seed}"
         )
 
         if self.seed is not None:
@@ -147,15 +108,15 @@ class ADD(Model):
             gamma=self.gamma,
             gamma_clip=self.gamma_clip,
         )
-        self.logger.info("model:\n{:}".format(self.ADD_model))
-        self.logger.info("model size: {:.4f} MB".format(count_parameters(self.ADD_model)))
+        self.logger.info(f"model:\n{self.ADD_model:}")
+        self.logger.info(f"model size: {count_parameters(self.ADD_model):.4f} MB")
 
         if optimizer.lower() == "adam":
             self.train_optimizer = optim.Adam(self.ADD_model.parameters(), lr=self.lr)
         elif optimizer.lower() == "gd":
             self.train_optimizer = optim.SGD(self.ADD_model.parameters(), lr=self.lr)
         else:
-            raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
+            raise NotImplementedError(f"optimizer {optimizer} is not supported!")
 
         self.fitted = False
         self.ADD_model.to(self.device)
@@ -302,7 +263,7 @@ class ADD(Model):
             cur_step += 1
 
     def log_metrics(self, mode, metrics):
-        metrics = ["{}/{}: {:.6f}".format(k, mode, v) for k, v in metrics.items()]
+        metrics = [f"{k}/{mode}: {v:.6f}" for k, v in metrics.items()]
         metrics = ", ".join(metrics)
         self.logger.info(metrics)
 
@@ -331,7 +292,7 @@ class ADD(Model):
             if self.metric in valid_metrics:
                 val_score = valid_metrics[self.metric]
             else:
-                raise ValueError("unknown metric name `%s`" % self.metric)
+                raise ValueError(f"unknown metric name `{self.metric}`")
             if val_score > best_score:
                 best_score = val_score
                 stop_steps = 0
@@ -344,7 +305,7 @@ class ADD(Model):
                     break
             self.ADD_model.before_adv_excess.step_alpha()
             self.ADD_model.before_adv_market.step_alpha()
-        self.logger.info("bootstrap_fit best score: {:.6f} @ {}".format(best_score, best_epoch))
+        self.logger.info(f"bootstrap_fit best score: {best_score:.6f} @ {best_epoch}")
         self.ADD_model.load_state_dict(best_param)
         return best_score
 
@@ -363,9 +324,11 @@ class ADD(Model):
     def fit(
         self,
         dataset: DatasetH,
-        evals_result=dict(),
+        evals_result=None,
         save_path=None,
     ):
+        if evals_result is None:
+            evals_result = {}
         label_train, label_valid = dataset.prepare(
             ["train", "valid"],
             col_set=["label"],
@@ -392,7 +355,7 @@ class ADD(Model):
         elif self.base_model == "GRU":
             pretrained_model = GRUModel()
         else:
-            raise ValueError("unknown base model name `%s`" % self.base_model)
+            raise ValueError(f"unknown base model name `{self}`".base_model)
 
         if self.model_path is not None:
             self.logger.info("Loading pretrained model...")
@@ -477,7 +440,7 @@ class ADDModel(nn.Module):
                 for _ in range(2)
             ]
         else:
-            raise ValueError("unknown base model name `%s`" % base_model)
+            raise ValueError(f"unknown base model name `{base_model}`")
         self.dec = Decoder(d_feat, 2 * hidden_size, num_layers, dec_dropout, base_model)
 
         ctx_size = hidden_size * num_layers
@@ -497,8 +460,8 @@ class ADDModel(nn.Module):
         T = x.shape[-1]
         x = x.permute(0, 2, 1)
 
-        out, hidden_excess = self.enc_excess(x)
-        out, hidden_market = self.enc_market(x)
+        _out, hidden_excess = self.enc_excess(x)
+        _out, hidden_market = self.enc_market(x)
         if self.base_model == "LSTM":
             feature_excess = hidden_excess[0].permute(1, 0, 2).reshape(N, -1)
             feature_market = hidden_market[0].permute(1, 0, 2).reshape(N, -1)
@@ -545,7 +508,7 @@ class Decoder(nn.Module):
                 dropout=dropout,
             )
         else:
-            raise ValueError("unknown base model name `%s`" % base_model)
+            raise ValueError(f"unknown base model name `{base_model}`")
 
         self.fc = nn.Linear(hidden_size, d_feat)
 

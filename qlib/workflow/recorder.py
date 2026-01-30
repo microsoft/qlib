@@ -48,7 +48,7 @@ class Recorder:
         self.status = Recorder.STATUS_S
 
     def __repr__(self):
-        return "{name}(info={info})".format(name=self.__class__.__name__, info=self.info)
+        return f"{self.__class__.__name__}(info={self.info})"
 
     def __str__(self):
         return str(self.info)
@@ -324,8 +324,7 @@ class MLflowRecorder(Recorder):
             local_dir_path = str(local_dir_path.resolve())
             if os.path.isdir(local_dir_path):
                 return local_dir_path
-            else:
-                raise RuntimeError("This recorder is not saved in the local file system.")
+            raise RuntimeError("This recorder is not saved in the local file system.")
 
         else:
             raise ValueError(
@@ -467,10 +466,9 @@ class MLflowRecorder(Recorder):
     def get_artifact_uri(self):
         if self.artifact_uri is not None:
             return self.artifact_uri
-        else:
-            raise ValueError(
-                "Please make sure the recorder has been created and started properly before getting artifact uri."
-            )
+        raise ValueError(
+            "Please make sure the recorder has been created and started properly before getting artifact uri."
+        )
 
     def list_artifacts(self, artifact_path=None):
         assert self.uri is not None, "Please start the experiment and recorder first before using recorder directly."

@@ -398,11 +398,11 @@ class ExpressionProvider(abc.ABC):
                 self.expression_instance_cache[field] = expression
         except NameError as e:
             get_module_logger("data").exception(
-                "ERROR: field [%s] contains invalid operator/variable [%s]" % (str(field), str(e).split()[1])
+                f"ERROR: field [{str(field)}] contains invalid operator/variable [{str(e).split()[1]}]"
             )
             raise
         except SyntaxError:
-            get_module_logger("data").exception("ERROR: field [%s] contains invalid syntax" % str(field))
+            get_module_logger("data").exception(f"ERROR: field [{str(field)}] contains invalid syntax")
             raise
         return expression
 
@@ -450,7 +450,9 @@ class DatasetProvider(abc.ABC):
     """
 
     @abc.abstractmethod
-    def dataset(self, instruments, fields, start_time=None, end_time=None, freq="day", inst_processors=[]):
+    def dataset(self, instruments, fields, start_time=None, end_time=None, freq="day", inst_processors=None):
+        if inst_processors is None:
+            inst_processors = []
         """Get dataset data.
 
         Parameters
@@ -483,9 +485,11 @@ class DatasetProvider(abc.ABC):
         end_time=None,
         freq="day",
         disk_cache=1,
-        inst_processors=[],
+        inst_processors=None,
         **kwargs,
     ):
+        if inst_processors is None:
+            inst_processors = []
         """Get task uri, used when generating rabbitmq task in qlib_server
 
         Parameters
@@ -545,7 +549,9 @@ class DatasetProvider(abc.ABC):
         return [ExpressionD.get_expression_instance(f) for f in fields]
 
     @staticmethod
-    def dataset_processor(instruments_d, column_names, start_time, end_time, freq, inst_processors=[]):
+    def dataset_processor(instruments_d, column_names, start_time, end_time, freq, inst_processors=None):
+        if inst_processors is None:
+            inst_processors = []
         """
         Load and process the data, return the data set.
         - default using multi-kernel method.
@@ -597,7 +603,9 @@ class DatasetProvider(abc.ABC):
         return data
 
     @staticmethod
-    def inst_calculator(inst, start_time, end_time, freq, column_names, spans=None, g_config=None, inst_processors=[]):
+    def inst_calculator(inst, start_time, end_time, freq, column_names, spans=None, g_config=None, inst_processors=None):
+        if inst_processors is None:
+            inst_processors = []
         """
         Calculate the expressions for **one** instrument, return a df result.
         If the expression has been calculated before, load from cache.
@@ -640,7 +648,9 @@ class LocalCalendarProvider(CalendarProvider, ProviderBackendMixin):
     Provide calendar data from local data source.
     """
 
-    def __init__(self, remote=False, backend={}):
+    def __init__(self, remote=False, backend=None):
+        if backend is None:
+            backend = {}
         super().__init__()
         self.remote = remote
         self.backend = backend
@@ -681,7 +691,9 @@ class LocalInstrumentProvider(InstrumentProvider, ProviderBackendMixin):
     Provide instrument data from local data source.
     """
 
-    def __init__(self, backend={}) -> None:
+    def __init__(self, backend=None) -> None:
+        if backend is None:
+            backend = {}
         super().__init__()
         self.backend = backend
 
@@ -729,7 +741,9 @@ class LocalFeatureProvider(FeatureProvider, ProviderBackendMixin):
     Provide feature data from local data source.
     """
 
-    def __init__(self, remote=False, backend={}):
+    def __init__(self, remote=False, backend=None):
+        if backend is None:
+            backend = {}
         super().__init__()
         self.remote = remote
         self.backend = backend
@@ -804,14 +818,13 @@ class LocalPITProvider(PITProvider):
             # NOTE: `period` has higher priority than `start_index` & `end_index`
             if period not in period_list:
                 return pd.Series(dtype=C.pit_record_type["value"])
-            else:
-                period_list = [period]
+            period_list = [period]
         else:
             period_list = period_list[max(0, len(period_list) + start_index - 1) : len(period_list) + end_index]
         value = np.full((len(period_list),), np.nan, dtype=VALUE_DTYPE)
         for i, p in enumerate(period_list):
             # last_period_index = self.period_index[field].get(period)  # For acceleration
-            value[i], now_period_index = read_period_data(
+            value[i], _now_period_index = read_period_data(
                 index_path, data_path, p, cur_time_int, quarterly  # , last_period_index  # For acceleration
             )
             # self.period_index[field].update({period: now_period_index})  # For acceleration
@@ -906,8 +919,10 @@ class LocalDatasetProvider(DatasetProvider):
         start_time=None,
         end_time=None,
         freq="day",
-        inst_processors=[],
+        inst_processors=None,
     ):
+        if inst_processors is None:
+            inst_processors = []
         instruments_d = self.get_instruments_d(instruments, freq)
         column_names = self.get_column_names(fields)
         if self.align_time:
@@ -1046,8 +1061,10 @@ class ClientDatasetProvider(DatasetProvider):
         freq="day",
         disk_cache=0,
         return_uri=False,
-        inst_processors=[],
+        inst_processors=None,
     ):
+        if inst_processors is None:
+            inst_processors = []
         if Inst.get_inst_type(instruments) == Inst.DICT:
             get_module_logger("data").warning(
                 "Getting features from a dict of instruments is not recommended because the features will not be "
@@ -1077,64 +1094,61 @@ class ClientDatasetProvider(DatasetProvider):
             feature_uri = self.queue.get(timeout=C["timeout"])
             if isinstance(feature_uri, Exception):
                 raise feature_uri
-            else:
-                instruments_d = self.get_instruments_d(instruments, freq)
-                column_names = self.get_column_names(fields)
-                cal = Cal.calendar(start_time, end_time, freq)
-                if len(cal) == 0:
-                    return pd.DataFrame(
-                        index=pd.MultiIndex.from_arrays([[], []], names=("instrument", "datetime")),
-                        columns=column_names,
-                    )
-                start_time = cal[0]
-                end_time = cal[-1]
-
-                data = self.dataset_processor(instruments_d, column_names, start_time, end_time, freq, inst_processors)
-                if return_uri:
-                    return data, feature_uri
-                else:
-                    return data
-        else:
-            """
-            Call the server to generate the data-set cache, get the uri of the cache file.
-            Then load the data from the file on NFS directly.
-            - using single-process implementation.
-
-            """
-            # TODO: support inst_processors, need to change the code of qlib-server at the same time
-            # FIXME: The cache after resample, when read again and intercepted with end_time, results in incomplete data date
-            if inst_processors:
-                raise ValueError(
-                    f"{self.__class__.__name__} does not support inst_processor. "
-                    f"Please use `D.features(disk_cache=0)` or `qlib.init(dataset_cache=None)`"
+            instruments_d = self.get_instruments_d(instruments, freq)
+            column_names = self.get_column_names(fields)
+            cal = Cal.calendar(start_time, end_time, freq)
+            if len(cal) == 0:
+                return pd.DataFrame(
+                    index=pd.MultiIndex.from_arrays([[], []], names=("instrument", "datetime")),
+                    columns=column_names,
                 )
-            self.conn.send_request(
-                request_type="feature",
-                request_content={
-                    "instruments": instruments,
-                    "fields": fields,
-                    "start_time": start_time,
-                    "end_time": end_time,
-                    "freq": freq,
-                    "disk_cache": 1,
-                },
-                msg_queue=self.queue,
+            start_time = cal[0]
+            end_time = cal[-1]
+
+            data = self.dataset_processor(instruments_d, column_names, start_time, end_time, freq, inst_processors)
+            if return_uri:
+                return data, feature_uri
+            return data
+        """
+        Call the server to generate the data-set cache, get the uri of the cache file.
+        Then load the data from the file on NFS directly.
+        - using single-process implementation.
+
+        """
+        # TODO: support inst_processors, need to change the code of qlib-server at the same time
+        # FIXME: The cache after resample, when read again and intercepted with end_time, results in incomplete data date
+        if inst_processors:
+            raise ValueError(
+                f"{self.__class__.__name__} does not support inst_processor. "
+                f"Please use `D.features(disk_cache=0)` or `qlib.init(dataset_cache=None)`"
             )
-            # - Done in callback
-            feature_uri = self.queue.get(timeout=C["timeout"])
-            if isinstance(feature_uri, Exception):
-                raise feature_uri
-            get_module_logger("data").debug("get result")
-            try:
-                # pre-mound nfs, used for demo
-                mnt_feature_uri = C.dpm.get_data_uri(freq).joinpath(C.dataset_cache_dir_name, feature_uri)
-                df = DiskDatasetCache.read_data_from_cache(mnt_feature_uri, start_time, end_time, fields)
-                get_module_logger("data").debug("finish slicing data")
-                if return_uri:
-                    return df, feature_uri
-                return df
-            except AttributeError as attribute_e:
-                raise IOError("Unable to fetch instruments from remote server!") from attribute_e
+        self.conn.send_request(
+            request_type="feature",
+            request_content={
+                "instruments": instruments,
+                "fields": fields,
+                "start_time": start_time,
+                "end_time": end_time,
+                "freq": freq,
+                "disk_cache": 1,
+            },
+            msg_queue=self.queue,
+        )
+        # - Done in callback
+        feature_uri = self.queue.get(timeout=C["timeout"])
+        if isinstance(feature_uri, Exception):
+            raise feature_uri
+        get_module_logger("data").debug("get result")
+        try:
+            # pre-mound nfs, used for demo
+            mnt_feature_uri = C.dpm.get_data_uri(freq).joinpath(C.dataset_cache_dir_name, feature_uri)
+            df = DiskDatasetCache.read_data_from_cache(mnt_feature_uri, start_time, end_time, fields)
+            get_module_logger("data").debug("finish slicing data")
+            if return_uri:
+                return df, feature_uri
+            return df
+        except AttributeError as attribute_e:
+            raise IOError("Unable to fetch instruments from remote server!") from attribute_e
 
 
 class BaseProvider:
@@ -1167,8 +1181,10 @@ class BaseProvider:
         end_time=None,
         freq="day",
         disk_cache=None,
-        inst_processors=[],
+        inst_processors=None,
     ):
+        if inst_processors is None:
+            inst_processors = []
         """
         Parameters
         ----------
@@ -1191,19 +1207,19 @@ class BaseProvider:
 
 
 class LocalProvider(BaseProvider):
-    def _uri(self, type, **kwargs):
+    def _uri(self, resource_type, **kwargs):
         """_uri
         The server hope to get the uri of the request. The uri will be decided
         by the dataprovider. For ex, different cache layer has different uri.
 
-        :param type: The type of resource for the uri
+        :param resource_type: The type of resource for the uri
         :param **kwargs:
         """
-        if type == "calendar":
+        if resource_type == "calendar":
             return Cal._uri(**kwargs)
-        elif type == "instrument":
+        if resource_type == "instrument":
             return Inst._uri(**kwargs)
-        elif type == "feature":
+        if resource_type == "feature":
             return DatasetD._uri(**kwargs)
 
     def features_uri(self, instruments, fields, start_time, end_time, freq, disk_cache=1):
@@ -1289,44 +1305,44 @@ DatasetD: DatasetProviderWrapper = Wrapper()
 D: BaseProviderWrapper = Wrapper()
 
 
-def register_all_wrappers(C):
+def register_all_wrappers(config):
     """register_all_wrappers"""
     logger = get_module_logger("data")
     module = get_module_by_module_path("qlib.data")
 
-    _calendar_provider = init_instance_by_config(C.calendar_provider, module)
-    if getattr(C, "calendar_cache", None) is not None:
-        _calendar_provider = init_instance_by_config(C.calendar_cache, module, provide=_calendar_provider)
+    _calendar_provider = init_instance_by_config(config.calendar_provider, module)
+    if getattr(config, "calendar_cache", None) is not None:
+        _calendar_provider = init_instance_by_config(config.calendar_cache, module, provide=_calendar_provider)
     register_wrapper(Cal, _calendar_provider, "qlib.data")
-    logger.debug(f"registering Cal {C.calendar_provider}-{C.calendar_cache}")
+    logger.debug(f"registering Cal {config.calendar_provider}-{config.calendar_cache}")
 
-    _instrument_provider = init_instance_by_config(C.instrument_provider, module)
+    _instrument_provider = init_instance_by_config(config.instrument_provider, module)
     register_wrapper(Inst, _instrument_provider, "qlib.data")
-    logger.debug(f"registering Inst {C.instrument_provider}")
+    logger.debug(f"registering Inst {config.instrument_provider}")
 
-    if getattr(C, "feature_provider", None) is not None:
-        feature_provider = init_instance_by_config(C.feature_provider, module)
+    if getattr(config, "feature_provider", None) is not None:
+        feature_provider = init_instance_by_config(config.feature_provider, module)
         register_wrapper(FeatureD, feature_provider, "qlib.data")
-        logger.debug(f"registering FeatureD {C.feature_provider}")
+        logger.debug(f"registering FeatureD {config.feature_provider}")
 
-    if getattr(C, "pit_provider", None) is not None:
-        pit_provider = init_instance_by_config(C.pit_provider, module)
+    if getattr(config, "pit_provider", None) is not None:
+        pit_provider = init_instance_by_config(config.pit_provider, module)
         register_wrapper(PITD, pit_provider, "qlib.data")
-        logger.debug(f"registering PITD {C.pit_provider}")
+        logger.debug(f"registering PITD {config.pit_provider}")
 
-    if getattr(C, "expression_provider", None) is not None:
+    if getattr(config, "expression_provider", None) is not None:
         # This provider is unnecessary in client provider
-        _eprovider = init_instance_by_config(C.expression_provider, module)
-        if getattr(C, "expression_cache", None) is not None:
-            _eprovider = init_instance_by_config(C.expression_cache, module, provider=_eprovider)
+        _eprovider = init_instance_by_config(config.expression_provider, module)
+        if getattr(config, "expression_cache", None) is not None:
+            _eprovider = init_instance_by_config(config.expression_cache, module, provider=_eprovider)
         register_wrapper(ExpressionD, _eprovider, "qlib.data")
-        logger.debug(f"registering ExpressionD {C.expression_provider}-{C.expression_cache}")
+        logger.debug(f"registering ExpressionD {config.expression_provider}-{config.expression_cache}")
 
-    _dprovider = init_instance_by_config(C.dataset_provider, module)
-    if getattr(C, "dataset_cache", None) is not None:
-        _dprovider = init_instance_by_config(C.dataset_cache, module, provider=_dprovider)
+    _dprovider = init_instance_by_config(config.dataset_provider, module)
+    if getattr(config, "dataset_cache", None) is not None:
+        _dprovider = init_instance_by_config(config.dataset_cache, module, provider=_dprovider)
     register_wrapper(DatasetD, _dprovider, "qlib.data")
-    logger.debug(f"registering DatasetD {C.dataset_provider}-{C.dataset_cache}")
+    logger.debug(f"registering DatasetD {config.dataset_provider}-{config.dataset_cache}")
 
-    register_wrapper(D, C.provider, "qlib.data")
-    logger.debug(f"registering D {C.provider}")
+    register_wrapper(D, config.provider, "qlib.data")
+    logger.debug(f"registering D {config.provider}")

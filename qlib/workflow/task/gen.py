@@ -301,7 +301,9 @@ class RollingGen(TaskGen):
 
 
 class MultiHorizonGenBase(TaskGen):
-    def __init__(self, horizon: List[int] = [5], label_leak_n=2):
+    def __init__(self, horizon: List[int] = None, label_leak_n=2):
+        if horizon is None:
+            horizon = [5]
         """
         This task generator tries to generate tasks for different horizons based on an existing task
 

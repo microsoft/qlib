@@ -21,7 +21,9 @@ class Collector(Serializable):
 
     pickle_backend = "dill"  # use dill to dump user method
 
-    def __init__(self, process_list=[]):
+    def __init__(self, process_list=None):
+        if process_list is None:
+            process_list = []
         """
         Init Collector.
 
@@ -50,7 +52,9 @@ class Collector(Serializable):
         raise NotImplementedError(f"Please implement the `collect` method.")
 
     @staticmethod
-    def process_collect(collected_dict, process_list=[], *args, **kwargs) -> dict:
+    def process_collect(collected_dict, process_list=None, *args, **kwargs) -> dict:
+        if process_list is None:
+            process_list = []
         """
         Do a series of processing to the dict returned by collect and return a dict like {key: things}
         For example, you can group and ensemble.
@@ -101,7 +105,9 @@ class MergeCollector(Collector):
 
     """
 
-    def __init__(self, collector_dict: Dict[str, Collector], process_list: List[Callable] = [], merge_func=None):
+    def __init__(self, collector_dict: Dict[str, Collector], process_list: List[Callable] = None, merge_func=None):
+        if process_list is None:
+            process_list = []
         """
         Init MergeCollector.
 
@@ -139,14 +145,22 @@ class RecorderCollector(Collector):
     def __init__(
         self,
         experiment,
-        process_list=[],
+        process_list=None,
         rec_key_func=None,
         rec_filter_func=None,
-        artifacts_path={"pred": "pred.pkl"},
+        artifacts_path=None,
         artifacts_key=None,
-        list_kwargs={},
-        status: Iterable = {Recorder.STATUS_FI},
+        list_kwargs=None,
+        status: Iterable = None,
     ):
+        if process_list is None:
+            process_list = []
+        if artifacts_path is None:
+            artifacts_path = {"pred": "pred.pkl"}
+        if list_kwargs is None:
+            list_kwargs = {}
+        if status is None:
+            status = {Recorder.STATUS_FI}
         """
         Init RecorderCollector.
 

@@ -117,23 +117,21 @@ class Order:
     def parse_dir(direction: Union[str, int, np.integer, OrderDir, np.ndarray]) -> Union[OrderDir, np.ndarray]:
         if isinstance(direction, OrderDir):
             return direction
-        elif isinstance(direction, (int, float, np.integer, np.floating)):
+        if isinstance(direction, (int, float, np.integer, np.floating)):
             return Order.BUY if direction > 0 else Order.SELL
-        elif isinstance(direction, str):
+        if isinstance(direction, str):
             dl = direction.lower().strip()
             if dl == "sell":
                 return OrderDir.SELL
-            elif dl == "buy":
+            if dl == "buy":
                 return OrderDir.BUY
-            else:
-                raise NotImplementedError(f"This type of input is not supported")
+            raise NotImplementedError(f"This type of input is not supported")
         elif isinstance(direction, np.ndarray):
             direction_array = direction.copy()
             direction_array[direction_array > 0] = Order.BUY
             direction_array[direction_array <= 0] = Order.SELL
             return direction_array
-        else:
-            raise NotImplementedError(f"This type of input is not supported")
+        raise NotImplementedError(f"This type of input is not supported")
 
     @property
     def key_by_day(self) -> tuple:
@@ -385,8 +383,7 @@ class BaseTradeDecision(Generic[DecisionType]):
     def _get_range_limit(self, **kwargs: Any) -> Tuple[int, int]:
         if self.trade_range is not None:
             return self.trade_range(trade_calendar=cast(TradeCalendarManager, kwargs.get("inner_calendar")))
-        else:
-            raise NotImplementedError("The decision didn't provide an index range")
+        raise NotImplementedError("The decision didn't provide an index range")
 
     def get_range_limit(self, **kwargs: Any) -> Tuple[int, int]:
         """
@@ -432,9 +429,8 @@ class BaseTradeDecision(Generic[DecisionType]):
         except NotImplementedError as e:
             if "default_value" in kwargs:
                 return kwargs["default_value"]
-            else:
-                # Default to get full index
-                raise NotImplementedError(f"The decision didn't provide an index range") from e
+            # Default to get full index
+            raise NotImplementedError(f"The decision didn't provide an index range") from e
 
         # clip index
         if getattr(self, "total_step", None) is not None:
@@ -493,17 +489,15 @@ class BaseTradeDecision(Generic[DecisionType]):
         if self.trade_range is None:
             if raise_error:
                 raise NotImplementedError(f"There is no trade_range in this case")
-            else:
-                return 0, day_end_idx - day_start_idx
+            return 0, day_end_idx - day_start_idx
+        if rtype == "full":
+            val_start, val_end = self.trade_range.clip_time_range(day_start, day_end)
+        elif rtype == "step":
+            val_start, val_end = self.trade_range.clip_time_range(self.start_time, self.end_time)
         else:
-            if rtype == "full":
-                val_start, val_end = self.trade_range.clip_time_range(day_start, day_end)
-            elif rtype == "step":
-                val_start, val_end = self.trade_range.clip_time_range(self.start_time, self.end_time)
-            else:
-                raise ValueError(f"This type of input {rtype} is not supported")
-            _, _, start_idx, end_index = Cal.locate_index(val_start, val_end, freq=freq)
-            return start_idx - day_start_idx, end_index - day_start_idx
+            raise ValueError(f"This type of input {rtype} is not supported")
+        _, _, start_idx, end_index = Cal.locate_index(val_start, val_end, freq=freq)
+        return start_idx - day_start_idx, end_index - day_start_idx
 
     def empty(self) -> bool:
         for obj in self.get_decision():

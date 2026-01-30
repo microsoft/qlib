@@ -52,7 +52,7 @@ class ElemOperator(ExpressionOps):
         self.feature = feature
 
     def __str__(self):
-        return "{}({})".format(type(self).__name__, self.feature)
+        return f"{type(self).__name__}({self.feature})"
 
     def get_longest_back_rolling(self):
         return self.feature.get_longest_back_rolling()
@@ -84,7 +84,7 @@ class ChangeInstrument(ElemOperator):
         self.feature = feature
 
     def __str__(self):
-        return "{}('{}',{})".format(type(self).__name__, self.instrument, self.feature)
+        return f"{type(self).__name__}('{self.instrument}',{self.feature})"
 
     def load(self, instrument, start_index, end_index, *args):
         # the first `instrument` is ignored
@@ -203,7 +203,7 @@ class Mask(NpElemOperator):
         self.instrument = instrument
 
     def __str__(self):
-        return "{}({},{})".format(type(self).__name__, self.feature, self.instrument.lower())
+        return f"{type(self).__name__}({self.feature},{self.instrument.lower()})"
 
     def _load_internal(self, instrument, start_index, end_index, *args):
         return self.feature.load(self.instrument, start_index, end_index, *args)
@@ -249,7 +249,7 @@ class PairOperator(ExpressionOps):
         self.feature_right = feature_right
 
     def __str__(self):
-        return "{}({},{})".format(type(self).__name__, self.feature_left, self.feature_right)
+        return f"{type(self).__name__}({self.feature_left},{self.feature_right})"
 
     def get_longest_back_rolling(self):
         if isinstance(self.feature_left, (Expression,)):
@@ -655,7 +655,7 @@ class If(ExpressionOps):
         self.feature_right = feature_right
 
     def __str__(self):
-        return "If({},{},{})".format(self.condition, self.feature_left, self.feature_right)
+        return f"If({self.condition},{self.feature_left},{self.feature_right})"
 
     def _load_internal(self, instrument, start_index, end_index, *args):
         series_cond = self.condition.load(instrument, start_index, end_index, *args)
@@ -737,7 +737,7 @@ class Rolling(ExpressionOps):
         self.func = func
 
     def __str__(self):
-        return "{}({},{})".format(type(self).__name__, self.feature, self.N)
+        return f"{type(self).__name__}({self.feature},{self.N})"
 
     def _load_internal(self, instrument, start_index, end_index, *args):
         series = self.feature.load(instrument, start_index, end_index, *args)
@@ -767,15 +767,14 @@ class Rolling(ExpressionOps):
             # remove such support for N == 0?
             get_module_logger(self.__class__.__name__).warning("The Rolling(ATTR, 0) will not be accurately calculated")
             return self.feature.get_extended_window_size()
-        elif 0 < self.N < 1:
+        if 0 < self.N < 1:
             lft_etd, rght_etd = self.feature.get_extended_window_size()
             size = int(np.log(1e-6) / np.log(1 - self.N))
             lft_etd = max(lft_etd + size - 1, lft_etd)
             return lft_etd, rght_etd
-        else:
-            lft_etd, rght_etd = self.feature.get_extended_window_size()
-            lft_etd = max(lft_etd + self.N - 1, lft_etd)
-            return lft_etd, rght_etd
+        lft_etd, rght_etd = self.feature.get_extended_window_size()
+        lft_etd = max(lft_etd + self.N - 1, lft_etd)
+        return lft_etd, rght_etd
 
 
 class Ref(Rolling):
@@ -802,7 +801,7 @@ class Ref(Rolling):
         # N = 0, return first day
         if series.empty:
             return series  # Pandas bug, see: https://github.com/pandas-dev/pandas/issues/21049
-        elif self.N == 0:
+        if self.N == 0:
             series = pd.Series(series.iloc[0], index=series.index)
         else:
             series = series.shift(self.N)  # copy
@@ -817,11 +816,10 @@ class Ref(Rolling):
         if self.N == 0:
             get_module_logger(self.__class__.__name__).warning("The Ref(ATTR, 0) will not be accurately calculated")
             return self.feature.get_extended_window_size()
-        else:
-            lft_etd, rght_etd = self.feature.get_extended_window_size()
-            lft_etd = max(lft_etd + self.N, lft_etd)
-            rght_etd = max(rght_etd - self.N, rght_etd)
-            return lft_etd, rght_etd
+        lft_etd, rght_etd = self.feature.get_extended_window_size()
+        lft_etd = max(lft_etd + self.N, lft_etd)
+        rght_etd = max(rght_etd - self.N, rght_etd)
+        return lft_etd, rght_etd
 
 
 class Mean(Rolling):
@@ -1065,7 +1063,7 @@ class Quantile(Rolling):
         self.qscore = qscore
 
     def __str__(self):
-        return "{}({},{},{})".format(type(self).__name__, self.feature, self.N, self.qscore)
+        return f"{type(self).__name__}({self.feature},{self.N},{self.qscore})"
 
     def _load_internal(self, instrument, start_index, end_index, *args):
         series = self.feature.load(instrument, start_index, end_index, *args)
@@ -1410,7 +1408,7 @@ class PairRolling(ExpressionOps):
         self.func = func
 
     def __str__(self):
-        return "{}({},{},{})".format(type(self).__name__, self.feature_left, self.feature_right, self.N)
+        return f"{type(self).__name__}({self.feature_left},{self.feature_right},{self.N})"
 
     def _load_internal(self, instrument, start_index, end_index, *args):
         assert any(
@@ -1460,8 +1458,7 @@ class PairRolling(ExpressionOps):
                 "The PairRolling(ATTR, 0) will not be accurately calculated"
             )
             return -np.inf, max(lr, rr)
-        else:
-            return max(ll, rl) + self.N - 1, max(lr, rr)
+        return max(ll, rl) + self.N - 1, max(lr, rr)
 
 
 class Corr(PairRolling):
@@ -1548,18 +1545,16 @@ class TResample(ElemOperator):
         self.func = func
 
     def __str__(self):
-        return "{}({},{})".format(type(self).__name__, self.feature, self.freq)
+        return f"{type(self).__name__}({self.feature},{self.freq})"
 
     def _load_internal(self, instrument, start_index, end_index, *args):
         series = self.feature.load(instrument, start_index, end_index, *args)
 
         if series.empty:
             return series
-        else:
-            if self.func == "sum":
-                return getattr(series.resample(self.freq), self.func)(min_count=1)
-            else:
-                return getattr(series.resample(self.freq), self.func)()
+        if self.func == "sum":
+            return getattr(series.resample(self.freq), self.func)(min_count=1)
+        return getattr(series.resample(self.freq), self.func)()
 
 
 TOpsList = [TResample]
@@ -1650,17 +1645,17 @@ class OpsWrapper:
                 _ops_class = _operator
 
             if not issubclass(_ops_class, (Expression,)):
-                raise TypeError("operator must be subclass of ExpressionOps, not {}".format(_ops_class))
+                raise TypeError(f"operator must be subclass of ExpressionOps, not {_ops_class}")
 
             if _ops_class.__name__ in self._ops:
                 get_module_logger(self.__class__.__name__).warning(
-                    "The custom operator [{}] will override the qlib default definition".format(_ops_class.__name__)
+                    f"The custom operator [{_ops_class.__name__}] will override the qlib default definition"
                 )
             self._ops[_ops_class.__name__] = _ops_class
 
     def __getattr__(self, key):
         if key not in self._ops:
-            raise AttributeError("The operator [{0}] is not registered".format(key))
+            raise AttributeError(f"The operator [{key}] is not registered")
         return self._ops[key]
 
 
@@ -1678,4 +1673,4 @@ def register_all_ops(C):
 
     if getattr(C, "custom_ops", None) is not None:
         Operators.register(C.custom_ops)
-        logger.debug("register custom operator {}".format(C.custom_ops))
+        logger.debug(f"register custom operator {C.custom_ops}")

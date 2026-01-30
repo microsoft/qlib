@@ -28,8 +28,7 @@ def get_group_columns(df: pd.DataFrame, group: Union[Text, None]):
     """
     if group is None:
         return df.columns
-    else:
-        return df.columns[df.columns.get_loc(group)]
+    return df.columns[df.columns.get_loc(group)]
 
 
 class Processor(Serializable):
@@ -104,6 +103,8 @@ class DropnaProcessor(Processor):
 
 class DropnaLabel(DropnaProcessor):
     def __init__(self, fields_group="label"):
+        if col_list is None:
+            col_list = []
         super().__init__(fields_group=fields_group)
 
     def is_for_infer(self) -> bool:
@@ -112,7 +113,9 @@ class DropnaLabel(DropnaProcessor):
 
 
 class DropCol(Processor):
-    def __init__(self, col_list=[]):
+    def __init__(self, col_list=None):
+        if col_list is None:
+            col_list = []
         self.col_list = col_list
 
     def __call__(self, df):
@@ -127,7 +130,7 @@ class DropCol(Processor):
 
 
 class FilterCol(Processor):
-    def __init__(self, fields_group="feature", col_list=[]):
+    def __init__(self, fields_group="feature", col_list=None):
         self.fields_group = fields_group
         self.col_list = col_list
 

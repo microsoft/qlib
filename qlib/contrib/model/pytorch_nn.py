@@ -15,8 +15,8 @@ from typing import Callable, Optional, Text, Union
 from sklearn.metrics import roc_auc_score, mean_squared_error
 
 import torch
-import torch.nn as nn
-import torch.optim as optim
+from torch import nn
+from torch import optim
 
 from .pytorch_utils import count_parameters
 from ...model.base import Model
@@ -71,14 +71,16 @@ class DNNModelPytorch(Model):
         init_model=None,
         eval_train_metric=False,
         pt_model_uri="qlib.contrib.model.pytorch_nn.Net",
-        pt_model_kwargs={
-            "input_dim": 360,
-            "layers": (256,),
-        },
+        pt_model_kwargs=None,
         valid_key=DataHandlerLP.DK_L,
         # TODO: Infer Key is a more reasonable key. But it requires more detailed processing on label processing
     ):
         # Set logger.
+        if pt_model_kwargs is None:
+            pt_model_kwargs = {
+            "input_dim": 360,
+            "layers": (256,),
+        }
         self.logger = get_module_logger("DNNModelPytorch")
         self.logger.info("DNN pytorch version...")
 
@@ -93,7 +95,7 @@ class DNNModelPytorch(Model):
         if isinstance(GPU, str):
             self.device = torch.device(GPU)
         else:
-            self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+            self.device = torch.device(f"cuda:{GPU}" if torch.cuda.is_available() and GPU >= 0 else "cpu")
         self.seed = seed
         self.weight_decay = weight_decay
         self.data_parall = data_parall
@@ -125,7 +127,7 @@ class DNNModelPytorch(Model):
             torch.manual_seed(self.seed)
 
         if loss not in {"mse", "binary"}:
-            raise NotImplementedError("loss {} is not supported!".format(loss))
+            raise NotImplementedError(f"loss {loss} is not supported!")
         self._scorer = mean_squared_error if loss == "mse" else roc_auc_score
 
         if init_model is None:
@@ -136,15 +138,15 @@ class DNNModelPytorch(Model):
         else:
             self.dnn_model = init_model
 
-        self.logger.info("model:\n{:}".format(self.dnn_model))
-        self.logger.info("model size: {:.4f} MB".format(count_parameters(self.dnn_model)))
+        self.logger.info(f"model:\n{self.dnn_model:}")
+        self.logger.info(f"model size: {count_parameters(self.dnn_model):.4f} MB")
 
         if optimizer.lower() == "adam":
             self.train_optimizer = optim.Adam(self.dnn_model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
         elif optimizer.lower() == "gd":
             self.train_optimizer = optim.SGD(self.dnn_model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
         else:
-            raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
+            raise NotImplementedError(f"optimizer {optimizer} is not supported!")
 
         if scheduler == "default":
             # In torch version 2.7.0, the verbose parameter has been removed. Reference Link:
@@ -190,14 +192,16 @@ class DNNModelPytorch(Model):
     def fit(
         self,
         dataset: DatasetH,
-        evals_result=dict(),
+        evals_result=None,
         verbose=True,
         save_path=None,
         reweighter=None,
     ):
+        if evals_result is None:
+            evals_result = {}
         has_valid = "valid" in dataset.segments
         segments = ["train", "valid"]
-        vars = ["x", "y", "w"]
+        var_names = ["x", "y", "w"]
         all_df = defaultdict(dict)  # x_train, x_valid y_train, y_valid w_train, w_valid
         all_t = defaultdict(dict)  # tensors
         for seg in segments:
@@ -216,7 +220,7 @@ class DNNModelPytorch(Model):
                     raise ValueError("Unsupported reweighter type.")
 
                 # get tensors
-                for v in vars:
+                for v in var_names:
                     all_t[v][seg] = torch.from_numpy(all_df[v][seg].values).float()
                     # if seg == "valid": # accelerate the eval of validation
                     all_t[v][seg] = all_t[v][seg].to(self.device)  # This will consume a lot of memory !!!!
@@ -310,9 +314,7 @@ class DNNModelPytorch(Model):
                     if loss_val < best_loss:
                         if verbose:
                             self.logger.info(
-                                "\tvalid loss update from {:.6f} to {:.6f}, save checkpoint.".format(
-                                    best_loss, loss_val
-                                )
+                                f"\tvalid loss update from {best_loss:.6f} to {loss_val:.6f}, save checkpoint."
                             )
                         best_loss = loss_val
                         self.best_step = step
@@ -345,11 +347,10 @@ class DNNModelPytorch(Model):
             sqr_loss = torch.mul(pred - target, pred - target)
             loss = torch.mul(sqr_loss, w).mean()
             return loss
-        elif loss_type == "binary":
+        if loss_type == "binary":
             loss = nn.BCEWithLogitsLoss(weight=w)
             return loss(pred, target)
-        else:
-            raise NotImplementedError("loss {} is not supported!".format(loss_type))
+        raise NotImplementedError(f"loss {loss_type} is not supported!")
 
     def get_metric(self, pred, target, index):
         # NOTE: the order of the index must follow <datetime, instrument> sorted order
@@ -432,7 +433,7 @@ class Net(nn.Module):
         drop_input = nn.Dropout(0.05)
         dnn_layers.append(drop_input)
         hidden_units = input_dim
-        for i, (_input_dim, hidden_units) in enumerate(zip(layers[:-1], layers[1:])):
+        for _i, (_input_dim, hidden_units) in enumerate(zip(layers[:-1], layers[1:])):
             fc = nn.Linear(_input_dim, hidden_units)
             if act == "LeakyReLU":
                 activation = nn.LeakyReLU(negative_slope=0.1, inplace=False)
@@ -458,6 +459,6 @@ class Net(nn.Module):
 
     def forward(self, x):
         cur_output = x
-        for i, now_layer in enumerate(self.dnn_layers):
+        for _i, now_layer in enumerate(self.dnn_layers):
             cur_output = now_layer(cur_output)
         return cur_output

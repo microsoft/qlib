@@ -362,22 +362,20 @@ class SBBStrategyEMA(SBBStrategyBase):
         # if no signal, return mid trend
         if stock_id not in self.signal:
             return self.TREND_MID
-        else:
-            _sample_signal = resam_ts_data(
-                self.signal[stock_id],
-                pred_start_time,
-                pred_end_time,
-                method=ts_data_last,
-            )
-            # if EMA signal == 0 or None, return mid trend
-            if _sample_signal is None or np.isnan(_sample_signal) or _sample_signal == 0:
-                return self.TREND_MID
-            # if EMA signal > 0, return long trend
-            elif _sample_signal > 0:
-                return self.TREND_LONG
-            # if EMA signal < 0, return short trend
-            else:
-                return self.TREND_SHORT
+        _sample_signal = resam_ts_data(
+            self.signal[stock_id],
+            pred_start_time,
+            pred_end_time,
+            method=ts_data_last,
+        )
+        # if EMA signal == 0 or None, return mid trend
+        if _sample_signal is None or np.isnan(_sample_signal) or _sample_signal == 0:
+            return self.TREND_MID
+        # if EMA signal > 0, return long trend
+        if _sample_signal > 0:
+            return self.TREND_LONG
+        # if EMA signal < 0, return short trend
+        return self.TREND_SHORT
 
 
 class ACStrategy(BaseStrategy):
@@ -576,7 +574,7 @@ class RandomOrderStrategy(BaseStrategy):
 
     def generate_trade_decision(self, execute_result=None):
         trade_step = self.trade_calendar.get_trade_step()
-        step_time_start, step_time_end = self.trade_calendar.get_step_time(trade_step)
+        step_time_start, _step_time_end = self.trade_calendar.get_step_time(trade_step)
 
         order_list = []
         if step_time_start in self.volume_df:
@@ -659,14 +657,14 @@ class FileOrderStrategy(BaseStrategy):
             df = self.order_df.loc(axis=0)[start]
         except KeyError:
             return TradeDecisionWO([], self)
-        else:
-            order_list = []
-            for idx, row in df.iterrows():
-                order_list.append(
-                    oh.create(
-                        code=idx,
-                        amount=row["amount"],
-                        direction=Order.parse_dir(row["direction"]),
-                    )
+
+        order_list = []
+        for idx, row in df.iterrows():
+            order_list.append(
+                oh.create(
+                    code=idx,
+                    amount=row["amount"],
+                    direction=Order.parse_dir(row["direction"]),
                 )
-            return TradeDecisionWO(order_list, self, self.trade_range)
+            )
+        return TradeDecisionWO(order_list, self, self.trade_range)

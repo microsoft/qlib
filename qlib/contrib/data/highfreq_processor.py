@@ -17,8 +17,7 @@ class HighFreqTrans(Processor):
     def __call__(self, df_features):
         if self.dtype == "bool":
             return df_features.astype(np.int8)
-        else:
-            return df_features.astype(np.float32)
+        return df_features.astype(np.float32)
 
 
 class HighFreqNorm(Processor):

@@ -72,7 +72,7 @@ class _QLibLoggerManager:
         if not module_name.startswith("qlib."):
             # Add a prefix of qlib. when the requested ``module_name`` doesn't start with ``qlib.``.
             # If the module_name is already qlib.xxx, we do not format here. Otherwise, it will become qlib.qlib.xxx.
-            module_name = "qlib.{}".format(module_name)
+            module_name = f"qlib.{module_name}"
 
         # Get logger.
         module_logger = self._loggers.setdefault(module_name, QlibLogger(module_name))
@@ -124,7 +124,7 @@ class TimeInspector:
             Info that will be logged into stdout.
         """
         cost_time = time() - cls.time_marks.pop()
-        cls.timer_logger.info("Time cost: {0:.3f}s | {1}".format(cost_time, info))
+        cls.timer_logger.info(f"Time cost: {cost_time:.3f}s | {info}")
 
     @classmethod
     @contextmanager

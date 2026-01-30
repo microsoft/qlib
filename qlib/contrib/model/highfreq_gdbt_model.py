@@ -74,9 +74,9 @@ class HFLGBModel(ModelFT, LightGBMFInt):
         print("High frequency signal test")
         print("===============================")
         print("Test set precision: ")
-        print("Positive precision: {}, Negative precision: {}".format(up_p, down_p))
+        print(f"Positive precision: {up_p}, Negative precision: {down_p}")
         print("Test Alpha Average in test set: ")
-        print("Positive average alpha: {}, Negative average alpha: {}".format(up_a, down_a))
+        print(f"Positive average alpha: {up_a}, Negative average alpha: {down_a}")
 
     def _prepare_data(self, dataset: DatasetH):
         df_train, df_valid = dataset.prepare(

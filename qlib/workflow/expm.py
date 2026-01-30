@@ -42,7 +42,7 @@ class ExpManager:
         logger.debug(f"experiment manager uri is at {self.uri}")
 
     def __repr__(self):
-        return "{name}(uri={uri})".format(name=self.__class__.__name__, uri=self.uri)
+        return f"{self.__class__.__name__}(uri={self.uri})"
 
     def start_exp(
         self,

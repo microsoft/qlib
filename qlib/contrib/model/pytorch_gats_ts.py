@@ -11,8 +11,8 @@ import copy
 from ...utils import get_or_create_path
 from ...log import get_module_logger
 import torch
-import torch.nn as nn
-import torch.optim as optim
+from torch import nn
+from torch import optim
 from torch.utils.data import DataLoader
 from torch.utils.data import Sampler
 
@@ -94,43 +94,12 @@ class GATs(Model):
         self.loss = loss
         self.base_model = base_model
         self.model_path = model_path
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        self.device = torch.device(f"cuda:{GPU}" if torch.cuda.is_available() and GPU >= 0 else "cpu")
         self.n_jobs = n_jobs
         self.seed = seed
 
         self.logger.info(
-            "GATs parameters setting:"
-            "\nd_feat : {}"
-            "\nhidden_size : {}"
-            "\nnum_layers : {}"
-            "\ndropout : {}"
-            "\nn_epochs : {}"
-            "\nlr : {}"
-            "\nmetric : {}"
-            "\nearly_stop : {}"
-            "\noptimizer : {}"
-            "\nloss_type : {}"
-            "\nbase_model : {}"
-            "\nmodel_path : {}"
-            "\nvisible_GPU : {}"
-            "\nuse_GPU : {}"
-            "\nseed : {}".format(
-                d_feat,
-                hidden_size,
-                num_layers,
-                dropout,
-                n_epochs,
-                lr,
-                metric,
-                early_stop,
-                optimizer.lower(),
-                loss,
-                base_model,
-                model_path,
-                GPU,
-                self.use_gpu,
-                seed,
-            )
+            f"GATs parameters setting:\nd_feat : {d_feat}\nhidden_size : {hidden_size}\nnum_layers : {num_layers}\ndropout : {dropout}\nn_epochs : {n_epochs}\nlr : {lr}\nmetric : {metric}\nearly_stop : {early_stop}\noptimizer : {optimizer.lower()}\nloss_type : {loss}\nbase_model : {base_model}\nmodel_path : {model_path}\nvisible_GPU : {GPU}\nuse_GPU : {self.use_gpu}\nseed : {seed}"
         )
 
         if self.seed is not None:
@@ -144,15 +113,15 @@ class GATs(Model):
             dropout=self.dropout,
             base_model=self.base_model,
         )
-        self.logger.info("model:\n{:}".format(self.GAT_model))
-        self.logger.info("model size: {:.4f} MB".format(count_parameters(self.GAT_model)))
+        self.logger.info(f"model:\n{self.GAT_model:}")
+        self.logger.info(f"model size: {count_parameters(self.GAT_model):.4f} MB")
 
         if optimizer.lower() == "adam":
             self.train_optimizer = optim.Adam(self.GAT_model.parameters(), lr=self.lr)
         elif optimizer.lower() == "gd":
             self.train_optimizer = optim.SGD(self.GAT_model.parameters(), lr=self.lr)
         else:
-            raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
+            raise NotImplementedError(f"optimizer {optimizer} is not supported!")
 
         self.fitted = False
         self.GAT_model.to(self.device)
@@ -171,7 +140,7 @@ class GATs(Model):
         if self.loss == "mse":
             return self.mse(pred[mask], label[mask])
 
-        raise ValueError("unknown loss `%s`" % self.loss)
+        raise ValueError(f"unknown loss `{self.loss}`")
 
     def metric_fn(self, pred, label):
         mask = torch.isfinite(label)
@@ -179,7 +148,7 @@ class GATs(Model):
         if self.metric in ("", "loss"):
             return -self.loss_fn(pred[mask], label[mask])
 
-        raise ValueError("unknown metric `%s`" % self.metric)
+        raise ValueError(f"unknown metric `{self.metric}`")
 
     def get_daily_inter(self, df, shuffle=False):
         # organize the train data into daily batches
@@ -233,9 +202,11 @@ class GATs(Model):
     def fit(
         self,
         dataset,
-        evals_result=dict(),
+        evals_result=None,
         save_path=None,
     ):
+        if evals_result is None:
+            evals_result = {}
         dl_train = dataset.prepare("train", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
         dl_valid = dataset.prepare("valid", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
         if dl_train.empty or dl_valid.empty:
@@ -253,7 +224,6 @@ class GATs(Model):
         save_path = get_or_create_path(save_path)
 
         stop_steps = 0
-        train_loss = 0
         best_score = -np.inf
         best_epoch = 0
         evals_result["train"] = []
@@ -265,7 +235,7 @@ class GATs(Model):
         elif self.base_model == "GRU":
             pretrained_model = GRUModel(d_feat=self.d_feat, hidden_size=self.hidden_size, num_layers=self.num_layers)
         else:
-            raise ValueError("unknown base model name `%s`" % self.base_model)
+            raise ValueError(f"unknown base model name `{self}`".base_model)
 
         if self.model_path is not None:
             self.logger.info("Loading pretrained model...")
@@ -288,9 +258,9 @@ class GATs(Model):
             self.logger.info("training...")
             self.train_epoch(train_loader)
             self.logger.info("evaluating...")
-            train_loss, train_score = self.test_epoch(train_loader)
-            val_loss, val_score = self.test_epoch(valid_loader)
-            self.logger.info("train %.6f, valid %.6f" % (train_score, val_score))
+            _train_loss, train_score = self.test_epoch(train_loader)
+            _val_loss, val_score = self.test_epoch(valid_loader)
+            self.logger.info(f"train {train_score:.6f}, valid {val_score:.6f}")
             evals_result["train"].append(train_score)
             evals_result["valid"].append(val_score)
 
@@ -305,7 +275,7 @@ class GATs(Model):
                     self.logger.info("early stop")
                     break
 
-        self.logger.info("best score: %.6lf @ %d" % (best_score, best_epoch))
+        self.logger.info(f"best score: {best_score:.6f} @ {best_epoch}")
         self.GAT_model.load_state_dict(best_param)
         torch.save(best_param, save_path)
 
@@ -356,7 +326,7 @@ class GATModel(nn.Module):
                 dropout=dropout,
             )
         else:
-            raise ValueError("unknown base model name `%s`" % base_model)
+            raise ValueError(f"unknown base model name `{base_model}`")
 
         self.hidden_size = hidden_size
         self.d_feat = d_feat

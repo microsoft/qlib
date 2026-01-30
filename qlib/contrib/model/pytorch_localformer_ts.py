@@ -13,8 +13,8 @@ from ...utils import get_or_create_path
 from ...log import get_module_logger
 
 import torch
-import torch.nn as nn
-import torch.optim as optim
+from torch import nn
+from torch import optim
 from torch.utils.data import DataLoader
 
 from ...model.base import Model
@@ -56,11 +56,11 @@ class LocalformerModel(Model):
         self.optimizer = optimizer.lower()
         self.loss = loss
         self.n_jobs = n_jobs
-        self.device = torch.device("cuda:%d" % GPU if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        self.device = torch.device(f"cuda:{GPU}" if torch.cuda.is_available() and GPU >= 0 else "cpu")
         self.seed = seed
         self.logger = get_module_logger("TransformerModel")
         self.logger.info(
-            "Improved Transformer:" "\nbatch_size : {}" "\ndevice : {}".format(self.batch_size, self.device)
+            "Improved Transformer:" "\nbatch_size : {}" f"\ndevice : {self.batch_size}"
         )
 
         if self.seed is not None:
@@ -73,7 +73,7 @@ class LocalformerModel(Model):
         elif optimizer.lower() == "gd":
             self.train_optimizer = optim.SGD(self.model.parameters(), lr=self.lr, weight_decay=self.reg)
         else:
-            raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
+            raise NotImplementedError(f"optimizer {optimizer} is not supported!")
 
         self.fitted = False
         self.model.to(self.device)
@@ -92,7 +92,7 @@ class LocalformerModel(Model):
         if self.loss == "mse":
             return self.mse(pred[mask], label[mask])
 
-        raise ValueError("unknown loss `%s`" % self.loss)
+        raise ValueError(f"unknown loss `{self.loss}`")
 
     def metric_fn(self, pred, label):
         mask = torch.isfinite(label)
@@ -100,7 +100,7 @@ class LocalformerModel(Model):
         if self.metric in ("", "loss"):
             return -self.loss_fn(pred[mask], label[mask])
 
-        raise ValueError("unknown metric `%s`" % self.metric)
+        raise ValueError(f"unknown metric `{self.metric}`")
 
     def train_epoch(self, data_loader):
         self.model.train()
@@ -140,9 +140,11 @@ class LocalformerModel(Model):
     def fit(
         self,
         dataset: DatasetH,
-        evals_result=dict(),
+        evals_result=None,
         save_path=None,
     ):
+        if evals_result is None:
+            evals_result = {}
         dl_train = dataset.prepare("train", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
         dl_valid = dataset.prepare("valid", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
         if dl_train.empty or dl_valid.empty:
@@ -161,7 +163,6 @@ class LocalformerModel(Model):
         save_path = get_or_create_path(save_path)
 
         stop_steps = 0
-        train_loss = 0
         best_score = -np.inf
         best_epoch = 0
         evals_result["train"] = []
@@ -176,9 +177,9 @@ class LocalformerModel(Model):
             self.logger.info("training...")
             self.train_epoch(train_loader)
             self.logger.info("evaluating...")
-            train_loss, train_score = self.test_epoch(train_loader)
-            val_loss, val_score = self.test_epoch(valid_loader)
-            self.logger.info("train %.6f, valid %.6f" % (train_score, val_score))
+            _train_loss, train_score = self.test_epoch(train_loader)
+            _val_loss, val_score = self.test_epoch(valid_loader)
+            self.logger.info(f"train {train_score:.6f}, valid {val_score:.6f}")
             evals_result["train"].append(train_score)
             evals_result["valid"].append(val_score)
 
@@ -193,7 +194,7 @@ class LocalformerModel(Model):
                     self.logger.info("early stop")
                     break
 
-        self.logger.info("best score: %.6lf @ %d" % (best_score, best_epoch))
+        self.logger.info(f"best score: {best_score:.6f} @ {best_epoch}")
         self.model.load_state_dict(best_param)
         torch.save(best_param, save_path)
 

@@ -62,7 +62,7 @@ def _infer_processed_data_column_names(shape: int) -> List[str]:
         ]
     if shape == 6:
         return ["$high", "$low", "$open", "$close", "$vwap", "$volume"]
-    elif shape == 5:
+    if shape == 5:
         return ["$high", "$low", "$open", "$close", "$volume"]
     raise ValueError(f"Unrecognized data shape: {shape}")
 

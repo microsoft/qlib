@@ -32,7 +32,7 @@ def sub_fig_generator(sub_figsize=(3, 3), col_n=10, row_n=1, wspace=None, hspace
     assert col_n > 1
 
     while True:
-        fig, axes = plt.subplots(
+        _fig, axes = plt.subplots(
             row_n, col_n, figsize=(sub_figsize[0] * col_n, sub_figsize[1] * row_n), sharex=sharex, sharey=sharey
         )
         plt.subplots_adjust(wspace=wspace, hspace=hspace)

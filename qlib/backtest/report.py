@@ -39,7 +39,9 @@ class PortfolioMetrics:
         update report
     """
 
-    def __init__(self, freq: str = "day", benchmark_config: dict = {}) -> None:
+    def __init__(self, freq: str = "day", benchmark_config: dict = None) -> None:
+        if benchmark_config is None:
+            benchmark_config = {}
         """
         Parameters
         ----------
@@ -103,22 +105,21 @@ class PortfolioMetrics:
 
         if isinstance(benchmark, pd.Series):
             return benchmark
-        else:
-            start_time = benchmark_config.get("start_time", None)
-            end_time = benchmark_config.get("end_time", None)
+        start_time = benchmark_config.get("start_time", None)
+        end_time = benchmark_config.get("end_time", None)
 
-            if freq is None:
-                raise ValueError("benchmark freq can't be None!")
-            _codes = benchmark if isinstance(benchmark, (list, dict)) else [benchmark]
-            fields = ["$close/Ref($close,1)-1"]
-            _temp_result, _ = get_higher_eq_freq_feature(_codes, fields, start_time, end_time, freq=freq)
-            if len(_temp_result) == 0:
-                raise ValueError(f"The benchmark {_codes} does not exist. Please provide the right benchmark")
-            return (
-                _temp_result.groupby(level="datetime", group_keys=False)[_temp_result.columns.tolist()[0]]
-                .mean()
-                .fillna(0)
-            )
+        if freq is None:
+            raise ValueError("benchmark freq can't be None!")
+        _codes = benchmark if isinstance(benchmark, (list, dict)) else [benchmark]
+        fields = ["$close/Ref($close,1)-1"]
+        _temp_result, _ = get_higher_eq_freq_feature(_codes, fields, start_time, end_time, freq=freq)
+        if len(_temp_result) == 0:
+            raise ValueError(f"The benchmark {_codes} does not exist. Please provide the right benchmark")
+        return (
+            _temp_result.groupby(level="datetime", group_keys=False)[_temp_result.columns.tolist()[0]]
+            .mean()
+            .fillna(0)
+        )
 
     def _sample_benchmark(
         self,
@@ -183,7 +184,7 @@ class PortfolioMetrics:
 
         if trade_end_time is None and bench_value is None:
             raise ValueError("Both trade_end_time and bench_value is None, benchmark is not usable.")
-        elif bench_value is None:
+        if bench_value is None:
             bench_value = self._sample_benchmark(self.bench, trade_start_time, trade_end_time)
 
         # update pm data
@@ -385,8 +386,10 @@ class Indicator:
         direction: OrderDir,
         decision: BaseTradeDecision,
         trade_exchange: Exchange,
-        pa_config: dict = {},
+        pa_config: dict = None,
     ) -> Tuple[Optional[float], Optional[float]]:
+        if pa_config is None:
+            pa_config = {}
         """
         Get the base volume and price information
         All the base price values are rooted from this function
@@ -457,8 +460,10 @@ class Indicator:
         inner_order_indicators: List[BaseOrderIndicator],
         decision_list: List[Tuple[BaseTradeDecision, pd.Timestamp, pd.Timestamp]],
         trade_exchange: Exchange,
-        pa_config: dict = {},
+        pa_config: dict = None,
     ) -> None:
+        if pa_config is None:
+            pa_config = {}
         """
         # NOTE:!!!!
         # Strong assumption!!!!!!
@@ -542,8 +547,10 @@ class Indicator:
         decision_list: List[Tuple[BaseTradeDecision, pd.Timestamp, pd.Timestamp]],
         outer_trade_decision: BaseTradeDecision,
         trade_exchange: Exchange,
-        indicator_config: dict = {},
+        indicator_config: dict = None,
     ) -> None:
+        if indicator_config is None:
+            indicator_config = {}
         self._agg_order_trade_info(inner_order_indicators)
         self._update_trade_amount(outer_trade_decision)
         self._update_order_fulfill_rate()
@@ -556,30 +563,28 @@ class Indicator:
             return self.order_indicator.transfer(
                 lambda ffr: ffr.mean(),
             )
-        elif method == "amount_weighted":
+        if method == "amount_weighted":
             return self.order_indicator.transfer(
                 lambda ffr, deal_amount: (ffr * deal_amount.abs()).sum() / (deal_amount.abs().sum()),
             )
-        elif method == "value_weighted":
+        if method == "value_weighted":
             return self.order_indicator.transfer(
                 lambda ffr, trade_value: (ffr * trade_value.abs()).sum() / (trade_value.abs().sum()),
             )
-        else:
-            raise ValueError(f"method {method} is not supported!")
+        raise ValueError(f"method {method} is not supported!")
 
     def _cal_trade_price_advantage(self, method: str = "mean") -> Optional[BaseSingleMetric]:
         if method == "mean":
             return self.order_indicator.transfer(lambda pa: pa.mean())
-        elif method == "amount_weighted":
+        if method == "amount_weighted":
             return self.order_indicator.transfer(
                 lambda pa, deal_amount: (pa * deal_amount.abs()).sum() / (deal_amount.abs().sum()),
             )
-        elif method == "value_weighted":
+        if method == "value_weighted":
             return self.order_indicator.transfer(
                 lambda pa, trade_value: (pa * trade_value.abs()).sum() / (trade_value.abs().sum()),
             )
-        else:
-            raise ValueError(f"method {method} is not supported!")
+        raise ValueError(f"method {method} is not supported!")
 
     def _cal_trade_positive_rate(self) -> Optional[BaseSingleMetric]:
         def func(pa):
@@ -609,8 +614,10 @@ class Indicator:
         self,
         trade_start_time: Union[str, pd.Timestamp],
         freq: str,
-        indicator_config: dict = {},
+        indicator_config: dict = None,
     ) -> None:
+        if indicator_config is None:
+            indicator_config = {}
         show_indicator = indicator_config.get("show_indicator", False)
         ffr_config = indicator_config.get("ffr_config", {})
         pa_config = indicator_config.get("pa_config", {})
@@ -628,17 +635,11 @@ class Indicator:
         self.trade_indicator["count"] = order_count
         if show_indicator:
             print(
-                "[Indicator({}) {}]: FFR: {}, PA: {}, POS: {}".format(
-                    freq,
-                    (
+                f"[Indicator({freq}) {((
                         trade_start_time
                         if isinstance(trade_start_time, str)
                         else trade_start_time.strftime("%Y-%m-%d %H:%M:%S")
-                    ),
-                    fulfill_rate,
-                    price_advantage,
-                    positive_rate,
-                ),
+                    ))}]: FFR: {fulfill_rate}, PA: {price_advantage}, POS: {positive_rate}",
             )
 
     def get_order_indicator(self, raw: bool = True) -> Union[BaseOrderIndicator, Dict[Text, pd.Series]]:

@@ -13,8 +13,8 @@ from ...utils import get_or_create_path
 from ...log import get_module_logger
 
 import torch
-import torch.nn as nn
-import torch.optim as optim
+from torch import nn
+from torch import optim
 
 from ...model.base import Model
 from ...data.dataset import DatasetH
@@ -117,7 +117,7 @@ class KRNNEncoderBase(nn.Module):
         # input shape: [batch_size, seq_len, input_dim]
         # output shape: [batch_size, seq_len, output_dim]
         # [seq_len, batch_size, input_dim]
-        batch_size, seq_len, input_dim = x.shape
+        batch_size, seq_len, _input_dim = x.shape
         x = x.permute(1, 0, 2).to(self.device)
 
         hids = []
@@ -276,46 +276,11 @@ class KRNN(Model):
         self.early_stop = early_stop
         self.optimizer = optimizer.lower()
         self.loss = loss
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        self.device = torch.device(f"cuda:{GPU}" if torch.cuda.is_available() and GPU >= 0 else "cpu")
         self.seed = seed
 
         self.logger.info(
-            "KRNN parameters setting:"
-            "\nfea_dim : {}"
-            "\ncnn_dim : {}"
-            "\ncnn_kernel_size : {}"
-            "\nrnn_dim : {}"
-            "\nrnn_dups : {}"
-            "\nrnn_layers : {}"
-            "\ndropout : {}"
-            "\nn_epochs : {}"
-            "\nlr : {}"
-            "\nmetric : {}"
-            "\nbatch_size: {}"
-            "\nearly_stop : {}"
-            "\noptimizer : {}"
-            "\nloss_type : {}"
-            "\nvisible_GPU : {}"
-            "\nuse_GPU : {}"
-            "\nseed : {}".format(
-                fea_dim,
-                cnn_dim,
-                cnn_kernel_size,
-                rnn_dim,
-                rnn_dups,
-                rnn_layers,
-                dropout,
-                n_epochs,
-                lr,
-                metric,
-                batch_size,
-                early_stop,
-                optimizer.lower(),
-                loss,
-                GPU,
-                self.use_gpu,
-                seed,
-            )
+            f"KRNN parameters setting:\nfea_dim : {fea_dim}\ncnn_dim : {cnn_dim}\ncnn_kernel_size : {cnn_kernel_size}\nrnn_dim : {rnn_dim}\nrnn_dups : {rnn_dups}\nrnn_layers : {rnn_layers}\ndropout : {dropout}\nn_epochs : {n_epochs}\nlr : {lr}\nmetric : {metric}\nbatch_size: {batch_size}\nearly_stop : {early_stop}\noptimizer : {optimizer.lower()}\nloss_type : {loss}\nvisible_GPU : {GPU}\nuse_GPU : {self.use_gpu}\nseed : {seed}"
         )
 
         if self.seed is not None:
@@ -337,7 +302,7 @@ class KRNN(Model):
         elif optimizer.lower() == "gd":
             self.train_optimizer = optim.SGD(self.krnn_model.parameters(), lr=self.lr)
         else:
-            raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
+            raise NotImplementedError(f"optimizer {optimizer} is not supported!")
 
         self.fitted = False
         self.krnn_model.to(self.device)
@@ -356,7 +321,7 @@ class KRNN(Model):
         if self.loss == "mse":
             return self.mse(pred[mask], label[mask])
 
-        raise ValueError("unknown loss `%s`" % self.loss)
+        raise ValueError(f"unknown loss `{self.loss}`")
 
     def metric_fn(self, pred, label):
         mask = torch.isfinite(label)
@@ -364,7 +329,7 @@ class KRNN(Model):
         if self.metric in ("", "loss"):
             return -self.loss_fn(pred[mask], label[mask])
 
-        raise ValueError("unknown metric `%s`" % self.metric)
+        raise ValueError(f"unknown metric `{self.metric}`")
 
     def get_daily_inter(self, df, shuffle=False):
         # organize the train data into daily batches
@@ -432,10 +397,12 @@ class KRNN(Model):
     def fit(
         self,
         dataset: DatasetH,
-        evals_result=dict(),
+        evals_result=None,
         save_path=None,
     ):
-        df_train, df_valid, df_test = dataset.prepare(
+        if evals_result is None:
+            evals_result = {}
+        df_train, df_valid, _df_test = dataset.prepare(
             ["train", "valid", "test"],
             col_set=["feature", "label"],
             data_key=DataHandlerLP.DK_L,
@@ -448,7 +415,6 @@ class KRNN(Model):
 
         save_path = get_or_create_path(save_path)
         stop_steps = 0
-        train_loss = 0
         best_score = -np.inf
         best_epoch = 0
         evals_result["train"] = []
@@ -463,9 +429,9 @@ class KRNN(Model):
             self.logger.info("training...")
             self.train_epoch(x_train, y_train)
             self.logger.info("evaluating...")
-            train_loss, train_score = self.test_epoch(x_train, y_train)
-            val_loss, val_score = self.test_epoch(x_valid, y_valid)
-            self.logger.info("train %.6f, valid %.6f" % (train_score, val_score))
+            _train_loss, train_score = self.test_epoch(x_train, y_train)
+            _val_loss, val_score = self.test_epoch(x_valid, y_valid)
+            self.logger.info(f"train {train_score:.6f}, valid {val_score:.6f}")
             evals_result["train"].append(train_score)
             evals_result["valid"].append(val_score)
 
@@ -480,7 +446,7 @@ class KRNN(Model):
                     self.logger.info("early stop")
                     break
 
-        self.logger.info("best score: %.6lf @ %d" % (best_score, best_epoch))
+        self.logger.info(f"best score: {best_score:.6f} @ {best_epoch}")
         self.krnn_model.load_state_dict(best_param)
         torch.save(best_param, save_path)
 
