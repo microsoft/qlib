@@ -54,6 +54,7 @@ class HIST(Model):
         loss="mse",
         base_model="GRU",
         model_path=None,
+        pretrain=True,
         stock2concept=None,
         stock_index=None,
         optimizer="adam",
@@ -78,6 +79,7 @@ class HIST(Model):
         self.loss = loss
         self.base_model = base_model
         self.model_path = model_path
+        self.pretrain = pretrain
         self.stock2concept = stock2concept
         self.stock_index = stock_index
         self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
@@ -277,24 +279,25 @@ class HIST(Model):
         evals_result["valid"] = []
 
         # load pretrained base_model
-        if self.base_model == "LSTM":
-            pretrained_model = LSTMModel()
-        elif self.base_model == "GRU":
-            pretrained_model = GRUModel()
-        else:
-            raise ValueError("unknown base model name `%s`" % self.base_model)
+        if self.pretrain:
+            if self.base_model == "LSTM":
+                pretrained_model = LSTMModel()
+            elif self.base_model == "GRU":
+                pretrained_model = GRUModel()
+            else:
+                raise ValueError("unknown base model name `%s`" % self.base_model)
 
-        if self.model_path is not None:
-            self.logger.info("Loading pretrained model...")
-            pretrained_model.load_state_dict(torch.load(self.model_path))
+            if self.model_path is not None:
+                self.logger.info("Loading pretrained model...")
+                pretrained_model.load_state_dict(torch.load(self.model_path))
 
-        model_dict = self.HIST_model.state_dict()
-        pretrained_dict = {
-            k: v for k, v in pretrained_model.state_dict().items() if k in model_dict  # pylint: disable=E1135
-        }
-        model_dict.update(pretrained_dict)
-        self.HIST_model.load_state_dict(model_dict)
-        self.logger.info("Loading pretrained model Done...")
+            model_dict = self.HIST_model.state_dict()
+            pretrained_dict = {
+                k: v for k, v in pretrained_model.state_dict().items() if k in model_dict  # pylint: disable=E1135
+            }
+            model_dict.update(pretrained_dict)
+            self.HIST_model.load_state_dict(model_dict)
+            self.logger.info("Loading pretrained model Done...")
 
         # train
         self.logger.info("training...")
