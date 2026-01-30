@@ -257,6 +257,7 @@ class KRNN(Model):
         seed=None,
         **kwargs,
     ):
+        super().__init__()
         # Set logger.
         self.logger = get_module_logger("KRNN")
         self.logger.info("KRNN pytorch version...")

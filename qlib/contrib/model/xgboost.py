@@ -16,6 +16,7 @@ class XGBModel(Model, FeatureInt):
     """XGBModel Model"""
 
     def __init__(self, **kwargs):
+        super().__init__()
         self._params = {}
         self._params.update(kwargs)
         self.model = None

@@ -80,8 +80,8 @@ class ChangeInstrument(ElemOperator):
     """
 
     def __init__(self, instrument, feature):
+        super().__init__(feature)
         self.instrument = instrument
-        self.feature = feature
 
     def __str__(self):
         return f"{type(self).__name__}('{self.instrument}',{self.feature})"
@@ -1540,7 +1540,7 @@ class TResample(ElemOperator):
             The method to get the resampled values
             Some expression are high frequently used
         """
-        self.feature = feature
+        super().__init__(feature)
         self.freq = freq
         self.func = func
 

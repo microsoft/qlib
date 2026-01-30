@@ -60,6 +60,7 @@ class TCTS(Model):
         lowest_valid_performance=0.993,
         **kwargs,
     ):
+        super().__init__()
         # Set logger.
         self.logger = get_module_logger("TCTS")
         self.logger.info("TCTS pytorch version...")

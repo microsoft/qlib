@@ -57,6 +57,7 @@ class IGMTF(Model):
         seed=None,
         **kwargs,
     ):
+        super().__init__()
         # Set logger.
         self.logger = get_module_logger("IGMTF")
         self.logger.info("IMGTF pytorch version...")

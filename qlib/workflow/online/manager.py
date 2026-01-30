@@ -124,6 +124,7 @@ class OnlineManager(Serializable):
             trainer (qlib.model.trainer.Trainer): the trainer to train task. None for using TrainerR.
             freq (str, optional): data frequency. Defaults to "day".
         """
+        super().__init__()
         self.logger = get_module_logger(self.__class__.__name__)
         if not isinstance(strategies, list):
             strategies = [strategies]

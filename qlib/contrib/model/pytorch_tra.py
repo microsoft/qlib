@@ -84,6 +84,7 @@ class TRAModel(Model):
         transport_method="none",
         memory_mode="sample",
     ):
+        super().__init__()
         self.logger = get_module_logger("TRA")
 
         assert memory_mode in ["sample", "daily"], "invalid memory mode"

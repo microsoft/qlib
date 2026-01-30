@@ -56,6 +56,7 @@ class TCN(Model):
         seed=None,
         **kwargs,
     ):
+        super().__init__()
         # Set logger.
         self.logger = get_module_logger("TCN")
         self.logger.info("TCN pytorch version...")

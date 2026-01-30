@@ -33,6 +33,7 @@ class DEnsembleModel(Model, FeatureInt):
         early_stopping_rounds=None,
         **kwargs,
     ):
+        super().__init__()
         self.base_model = base_model  # "gbm" or "mlp", specifically, we use lgbm for "gbm"
         self.num_models = num_models  # the number of sub-models
         self.enable_sr = enable_sr

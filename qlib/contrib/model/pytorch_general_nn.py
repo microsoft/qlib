@@ -65,6 +65,7 @@ class GeneralPTNN(Model):
         pt_model_uri="qlib.contrib.model.pytorch_gru_ts.GRUModel",
         pt_model_kwargs=None,
     ):
+        super().__init__()
         # Set logger.
         if pt_model_kwargs is None:
             pt_model_kwargs = {

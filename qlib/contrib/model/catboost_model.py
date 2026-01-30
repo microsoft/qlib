@@ -18,6 +18,7 @@ class CatBoostModel(Model, FeatureInt):
     """CatBoost Model"""
 
     def __init__(self, loss="RMSE", **kwargs):
+        super().__init__()
         # There are more options
         if loss not in {"RMSE", "Logloss"}:
             raise NotImplementedError

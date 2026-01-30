@@ -16,6 +16,7 @@ class HFLGBModel(ModelFT, LightGBMFInt):
     """LightGBM Model for high frequency prediction"""
 
     def __init__(self, loss="mse", **kwargs):
+        super().__init__()
         if loss not in {"mse", "binary"}:
             raise NotImplementedError
         self.params = {"objective": loss, "verbosity": -1}

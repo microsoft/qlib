@@ -61,6 +61,7 @@ class HIST(Model):
         seed=None,
         **kwargs,
     ):
+        super().__init__()
         # Set logger.
         self.logger = get_module_logger("HIST")
         self.logger.info("HIST pytorch version...")

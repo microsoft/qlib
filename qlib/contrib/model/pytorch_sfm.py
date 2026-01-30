@@ -214,6 +214,7 @@ class SFM(Model):
         seed=None,
         **kwargs,
     ):
+        super().__init__()
         # Set logger.
         self.logger = get_module_logger("SFM")
         self.logger.info("SFM pytorch version...")

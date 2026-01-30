@@ -243,6 +243,7 @@ class StaticDataLoader(DataLoader, Serializable):
         join : str
             How to align different dataframes
         """
+        super().__init__()
         self._config = config  # using "_" to avoid confliction with the method `config` of Serializable
         self.join = join
         self._data = None

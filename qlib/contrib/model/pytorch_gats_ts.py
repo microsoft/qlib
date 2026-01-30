@@ -77,6 +77,7 @@ class GATs(Model):
         seed=None,
         **kwargs,
     ):
+        super().__init__()
         # Set logger.
         self.logger = get_module_logger("GATs")
         self.logger.info("GATs pytorch version...")

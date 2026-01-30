@@ -75,6 +75,7 @@ class DNNModelPytorch(Model):
         valid_key=DataHandlerLP.DK_L,
         # TODO: Infer Key is a more reasonable key. But it requires more detailed processing on label processing
     ):
+        super().__init__()
         # Set logger.
         if pt_model_kwargs is None:
             pt_model_kwargs = {

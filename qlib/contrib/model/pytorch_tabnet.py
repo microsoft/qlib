@@ -56,6 +56,7 @@ class TabnetModel(Model):
         Args:
         ps: probability to generate the bernoulli mask
         """
+        super().__init__()
         # set hyper-parameters.
         self.d_feat = d_feat
         self.out_dim = out_dim

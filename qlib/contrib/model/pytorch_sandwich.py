@@ -131,6 +131,7 @@ class Sandwich(Model):
         seed=None,
         **kwargs,
     ):
+        super().__init__()
         # Set logger.
         self.logger = get_module_logger("Sandwich")
         self.logger.info("Sandwich pytorch version...")

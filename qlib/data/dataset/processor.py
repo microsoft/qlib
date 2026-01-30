@@ -92,6 +92,7 @@ class Processor(Serializable):
 
 class DropnaProcessor(Processor):
     def __init__(self, fields_group=None):
+        super().__init__()
         self.fields_group = fields_group
 
     def __call__(self, df):
@@ -114,6 +115,7 @@ class DropnaLabel(DropnaProcessor):
 
 class DropCol(Processor):
     def __init__(self, col_list=None):
+        super().__init__()
         if col_list is None:
             col_list = []
         self.col_list = col_list
@@ -131,6 +133,7 @@ class DropCol(Processor):
 
 class FilterCol(Processor):
     def __init__(self, fields_group="feature", col_list=None):
+        super().__init__()
         self.fields_group = fields_group
         self.col_list = col_list
 
@@ -183,6 +186,7 @@ class Fillna(Processor):
     """Process NaN"""
 
     def __init__(self, fields_group=None, fill_value=0):
+        super().__init__()
         self.fields_group = fields_group
         self.fill_value = fill_value
 
@@ -198,6 +202,7 @@ class Fillna(Processor):
 
 class MinMaxNorm(Processor):
     def __init__(self, fit_start_time, fit_end_time, fields_group=None):
+        super().__init__()
         # NOTE: correctly set the `fit_start_time` and `fit_end_time` is very important !!!
         # `fit_end_time` **must not** include any information from the test data!!!
         self.fit_start_time = fit_start_time
@@ -232,6 +237,7 @@ class ZScoreNorm(Processor):
     """ZScore Normalization"""
 
     def __init__(self, fit_start_time, fit_end_time, fields_group=None):
+        super().__init__()
         # NOTE: correctly set the `fit_start_time` and `fit_end_time` is very important !!!
         # `fit_end_time` **must not** include any information from the test data!!!
         self.fit_start_time = fit_start_time
@@ -274,6 +280,7 @@ class RobustZScoreNorm(Processor):
     """
 
     def __init__(self, fit_start_time, fit_end_time, fields_group=None, clip_outlier=True):
+        super().__init__()
         # NOTE: correctly set the `fit_start_time` and `fit_end_time` is very important !!!
         # `fit_end_time` **must not** include any information from the test data!!!
         self.fit_start_time = fit_start_time
@@ -304,6 +311,7 @@ class CSZScoreNorm(Processor):
     """Cross Sectional ZScore Normalization"""
 
     def __init__(self, fields_group=None, method="zscore"):
+        super().__init__()
         self.fields_group = fields_group
         if method == "zscore":
             self.zscore_func = zscore
@@ -350,6 +358,7 @@ class CSRankNorm(Processor):
     """
 
     def __init__(self, fields_group=None):
+        super().__init__()
         self.fields_group = fields_group
 
     def __call__(self, df):
@@ -366,6 +375,7 @@ class CSZFillna(Processor):
     """Cross Sectional Fill Nan"""
 
     def __init__(self, fields_group=None):
+        super().__init__()
         self.fields_group = fields_group
 
     def __call__(self, df):

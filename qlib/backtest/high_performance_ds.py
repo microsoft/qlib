@@ -500,9 +500,9 @@ class PandasSingleMetric(SingleMetric):
         if metric is None:
             metric = {}
         if isinstance(metric, dict):
-            self.metric = pd.Series(metric)
+            super().__init__(pd.Series(metric))
         elif isinstance(metric, pd.Series):
-            self.metric = metric
+            super().__init__(metric)
         else:
             raise ValueError(f"metric must be dict or pd.Series")
 

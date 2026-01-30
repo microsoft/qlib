@@ -45,6 +45,7 @@ class TransformerModel(Model):
         seed=None,
         **kwargs,
     ):
+        super().__init__()
         # set hyper-parameters.
         self.d_model = d_model
         self.dropout = dropout

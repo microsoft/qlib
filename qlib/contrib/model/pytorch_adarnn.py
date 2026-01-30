@@ -58,6 +58,7 @@ class ADARNN(Model):
         seed=None,
         **_,
     ):
+        super().__init__()
         # Set logger.
         self.logger = get_module_logger("ADARNN")
         self.logger.info("ADARNN pytorch version...")

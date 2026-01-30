@@ -22,6 +22,7 @@ class Collector(Serializable):
     pickle_backend = "dill"  # use dill to dump user method
 
     def __init__(self, process_list=None):
+        super().__init__()
         if process_list is None:
             process_list = []
         """
