@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Callable, Optional, Union
 from typing import TYPE_CHECKING
 
-from qlib.constant import REG_CN, REG_US, REG_TW
+from qlib.constant import REG_CN, REG_US, REG_TW, ModeType
 
 if TYPE_CHECKING:
     from qlib.utils.time import Freq
@@ -247,7 +247,7 @@ _default_config = {
 }
 
 MODE_CONF = {
-    "server": {
+    ModeType.SERVER: {
         # config it in qlib.init()
         "provider_uri": "",
         # redis
@@ -260,7 +260,7 @@ MODE_CONF = {
         "local_cache_path": Path("~/.cache/qlib_simple_cache").expanduser().resolve(),
         "mount_path": None,
     },
-    "client": {
+    ModeType.CLIENT: {
         # config it in user's own code
         "provider_uri": QSETTINGS.provider_uri,
         # cache
@@ -385,7 +385,7 @@ class QlibConfig(Config):
 
     def set_mode(self, mode):
         # raise KeyError
-        self.update(MODE_CONF[mode])
+        self.update(MODE_CONF[ModeType(mode)])
         # TODO: update region based on kwargs
 
     def set_region(self, region):
@@ -420,7 +420,7 @@ class QlibConfig(Config):
         self["provider_uri"] = _provider_uri
         self["mount_path"] = _mount_path
 
-    def set(self, default_conf: str = "client", **kwargs):
+    def set(self, default_conf: Union[str, ModeType] = ModeType.CLIENT, **kwargs):
         """
         configure qlib based on the input parameters
 
@@ -435,8 +435,8 @@ class QlibConfig(Config):
 
         Parameters
         ----------
-        default_conf : str
-            the default config template chosen by user: "server", "client"
+        default_conf : str or ModeType
+            the default config template chosen by user: ModeType.SERVER, ModeType.CLIENT (or "server", "client")
         """
         from .utils import set_log_with_config, get_module_logger, can_use_cache  # pylint: disable=C0415
 
