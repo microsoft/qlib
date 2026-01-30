@@ -12,7 +12,9 @@ from qlib.utils import init_instance_by_config
 from qlib.data.dataset import DatasetH
 
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
+from qlib.contrib.model.pytorch_utils import get_torch_device
+
+device = get_torch_device()
 
 
 def _to_tensor(x):
