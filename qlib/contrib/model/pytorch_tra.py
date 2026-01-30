@@ -27,7 +27,9 @@ from qlib.log import get_module_logger
 from qlib.model.base import Model
 from qlib.contrib.data.dataset import MTSDatasetH
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
+from .pytorch_utils import get_torch_device
+
+device = get_torch_device()
 
 
 class TRAModel(Model):
