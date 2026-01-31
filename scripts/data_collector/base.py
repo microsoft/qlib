@@ -305,7 +305,7 @@ class Normalize:
         df = self._normalize_obj.normalize(df)
         if df is not None and not df.empty:
             if self._end_date is not None:
-                _mask = pd.to_datetime(df[self._date_field_name]) <= pd.Timestamp(self._end_date)
+                _mask = pd.to_datetime(df[self._date_field_name], utc=True).dt.tz_convert(None) <= pd.Timestamp(self._end_date)
                 df = df[_mask]
             df.to_csv(self._target_dir.joinpath(file_path.name), index=False)
 
