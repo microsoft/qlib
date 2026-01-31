@@ -5,9 +5,10 @@ This strategy is not well maintained
 """
 
 
+import copy
+
 from .order_generator import OrderGenWInteract
 from .signal_strategy import WeightStrategyBase
-import copy
 
 
 class SoftTopkStrategy(WeightStrategyBase):

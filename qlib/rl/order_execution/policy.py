@@ -12,7 +12,7 @@ import torch
 import torch.nn as nn
 from gym.spaces import Discrete
 from tianshou.data import Batch, ReplayBuffer, to_torch
-from tianshou.policy import BasePolicy, PPOPolicy, DQNPolicy
+from tianshou.policy import BasePolicy, DQNPolicy, PPOPolicy
 
 from qlib.rl.trainer.trainer import Trainer
 

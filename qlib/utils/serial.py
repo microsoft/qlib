@@ -2,9 +2,11 @@
 # Licensed under the MIT License.
 
 import pickle
-import dill
 from pathlib import Path
 from typing import Union
+
+import dill
+
 from ..config import C
 
 

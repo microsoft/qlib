@@ -1,25 +1,25 @@
 #  Copyright (c) Microsoft Corporation.
 #  Licensed under the MIT License.
 
-import re
-import copy
-import importlib
-import time
 import bisect
-import pickle
-import requests
+import copy
 import functools
+import importlib
+import pickle
+import re
+import time
+from concurrent.futures import ProcessPoolExecutor
+from functools import partial
 from pathlib import Path
-from typing import Iterable, Tuple, List
+from typing import Iterable, List, Tuple
 
 import numpy as np
 import pandas as pd
-from loguru import logger
-from yahooquery import Ticker
-from tqdm import tqdm
-from functools import partial
-from concurrent.futures import ProcessPoolExecutor
+import requests
 from bs4 import BeautifulSoup
+from loguru import logger
+from tqdm import tqdm
+from yahooquery import Ticker
 
 HS_SYMBOLS_URL = "http://app.finance.ifeng.com/hq/list.php?type=stock_a&class={s_type}"
 

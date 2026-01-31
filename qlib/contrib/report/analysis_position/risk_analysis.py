@@ -4,12 +4,10 @@
 from typing import Iterable
 
 import pandas as pd
-
 import plotly.graph_objs as py
 
 from ...evaluate import risk_analysis
-
-from ..graph import SubplotsGraph, ScatterGraph
+from ..graph import ScatterGraph, SubplotsGraph
 
 
 def _get_risk_analysis_data_with_report(

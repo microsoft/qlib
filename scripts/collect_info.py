@@ -1,9 +1,11 @@
-import sys
 import platform
-import qlib
+import sys
+from pathlib import Path
+
 import fire
 import pkg_resources
-from pathlib import Path
+
+import qlib
 
 QLIB_PATH = Path(__file__).absolute().resolve().parent.parent
 

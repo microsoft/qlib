@@ -1,10 +1,11 @@
 import os
+from typing import Dict
 
 import numpy as np
 import pandas as pd
+
 from qlib.data.dataset.processor import Processor
 from qlib.data.dataset.utils import fetch_df_by_index
-from typing import Dict
 
 
 class HighFreqTrans(Processor):

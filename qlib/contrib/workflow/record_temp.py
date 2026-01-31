@@ -2,16 +2,16 @@
 #  Licensed under the MIT License.
 
 import logging
-import pandas as pd
+from typing import Any, Dict, Text
+
 import numpy as np
+import pandas as pd
 from sklearn.metrics import mean_squared_error
-from typing import Dict, Text, Any
 
 from ...contrib.eva.alpha import calc_ic
-from ...workflow.record_temp import RecordTemp
-from ...workflow.record_temp import SignalRecord
 from ...data import dataset as qlib_dataset
 from ...log import get_module_logger
+from ...workflow.record_temp import RecordTemp, SignalRecord
 
 logger = get_module_logger("workflow", logging.INFO)
 

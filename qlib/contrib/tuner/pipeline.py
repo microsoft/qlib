@@ -4,13 +4,13 @@
 # pylint: skip-file
 # flake8: noqa
 
-import os
+import importlib
 import json
 import logging
-import importlib
+import os
 from abc import abstractmethod
 
-from ...log import get_module_logger, TimeInspector
+from ...log import TimeInspector, get_module_logger
 from ...utils import get_module_by_module_path
 
 

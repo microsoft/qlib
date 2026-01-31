@@ -2,20 +2,17 @@
 # Licensed under the MIT License.
 
 
-from .signal_strategy import (
-    TopkDropoutStrategy,
-    WeightStrategyBase,
-    EnhancedIndexingStrategy,
-)
-
+from .cost_control import SoftTopkStrategy
 from .rule_strategy import (
-    TWAPStrategy,
     SBBStrategyBase,
     SBBStrategyEMA,
+    TWAPStrategy,
 )
-
-from .cost_control import SoftTopkStrategy
-
+from .signal_strategy import (
+    EnhancedIndexingStrategy,
+    TopkDropoutStrategy,
+    WeightStrategyBase,
+)
 
 __all__ = [
     "TopkDropoutStrategy",

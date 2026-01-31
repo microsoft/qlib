@@ -1,12 +1,12 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+import contextlib
 import os
 import shutil
 import tempfile
-import contextlib
-from typing import Optional, Text, IO, Union
 from pathlib import Path
+from typing import IO, Optional, Text, Union
 
 from qlib.log import get_module_logger
 

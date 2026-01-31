@@ -4,22 +4,21 @@
 # pylint: skip-file
 # flake8: noqa
 
-import os
-import yaml
-import json
 import copy
-import logging
 import importlib
+import json
+import logging
+import os
 import subprocess
-import pandas as pd
-import numpy as np
-
 from abc import abstractmethod
 
-from ...log import get_module_logger, TimeInspector
+import numpy as np
+import pandas as pd
+import yaml
+from hyperopt import STATUS_FAIL, STATUS_OK, fmin, tpe
+
+from ...log import TimeInspector, get_module_logger
 from ...utils.pickle_utils import restricted_pickle_load
-from hyperopt import fmin, tpe
-from hyperopt import STATUS_OK, STATUS_FAIL
 
 
 class Tuner:

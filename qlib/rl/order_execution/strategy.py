@@ -4,10 +4,10 @@
 from __future__ import annotations
 
 import collections
-from types import GeneratorType
-from typing import Any, Callable, cast, Dict, Generator, List, Optional, Tuple, Union
-
 import warnings
+from types import GeneratorType
+from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union, cast
+
 import numpy as np
 import pandas as pd
 import torch
