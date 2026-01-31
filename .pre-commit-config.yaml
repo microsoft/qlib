@@ -1,12 +1,30 @@
 repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+    -   id: trailing-whitespace
+        exclude: '\.md$'
+    -   id: end-of-file-fixer
+        exclude: '\.md$'
+    -   id: check-yaml
+    -   id: debug-statements
+    -   id: check-added-large-files
+        args: ['--maxkb=500']
+
+-   repo: https://github.com/PyCQA/isort
+    rev: 5.13.2
+    hooks:
+    -   id: isort
+
 -   repo: https://github.com/psf/black
     rev: 23.7.0
     hooks:
     -   id: black
-        args: ["qlib", "-l 120"]
+        args: ["-l", "120"]
+        exclude: 'qlib/_version\.py'
 
 -   repo: https://github.com/PyCQA/flake8
     rev: 4.0.1
     hooks:
-        - id: flake8
-          args: ["--ignore=E501,F541,E266,E402,W503,E731,E203"]
+    -   id: flake8
+        args: ["--ignore=E501,F541,E266,E402,W503,E731,E203", "--per-file-ignores=__init__.py:F401,F403"]
