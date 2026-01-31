@@ -242,7 +242,9 @@ class Position(BasePosition):
     }
     """
 
-    def __init__(self, cash: float = 0, position_dict: Dict[str, Union[Dict[str, float], float]] = {}) -> None:
+    def __init__(self, cash: float = 0, position_dict: Dict[str, Union[Dict[str, float], float]] = None) -> None:
+        if position_dict is None:
+            position_dict = {}
         """Init position by cash and position_dict.
 
         Parameters
@@ -352,7 +354,7 @@ class Position(BasePosition):
     def _sell_stock(self, stock_id: str, trade_val: float, cost: float, trade_price: float) -> None:
         trade_amount = trade_val / trade_price
         if stock_id not in self.position:
-            raise KeyError("{} not in current position".format(stock_id))
+            raise KeyError(f"{stock_id} not in current position")
         else:
             if np.isclose(self.position[stock_id]["amount"], trade_amount):
                 # Selling all the stocks
@@ -366,11 +368,7 @@ class Position(BasePosition):
                 # check if to delete
                 if self.position[stock_id]["amount"] < -1e-5:
                     raise ValueError(
-                        "only have {} {}, require {}".format(
-                            self.position[stock_id]["amount"] + trade_amount,
-                            stock_id,
-                            trade_amount,
-                        ),
+                        f"only have {self.position[stock_id]["amount"] + trade_amount} {stock_id}, require {trade_amount}",
                     )
 
         new_cash = trade_val - cost
@@ -396,7 +394,7 @@ class Position(BasePosition):
             # SELL
             self._sell_stock(order.stock_id, trade_val, cost, trade_price)
         else:
-            raise NotImplementedError("do not support order direction {}".format(order.direction))
+            raise NotImplementedError(f"do not support order direction {order.direction}")
 
     def update_stock_price(self, stock_id: str, price: float) -> None:
         self.position[stock_id]["price"] = price
@@ -433,8 +431,7 @@ class Position(BasePosition):
         """the days the account has been hold, it may be used in some special strategies"""
         if f"count_{bar}" in self.position[code]:
             return self.position[code][f"count_{bar}"]
-        else:
-            return 0
+        return 0
 
     def get_stock_weight(self, code: str) -> float:
         return self.position[code]["weight"]

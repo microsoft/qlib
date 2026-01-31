@@ -257,7 +257,7 @@ def backtest_daily(
     if exchange_kwargs is not None:
         _exchange_kwargs.update(exchange_kwargs)
 
-    portfolio_metric_dict, indicator_dict = backtest_func(
+    portfolio_metric_dict, _indicator_dict = backtest_func(
         start_time=start_time,
         end_time=end_time,
         strategy=strategy,
@@ -267,7 +267,8 @@ def backtest_daily(
         exchange_kwargs=_exchange_kwargs,
         pos_type=pos_type,
     )
-    analysis_freq = "{0}{1}".format(*Freq.parse(freq))
+    _freq_parsed = Freq.parse(freq)
+    analysis_freq = f"{_freq_parsed[0]}{_freq_parsed[1]}"
 
     report_normal, positions_normal = portfolio_metric_dict.get(analysis_freq)
 
@@ -284,9 +285,11 @@ def long_short_backtest(
     trade_unit=None,
     limit_threshold=None,
     min_cost=5,
-    subscribe_fields=[],
+    subscribe_fields=None,
     extract_codes=False,
 ):
+    if subscribe_fields is None:
+        subscribe_fields = []
     """
     A backtest for long-short strategy
 

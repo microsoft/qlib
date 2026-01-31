@@ -11,8 +11,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 import torch
-import torch.nn as nn
-import torch.optim as optim
+from torch import nn
+from torch import optim
 import torch.nn.functional as F
 
 try:
@@ -84,6 +84,7 @@ class TRAModel(Model):
         transport_method="none",
         memory_mode="sample",
     ):
+        super().__init__()
         self.logger = get_module_logger("TRA")
 
         assert memory_mode in ["sample", "daily"], "invalid memory mode"
@@ -165,8 +166,8 @@ class TRAModel(Model):
             for param in self.tra.predictors.parameters():
                 param.requires_grad_(False)
 
-        self.logger.info("# model params: %d" % sum(p.numel() for p in self.model.parameters() if p.requires_grad))
-        self.logger.info("# tra params: %d" % sum(p.numel() for p in self.tra.parameters() if p.requires_grad))
+        self.logger.info(f"# model params: {sum(p.numel() for p in self.model.parameters() if p.requires_grad)}")
+        self.logger.info(f"# tra params: {sum(p.numel() for p in self.tra.parameters() if p.requires_grad)}")
 
         self.optimizer = optim.Adam(list(self.model.parameters()) + list(self.tra.parameters()), lr=self.lr)
 
@@ -209,7 +210,7 @@ class TRAModel(Model):
 
             if is_pretrain or self.transport_method != "none":
                 # NOTE: use oracle transport for pre-training
-                loss, pred, L, P = self.transport_fn(
+                _loss, pred, L, P = self.transport_fn(
                     all_preds,
                     label,
                     choice,
@@ -288,7 +289,7 @@ class TRAModel(Model):
                 all_preds, choice, prob = self.tra(hidden, state)
 
             if is_pretrain or self.transport_method != "none":
-                loss, pred, L, P = self.transport_fn(
+                _loss, pred, L, P = self.transport_fn(
                     all_preds,
                     label,
                     choice,
@@ -306,7 +307,7 @@ class TRAModel(Model):
                 pred = all_preds.mean(dim=1)
 
             X = np.c_[pred.cpu().numpy(), label.cpu().numpy(), all_preds.cpu().numpy()]
-            columns = ["score", "label"] + ["score_%d" % d for d in range(all_preds.shape[1])]
+            columns = ["score", "label"] + [f"score_{d}" for d in range(all_preds.shape[1])]
             pred = pd.DataFrame(X, index=batch["index"], columns=columns)
 
             metrics.append(evaluate(pred))
@@ -314,7 +315,7 @@ class TRAModel(Model):
             if return_pred:
                 preds.append(pred)
                 if prob is not None:
-                    columns = ["prob_%d" % d for d in range(all_preds.shape[1])]
+                    columns = [f"prob_{d}" for d in range(all_preds.shape[1])]
                     probs.append(pd.DataFrame(prob.cpu().numpy(), index=index, columns=columns))
 
         metrics = pd.DataFrame(metrics)
@@ -380,16 +381,16 @@ class TRAModel(Model):
                 train_set.clear_memory()  # NOTE: clear the shared memory
                 train_metrics = self.test_epoch(epoch, train_set, is_pretrain=is_pretrain, prefix="train")[0]
                 evals_result["train"].append(train_metrics)
-                self.logger.info("train metrics: %s" % train_metrics)
+                self.logger.info(f"train metrics: {train_metrics}")
 
             valid_metrics = self.test_epoch(epoch, valid_set, is_pretrain=is_pretrain, prefix="valid")[0]
             evals_result["valid"].append(valid_metrics)
-            self.logger.info("valid metrics: %s" % valid_metrics)
+            self.logger.info(f"valid metrics: {valid_metrics}")
 
             if self.eval_test:
                 test_metrics = self.test_epoch(epoch, test_set, is_pretrain=is_pretrain, prefix="test")[0]
                 evals_result["test"].append(test_metrics)
-                self.logger.info("test metrics: %s" % test_metrics)
+                self.logger.info(f"test metrics: {test_metrics}")
 
             if valid_metrics["IC"] > best_score:
                 best_score = valid_metrics["IC"]
@@ -404,16 +405,18 @@ class TRAModel(Model):
             else:
                 stop_rounds += 1
                 if stop_rounds >= self.early_stop:
-                    self.logger.info("early stop @ %s" % epoch)
+                    self.logger.info(f"early stop @ {epoch}")
                     break
 
-        self.logger.info("best score: %.6lf @ %d" % (best_score, best_epoch))
+        self.logger.info(f"best score: {best_score:.6f} @ {best_epoch}")
         self.model.load_state_dict(best_params["model"])
         self.tra.load_state_dict(best_params["tra"])
 
         return best_score
 
-    def fit(self, dataset, evals_result=dict()):
+    def fit(self, dataset, evals_result=None):
+        if evals_result is None:
+            evals_result = {}
         assert isinstance(dataset, MTSDatasetH), "TRAModel only supports `qlib.contrib.data.dataset.MTSDatasetH`"
 
         train_set, valid_set, test_set = dataset.prepare(["train", "valid", "test"])
@@ -440,13 +443,13 @@ class TRAModel(Model):
 
         self.logger.info("inference")
         train_metrics, train_preds, train_probs, train_P = self.test_epoch(-1, train_set, return_pred=True)
-        self.logger.info("train metrics: %s" % train_metrics)
+        self.logger.info(f"train metrics: {train_metrics}")
 
         valid_metrics, valid_preds, valid_probs, valid_P = self.test_epoch(-1, valid_set, return_pred=True)
-        self.logger.info("valid metrics: %s" % valid_metrics)
+        self.logger.info(f"valid metrics: {valid_metrics}")
 
         test_metrics, test_preds, test_probs, test_P = self.test_epoch(-1, test_set, return_pred=True)
-        self.logger.info("test metrics: %s" % test_metrics)
+        self.logger.info(f"test metrics: {test_metrics}")
 
         if self.logdir:
             self.logger.info("save model & pred to local directory")
@@ -505,7 +508,7 @@ class TRAModel(Model):
         test_set = dataset.prepare(segment)
 
         metrics, preds, _, _ = self.test_epoch(-1, test_set, return_pred=True)
-        self.logger.info("test metrics: %s" % metrics)
+        self.logger.info(f"test metrics: {metrics}")
 
         return preds
 
@@ -759,7 +762,7 @@ def sinkhorn(Q, n_iters=3, epsilon=0.1):
     with torch.no_grad():
         Q = torch.exp(Q / epsilon)
         Q = shoot_infs(Q)
-        for i in range(n_iters):
+        for _ in range(n_iters):
             Q /= Q.sum(dim=0, keepdim=True)
             Q /= Q.sum(dim=1, keepdim=True)
     return Q
@@ -916,7 +919,7 @@ def load_state_dict_unsafe(model, state_dict):
 def plot(P):
     assert isinstance(P, pd.DataFrame)
 
-    fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+    _fig, axes = plt.subplots(1, 2, figsize=(10, 4))
     P.plot.area(ax=axes[0], xlabel="")
     P.idxmax(axis=1).value_counts().sort_index().plot.bar(ax=axes[1], xlabel="")
     plt.tight_layout()

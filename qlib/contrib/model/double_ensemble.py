@@ -33,6 +33,7 @@ class DEnsembleModel(Model, FeatureInt):
         early_stopping_rounds=None,
         **kwargs,
     ):
+        super().__init__()
         self.base_model = base_model  # "gbm" or "mlp", specifically, we use lgbm for "gbm"
         self.num_models = num_models  # the number of sub-models
         self.enable_sr = enable_sr
@@ -70,7 +71,7 @@ class DEnsembleModel(Model, FeatureInt):
             raise ValueError("Empty data from dataset, please check your dataset config.")
         x_train, y_train = df_train["feature"], df_train["label"]
         # initialize the sample weights
-        N, F = x_train.shape
+        N, _F = x_train.shape
         weights = pd.Series(np.ones(N, dtype=float))
         # initialize the features
         features = x_train.columns
@@ -78,7 +79,7 @@ class DEnsembleModel(Model, FeatureInt):
         # train sub-models
         for k in range(self.num_models):
             self.sub_features.append(features)
-            self.logger.info("Training sub-model: ({}/{})".format(k + 1, self.num_models))
+            self.logger.info(f"Training sub-model: ({k + 1}/{self.num_models})")
             model_k = self.train_submodel(df_train, df_valid, weights, features)
             self.ensemble.append(model_k)
             # no further sample re-weight and feature selection needed for the last sub-model
@@ -221,8 +222,7 @@ class DEnsembleModel(Model, FeatureInt):
     def get_loss(self, label, pred):
         if self.loss == "mse":
             return (label - pred) ** 2
-        else:
-            raise ValueError("not implemented yet")
+        raise ValueError("not implemented yet")
 
     def retrieve_loss_curve(self, model, df_train, features):
         if self.base_model == "gbm":

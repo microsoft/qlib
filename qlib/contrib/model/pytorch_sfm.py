@@ -12,9 +12,9 @@ from ...utils import get_or_create_path
 from ...log import get_module_logger
 
 import torch
-import torch.nn as nn
-import torch.nn.init as init
-import torch.optim as optim
+from torch import nn
+from torch.nn import init
+from torch import optim
 
 from .pytorch_utils import count_parameters
 from ...model.base import Model
@@ -74,17 +74,17 @@ class SFM_Model(nn.Module):
 
         self.states = []
 
-    def forward(self, input):
-        input = input.reshape(len(input), self.input_dim, -1)  # [N, F, T]
-        input = input.permute(0, 2, 1)  # [N, T, F]
-        time_step = input.shape[1]
+    def forward(self, input_data):
+        input_data = input_data.reshape(len(input_data), self.input_dim, -1)  # [N, F, T]
+        input_data = input_data.permute(0, 2, 1)  # [N, T, F]
+        time_step = input_data.shape[1]
 
         for ts in range(time_step):
-            x = input[:, ts, :]
+            x = input_data[:, ts, :]
             if len(self.states) == 0:  # hasn't initialized yet
                 self.init_states(x)
             self.get_constants(x)
-            p_tm1 = self.states[0]  # noqa: F841
+            _p_tm1 = self.states[0]  # noqa: F841
             h_tm1 = self.states[1]
             S_re_tm1 = self.states[2]
             S_im_tm1 = self.states[3]
@@ -214,6 +214,7 @@ class SFM(Model):
         seed=None,
         **kwargs,
     ):
+        super().__init__()
         # Set logger.
         self.logger = get_module_logger("SFM")
         self.logger.info("SFM pytorch version...")
@@ -233,46 +234,11 @@ class SFM(Model):
         self.eval_steps = eval_steps
         self.optimizer = optimizer.lower()
         self.loss = loss
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        self.device = torch.device(f"cuda:{GPU}" if torch.cuda.is_available() and GPU >= 0 else "cpu")
         self.seed = seed
 
         self.logger.info(
-            "SFM parameters setting:"
-            "\nd_feat : {}"
-            "\nhidden_size : {}"
-            "\noutput_size : {}"
-            "\nfrequency_dimension : {}"
-            "\ndropout_W: {}"
-            "\ndropout_U: {}"
-            "\nn_epochs : {}"
-            "\nlr : {}"
-            "\nmetric : {}"
-            "\nbatch_size : {}"
-            "\nearly_stop : {}"
-            "\neval_steps : {}"
-            "\noptimizer : {}"
-            "\nloss_type : {}"
-            "\ndevice : {}"
-            "\nuse_GPU : {}"
-            "\nseed : {}".format(
-                d_feat,
-                hidden_size,
-                output_dim,
-                freq_dim,
-                dropout_W,
-                dropout_U,
-                n_epochs,
-                lr,
-                metric,
-                batch_size,
-                early_stop,
-                eval_steps,
-                optimizer.lower(),
-                loss,
-                self.device,
-                self.use_gpu,
-                seed,
-            )
+            f"SFM parameters setting:\nd_feat : {d_feat}\nhidden_size : {hidden_size}\noutput_size : {output_dim}\nfrequency_dimension : {freq_dim}\ndropout_W: {dropout_W}\ndropout_U: {dropout_U}\nn_epochs : {n_epochs}\nlr : {lr}\nmetric : {metric}\nbatch_size : {batch_size}\nearly_stop : {early_stop}\neval_steps : {eval_steps}\noptimizer : {optimizer.lower()}\nloss_type : {loss}\ndevice : {self.device}\nuse_GPU : {self.use_gpu}\nseed : {seed}"
         )
 
         if self.seed is not None:
@@ -288,15 +254,15 @@ class SFM(Model):
             dropout_U=self.dropout_U,
             device=self.device,
         )
-        self.logger.info("model:\n{:}".format(self.sfm_model))
-        self.logger.info("model size: {:.4f} MB".format(count_parameters(self.sfm_model)))
+        self.logger.info(f"model:\n{self.sfm_model:}")
+        self.logger.info(f"model size: {count_parameters(self.sfm_model):.4f} MB")
 
         if optimizer.lower() == "adam":
             self.train_optimizer = optim.Adam(self.sfm_model.parameters(), lr=self.lr)
         elif optimizer.lower() == "gd":
             self.train_optimizer = optim.SGD(self.sfm_model.parameters(), lr=self.lr)
         else:
-            raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
+            raise NotImplementedError(f"optimizer {optimizer} is not supported!")
 
         self.fitted = False
         self.sfm_model.to(self.device)
@@ -360,9 +326,11 @@ class SFM(Model):
     def fit(
         self,
         dataset: DatasetH,
-        evals_result=dict(),
+        evals_result=None,
         save_path=None,
     ):
+        if evals_result is None:
+            evals_result = {}
         df_train, df_valid = dataset.prepare(
             ["train", "valid"],
             col_set=["feature", "label"],
@@ -375,7 +343,6 @@ class SFM(Model):
 
         save_path = get_or_create_path(save_path)
         stop_steps = 0
-        train_loss = 0
         best_score = -np.inf
         best_epoch = 0
         evals_result["train"] = []
@@ -390,9 +357,9 @@ class SFM(Model):
             self.logger.info("training...")
             self.train_epoch(x_train, y_train)
             self.logger.info("evaluating...")
-            train_loss, train_score = self.test_epoch(x_train, y_train)
-            val_loss, val_score = self.test_epoch(x_valid, y_valid)
-            self.logger.info("train %.6f, valid %.6f" % (train_score, val_score))
+            _train_loss, train_score = self.test_epoch(x_train, y_train)
+            _val_loss, val_score = self.test_epoch(x_valid, y_valid)
+            self.logger.info(f"train {train_score:.6f}, valid {val_score:.6f}")
             evals_result["train"].append(train_score)
             evals_result["valid"].append(val_score)
 
@@ -407,7 +374,7 @@ class SFM(Model):
                     self.logger.info("early stop")
                     break
 
-        self.logger.info("best score: %.6lf @ %d" % (best_score, best_epoch))
+        self.logger.info(f"best score: {best_score:.6f} @ {best_epoch}")
         self.sfm_model.load_state_dict(best_param)
         torch.save(best_param, save_path)
         if self.device != "cpu":
@@ -423,7 +390,7 @@ class SFM(Model):
         if self.loss == "mse":
             return self.mse(pred[mask], label[mask])
 
-        raise ValueError("unknown loss `%s`" % self.loss)
+        raise ValueError(f"unknown loss `{self}`".loss)
 
     def metric_fn(self, pred, label):
         mask = torch.isfinite(label)
@@ -431,7 +398,7 @@ class SFM(Model):
         if self.metric in ("", "loss"):
             return -self.loss_fn(pred[mask], label[mask])
 
-        raise ValueError("unknown metric `%s`" % self.metric)
+        raise ValueError(f"unknown metric `{self}`".metric)
 
     def predict(self, dataset: DatasetH, segment: Union[Text, slice] = "test"):
         if not self.fitted:

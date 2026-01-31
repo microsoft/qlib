@@ -25,7 +25,7 @@ class MultiSegRecord(RecordTemp):
     def __init__(self, model, dataset, recorder=None):
         super().__init__(recorder=recorder)
         if not isinstance(dataset, qlib_dataset.DatasetH):
-            raise ValueError("The type of dataset is not DatasetH instead of {:}".format(type(dataset)))
+            raise ValueError(f"The type of dataset is not DatasetH instead of {type(dataset):}")
         self.model = model
         self.dataset = dataset
 
@@ -40,20 +40,18 @@ class MultiSegRecord(RecordTemp):
             # Compute the IC and Rank IC
             ic, ric = calc_ic(predics.iloc[:, 0], labels.iloc[:, 0])
             results = {"all-IC": ic, "mean-IC": ic.mean(), "all-Rank-IC": ric, "mean-Rank-IC": ric.mean()}
-            logger.info("--- Results for {:} ({:}) ---".format(key, segment))
+            logger.info(f"--- Results for {key:} ({segment:}) ---")
             ic_x100, ric_x100 = ic * 100, ric * 100
-            logger.info("IC: {:.4f}%".format(ic_x100.mean()))
-            logger.info("ICIR: {:.4f}%".format(ic_x100.mean() / ic_x100.std()))
-            logger.info("Rank IC: {:.4f}%".format(ric_x100.mean()))
-            logger.info("Rank ICIR: {:.4f}%".format(ric_x100.mean() / ric_x100.std()))
+            logger.info(f"IC: {ic_x100.mean():.4f}%")
+            logger.info(f"ICIR: {ic_x100.mean() / ic_x100.std():.4f}%")
+            logger.info(f"Rank IC: {ric_x100.mean():.4f}%")
+            logger.info(f"Rank ICIR: {ric_x100.mean() / ric_x100.std():.4f}%")
 
             if save:
-                save_name = "results-{:}.pkl".format(key)
+                save_name = f"results-{key:}.pkl"
                 self.save(**{save_name: results})
                 logger.info(
-                    "The record '{:}' has been saved as the artifact of the Experiment {:}".format(
-                        save_name, self.recorder.experiment_id
-                    )
+                    f"The record '{save_name:}' has been saved as the artifact of the Experiment {self.recorder.experiment_id:}"
                 )
 
 
@@ -80,7 +78,7 @@ class SignalMseRecord(RecordTemp):
         objects = {"mse.pkl": mse, "rmse.pkl": np.sqrt(mse)}
         self.recorder.log_metrics(**metrics)
         self.save(**objects)
-        logger.info("The evaluation results in SignalMseRecord is {:}".format(metrics))
+        logger.info(f"The evaluation results in SignalMseRecord is {metrics:}")
 
     def list(self):
         return ["mse.pkl", "rmse.pkl"]

@@ -52,14 +52,18 @@ class Alpha360(DataHandlerLP):
         start_time=None,
         end_time=None,
         freq="day",
-        infer_processors=_DEFAULT_INFER_PROCESSORS,
-        learn_processors=_DEFAULT_LEARN_PROCESSORS,
+        infer_processors=None,
+        learn_processors=None,
         fit_start_time=None,
         fit_end_time=None,
         filter_pipe=None,
         inst_processors=None,
         **kwargs,
     ):
+        if infer_processors is None:
+            infer_processors = _DEFAULT_INFER_PROCESSORS
+        if learn_processors is None:
+            learn_processors = _DEFAULT_LEARN_PROCESSORS
         infer_processors = check_transform_proc(infer_processors, fit_start_time, fit_end_time)
         learn_processors = check_transform_proc(learn_processors, fit_start_time, fit_end_time)
 
@@ -102,8 +106,8 @@ class Alpha158(DataHandlerLP):
         start_time=None,
         end_time=None,
         freq="day",
-        infer_processors=[],
-        learn_processors=_DEFAULT_LEARN_PROCESSORS,
+        infer_processors=None,
+        learn_processors=None,
         fit_start_time=None,
         fit_end_time=None,
         process_type=DataHandlerLP.PTYPE_A,
@@ -111,6 +115,10 @@ class Alpha158(DataHandlerLP):
         inst_processors=None,
         **kwargs,
     ):
+        if infer_processors is None:
+            infer_processors = []
+        if learn_processors is None:
+            learn_processors = _DEFAULT_LEARN_PROCESSORS
         infer_processors = check_transform_proc(infer_processors, fit_start_time, fit_end_time)
         learn_processors = check_transform_proc(learn_processors, fit_start_time, fit_end_time)
 

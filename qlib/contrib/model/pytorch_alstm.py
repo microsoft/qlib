@@ -13,8 +13,8 @@ from ...utils import get_or_create_path
 from ...log import get_module_logger
 
 import torch
-import torch.nn as nn
-import torch.optim as optim
+from torch import nn
+from torch import optim
 
 from .pytorch_utils import count_parameters
 from ...model.base import Model
@@ -54,6 +54,7 @@ class ALSTM(Model):
         seed=None,
         **kwargs,
     ):
+        super().__init__()
         # Set logger.
         self.logger = get_module_logger("ALSTM")
         self.logger.info("ALSTM pytorch version...")
@@ -70,40 +71,11 @@ class ALSTM(Model):
         self.early_stop = early_stop
         self.optimizer = optimizer.lower()
         self.loss = loss
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        self.device = torch.device(f"cuda:{GPU}" if torch.cuda.is_available() and GPU >= 0 else "cpu")
         self.seed = seed
 
         self.logger.info(
-            "ALSTM parameters setting:"
-            "\nd_feat : {}"
-            "\nhidden_size : {}"
-            "\nnum_layers : {}"
-            "\ndropout : {}"
-            "\nn_epochs : {}"
-            "\nlr : {}"
-            "\nmetric : {}"
-            "\nbatch_size : {}"
-            "\nearly_stop : {}"
-            "\noptimizer : {}"
-            "\nloss_type : {}"
-            "\ndevice : {}"
-            "\nuse_GPU : {}"
-            "\nseed : {}".format(
-                d_feat,
-                hidden_size,
-                num_layers,
-                dropout,
-                n_epochs,
-                lr,
-                metric,
-                batch_size,
-                early_stop,
-                optimizer.lower(),
-                loss,
-                self.device,
-                self.use_gpu,
-                seed,
-            )
+            f"ALSTM parameters setting:\nd_feat : {d_feat}\nhidden_size : {hidden_size}\nnum_layers : {num_layers}\ndropout : {dropout}\nn_epochs : {n_epochs}\nlr : {lr}\nmetric : {metric}\nbatch_size : {batch_size}\nearly_stop : {early_stop}\noptimizer : {optimizer.lower()}\nloss_type : {loss}\ndevice : {self.device}\nuse_GPU : {self.use_gpu}\nseed : {seed}"
         )
 
         if self.seed is not None:
@@ -116,15 +88,15 @@ class ALSTM(Model):
             num_layers=self.num_layers,
             dropout=self.dropout,
         )
-        self.logger.info("model:\n{:}".format(self.ALSTM_model))
-        self.logger.info("model size: {:.4f} MB".format(count_parameters(self.ALSTM_model)))
+        self.logger.info(f"model:\n{self.ALSTM_model:}")
+        self.logger.info(f"model size: {count_parameters(self.ALSTM_model):.4f} MB")
 
         if optimizer.lower() == "adam":
             self.train_optimizer = optim.Adam(self.ALSTM_model.parameters(), lr=self.lr)
         elif optimizer.lower() == "gd":
             self.train_optimizer = optim.SGD(self.ALSTM_model.parameters(), lr=self.lr)
         else:
-            raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
+            raise NotImplementedError(f"optimizer {optimizer} is not supported!")
 
         self.fitted = False
         self.ALSTM_model.to(self.device)
@@ -143,7 +115,7 @@ class ALSTM(Model):
         if self.loss == "mse":
             return self.mse(pred[mask], label[mask])
 
-        raise ValueError("unknown loss `%s`" % self.loss)
+        raise ValueError(f"unknown loss `{self.loss}`")
 
     def metric_fn(self, pred, label):
         mask = torch.isfinite(label)
@@ -151,7 +123,7 @@ class ALSTM(Model):
         if self.metric in ("", "loss"):
             return -self.loss_fn(pred[mask], label[mask])
 
-        raise ValueError("unknown metric `%s`" % self.metric)
+        raise ValueError(f"unknown metric `{self.metric}`")
 
     def train_epoch(self, x_train, y_train):
         x_train_values = x_train.values
@@ -209,10 +181,12 @@ class ALSTM(Model):
     def fit(
         self,
         dataset: DatasetH,
-        evals_result=dict(),
+        evals_result=None,
         save_path=None,
     ):
-        df_train, df_valid, df_test = dataset.prepare(
+        if evals_result is None:
+            evals_result = {}
+        df_train, df_valid, _df_test = dataset.prepare(
             ["train", "valid", "test"],
             col_set=["feature", "label"],
             data_key=DataHandlerLP.DK_L,
@@ -225,7 +199,6 @@ class ALSTM(Model):
 
         save_path = get_or_create_path(save_path)
         stop_steps = 0
-        train_loss = 0
         best_score = -np.inf
         best_epoch = 0
         evals_result["train"] = []
@@ -240,9 +213,9 @@ class ALSTM(Model):
             self.logger.info("training...")
             self.train_epoch(x_train, y_train)
             self.logger.info("evaluating...")
-            train_loss, train_score = self.test_epoch(x_train, y_train)
-            val_loss, val_score = self.test_epoch(x_valid, y_valid)
-            self.logger.info("train %.6f, valid %.6f" % (train_score, val_score))
+            _train_loss, train_score = self.test_epoch(x_train, y_train)
+            _val_loss, val_score = self.test_epoch(x_valid, y_valid)
+            self.logger.info(f"train {train_score:.6f}, valid {val_score:.6f}")
             evals_result["train"].append(train_score)
             evals_result["valid"].append(val_score)
 
@@ -257,7 +230,7 @@ class ALSTM(Model):
                     self.logger.info("early stop")
                     break
 
-        self.logger.info("best score: %.6lf @ %d" % (best_score, best_epoch))
+        self.logger.info(f"best score: {best_score:.6f} @ {best_epoch}")
         self.ALSTM_model.load_state_dict(best_param)
         torch.save(best_param, save_path)
 
@@ -305,7 +278,7 @@ class ALSTMModel(nn.Module):
         try:
             klass = getattr(nn, self.rnn_type.upper())
         except Exception as e:
-            raise ValueError("unknown rnn_type `%s`" % self.rnn_type) from e
+            raise ValueError(f"unknown rnn_type `{self}`".rnn_type) from e
         self.net = nn.Sequential()
         self.net.add_module("fc_in", nn.Linear(in_features=self.input_size, out_features=self.hid_size))
         self.net.add_module("act", nn.Tanh())

@@ -360,8 +360,7 @@ class QlibConfig(Config):
 
             if is_nfs_or_win and not is_win:
                 return QlibConfig.NFS_URI
-            else:
-                return QlibConfig.LOCAL_URI
+            return QlibConfig.LOCAL_URI
 
         def get_data_uri(self, freq: Optional[Union[str, Freq]] = None) -> Path:
             """
@@ -374,14 +373,13 @@ class QlibConfig(Config):
             _provider_uri = self.provider_uri[freq]
             if self.get_uri_type(_provider_uri) == QlibConfig.LOCAL_URI:
                 return Path(_provider_uri)
-            elif self.get_uri_type(_provider_uri) == QlibConfig.NFS_URI:
+            if self.get_uri_type(_provider_uri) == QlibConfig.NFS_URI:
                 if "win" in platform.system().lower():
                     # windows, mount_path is the drive
                     _path = str(self.mount_path[freq])
                     return Path(f"{_path}:\\") if ":" not in _path else Path(_path)
                 return Path(self.mount_path[freq])
-            else:
-                raise NotImplementedError(f"This type of uri is not supported")
+            raise NotImplementedError(f"This type of uri is not supported")
 
     def set_mode(self, mode):
         # raise KeyError
@@ -456,7 +454,7 @@ class QlibConfig(Config):
 
         for k, v in kwargs.items():
             if k not in self:
-                logger.warning("Unrecognized config %s" % k)
+                logger.warning(f"Unrecognized config {k}")
             self[k] = v
 
         self.resolve_path()

@@ -27,7 +27,7 @@ class BaseExecutor:
         time_per_step: str,
         start_time: Union[str, pd.Timestamp] = None,
         end_time: Union[str, pd.Timestamp] = None,
-        indicator_config: dict = {},
+        indicator_config: dict = None,
         generate_portfolio_metrics: bool = False,
         verbose: bool = False,
         track_data: bool = False,
@@ -36,6 +36,8 @@ class BaseExecutor:
         settle_type: str = BasePosition.ST_NO,
         **kwargs: Any,
     ) -> None:
+        if indicator_config is None:
+            indicator_config = {}
         """
         Parameters
         ----------
@@ -321,7 +323,7 @@ class NestedExecutor(BaseExecutor):
         inner_strategy: Union[BaseStrategy, dict],
         start_time: Union[str, pd.Timestamp] = None,
         end_time: Union[str, pd.Timestamp] = None,
-        indicator_config: dict = {},
+        indicator_config: dict = None,
         generate_portfolio_metrics: bool = False,
         verbose: bool = False,
         track_data: bool = False,
@@ -330,6 +332,8 @@ class NestedExecutor(BaseExecutor):
         common_infra: CommonInfrastructure | None = None,
         **kwargs: Any,
     ) -> None:
+        if indicator_config is None:
+            indicator_config = {}
         """
         Parameters
         ----------
@@ -530,7 +534,7 @@ class SimulatorExecutor(BaseExecutor):
         time_per_step: str,
         start_time: Union[str, pd.Timestamp] = None,
         end_time: Union[str, pd.Timestamp] = None,
-        indicator_config: dict = {},
+        indicator_config: dict = None,
         generate_portfolio_metrics: bool = False,
         verbose: bool = False,
         track_data: bool = False,
@@ -538,6 +542,8 @@ class SimulatorExecutor(BaseExecutor):
         trade_type: str = TT_SERIAL,
         **kwargs: Any,
     ) -> None:
+        if indicator_config is None:
+            indicator_config = {}
         """
         Parameters
         ----------
@@ -612,17 +618,6 @@ class SimulatorExecutor(BaseExecutor):
 
             if self.verbose:
                 print(
-                    "[I {:%Y-%m-%d %H:%M:%S}]: {} {}, price {:.2f}, amount {}, deal_amount {}, factor {}, "
-                    "value {:.2f}, cash {:.2f}.".format(
-                        trade_start_time,
-                        "sell" if order.direction == Order.SELL else "buy",
-                        order.stock_id,
-                        trade_price,
-                        order.amount,
-                        order.deal_amount,
-                        order.factor,
-                        trade_val,
-                        self.trade_account.get_cash(),
-                    ),
+                    f"[I {trade_start_time:%Y-%m-%d %H:%M:%S}]: {("sell" if order.direction == Order.SELL else "buy")} {order.stock_id}, price {trade_price:.2f}, amount {order.amount}, deal_amount {order.deal_amount}, factor {order.factor}, value {trade_val:.2f}, cash {self.trade_account.get_cash():.2f}.",
                 )
         return execute_result, {"trade_info": execute_result}

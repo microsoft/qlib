@@ -124,6 +124,7 @@ class OnlineManager(Serializable):
             trainer (qlib.model.trainer.Trainer): the trainer to train task. None for using TrainerR.
             freq (str, optional): data frequency. Defaults to "day".
         """
+        super().__init__()
         self.logger = get_module_logger(self.__class__.__name__)
         if not isinstance(strategies, list):
             strategies = [strategies]
@@ -153,7 +154,9 @@ class OnlineManager(Serializable):
         """
         return self.status == self.STATUS_SIMULATING and self.trainer.is_delay()
 
-    def first_train(self, strategies: List[OnlineStrategy] = None, model_kwargs: dict = {}):
+    def first_train(self, strategies: List[OnlineStrategy] = None, model_kwargs: dict = None):
+        if model_kwargs is None:
+            model_kwargs = {}
         """
         Get tasks from every strategy's first_tasks method and train them.
         If using DelayTrainer, it can finish training all together after every strategy's first_tasks.
@@ -184,10 +187,16 @@ class OnlineManager(Serializable):
     def routine(
         self,
         cur_time: Union[str, pd.Timestamp] = None,
-        task_kwargs: dict = {},
-        model_kwargs: dict = {},
-        signal_kwargs: dict = {},
+        task_kwargs: dict = None,
+        model_kwargs: dict = None,
+        signal_kwargs: dict = None,
     ):
+        if task_kwargs is None:
+            task_kwargs = {}
+        if model_kwargs is None:
+            model_kwargs = {}
+        if signal_kwargs is None:
+            signal_kwargs = {}
         """
         Typical update process for every strategy and record the online history.
 
@@ -300,8 +309,14 @@ class OnlineManager(Serializable):
     SIM_LOG_NAME = "SIMULATE_INFO"
 
     def simulate(
-        self, end_time=None, frequency="day", task_kwargs={}, model_kwargs={}, signal_kwargs={}
+        self, end_time=None, frequency="day", task_kwargs=None, model_kwargs=None, signal_kwargs=None
     ) -> Union[pd.Series, pd.DataFrame]:
+        if task_kwargs is None:
+            task_kwargs = {}
+        if model_kwargs is None:
+            model_kwargs = {}
+        if signal_kwargs is None:
+            signal_kwargs = {}
         """
         Starting from the current time, this method will simulate every routine in OnlineManager until the end time.
 
@@ -346,7 +361,11 @@ class OnlineManager(Serializable):
         self.status = self.STATUS_ONLINE
         return self.get_signals()
 
-    def delay_prepare(self, model_kwargs={}, signal_kwargs={}):
+    def delay_prepare(self, model_kwargs=None, signal_kwargs=None):
+        if model_kwargs is None:
+            model_kwargs = {}
+        if signal_kwargs is None:
+            signal_kwargs = {}
         """
         Prepare all models and signals if something is waiting for preparation.
 

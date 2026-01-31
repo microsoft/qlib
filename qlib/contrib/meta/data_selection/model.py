@@ -82,7 +82,7 @@ class MetaModelDS(MetaTaskModel):
         pred_y_all = []
         for task in tqdm(task_list, desc=f"{phase} Task", leave=False):
             meta_input = task.get_meta_input()
-            pred, weights = self.tn(
+            pred, _weights = self.tn(
                 meta_input["X"],
                 meta_input["y"],
                 meta_input["time_perf"],

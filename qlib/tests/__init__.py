@@ -248,7 +248,7 @@ class MockFeatureStorage(MockStorageBase, FeatureStorage):
                 raise IndexError(f"{i}: start index is {storage_start_index}")
             data = self.data[i]
             return i, data
-        elif isinstance(i, slice):
+        if isinstance(i, slice):
             start_index = storage_start_index if i.start is None else i.start
             end_index = storage_end_index if i.stop is None else i.stop
             si = max(start_index, storage_start_index)
@@ -257,8 +257,7 @@ class MockFeatureStorage(MockStorageBase, FeatureStorage):
             data = df[self.field].tolist()
             result = data[si - storage_start_index : end_index - storage_start_index]
             return pd.Series(result, index=pd.RangeIndex(si, si + len(result)))  # type: ignore
-        else:
-            raise TypeError(f"type(i) = {type(i)}")
+        raise TypeError(f"type(i) = {type(i)}")
 
     def __len__(self) -> int:
         return len(self.data)

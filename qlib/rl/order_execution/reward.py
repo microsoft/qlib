@@ -91,9 +91,7 @@ class PPOReward(Reward[SAOEState]):
                 ratio = twap_price / vwap_price if vwap_price != 0 else 1.0
             if ratio < 1.0:
                 return -1.0
-            elif ratio < 1.1:
+            if ratio < 1.1:
                 return 0.0
-            else:
-                return 1.0
-        else:
-            return 0.0
+            return 1.0
+        return 0.0

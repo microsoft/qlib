@@ -11,12 +11,16 @@ class HighFreqHandler(DataHandlerLP):
         instruments="csi300",
         start_time=None,
         end_time=None,
-        infer_processors=[],
-        learn_processors=[],
+        infer_processors=None,
+        learn_processors=None,
         fit_start_time=None,
         fit_end_time=None,
         drop_raw=True,
     ):
+        if infer_processors is None:
+            infer_processors = []
+        if learn_processors is None:
+            learn_processors = []
         infer_processors = check_transform_proc(infer_processors, fit_start_time, fit_end_time)
         learn_processors = check_transform_proc(learn_processors, fit_start_time, fit_end_time)
 
@@ -80,7 +84,7 @@ class HighFreqHandler(DataHandlerLP):
         fields += [
             template_gzero.format(
                 template_paused.format(
-                    "If(IsNull({0}), 0, {0})".format("{0}/Ref(DayLast(Mean({0}, 7200)), 240)".format("$volume"))
+                    f"If(IsNull({f"{"$volume"}/Ref(DayLast(Mean({"$volume"}, 7200)), 240)"}), 0, {f"{"$volume"}/Ref(DayLast(Mean({"$volume"}, 7200)), 240)"})"
                 )
             )
         ]
@@ -89,9 +93,7 @@ class HighFreqHandler(DataHandlerLP):
         fields += [
             template_gzero.format(
                 template_paused.format(
-                    "If(IsNull({0}), 0, {0})".format(
-                        "Ref({0}, 240)/Ref(DayLast(Mean({0}, 7200)), 240)".format("$volume")
-                    )
+                    f"If(IsNull({f"Ref({"$volume"}, 240)/Ref(DayLast(Mean({"$volume"}, 7200)), 240)"}), 0, {f"Ref({"$volume"}, 240)/Ref(DayLast(Mean({"$volume"}, 7200)), 240)"})"
                 )
             )
         ]
@@ -106,16 +108,22 @@ class HighFreqGeneralHandler(DataHandlerLP):
         instruments="csi300",
         start_time=None,
         end_time=None,
-        infer_processors=[],
-        learn_processors=[],
+        infer_processors=None,
+        learn_processors=None,
         fit_start_time=None,
         fit_end_time=None,
         drop_raw=True,
         day_length=240,
         freq="1min",
-        columns=["$open", "$high", "$low", "$close", "$vwap"],
+        columns=None,
         inst_processors=None,
     ):
+        if infer_processors is None:
+            infer_processors = []
+        if learn_processors is None:
+            learn_processors = []
+        if columns is None:
+            columns = ["$open", "$high", "$low", "$close", "$vwap"]
         self.day_length = day_length
         self.columns = columns
 
@@ -175,20 +183,15 @@ class HighFreqGeneralHandler(DataHandlerLP):
         # calculate and fill nan with 0
         fields += [
             template_paused.format(
-                "If(IsNull({0}), 0, {0})".format(
-                    f"{{0}}/Ref(DayLast(Mean({{0}}, {self.day_length * 30})), {self.day_length})".format("$volume")
-                )
+                f"If(IsNull({f"{{0}}/Ref(DayLast(Mean({{0}}, {self.day_length * 30})), {self.day_length})".format("$volume")}), 0, {f"{{0}}/Ref(DayLast(Mean({{0}}, {self.day_length * 30})), {self.day_length})".format("$volume")})"
             )
         ]
         names += ["$volume"]
 
+        _vol_ref = f"Ref($volume, {self.day_length})/Ref(DayLast(Mean($volume, {self.day_length * 30})), {self.day_length})"
         fields += [
             template_paused.format(
-                "If(IsNull({0}), 0, {0})".format(
-                    f"Ref({{0}}, {self.day_length})/Ref(DayLast(Mean({{0}}, {self.day_length * 30})), {self.day_length})".format(
-                        "$volume"
-                    )
-                )
+                f"If(IsNull({_vol_ref}), 0, {_vol_ref})"
             )
         ]
         names += ["$volume_1"]
@@ -240,10 +243,10 @@ class HighFreqBacktestHandler(DataHandler):
         ]
         names += ["$vwap0"]
 
-        fields += [template_paused.format("If(IsNull({0}), 0, {0})".format("$volume"))]
+        fields += [template_paused.format("If(IsNull($volume), 0, $volume)")]
         names += ["$volume0"]
 
-        fields += [template_paused.format("If(IsNull({0}), 0, {0})".format("$factor"))]
+        fields += [template_paused.format("If(IsNull($factor), 0, $factor)")]
         names += ["$factor0"]
 
         return fields, names
@@ -257,9 +260,11 @@ class HighFreqGeneralBacktestHandler(DataHandler):
         end_time=None,
         day_length=240,
         freq="1min",
-        columns=["$close", "$vwap", "$volume"],
+        columns=None,
         inst_processors=None,
     ):
+        if columns is None:
+            columns = ["$close", "$vwap", "$volume"]
         self.day_length = day_length
         self.columns = set(columns)
         data_loader = {
@@ -298,7 +303,7 @@ class HighFreqGeneralBacktestHandler(DataHandler):
             names += ["$vwap0"]
 
         if "$volume" in self.columns:
-            fields += [template_paused.format("If(IsNull({0}), 0, {0})".format("$volume"))]
+            fields += [template_paused.format("If(IsNull($volume), 0, $volume)")]
             names += ["$volume0"]
 
         return fields, names
@@ -310,13 +315,17 @@ class HighFreqOrderHandler(DataHandlerLP):
         instruments="csi300",
         start_time=None,
         end_time=None,
-        infer_processors=[],
-        learn_processors=[],
+        infer_processors=None,
+        learn_processors=None,
         fit_start_time=None,
         fit_end_time=None,
         inst_processors=None,
         drop_raw=True,
     ):
+        if infer_processors is None:
+            infer_processors = []
+        if learn_processors is None:
+            learn_processors = []
         infer_processors = check_transform_proc(infer_processors, fit_start_time, fit_end_time)
         learn_processors = check_transform_proc(learn_processors, fit_start_time, fit_end_time)
 
@@ -406,26 +415,21 @@ class HighFreqOrderHandler(DataHandlerLP):
 
         # calculate and fill nan with 0
 
+        def _wrap_inf_null(expr):
+            return f"If(IsInf({expr}), 0, If(IsNull({expr}), 0, {expr}))"
+
         def get_volume_feature(volume_field, shift=0):
             template_gzero = "If(Ge({0}, 0), {0}, 0)"
             if shift == 0:
                 feature_ops = template_gzero.format(
                     template_paused.format(
-                        "If(IsInf({0}), 0, {0})".format(
-                            "If(IsNull({0}), 0, {0})".format(
-                                "{0}/Ref(DayLast(Mean({0}, 7200)), 240)".format(volume_field)
-                            )
-                        )
+                        _wrap_inf_null(f"{volume_field}/Ref(DayLast(Mean({volume_field}, 7200)), 240)")
                     )
                 )
             else:
                 feature_ops = template_gzero.format(
                     template_paused.format(
-                        "If(IsInf({0}), 0, {0})".format(
-                            "If(IsNull({0}), 0, {0})".format(
-                                f"Ref({{0}}, {shift})/Ref(DayLast(Mean({{0}}, 7200)), 240)".format(volume_field)
-                            )
-                        )
+                        _wrap_inf_null(f"Ref({volume_field}, {shift})/Ref(DayLast(Mean({volume_field}, 7200)), 240)")
                     )
                 )
             return feature_ops
@@ -503,37 +507,37 @@ class HighFreqBacktestOrderHandler(DataHandler):
         ]
         names += ["$vwap0"]
 
-        fields += [template_paused.format("If(IsNull({0}), 0, {0})".format("$volume"))]
+        fields += [template_paused.format("If(IsNull($volume), 0, $volume)")]
         names += ["$volume0"]
 
-        fields += [template_paused.format("If(IsNull({0}), 0, {0})".format("$bid"))]
+        fields += [template_paused.format("If(IsNull($bid), 0, $bid)")]
         names += ["$bid0"]
 
-        fields += [template_paused.format("If(IsNull({0}), 0, {0})".format("$bidV"))]
+        fields += [template_paused.format("If(IsNull($bidV), 0, $bidV)")]
         names += ["$bidV0"]
 
-        fields += [template_paused.format("If(IsNull({0}), 0, {0})".format("$ask"))]
+        fields += [template_paused.format("If(IsNull($ask), 0, $ask)")]
         names += ["$ask0"]
 
-        fields += [template_paused.format("If(IsNull({0}), 0, {0})".format("$askV"))]
+        fields += [template_paused.format("If(IsNull($askV), 0, $askV)")]
         names += ["$askV0"]
 
-        fields += [template_paused.format("If(IsNull({0}), 0, {0})".format("($bid + $ask) / 2"))]
+        fields += [template_paused.format("If(IsNull(($bid + $ask) / 2), 0, ($bid + $ask) / 2)")]
         names += ["$median0"]
 
-        fields += [template_paused.format("If(IsNull({0}), 0, {0})".format("$factor"))]
+        fields += [template_paused.format("If(IsNull($factor), 0, $factor)")]
         names += ["$factor0"]
 
-        fields += [template_paused.format("If(IsNull({0}), 0, {0})".format("$downlimitmarket"))]
+        fields += [template_paused.format("If(IsNull($downlimitmarket), 0, $downlimitmarket)")]
         names += ["$downlimitmarket0"]
 
-        fields += [template_paused.format("If(IsNull({0}), 0, {0})".format("$uplimitmarket"))]
+        fields += [template_paused.format("If(IsNull($uplimitmarket), 0, $uplimitmarket)")]
         names += ["$uplimitmarket0"]
 
-        fields += [template_paused.format("If(IsNull({0}), 0, {0})".format("$highmarket"))]
+        fields += [template_paused.format("If(IsNull($highmarket), 0, $highmarket)")]
         names += ["$highmarket0"]
 
-        fields += [template_paused.format("If(IsNull({0}), 0, {0})".format("$lowmarket"))]
+        fields += [template_paused.format("If(IsNull($lowmarket), 0, $lowmarket)")]
         names += ["$lowmarket0"]
 
         return fields, names

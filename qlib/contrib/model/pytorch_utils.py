@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-import torch.nn as nn
+from torch import nn
 
 
 def count_parameters(models_or_parameters, unit="m"):
@@ -23,8 +23,7 @@ def count_parameters(models_or_parameters, unit="m"):
         counts = models_or_parameters.numel()
     elif isinstance(models_or_parameters, (list, tuple)):
         return sum(count_parameters(x, unit) for x in models_or_parameters)
-    else:
-        counts = sum(v.numel() for v in models_or_parameters)
+    counts = sum(v.numel() for v in models_or_parameters)
     unit = unit.lower()
     if unit in ("kb", "k"):
         counts /= 2**10
@@ -33,5 +32,5 @@ def count_parameters(models_or_parameters, unit="m"):
     elif unit in ("gb", "g"):
         counts /= 2**30
     elif unit is not None:
-        raise ValueError("Unknown unit: {:}".format(unit))
+        raise ValueError(f"Unknown unit: {unit:}")
     return counts

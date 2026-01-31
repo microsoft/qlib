@@ -71,7 +71,7 @@ class DayCumsum(ElemOperator):
     """
 
     def __init__(self, feature, start: str = "9:30", end: str = "14:59", data_granularity: int = 1):
-        self.feature = feature
+        super().__init__(feature)
         self.start = datetime.strptime(start, "%H:%M")
         self.end = datetime.strptime(end, "%H:%M")
 

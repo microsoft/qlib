@@ -44,6 +44,7 @@ class LinearModel(Model):
             Should the validation data be included for training?
             The validation data should be included
         """
+        super().__init__()
         assert estimator in [self.OLS, self.NNLS, self.RIDGE, self.LASSO], f"unsupported estimator `{estimator}`"
         self.estimator = estimator
 

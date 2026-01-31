@@ -32,7 +32,7 @@ class QlibRecorder:
         self.exp_manager: ExpManager = exp_manager
 
     def __repr__(self):
-        return "{name}(manager={manager})".format(name=self.__class__.__name__, manager=self.exp_manager)
+        return f"{self.__class__.__name__}(manager={self.exp_manager})"
 
     @contextmanager
     def start(

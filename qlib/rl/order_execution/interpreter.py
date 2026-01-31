@@ -33,12 +33,11 @@ def canonicalize(value: int | float | np.ndarray | pd.DataFrame | dict) -> np.nd
         return value.to_numpy()
     if isinstance(value, (float, np.floating)) or (isinstance(value, np.ndarray) and value.dtype.kind == "f"):
         return np.array(value, dtype=np.float32)
-    elif isinstance(value, (int, bool, np.integer)) or (isinstance(value, np.ndarray) and value.dtype.kind == "i"):
+    if isinstance(value, (int, bool, np.integer)) or (isinstance(value, np.ndarray) and value.dtype.kind == "i"):
         return np.array(value, dtype=np.int32)
-    elif isinstance(value, dict):
+    if isinstance(value, dict):
         return {k: canonicalize(v) for k, v in value.items()}
-    else:
-        return value
+    return value
 
 
 class FullHistoryObs(TypedDict):
@@ -226,8 +225,7 @@ class CategoricalActionInterpreter(ActionInterpreter[SAOEState, int, float]):
         assert 0 <= action < len(self.action_values)
         if self.max_step is not None and state.cur_step >= self.max_step - 1:
             return state.position
-        else:
-            return min(state.position, state.order.amount * self.action_values[action])
+        return min(state.position, state.order.amount * self.action_values[action])
 
 
 class TwapRelativeActionInterpreter(ActionInterpreter[SAOEState, float, float]):

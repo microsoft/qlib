@@ -47,8 +47,7 @@ class Group:
         """
         if isinstance(getattr(self, "_group_func", None), Callable):
             return self._group_func(*args, **kwargs)
-        else:
-            raise NotImplementedError(f"Please specify valid `group_func`.")
+        raise NotImplementedError(f"Please specify valid `group_func`.")
 
     def reduce(self, *args, **kwargs) -> dict:
         """
@@ -61,8 +60,7 @@ class Group:
         """
         if isinstance(getattr(self, "_ens_func", None), Callable):
             return self._ens_func(*args, **kwargs)
-        else:
-            raise NotImplementedError(f"Please specify valid `_ens_func`.")
+        raise NotImplementedError(f"Please specify valid `_ens_func`.")
 
     def __call__(self, ungrouped_dict: dict, n_jobs: int = 1, verbose: int = 0, *args, **kwargs) -> dict:
         """

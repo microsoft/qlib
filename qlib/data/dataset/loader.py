@@ -243,6 +243,7 @@ class StaticDataLoader(DataLoader, Serializable):
         join : str
             How to align different dataframes
         """
+        super().__init__()
         self._config = config  # using "_" to avoid confliction with the method `config` of Serializable
         self.join = join
         self._data = None
@@ -360,7 +361,9 @@ class DataLoaderDH(DataLoader):
         - The underlayer data handler should be configured. But data loader doesn't provide such interface & hook.
     """
 
-    def __init__(self, handler_config: dict, fetch_kwargs: dict = {}, is_group=False):
+    def __init__(self, handler_config: dict, fetch_kwargs: dict = None, is_group=False):
+        if fetch_kwargs is None:
+            fetch_kwargs = {}
         """
         Parameters
         ----------

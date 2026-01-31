@@ -12,7 +12,7 @@ import pandas as pd
 from qlib.data.data import DatasetProvider
 
 
-def robust_zscore(x: pd.Series, zscore=False):
+def robust_zscore(x: pd.Series, apply_zscore=False):
     """Robust ZScore Normalization
 
     Use robust statistics for Z-Score normalization:
@@ -25,7 +25,7 @@ def robust_zscore(x: pd.Series, zscore=False):
     x = x - x.median()
     mad = x.abs().median()
     x = np.clip(x / mad / 1.4826, -3, 3)
-    if zscore:
+    if apply_zscore:
         x -= x.mean()
         x /= x.std()
     return x
@@ -55,12 +55,11 @@ def deepcopy_basic_type(obj: object) -> object:
     """
     if isinstance(obj, tuple):
         return tuple(deepcopy_basic_type(i) for i in obj)
-    elif isinstance(obj, list):
+    if isinstance(obj, list):
         return list(deepcopy_basic_type(i) for i in obj)
-    elif isinstance(obj, dict):
+    if isinstance(obj, dict):
         return {k: deepcopy_basic_type(v) for k, v in obj.items()}
-    else:
-        return obj
+    return obj
 
 
 S_DROP = "__DROP__"  # this is a symbol which indicates drop the value
@@ -113,5 +112,5 @@ def guess_horizon(label: List):
     Try to guess the horizon by parsing label
     """
     expr = DatasetProvider.parse_fields(label)[0]
-    lft_etd, rght_etd = expr.get_extended_window_size()
+    _lft_etd, rght_etd = expr.get_extended_window_size()
     return rght_etd

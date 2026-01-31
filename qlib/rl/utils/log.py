@@ -230,8 +230,7 @@ class LogWriter(Generic[ObsType, ActType]):
             if name == "reward":
                 return np.sum(array)
             return np.mean(array)
-        else:
-            return array[0]
+        return array[0]
 
     def log_episode(self, length: int, rewards: List[float], contents: List[Dict[str, Any]]) -> None:
         """This is triggered at the end of each trajectory.

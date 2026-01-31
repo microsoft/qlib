@@ -147,11 +147,10 @@ class Serializable:
             `type(cls)`: the instance of `type(cls)`
         """
         with open(filepath, "rb") as f:
-            object = cls.get_backend().load(f)
-        if isinstance(object, cls):
-            return object
-        else:
-            raise TypeError(f"The instance of {type(object)} is not a valid `{type(cls)}`!")
+            obj = cls.get_backend().load(f)
+        if isinstance(obj, cls):
+            return obj
+        raise TypeError(f"The instance of {type(obj)} is not a valid `{type(cls)}`!")
 
     @classmethod
     def get_backend(cls):
@@ -164,10 +163,9 @@ class Serializable:
         # NOTE: pickle interface like backend; such as dill
         if cls.pickle_backend == "pickle":
             return pickle
-        elif cls.pickle_backend == "dill":
+        if cls.pickle_backend == "dill":
             return dill
-        else:
-            raise ValueError("Unknown pickle backend, please use 'pickle' or 'dill'.")
+        raise ValueError("Unknown pickle backend, please use 'pickle' or 'dill'.")
 
     @staticmethod
     def general_dump(obj, path: Union[Path, str]):
