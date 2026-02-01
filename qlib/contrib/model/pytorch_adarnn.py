@@ -268,6 +268,7 @@ class ADARNN(Model):
         best_epoch = 0
         weight_mat, dist_mat = None, None
 
+        best_param = copy.deepcopy(self.model.state_dict())
         for step in range(self.n_epochs):
             self.logger.info("Epoch%d:", step)
             self.logger.info("training...")
