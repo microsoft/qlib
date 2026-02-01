@@ -1,0 +1,35 @@
+# My Quant Project Configuration
+# 使用akshare获取数据，qlib进行训练和回测
+
+# 数据配置
+data:
+  source: akshare
+  save_dir: D:/Quant-qlib-official/data/source
+  normalize_dir: D:/Quant-qlib-official/data/normalize
+  qlib_dir: D:/Quant-qlib-official/data/qlib_data
+  start_date: 20080101
+  end_date: 20250101
+
+# 训练配置
+train:
+  model: LightGBM
+  instruments: csi300
+  segments:
+    train: [2008-01-01, 2014-12-31]
+    valid: [2015-01-01, 2016-12-31]
+    test: [2017-01-01, 2024-12-31]  # 修改为实际数据的最后日期
+
+# 回测配置
+backtest:
+  start_time: 2017-01-01
+  end_time: 2024-12-30  # 需要提前一天，因为代码会访问 end_time 的下一天
+  account: 100000000
+  benchmark: SH000300
+  topk: 50
+  n_drop: 5
+  exchange_kwargs:
+    limit_threshold: 0.095
+    deal_price: close
+    open_cost: 0.0005
+    close_cost: 0.0015
+    min_cost: 5
