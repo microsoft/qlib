@@ -126,7 +126,7 @@ class Config:
 
     @staticmethod
     def register_from_C(config, skip_register=True):
-        from .utils import set_log_with_config
+        from .utils import set_log_with_config  # pylint: disable=C0415
 
         if C.registered and skip_register:
             return
