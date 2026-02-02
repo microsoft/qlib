@@ -65,21 +65,21 @@ class Config:
         self.__dict__["_default_config"] = copy.deepcopy(default_conf)
         self.reset()
 
+    # TODO: This validation logic is a temporary solution.
+    # The long-term goal is to migrate Qlib Config to a typed configuration
+    # system based on pydantic.BaseModel, with explicit schema and field validation.
     def validate(self):
         errors = []
 
         if not self.get("provider_uri"):
-            errors.append(
-                "provider_uri must be set (e.g. ~/.qlib/qlib_data or a valid path)"
-            )
+            errors.append("provider_uri must be set (e.g. ~/.qlib/qlib_data or a valid path)")
 
         if not self.get("region"):
-            errors.append(
-                "region must be specified (e.g. 'cn', 'us')"
-            )
+            errors.append("region must be specified (e.g. 'cn', 'us')")
 
         if errors:
             raise ValueError(
+                "Invalid Qlib configuration (note: the global config has already been updated):\n"
                 "Invalid Qlib configuration:\n- " + "\n- ".join(errors)
             )
 
@@ -130,7 +130,6 @@ class Config:
 
         if C.registered and skip_register:
             return
-
 
         C.set_conf_from_C(config)
         C.validate()
