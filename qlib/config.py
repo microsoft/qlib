@@ -62,8 +62,26 @@ QSETTINGS = QSettings()
 
 class Config:
     def __init__(self, default_conf):
-        self.__dict__["_default_config"] = copy.deepcopy(default_conf)  # avoiding conflicts with __getattr__
+        self.__dict__["_default_config"] = copy.deepcopy(default_conf)
         self.reset()
+
+    # TODO: This validation logic is a temporary solution.
+    # The long-term goal is to migrate Qlib Config to a typed configuration
+    # system based on pydantic.BaseModel, with explicit schema and field validation.
+    def validate(self):
+        errors = []
+
+        if not self.get("provider_uri"):
+            errors.append("provider_uri must be set (e.g. ~/.qlib/qlib_data or a valid path)")
+
+        if not self.get("region"):
+            errors.append("region must be specified (e.g. 'cn', 'us')")
+
+        if errors:
+            raise ValueError(
+                "Invalid Qlib configuration (note: the global config has already been updated):\n"
+                "Invalid Qlib configuration:\n- " + "\n- ".join(errors)
+            )
 
     def __getitem__(self, key):
         return self.__dict__["_config"][key]
@@ -71,7 +89,6 @@ class Config:
     def __getattr__(self, attr):
         if attr in self.__dict__["_config"]:
             return self.__dict__["_config"][attr]
-
         raise AttributeError(f"No such `{attr}` in self._config")
 
     def get(self, key, default=None):
@@ -115,8 +132,11 @@ class Config:
             return
 
         C.set_conf_from_C(config)
+        C.validate()
+
         if C.logging_config:
             set_log_with_config(C.logging_config)
+
         C.register()
 
 
