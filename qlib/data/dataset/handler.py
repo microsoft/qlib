@@ -188,11 +188,15 @@ class DataHandler(DataHandlerABC):
                 the processed data will be saved on disk, and handler will load the cached data from the disk directly
                 when we call `init` next time
         """
+        from qlib.utils.telemetry import metrics, tracer
+
         # Setup data.
         # _data may be with multiple column index level. The outer level indicates the feature set name
-        with TimeInspector.logt("Loading data"):
+        with TimeInspector.logt("Loading data"), tracer.span("data_handler.setup_data"):
             # make sure the fetch method is based on an index-sorted pd.DataFrame
             self._data = lazy_sort_index(self.data_loader.load(self.instruments, self.start_time, self.end_time))
+            metrics.gauge("data_handler.rows_loaded", len(self._data))
+            metrics.gauge("data_handler.columns_loaded", len(self._data.columns))
         # TODO: cache
 
     def fetch(
@@ -531,13 +535,20 @@ class DataHandlerLP(DataHandler):
     def _run_proc_l(
         df: pd.DataFrame, proc_l: List[processor_module.Processor], with_fit: bool, check_for_infer: bool
     ) -> pd.DataFrame:
+        from qlib.utils.telemetry import metrics, tracer
+
         for proc in proc_l:
             if check_for_infer and not proc.is_for_infer():
                 raise TypeError("Only processors usable for inference can be used in `infer_processors` ")
-            with TimeInspector.logt(f"{proc.__class__.__name__}"):
+            proc_name = proc.__class__.__name__
+            with TimeInspector.logt(proc_name), tracer.span(f"processor.{proc_name}"):
+                rows_before = len(df)
                 if with_fit:
                     proc.fit(df)
                 df = proc(df)
+                rows_after = len(df)
+                metrics.gauge("processor.rows_in", rows_before, tags={"processor": proc_name})
+                metrics.gauge("processor.rows_out", rows_after, tags={"processor": proc_name})
         return df
 
     @staticmethod
