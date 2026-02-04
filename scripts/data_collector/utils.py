@@ -282,20 +282,14 @@ def get_us_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
     -------
         stock symbols
     """
+    import akshare as ak  # pylint: disable=C0415
+
     global _US_SYMBOLS  # pylint: disable=W0603
 
     @deco_retry
     def _get_eastmoney():
-        url = "http://4.push2.eastmoney.com/api/qt/clist/get?pn=1&pz=10000&fs=m:105,m:106,m:107&fields=f12"
-        resp = requests.get(url, timeout=None)
-        if resp.status_code != 200:
-            raise ValueError("request error")
-
-        try:
-            _symbols = [_v["f12"].replace("_", "-P") for _v in resp.json()["data"]["diff"].values()]
-        except Exception as e:
-            logger.warning(f"request error: {e}")
-            raise
+        df = ak.get_us_stock_name()
+        _symbols = df["symbol"].to_list()
 
         if len(_symbols) < 8000:
             raise ValueError("request error")
