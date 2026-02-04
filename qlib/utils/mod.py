@@ -11,7 +11,6 @@ import contextlib
 import importlib
 import os
 from pathlib import Path
-import pickle
 import pkgutil
 import re
 import sys
@@ -20,6 +19,7 @@ from typing import Any, Dict, List, Tuple, Union
 from urllib.parse import urlparse
 
 from qlib.typehint import InstConf
+from qlib.utils.pickle_utils import restricted_pickle_load
 
 
 def get_module_by_module_path(module_path: Union[str, ModuleType]):
@@ -168,10 +168,10 @@ def init_instance_by_config(
 
                 pr_path = os.path.join(pr.netloc, path) if bool(pr.path) else pr.netloc
                 with open(os.path.normpath(pr_path), "rb") as f:
-                    return pickle.load(f)
+                    return restricted_pickle_load(f)
         else:
             with config.open("rb") as f:
-                return pickle.load(f)
+                return restricted_pickle_load(f)
 
     klass, cls_kwargs = get_callable_kwargs(config, default_module=default_module)
 

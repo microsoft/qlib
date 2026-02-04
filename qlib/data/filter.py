@@ -168,7 +168,7 @@ class SeriesDFilter(BaseDFilter):
         for _ts, _bool in timestamp_series.items():
             # there is likely to be NAN when the filter series don't have the
             # bool value, so we just change the NAN into False
-            if _bool == np.nan:
+            if np.isnan(_bool):
                 _bool = False
             if _lbool is None:
                 _cur_start = _ts

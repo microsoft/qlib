@@ -69,8 +69,10 @@ rl = [
   "torch",
   "numpy<2.0.0",
 ]
+# We exclude black version 26.1.0 due to known issues with nbqa when formatting Jupyter notebooks,
+# which can cause false-positive --check results and inconsistent notebook formatting.
 lint = [
-  "black",
+  "black!=26.1.0",
   "pylint",
   "mypy<1.5.0",
   "flake8",
@@ -101,6 +103,10 @@ analysis = [
   "plotly",
   "statsmodels",
 ]
+client = [
+  "python-socketio<6",
+  "tables",
+]
 
 # In the process of releasing a new version, when checking the manylinux package with twine, an error is reported:
 # InvalidDistribution: Invalid distribution metadata: unrecognized or malformed field 'license-file'
@@ -117,3 +123,4 @@ qrun = "qlib.cli.run:run"
 [tool.setuptools_scm]
 local_scheme = "no-local-version"
 version_scheme = "guess-next-dev"
+write_to = "qlib/_version.py"

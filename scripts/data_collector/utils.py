@@ -7,7 +7,6 @@ import importlib
 import time
 import bisect
 import pickle
-import random
 import requests
 import functools
 from pathlib import Path
@@ -80,28 +79,14 @@ def get_calendar_list(bench_code="CSI300") -> List[pd.Timestamp]:
             calendar = df.index.get_level_values(level="date").map(pd.Timestamp).unique().tolist()
         else:
             if bench_code.upper() == "ALL":
+                import akshare as ak  # pylint: disable=C0415
 
-                @deco_retry
-                def _get_calendar(month):
-                    _cal = []
-                    try:
-                        resp = requests.get(
-                            SZSE_CALENDAR_URL.format(month=month, random=random.random), timeout=None
-                        ).json()
-                        for _r in resp["data"]:
-                            if int(_r["jybz"]):
-                                _cal.append(pd.Timestamp(_r["jyrq"]))
-                    except Exception as e:
-                        raise ValueError(f"{month}-->{e}") from e
-                    return _cal
-
-                month_range = pd.date_range(start="2000-01", end=pd.Timestamp.now() + pd.Timedelta(days=31), freq="M")
-                calendar = []
-                for _m in month_range:
-                    cal = _get_calendar(_m.strftime("%Y-%m"))
-                    if cal:
-                        calendar += cal
-                calendar = list(filter(lambda x: x <= pd.Timestamp.now(), calendar))
+                trade_date_df = ak.tool_trade_date_hist_sina()
+                trade_date_list = trade_date_df["trade_date"].tolist()
+                trade_date_list = [pd.Timestamp(d) for d in trade_date_list]
+                dates = pd.DatetimeIndex(trade_date_list)
+                filtered_dates = dates[(dates >= "2000-01-04") & (dates <= pd.Timestamp.today().normalize())]
+                calendar = filtered_dates.tolist()
             else:
                 calendar = _get_calendar(CALENDAR_BENCH_URL_MAP[bench_code])
         _CALENDAR_MAP[bench_code] = calendar

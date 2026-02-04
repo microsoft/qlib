@@ -7,12 +7,14 @@ import sys
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 from typing import List
+from io import StringIO
 
 import fire
 import requests
 import pandas as pd
 from tqdm import tqdm
 from loguru import logger
+from fake_useragent import UserAgent
 
 
 CUR_DIR = Path(__file__).resolve().parent
@@ -51,6 +53,7 @@ class WIKIIndex(IndexBase):
         )
 
         self._target_url = f"{WIKI_URL}/{WIKI_INDEX_NAME_MAP[self.index_name.upper()]}"
+        self._ua = UserAgent()
 
     @property
     @abc.abstractmethod
@@ -112,7 +115,8 @@ class WIKIIndex(IndexBase):
         return _calendar_list
 
     def _request_new_companies(self) -> requests.Response:
-        resp = requests.get(self._target_url, timeout=None)
+        headers = {"User-Agent": self._ua.random}
+        resp = requests.get(self._target_url, timeout=None, headers=headers)
         if resp.status_code != 200:
             raise ValueError(f"request error: {self._target_url}")
 
@@ -128,7 +132,7 @@ class WIKIIndex(IndexBase):
     def get_new_companies(self):
         logger.info(f"get new companies {self.index_name} ......")
         _data = deco_retry(retry=self._request_retry, retry_sleep=self._retry_sleep)(self._request_new_companies)()
-        df_list = pd.read_html(_data.text)
+        df_list = pd.read_html(StringIO(_data.text))
         for _df in df_list:
             _df = self.filter_df(_df)
             if (_df is not None) and (not _df.empty):
@@ -226,7 +230,11 @@ class SP500Index(WIKIIndex):
     def get_changes(self) -> pd.DataFrame:
         logger.info(f"get sp500 history changes......")
         # NOTE: may update the index of the table
-        changes_df = pd.read_html(self.WIKISP500_CHANGES_URL)[-1]
+        # Add headers to avoid 403 Forbidden error from Wikipedia
+        headers = {"User-Agent": self._ua.random}
+        response = requests.get(self.WIKISP500_CHANGES_URL, headers=headers, timeout=None)
+        response.raise_for_status()
+        changes_df = pd.read_html(StringIO(response.text))[-1]
         changes_df = changes_df.iloc[:, [0, 1, 3]]
         changes_df.columns = [self.DATE_FIELD_NAME, self.ADD, self.REMOVE]
         changes_df[self.DATE_FIELD_NAME] = pd.to_datetime(changes_df[self.DATE_FIELD_NAME])
