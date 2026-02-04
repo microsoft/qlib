@@ -244,5 +244,6 @@ def report_graph(report_df: pd.DataFrame, show_notebook: bool = True) -> [list, 
     fig_list = _report_figure(report_df)
     if show_notebook:
         BaseGraph.show_graph_in_notebook(fig_list)
+        return None
     else:
         return fig_list

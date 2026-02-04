@@ -1205,6 +1205,8 @@ class LocalProvider(BaseProvider):
             return Inst._uri(**kwargs)
         elif type == "feature":
             return DatasetD._uri(**kwargs)
+        else:
+            raise ValueError(f"Unknown type: {type}. Expected 'calendar', 'instrument', or 'feature'.")
 
     def features_uri(self, instruments, fields, start_time, end_time, freq, disk_cache=1):
         """features_uri

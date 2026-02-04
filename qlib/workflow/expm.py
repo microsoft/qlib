@@ -384,7 +384,7 @@ class MLflowExpManager(ExpManager):
                 raise ValueError(
                     "No valid experiment has been found, please make sure the input experiment id is correct."
                 ) from e
-        elif experiment_name is not None:
+        else:  # experiment_name is not None (guaranteed by assert above)
             try:
                 exp = self.client.get_experiment_by_name(experiment_name)
                 if exp is None or exp.lifecycle_stage.upper() == "DELETED":
