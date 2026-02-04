@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python:*)",
+      "Bash(dir:*)",
+      "Bash(findstr:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m:*)",
+      "Bash(tee:*)",
+      "Bash(ls:*)"
+    ]
+  }
+}

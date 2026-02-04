@@ -12,7 +12,27 @@ data:
 
 # 训练配置
 train:
-  model: LightGBM
+  # 模型选择: LightGBM, XGBoost, catboost_model, pytorch_gru
+  model: pytorch_gru
+
+  # 可选: 自定义模型配置 (覆盖预设模板)
+  # model_config:
+  #   class: LGBModel
+  #   module_path: qlib.contrib.model.gbdt
+  #   kwargs:
+  #     loss: mse
+  #     colsample_bytree: 0.8879
+  #     learning_rate: 0.02
+  #     subsample: 0.8789
+  #     lambda_l1: 205.6999
+  #     lambda_l2: 580.9768
+  #     max_depth: 8
+  #     num_leaves: 210
+  #     num_threads: 20
+
+  # LSTM/GRU 专用配置
+  # step_len: 20
+
   instruments: csi300
   segments:
     train: [2008-01-01, 2014-12-31]

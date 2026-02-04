@@ -62,9 +62,129 @@ def get_data_handler_config(data_config, train_config):
     }
 
 
+def get_model_config(train_config):
+    """
+    获取模型配置
+
+    支持多种模型，通过 train_config 中的 model 字段指定:
+    - LightGBM: qlib.contrib.model.gbdt (LGBModel)
+    - XGBoost: qlib.contrib.model.xgboost (XGBModel)
+    - Linear: qlib.contrib.model.linear (LinearModel)
+    - CatBoost: qlib.contrib.model.catboost (CatBoostModel)
+
+    Parameters
+    ----------
+    train_config : dict
+        训练配置，包含 model 字段
+
+    Returns
+    -------
+    dict
+        模型配置字典
+    """
+    model_name = train_config.get('model', 'LightGBM')
+
+    # 基础模型配置模板
+    model_configs = {
+        'LightGBM': {
+            "class": "LGBModel",
+            "module_path": "qlib.contrib.model.gbdt",
+            "kwargs": {
+                "loss": "mse",
+                "colsample_bytree": 0.8879,
+                "learning_rate": 0.02,
+                "subsample": 0.8789,
+                "lambda_l1": 205.6999,
+                "lambda_l2": 580.9768,
+                "max_depth": 8,
+                "num_leaves": 210,
+                "num_threads": 20,
+            },
+        },
+        'XGBoost': {
+            "class": "XGBModel",
+            "module_path": "qlib.contrib.model.xgboost",
+            "kwargs": {
+                "eval_metric": "rmse",
+                "colsample_bytree": 0.8879,
+                "eta": 0.0421,
+                "max_depth": 8,
+                "n_estimators": 647,
+                "subsample": 0.8789,
+                "nthread": 20,
+            },
+        },
+        'Linear': {
+            "class": "LinearModel",
+            "module_path": "qlib.contrib.model.linear",
+            "kwargs": {
+                "reg": 0.0001,
+            },
+        },
+        'CatBoost': {
+            "class": "CatBoostModel",
+            "module_path": "qlib.contrib.model.catboost",
+            "kwargs": {
+                "loss_function": "RMSE",
+                "iterations": 500,
+                "learning_rate": 0.03,
+                "depth": 6,
+                "l2_leaf_reg": 3,
+                "random_seed": 42,
+                "thread_count": 20,
+            },
+        },
+        'LSTM': {
+            "class": "LSTM",
+            "module_path": "qlib.contrib.model.pytorch_lstm_ts",
+            "kwargs": {
+                "d_feat": 20,
+                "hidden_size": 64,
+                "num_layers": 2,
+                "dropout": 0.0,
+                "n_epochs": 200,
+                "lr": 1e-3,
+                "early_stop": 10,
+                "batch_size": 800,
+                "metric": "loss",
+                "loss": "mse",
+                "n_jobs": 20,
+                "GPU": 0,
+            },
+        },
+        'GRU': {
+            "class": "GRU",
+            "module_path": "qlib.contrib.model.pytorch_gru",
+            "kwargs": {
+                "d_feat": 20,
+                "hidden_size": 64,
+                "num_layers": 2,
+                "dropout": 0.0,
+                "n_epochs": 200,
+                "lr": 1e-3,
+                "early_stop": 10,
+                "batch_size": 800,
+                "metric": "loss",
+                "loss": "mse",
+                "n_jobs": 20,
+                "GPU": 0,
+            },
+        },
+    }
+
+    # 检查是否有自定义模型配置
+    if 'model_config' in train_config:
+        # 使用配置文件中的自定义模型配置
+        return train_config['model_config']
+
+    # 使用预设模板，支持大小写不敏感匹配
+    model_key = next((k for k in model_configs.keys() if k.lower() == model_name.lower()), 'LightGBM')
+    return model_configs[model_key]
+
+
 def get_dataset_config(handler_config, train_config):
     """获取数据集配置"""
-    return {
+    dataset_config = {
         "class": "DatasetH",
         "module_path": "qlib.data.dataset",
         "kwargs": {
@@ -81,24 +201,13 @@ def get_dataset_config(handler_config, train_config):
         },
     }
 
+    # 对于时序模型(LSTM, GRU等)，使用 TSDatasetH
+    model_name = train_config.get('model', '').lower()
+    if model_name in ['lstm', 'gru']:
+        dataset_config["class"] = "TSDatasetH"
+        dataset_config["kwargs"]["step_len"] = train_config.get('step_len', 20)
 
-def get_model_config():
-    """获取模型配置"""
-    return {
-        "class": "LGBModel",
-        "module_path": "qlib.contrib.model.gbdt",
-        "kwargs": {
-            "loss": "mse",
-            "colsample_bytree": 0.8879,
-            "learning_rate": 0.02,
-            "subsample": 0.8789,
-            "lambda_l1": 205.6999,
-            "lambda_l2": 580.9768,
-            "max_depth": 8,
-            "num_leaves": 210,
-            "num_threads": 20,
-        },
-    }
+    return dataset_config
 
 
 def get_port_analysis_config(backtest_config, model, dataset):
@@ -167,7 +276,7 @@ def train(config_path=None):
     # 构建配置
     handler_config = get_data_handler_config(data_config, train_config)
     dataset_config = get_dataset_config(handler_config, train_config)
-    model_config = get_model_config()
+    model_config = get_model_config(train_config)
 
     # 初始化模型和数据集
     logger.info("初始化模型...")
@@ -359,12 +468,45 @@ def plot(recorder_id: str = None, experiment_name: str = None, config_path: str 
     logger.info(f"生成的文件: {list(results['saved_files'].keys())}")
 
 
+def create_config(model: str = "LightGBM", config_path: str = None):
+    """
+    生成指定模型的配置文件
+
+    Parameters
+    ----------
+    model : str
+        模型名称: LightGBM, XGBoost, Linear, CatBoost, LSTM, GRU
+    config_path : str
+        配置文件路径
+    """
+    base_config = load_config(Path(__file__).parent / "config.yaml")
+    base_config['train']['model'] = model
+
+    # 移除自定义配置，使用默认模板
+    if 'model_config' in base_config['train']:
+        del base_config['train']['model_config']
+
+    if config_path is None:
+        config_path = Path(__file__).parent / f"config_{model.lower()}.yaml"
+    else:
+        config_path = Path(config_path)
+
+    with open(config_path, 'w', encoding='utf-8') as f:
+        yaml.dump(base_config, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
+
+    logger.info(f"配置文件已生成: {config_path}")
+    logger.info(f"使用模型: {model}")
+    logger.info("\n使用方法:")
+    logger.info(f"  python train.py train --config {config_path}")
+
+
 def main():
     """主函数"""
     fire.Fire({
         'train': train,
         'dump_bin': dump_bin,
         'plot': plot,
+        'create_config': create_config,
     })
 
 
