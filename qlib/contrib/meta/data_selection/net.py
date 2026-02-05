@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from torch import nn
 
-from .utils import preds_to_weight_with_clamp, SingleMetaBase
+from .utils import SingleMetaBase, preds_to_weight_with_clamp
 
 
 class TimeWeightMeta(SingleMetaBase):

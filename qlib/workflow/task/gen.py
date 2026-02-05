@@ -5,10 +5,12 @@ TaskGenerator module can generate many tasks based on TaskGen and some task temp
 """
 import abc
 import copy
+from typing import Callable, Dict, List, Union
+
 import pandas as pd
-from typing import Dict, List, Union, Callable
 
 from qlib.utils import transform_end_date
+
 from .utils import TimeAdjuster
 
 

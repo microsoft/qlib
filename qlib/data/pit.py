@@ -15,8 +15,10 @@ Qlib will use the operator `P` to perform the collapse.
 """
 import numpy as np
 import pandas as pd
+
 from qlib.data.ops import ElemOperator
 from qlib.log import get_module_logger
+
 from .data import Cal
 
 

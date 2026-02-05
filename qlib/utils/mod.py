@@ -10,10 +10,10 @@ All module related class, e.g. :
 import contextlib
 import importlib
 import os
-from pathlib import Path
 import pkgutil
 import re
 import sys
+from pathlib import Path
 from types import ModuleType
 from typing import Any, Dict, List, Tuple, Union
 from urllib.parse import urlparse

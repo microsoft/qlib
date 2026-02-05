@@ -1,17 +1,17 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from pathlib import Path
 from concurrent.futures import ProcessPoolExecutor
+from pathlib import Path
+
+import datacompy
+import fire
+import pandas as pd
+from loguru import logger
+from tqdm import tqdm
 
 import qlib
 from qlib.data import D
-
-import fire
-import datacompy
-import pandas as pd
-from tqdm import tqdm
-from loguru import logger
 
 
 class CheckBin:

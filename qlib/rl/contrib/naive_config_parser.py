@@ -7,8 +7,8 @@ import shutil
 import sys
 import tempfile
 from importlib import import_module
-from ruamel.yaml import YAML
 
+from ruamel.yaml import YAML
 
 DELETE_KEY = "_delete_"
 

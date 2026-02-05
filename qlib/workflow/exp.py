@@ -2,12 +2,15 @@
 # Licensed under the MIT License.
 
 from typing import Dict, List, Union
-from qlib.typehint import Literal
+
 import mlflow
 from mlflow.entities import ViewType
 from mlflow.exceptions import MlflowException
-from .recorder import Recorder, MLflowRecorder
+
+from qlib.typehint import Literal
+
 from ..log import get_module_logger
+from .recorder import MLflowRecorder, Recorder
 
 logger = get_module_logger("workflow")
 

@@ -2,17 +2,18 @@
 # Licensed under the MIT License.
 
 import abc
-import sys
 import datetime
 import json
+import sys
 from abc import ABC
 from pathlib import Path
 
 import fire
-import requests
 import pandas as pd
-from loguru import logger
+import requests
 from dateutil.tz import tzlocal
+from loguru import logger
+
 from qlib.constant import REG_CN as REGION_CN
 
 CUR_DIR = Path(__file__).resolve().parent

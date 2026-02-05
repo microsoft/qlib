@@ -2,9 +2,10 @@
 # Licensed under the MIT License.
 
 import inspect
+from typing import Union
+
 import numpy as np
 import pandas as pd
-from typing import Union
 
 from qlib.model.base import BaseModel
 

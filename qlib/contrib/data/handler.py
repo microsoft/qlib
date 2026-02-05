@@ -1,12 +1,14 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+from inspect import getfullargspec
+
 from qlib.contrib.data.loader import Alpha158DL, Alpha360DL
+
+from ...data.dataset import processor as processor_module
 from ...data.dataset.handler import DataHandlerLP
 from ...data.dataset.processor import Processor
 from ...utils import get_callable_kwargs
-from ...data.dataset import processor as processor_module
-from inspect import getfullargspec
 
 
 def check_transform_proc(proc_l, fit_start_time, fit_end_time):

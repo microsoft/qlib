@@ -2,16 +2,15 @@
 # Licensed under the MIT License.
 
 
-from __future__ import division
-from __future__ import print_function
+from __future__ import division, print_function
+
+from collections import OrderedDict
 
 import numpy as np
 import pandas as pd
-from scipy.stats import spearmanr, pearsonr
+from scipy.stats import pearsonr, spearmanr
 
 from ..data import D
-
-from collections import OrderedDict
 
 
 def _get_position_value_from_df(evaluate_date, position, close_data_df):

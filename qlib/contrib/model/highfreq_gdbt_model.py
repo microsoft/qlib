@@ -2,13 +2,14 @@
 # Licensed under the MIT License.
 
 import warnings
+
+import lightgbm as lgb
 import numpy as np
 import pandas as pd
-import lightgbm as lgb
 
-from ...model.base import ModelFT
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
+from ...model.base import ModelFT
 from ...model.interpret.base import LightGBMFInt
 
 

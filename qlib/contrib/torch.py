@@ -5,9 +5,9 @@ This module is not a necessary part of Qlib.
 They are just some tools for convenience
 It is should not imported into the core part of qlib
 """
-import torch
 import numpy as np
 import pandas as pd
+import torch
 
 
 def data_to_tensor(data, device="cpu", raise_error=False):

@@ -7,11 +7,12 @@
 # - pip fail to computing the right version number!!!!
 #    - Maybe we can solve this problem by poetry
 
+import pandas as pd
+import pymongo
+
 # FIXME: So if you want to use arctic-based provider, please install arctic manually
 # `pip install arctic` may not be enough.
 from arctic import Arctic
-import pandas as pd
-import pymongo
 
 from qlib.data.data import FeatureProvider
 

@@ -6,13 +6,15 @@
 
 import pathlib
 import pickle
+
 import pandas as pd
 from ruamel.yaml import YAML
-from ...data import D
+
+from ...backtest.exchange import Exchange
 from ...config import C
+from ...data import D
 from ...log import get_module_logger
 from ...utils import get_next_trading_date
-from ...backtest.exchange import Exchange
 
 log = get_module_logger("utils")
 

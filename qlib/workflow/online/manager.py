@@ -88,6 +88,7 @@ import logging
 from typing import Callable, List, Union
 
 import pandas as pd
+
 from qlib import get_module_logger
 from qlib.data.data import D
 from qlib.log import set_global_logger_level

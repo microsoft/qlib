@@ -8,6 +8,7 @@ from typing import NamedTuple, Optional
 
 import numpy as np
 import pandas as pd
+
 from qlib.backtest import Order
 from qlib.typehint import TypedDict
 

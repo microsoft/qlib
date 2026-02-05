@@ -1,17 +1,15 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-import math
 import importlib
+import math
 from typing import Iterable
 
 import pandas as pd
-
-import plotly.offline as py
 import plotly.graph_objs as go
-
-from plotly.subplots import make_subplots
+import plotly.offline as py
 from plotly.figure_factory import create_distplot
+from plotly.subplots import make_subplots
 
 
 class BaseGraph:

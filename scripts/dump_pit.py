@@ -8,17 +8,18 @@ TODO:
 
 import shutil
 import struct
+from concurrent.futures import ProcessPoolExecutor
+from functools import partial
 from pathlib import Path
 from typing import Iterable
-from functools import partial
-from concurrent.futures import ProcessPoolExecutor
 
 import fire
 import pandas as pd
-from tqdm import tqdm
 from loguru import logger
-from qlib.utils import fname_to_code, get_period_offset
+from tqdm import tqdm
+
 from qlib.config import C
+from qlib.utils import fname_to_code, get_period_offset
 
 
 class DumpPitData:

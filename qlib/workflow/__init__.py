@@ -15,12 +15,13 @@ To be honest, design always add burdens. For example,
 """
 
 from contextlib import contextmanager
-from typing import Text, Optional, Any, Dict
-from .expm import ExpManager
-from .exp import Experiment
-from .recorder import Recorder
+from typing import Any, Dict, Optional, Text
+
 from ..utils import Wrapper
 from ..utils.exceptions import RecorderInitializationError
+from .exp import Experiment
+from .expm import ExpManager
+from .recorder import Recorder
 
 
 class QlibRecorder:

@@ -4,14 +4,13 @@
 import abc
 import importlib
 from pathlib import Path
-from typing import Union, Iterable, List
-
-import fire
-import numpy as np
-import pandas as pd
+from typing import Iterable, List, Union
 
 # pip install baostock
 import baostock as bs
+import fire
+import numpy as np
+import pandas as pd
 from loguru import logger
 
 

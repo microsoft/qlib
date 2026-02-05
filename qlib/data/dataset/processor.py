@@ -2,17 +2,19 @@
 # Licensed under the MIT License.
 
 import abc
-from typing import Union, Text, Optional
+from typing import Optional, Text, Union
+
 import numpy as np
 import pandas as pd
 
-from qlib.utils.data import robust_zscore, zscore
-from ...constant import EPS
-from .utils import fetch_df_by_index
-from ...utils.serial import Serializable
-from ...utils.paral import datetime_groupby_apply
-from qlib.data.inst_processor import InstProcessor
 from qlib.data import D
+from qlib.data.inst_processor import InstProcessor
+from qlib.utils.data import robust_zscore, zscore
+
+from ...constant import EPS
+from ...utils.paral import datetime_groupby_apply
+from ...utils.serial import Serializable
+from .utils import fetch_df_by_index
 
 
 def get_group_columns(df: pd.DataFrame, group: Union[Text, None]):

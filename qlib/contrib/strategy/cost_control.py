@@ -1,6 +1,8 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+import copy
+
 from .order_generator import OrderGenWInteract
 from .signal_strategy import WeightStrategyBase
 

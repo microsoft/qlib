@@ -1,33 +1,29 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-from __future__ import division
-from __future__ import print_function
+from __future__ import division, print_function
 
-from torch.utils.data import DataLoader
-
+import copy
+from typing import Union
 
 import numpy as np
 import pandas as pd
-from typing import Union
-import copy
-
 import torch
 import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.utils.data import DataLoader
 
 from qlib.data.dataset.weight import Reweighter
 
-from .pytorch_utils import count_parameters
-from ...model.base import Model
 from ...data.dataset import DatasetH, TSDatasetH
 from ...data.dataset.handler import DataHandlerLP
-from ...utils import (
-    init_instance_by_config,
-    get_or_create_path,
-)
 from ...log import get_module_logger
-
+from ...model.base import Model
 from ...model.utils import ConcatDataset
+from ...utils import (
+    get_or_create_path,
+    init_instance_by_config,
+)
+from .pytorch_utils import count_parameters
 
 
 class GeneralPTNN(Model):
