@@ -103,7 +103,7 @@ jobs:
 
     - name: Unit tests with Pytest (MacOS)
       if: ${{ matrix.os == 'macos-14' || matrix.os == 'macos-15' }}
-      uses: nick-fields/retry@v2
+      uses: nick-fields/retry@v3
       with:
         timeout_minutes: 60
         max_attempts: 3
@@ -119,7 +119,7 @@ jobs:
 
     - name: Unit tests with Pytest (Ubuntu and Windows)
       if: ${{ matrix.os != 'macos-13' && matrix.os != 'macos-14' && matrix.os != 'macos-15' }}
-      uses: nick-fields/retry@v2
+      uses: nick-fields/retry@v3
       with:
         timeout_minutes: 60
         max_attempts: 3
