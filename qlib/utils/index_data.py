@@ -115,6 +115,11 @@ class Index:
             if isinstance(idx_list[0], np.datetime64) and not all(x.dtype == idx_list[0].dtype for x in idx_list):
                 raise TypeError("All elements in idx_list must be of the same datetime64 precision")
             self.idx_list = np.array(idx_list)
+            # Normalize datetime64 to nanosecond precision for consistent hashing
+            # Different precisions (e.g. 'ns' vs 's') are equal but have different hashes,
+            # which breaks dict lookups and set operations (see issue #1806)
+            if self.idx_list.dtype.kind == "M":
+                self.idx_list = self.idx_list.astype("datetime64[ns]")
             # NOTE: only the first appearance is indexed
             self.index_map = dict(zip(self.idx_list, range(len(self))))
             self._is_sorted = False
