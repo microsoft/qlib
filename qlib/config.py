@@ -4,7 +4,7 @@
 About the configs
 =================
 
-The config will be based on _default_config.
+The config will be based on QlibConfigModel (a Pydantic BaseModel).
 Two modes are supported
 - client
 - server
@@ -19,7 +19,7 @@ import logging
 import platform
 import multiprocessing
 from pathlib import Path
-from typing import Callable, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 from typing import TYPE_CHECKING
 
 from qlib.constant import REG_CN, REG_US, REG_TW
@@ -27,6 +27,7 @@ from qlib.constant import REG_CN, REG_US, REG_TW
 if TYPE_CHECKING:
     from qlib.utils.time import Freq
 
+from pydantic import BaseModel, ConfigDict, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -60,31 +61,175 @@ class QSettings(BaseSettings):
 QSETTINGS = QSettings()
 
 
+# pickle.dump protocol version: https://docs.python.org/3/library/pickle.html#data-stream-format
+PROTOCOL_VERSION = 4
+
+NUM_USABLE_CPU = max(multiprocessing.cpu_count() - 2, 1)
+
+DISK_DATASET_CACHE = "DiskDatasetCache"
+SIMPLE_DATASET_CACHE = "SimpleDatasetCache"
+DISK_EXPRESSION_CACHE = "DiskExpressionCache"
+
+DEPENDENCY_REDIS_CACHE = (DISK_DATASET_CACHE, DISK_EXPRESSION_CACHE)
+
+
+class QlibConfigModel(BaseModel):
+    """Pydantic model defining all typed configuration fields for Qlib.
+
+    This model provides type annotations, default values, and validation
+    for Qlib's configuration. It uses ``extra="allow"`` so that dynamic
+    keys (e.g. ``flask_server``, ``region``, ``mount_path``) can be set
+    at runtime via ``set_mode()`` or ``set()``.
+    """
+
+    model_config = ConfigDict(extra="allow", arbitrary_types_allowed=True)
+
+    # --- Data provider config ---
+    calendar_provider: str = "LocalCalendarProvider"
+    instrument_provider: str = "LocalInstrumentProvider"
+    feature_provider: str = "LocalFeatureProvider"
+    pit_provider: str = "LocalPITProvider"
+    expression_provider: str = "LocalExpressionProvider"
+    dataset_provider: str = "LocalDatasetProvider"
+    provider: str = "LocalProvider"
+    # provider_uri can be a str or a dict mapping freq -> uri
+    provider_uri: Union[str, Dict[str, str]] = ""
+
+    # --- Cache config ---
+    expression_cache: Optional[str] = None
+    calendar_cache: Optional[str] = None
+    local_cache_path: Optional[Union[str, Path]] = None
+    default_disk_cache: int = 1  # 0: skip / 1: use
+    mem_cache_size_limit: int = 500
+    mem_cache_limit_type: str = "length"
+    mem_cache_expire: int = 60 * 60  # 1 hour
+    dataset_cache_dir_name: str = "dataset_cache"
+    features_cache_dir_name: str = "features_cache"
+
+    # --- Parallel processing config ---
+    # kernels can be a fixed int or a callable (freq: str) -> int
+    kernels: Union[int, Callable] = NUM_USABLE_CPU
+    dump_protocol_version: int = PROTOCOL_VERSION
+    maxtasksperchild: Optional[int] = None
+    joblib_backend: Optional[str] = "multiprocessing"
+
+    # --- Redis config ---
+    redis_host: str = "127.0.0.1"
+    redis_port: int = 6379
+    redis_task_db: int = 1
+    redis_password: Optional[str] = None
+
+    # --- Logging config ---
+    logging_level: int = logging.INFO
+    logging_config: Dict[str, Any] = Field(
+        default_factory=lambda: {
+            "version": 1,
+            "formatters": {
+                "logger_format": {
+                    "format": "[%(process)s:%(threadName)s](%(asctime)s) %(levelname)s"
+                    " - %(name)s - [%(filename)s:%(lineno)d] - %(message)s"
+                }
+            },
+            "filters": {
+                "field_not_found": {
+                    "()": "qlib.log.LogFilter",
+                    "param": [".*?WARN: data not found for.*?"],
+                }
+            },
+            "handlers": {
+                "console": {
+                    "class": "logging.StreamHandler",
+                    "level": logging.DEBUG,
+                    "formatter": "logger_format",
+                    "filters": ["field_not_found"],
+                }
+            },
+            "loggers": {"qlib": {"level": logging.DEBUG, "handlers": ["console"], "propagate": False}},
+            "disable_existing_loggers": False,
+        }
+    )
+
+    # --- Experiment manager config ---
+    exp_manager: Dict[str, Any] = Field(
+        default_factory=lambda: {
+            "class": "MLflowExpManager",
+            "module_path": "qlib.workflow.expm",
+            "kwargs": {
+                "uri": QSETTINGS.mlflow.uri,
+                "default_exp_name": QSETTINGS.mlflow.default_exp_name,
+            },
+        }
+    )
+
+    # --- PIT record config ---
+    pit_record_type: Dict[str, str] = Field(
+        default_factory=lambda: {
+            "date": "I",  # uint32
+            "period": "I",  # uint32
+            "value": "d",  # float64
+            "index": "I",  # uint32
+        }
+    )
+    pit_record_nan: Dict[str, Any] = Field(
+        default_factory=lambda: {
+            "date": 0,
+            "period": 0,
+            "value": float("NAN"),
+            "index": 0xFFFFFFFF,
+        }
+    )
+
+    # --- MongoDB config ---
+    mongo: Dict[str, str] = Field(
+        default_factory=lambda: {
+            "task_url": "mongodb://localhost:27017/",
+            "task_db_name": "default_task_db",
+        }
+    )
+
+    # --- Misc ---
+    min_data_shift: int = 0
+
+
 class Config:
-    def __init__(self, default_conf):
-        self.__dict__["_default_config"] = copy.deepcopy(default_conf)  # avoiding conflicts with __getattr__
-        self.reset()
+    """Backward-compatible config wrapper around :class:`QlibConfigModel`.
+
+    Supports both dictionary-style (``C["key"]``) and attribute-style
+    (``C.key``) access, as well as ``update()``, ``reset()``, and pickle
+    serialization.
+    """
+
+    def __init__(self, default_conf=None):
+        # Store in __dict__ directly to avoid triggering __setattr__
+        self.__dict__["_default_model"] = QlibConfigModel()
+        if default_conf is not None:
+            # Apply the legacy default_conf dict as initial overrides
+            self.__dict__["_default_model"] = QlibConfigModel(**default_conf)
+        self.__dict__["_model"] = self.__dict__["_default_model"].model_copy(deep=True)
 
     def __getitem__(self, key):
-        return self.__dict__["_config"][key]
+        try:
+            return getattr(self.__dict__["_model"], key)
+        except AttributeError:
+            raise KeyError(key)
 
     def __getattr__(self, attr):
-        if attr in self.__dict__["_config"]:
-            return self.__dict__["_config"][attr]
-
-        raise AttributeError(f"No such `{attr}` in self._config")
+        try:
+            return getattr(self.__dict__["_model"], attr)
+        except AttributeError:
+            raise AttributeError(f"No such `{attr}` in self._config")
 
     def get(self, key, default=None):
-        return self.__dict__["_config"].get(key, default)
+        return getattr(self.__dict__["_model"], key, default)
 
     def __setitem__(self, key, value):
-        self.__dict__["_config"][key] = value
+        setattr(self.__dict__["_model"], key, value)
 
     def __setattr__(self, attr, value):
-        self.__dict__["_config"][attr] = value
+        setattr(self.__dict__["_model"], attr, value)
 
     def __contains__(self, item):
-        return item in self.__dict__["_config"]
+        return hasattr(self.__dict__["_model"], item)
 
     def __getstate__(self):
         return self.__dict__
@@ -93,19 +238,27 @@ class Config:
         self.__dict__.update(state)
 
     def __str__(self):
-        return str(self.__dict__["_config"])
+        return str(self.__dict__["_model"].model_dump())
 
     def __repr__(self):
-        return str(self.__dict__["_config"])
+        return str(self.__dict__["_model"].model_dump())
 
     def reset(self):
-        self.__dict__["_config"] = copy.deepcopy(self._default_config)
+        self.__dict__["_model"] = self.__dict__["_default_model"].model_copy(deep=True)
 
     def update(self, *args, **kwargs):
-        self.__dict__["_config"].update(*args, **kwargs)
+        d = dict(*args, **kwargs)
+        for k, v in d.items():
+            setattr(self.__dict__["_model"], k, v)
 
     def set_conf_from_C(self, config_c):
-        self.update(**config_c.__dict__["_config"])
+        model = config_c.__dict__["_model"]
+        for k, v in model.model_dump().items():
+            setattr(self.__dict__["_model"], k, v)
+        # Also copy extra fields
+        if hasattr(model, "__pydantic_extra__") and model.__pydantic_extra__:
+            for k, v in model.__pydantic_extra__.items():
+                setattr(self.__dict__["_model"], k, v)
 
     @staticmethod
     def register_from_C(config, skip_register=True):
@@ -119,132 +272,6 @@ class Config:
             set_log_with_config(C.logging_config)
         C.register()
 
-
-# pickle.dump protocol version: https://docs.python.org/3/library/pickle.html#data-stream-format
-PROTOCOL_VERSION = 4
-
-NUM_USABLE_CPU = max(multiprocessing.cpu_count() - 2, 1)
-
-DISK_DATASET_CACHE = "DiskDatasetCache"
-SIMPLE_DATASET_CACHE = "SimpleDatasetCache"
-DISK_EXPRESSION_CACHE = "DiskExpressionCache"
-
-DEPENDENCY_REDIS_CACHE = (DISK_DATASET_CACHE, DISK_EXPRESSION_CACHE)
-
-_default_config = {
-    # data provider config
-    "calendar_provider": "LocalCalendarProvider",
-    "instrument_provider": "LocalInstrumentProvider",
-    "feature_provider": "LocalFeatureProvider",
-    "pit_provider": "LocalPITProvider",
-    "expression_provider": "LocalExpressionProvider",
-    "dataset_provider": "LocalDatasetProvider",
-    "provider": "LocalProvider",
-    # config it in qlib.init()
-    # "provider_uri" str or dict:
-    #   # str
-    #   "~/.qlib/stock_data/cn_data"
-    #   # dict
-    #   {"day": "~/.qlib/stock_data/cn_data", "1min": "~/.qlib/stock_data/cn_data_1min"}
-    # NOTE: provider_uri priority:
-    #   1. backend_config: backend_obj["kwargs"]["provider_uri"]
-    #   2. backend_config: backend_obj["kwargs"]["provider_uri_map"]
-    #   3. qlib.init: provider_uri
-    "provider_uri": "",
-    # cache
-    "expression_cache": None,
-    "calendar_cache": None,
-    # for simple dataset cache
-    "local_cache_path": None,
-    # kernels can be a fixed value or a callable function lie `def (freq: str) -> int`
-    # If the kernels are arctic_kernels, `min(NUM_USABLE_CPU, 30)` may be a good value
-    "kernels": NUM_USABLE_CPU,
-    # pickle.dump protocol version
-    "dump_protocol_version": PROTOCOL_VERSION,
-    # How many tasks belong to one process. Recommend 1 for high-frequency data and None for daily data.
-    "maxtasksperchild": None,
-    # If joblib_backend is None, use loky
-    "joblib_backend": "multiprocessing",
-    "default_disk_cache": 1,  # 0:skip/1:use
-    "mem_cache_size_limit": 500,
-    "mem_cache_limit_type": "length",
-    # memory cache expire second, only in used 'DatasetURICache' and 'client D.calendar'
-    # default 1 hour
-    "mem_cache_expire": 60 * 60,
-    # cache dir name
-    "dataset_cache_dir_name": "dataset_cache",
-    "features_cache_dir_name": "features_cache",
-    # redis
-    # in order to use cache
-    "redis_host": "127.0.0.1",
-    "redis_port": 6379,
-    "redis_task_db": 1,
-    "redis_password": None,
-    # This value can be reset via qlib.init
-    "logging_level": logging.INFO,
-    # Global configuration of qlib log
-    # logging_level can control the logging level more finely
-    "logging_config": {
-        "version": 1,
-        "formatters": {
-            "logger_format": {
-                "format": "[%(process)s:%(threadName)s](%(asctime)s) %(levelname)s - %(name)s - [%(filename)s:%(lineno)d] - %(message)s"
-            }
-        },
-        "filters": {
-            "field_not_found": {
-                "()": "qlib.log.LogFilter",
-                "param": [".*?WARN: data not found for.*?"],
-            }
-        },
-        "handlers": {
-            "console": {
-                "class": "logging.StreamHandler",
-                "level": logging.DEBUG,
-                "formatter": "logger_format",
-                "filters": ["field_not_found"],
-            }
-        },
-        # Normally this should be set to `False` to avoid duplicated logging [1].
-        # However, due to bug in pytest, it requires log message to propagate to root logger to be captured by `caplog` [2].
-        # [1] https://github.com/microsoft/qlib/pull/1661
-        # [2] https://github.com/pytest-dev/pytest/issues/3697
-        "loggers": {"qlib": {"level": logging.DEBUG, "handlers": ["console"], "propagate": False}},
-        # To let qlib work with other packages, we shouldn't disable existing loggers.
-        # Note that this param is default to True according to the documentation of logging.
-        "disable_existing_loggers": False,
-    },
-    # Default config for experiment manager
-    "exp_manager": {
-        "class": "MLflowExpManager",
-        "module_path": "qlib.workflow.expm",
-        "kwargs": {
-            "uri": QSETTINGS.mlflow.uri,
-            "default_exp_name": QSETTINGS.mlflow.default_exp_name,
-        },
-    },
-    "pit_record_type": {
-        "date": "I",  # uint32
-        "period": "I",  # uint32
-        "value": "d",  # float64
-        "index": "I",  # uint32
-    },
-    "pit_record_nan": {
-        "date": 0,
-        "period": 0,
-        "value": float("NAN"),
-        "index": 0xFFFFFFFF,
-    },
-    # Default config for MongoDB
-    "mongo": {
-        "task_url": "mongodb://localhost:27017/",
-        "task_db_name": "default_task_db",
-    },
-    # Shift minute for highfreq minute data, used in backtest
-    # if min_data_shift == 0, use default market time [9:30, 11:29, 1:00, 2:59]
-    # if min_data_shift != 0, use shifted market time [9:30, 11:29, 1:00, 2:59] - shift*minute
-    "min_data_shift": 0,
-}
 
 MODE_CONF = {
     "server": {
@@ -317,9 +344,9 @@ class QlibConfig(Config):
     NFS_URI = "nfs"
     DEFAULT_FREQ = "__DEFAULT_FREQ"
 
-    def __init__(self, default_conf):
+    def __init__(self, default_conf=None):
         super().__init__(default_conf)
-        self._registered = False
+        self.__dict__["_registered"] = False
 
     class DataPathManager:
         """
@@ -498,7 +525,7 @@ class QlibConfig(Config):
         # Supporting user reset qlib version (useful when user want to connect to qlib server with old version)
         self.reset_qlib_version()
 
-        self._registered = True
+        self.__dict__["_registered"] = True
 
     def reset_qlib_version(self):
         import qlib  # pylint: disable=C0415
@@ -519,8 +546,8 @@ class QlibConfig(Config):
 
     @property
     def registered(self):
-        return self._registered
+        return self.__dict__["_registered"]
 
 
 # global config
-C = QlibConfig(_default_config)
+C = QlibConfig()
