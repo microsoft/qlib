@@ -476,7 +476,13 @@ class PortAnaRecord(ACRecordTemp):
         if self.backtest_config["start_time"] is None:
             self.backtest_config["start_time"] = dt_values.min()
         if self.backtest_config["end_time"] is None:
-            self.backtest_config["end_time"] = get_date_by_shift(dt_values.max(), 1)
+            self.backtest_config["end_time"] = get_date_by_shift(dt_values.max(), -1)
+            warnings.warn(
+                "No explicit backtest end_time provided. "
+                "Qlib requires one extra calendar step to determine the right boundary of a bar. "
+                "Therefore the end_time is shifted backward by one trading day from "
+                f"{dt_values.max()} -> {self.backtest_config['end_time']}."
+            )
 
         artifact_objects = {}
         # custom strategy and get backtest
