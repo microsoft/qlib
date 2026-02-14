@@ -13,7 +13,7 @@ from qlib.utils import init_instance_by_config, flatten_dict
 from qlib.workflow import R
 from qlib.workflow.record_temp import SignalRecord, PortAnaRecord, SigAnaRecord
 from qlib.tests.data import GetData
-from qlib.tests.config import CSI300_BENCH, CSI300_GBDT_TASK
+from qlib.tests.config import CSI300_BENCH, CSI300_MARKET, GBDT_MODEL
 
 
 if __name__ == "__main__":
@@ -22,8 +22,40 @@ if __name__ == "__main__":
     GetData().qlib_data(target_dir=provider_uri, region=REG_CN, exists_skip=True)
     qlib.init(provider_uri=provider_uri, region=REG_CN)
 
-    model = init_instance_by_config(CSI300_GBDT_TASK["model"])
-    dataset = init_instance_by_config(CSI300_GBDT_TASK["dataset"])
+    # ---------- 自定義：只預測 2017-01-01 起的連續 10 個交易日 ----------
+    # A 股 2017 年第一個交易日是 1/3(二)，10 個交易日大約到 1/16(一)
+    # 設 test end 為 1/20 留點餘裕，實際只會取到有交易日的部分
+    TEST_START = "2017-01-01"
+    TEST_END = "2017-01-20"
+
+    task_config = {
+        "model": GBDT_MODEL,
+        "dataset": {
+            "class": "DatasetH",
+            "module_path": "qlib.data.dataset",
+            "kwargs": {
+                "handler": {
+                    "class": "Alpha158",
+                    "module_path": "qlib.contrib.data.handler",
+                    "kwargs": {
+                        "start_time": "2008-01-01",
+                        "end_time": TEST_END,
+                        "fit_start_time": "2008-01-01",
+                        "fit_end_time": "2014-12-31",
+                        "instruments": CSI300_MARKET,
+                    },
+                },
+                "segments": {
+                    "train": ("2008-01-01", "2014-12-31"),
+                    "valid": ("2015-01-01", "2016-12-31"),
+                    "test": (TEST_START, TEST_END),
+                },
+            },
+        },
+    }
+
+    model = init_instance_by_config(task_config["model"])
+    dataset = init_instance_by_config(task_config["dataset"])
 
     port_analysis_config = {
         "executor": {
@@ -44,8 +76,8 @@ if __name__ == "__main__":
             },
         },
         "backtest": {
-            "start_time": "2017-01-01",
-            "end_time": "2020-08-01",
+            "start_time": TEST_START,
+            "end_time": TEST_END,
             "account": 100000000,
             "benchmark": CSI300_BENCH,
             "exchange_kwargs": {
@@ -66,7 +98,7 @@ if __name__ == "__main__":
 
     # start exp
     with R.start(experiment_name="workflow"):
-        R.log_params(**flatten_dict(CSI300_GBDT_TASK))
+        R.log_params(**flatten_dict(task_config))
         model.fit(dataset)
         R.save_objects(**{"params.pkl": model})
 
