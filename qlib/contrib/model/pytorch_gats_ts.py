@@ -16,7 +16,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from torch.utils.data import Sampler
 
-from .pytorch_utils import count_parameters
+from .pytorch_utils import count_parameters, get_torch_device
 from ...model.base import Model
 from ...data.dataset.handler import DataHandlerLP
 from ...contrib.model.pytorch_lstm import LSTMModel
@@ -94,7 +94,7 @@ class GATs(Model):
         self.loss = loss
         self.base_model = base_model
         self.model_path = model_path
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        self.device = get_torch_device(GPU)
         self.n_jobs = n_jobs
         self.seed = seed
 

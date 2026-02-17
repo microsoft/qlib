@@ -16,7 +16,7 @@ from ...log import get_module_logger
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from .pytorch_utils import count_parameters
+from .pytorch_utils import count_parameters, get_torch_device
 from ...model.base import Model
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
@@ -80,7 +80,7 @@ class HIST(Model):
         self.model_path = model_path
         self.stock2concept = stock2concept
         self.stock_index = stock_index
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        self.device = get_torch_device(GPU)
         self.seed = seed
 
         self.logger.info(

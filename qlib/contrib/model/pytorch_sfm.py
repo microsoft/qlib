@@ -16,7 +16,7 @@ import torch.nn as nn
 import torch.nn.init as init
 import torch.optim as optim
 
-from .pytorch_utils import count_parameters
+from .pytorch_utils import count_parameters, get_torch_device
 from ...model.base import Model
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
@@ -233,7 +233,7 @@ class SFM(Model):
         self.eval_steps = eval_steps
         self.optimizer = optimizer.lower()
         self.loss = loss
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        self.device = get_torch_device(GPU)
         self.seed = seed
 
         self.logger.info(
