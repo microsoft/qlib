@@ -8,7 +8,7 @@ from typing import Any, Set, Tuple, TYPE_CHECKING, Union
 
 import numpy as np
 
-from qlib.utils.time import epsilon_change
+from qlib.utils.time import epsilon_change, Freq
 
 if TYPE_CHECKING:
     from qlib.backtest.decision import BaseTradeDecision
@@ -128,7 +128,16 @@ class TradeCalendarManager:
         if trade_step is None:
             trade_step = self.get_trade_step()
         calendar_index = self.start_index + trade_step - shift
-        return self._calendar[calendar_index], epsilon_change(self._calendar[calendar_index + 1])
+        left = self._calendar[calendar_index]
+        # Robust right endpoint even when future calendar is unavailable
+        next_idx = calendar_index + 1
+        if next_idx < len(self._calendar):
+            right = epsilon_change(self._calendar[next_idx])
+        else:
+            # estimate next boundary by freq delta
+            n, base = Freq.parse(self.freq)
+            right = epsilon_change(left + Freq.get_timedelta(n, base))
+        return left, right
 
     def get_data_cal_range(self, rtype: str = "full") -> Tuple[int, int]:
         """
