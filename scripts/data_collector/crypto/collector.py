@@ -1,24 +1,23 @@
 import abc
-import sys
 import datetime
+import sys
 from abc import ABC
 from pathlib import Path
 
 import fire
 import pandas as pd
-from loguru import logger
 from dateutil.tz import tzlocal
+from loguru import logger
 
 CUR_DIR = Path(__file__).resolve().parent
 sys.path.append(str(CUR_DIR.parent.parent))
+import time
+from datetime import datetime as dt
+from time import mktime
+
 from data_collector.base import BaseCollector, BaseNormalize, BaseRun
 from data_collector.utils import deco_retry
-
 from pycoingecko import CoinGeckoAPI
-from time import mktime
-from datetime import datetime as dt
-import time
-
 
 _CG_CRYPTO_SYMBOLS = None
 

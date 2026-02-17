@@ -1,4 +1,5 @@
 import fire
+
 from qlib import auto_init
 from qlib.contrib.rolling.base import Rolling
 from qlib.utils.mod import find_all_classes

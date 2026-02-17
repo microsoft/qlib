@@ -2,15 +2,15 @@
 # Licensed under the MIT License.
 
 import copy
-import torch
 import warnings
+
 import numpy as np
 import pandas as pd
-from qlib.utils.data import guess_horizon
-from qlib.utils import init_instance_by_config
+import torch
 
 from qlib.data.dataset import DatasetH
-
+from qlib.utils import init_instance_by_config
+from qlib.utils.data import guess_horizon
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 

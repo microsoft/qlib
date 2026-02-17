@@ -1,8 +1,9 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-import numpy as np
 from typing import Union
+
+import numpy as np
 from sklearn.decomposition import PCA, FactorAnalysis
 
 from qlib.model.riskmodel import RiskModel

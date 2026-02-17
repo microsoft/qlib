@@ -1,15 +1,17 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+from typing import Text, Union
+
 import lightgbm as lgb
 import numpy as np
 import pandas as pd
-from typing import Text, Union
-from ...model.base import Model
+
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
-from ...model.interpret.base import FeatureInt
 from ...log import get_module_logger
+from ...model.base import Model
+from ...model.interpret.base import FeatureInt
 
 
 class DEnsembleModel(Model, FeatureInt):

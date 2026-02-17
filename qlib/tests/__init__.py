@@ -1,16 +1,18 @@
-from typing import Union, List, Dict, Tuple
-import unittest
-import pandas as pd
-import numpy as np
 import io
+import unittest
+from typing import Dict, List, Tuple, Union
 
-from .data import GetData
-from .. import init
-from ..constant import REG_CN, REG_TW
-from qlib.data.filter import NameDFilter
+import numpy as np
+import pandas as pd
+
 from qlib.data import D
 from qlib.data.data import Cal, DatasetD
-from qlib.data.storage import CalendarStorage, InstrumentStorage, FeatureStorage, CalVT, InstKT, InstVT
+from qlib.data.filter import NameDFilter
+from qlib.data.storage import CalendarStorage, CalVT, FeatureStorage, InstKT, InstrumentStorage, InstVT
+
+from .. import init
+from ..constant import REG_CN, REG_TW
+from .data import GetData
 
 
 class TestAutoData(unittest.TestCase):

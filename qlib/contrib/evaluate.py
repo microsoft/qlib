@@ -1,25 +1,24 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from __future__ import division
-from __future__ import print_function
+from __future__ import division, print_function
+
+import warnings
+from typing import Literal, Union
 
 import numpy as np
 import pandas as pd
-import warnings
-from typing import Union, Literal
 
+from ..backtest import backtest as backtest_func
+from ..backtest import executor as _executor
+from ..backtest import get_exchange, position
+from ..config import C
+from ..data import D
+from ..data.dataset.utils import get_level_index
 from ..log import get_module_logger
+from ..strategy.base import BaseStrategy
 from ..utils import get_date_range
 from ..utils.resam import Freq
-from ..strategy.base import BaseStrategy
-from ..backtest import get_exchange, position, backtest as backtest_func, executor as _executor
-
-
-from ..data import D
-from ..config import C
-from ..data.dataset.utils import get_level_index
-
 
 logger = get_module_logger("Evaluate")
 

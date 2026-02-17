@@ -1,5 +1,6 @@
-import numpy as np
 from typing import Union
+
+import numpy as np
 
 from qlib.model.riskmodel import RiskModel
 

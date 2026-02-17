@@ -3,36 +3,37 @@
 
 # TODO: this utils covers too much utilities, please seperat it into sub modules
 
-from __future__ import division
-from __future__ import print_function
+from __future__ import division, print_function
 
+import bisect
+import collections
+import copy
+import datetime
+import difflib
+import hashlib
+import inspect
+import json
 import os
 import re
-import copy
-import json
-import redis
-import bisect
 import struct
-import difflib
-import inspect
-import hashlib
-import datetime
-import requests
-import collections
+from pathlib import Path
+from typing import Callable, List, Optional, Union
+
 import numpy as np
 import pandas as pd
-from pathlib import Path
-from typing import List, Union, Optional, Callable
+import redis
+import requests
 from packaging import version
 from ruamel.yaml import YAML
-from .file import (
-    get_or_create_path,
-    save_multiple_parts_file,
-    unpack_archive_with_buffer,
-    get_tmp_file_with_buffer,
-)
+
 from ..config import C
 from ..log import get_module_logger, set_log_with_config
+from .file import (
+    get_or_create_path,
+    get_tmp_file_with_buffer,
+    save_multiple_parts_file,
+    unpack_archive_with_buffer,
+)
 
 log = get_module_logger("utils")
 # MultiIndex.is_lexsorted() is a deprecated method in Pandas 1.3.0.
@@ -937,12 +938,12 @@ def fname_to_code(fname: str):
 
 
 from .mod import (
-    get_module_by_module_path,
-    split_module_path,
+    class_casting,
     get_callable_kwargs,
     get_cls_kwargs,
+    get_module_by_module_path,
     init_instance_by_config,
-    class_casting,
+    split_module_path,
 )
 
 __all__ = [

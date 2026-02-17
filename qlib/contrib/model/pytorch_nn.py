@@ -2,38 +2,38 @@
 # Licensed under the MIT License.
 
 
-from __future__ import division
-from __future__ import print_function
-from collections import defaultdict
+from __future__ import division, print_function
 
-import os
 import gc
+import os
+from collections import defaultdict
+from typing import Callable, Optional, Text, Union
+
 import numpy as np
 import pandas as pd
-from packaging import version
-from typing import Callable, Optional, Text, Union
-from sklearn.metrics import roc_auc_score, mean_squared_error
-
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from packaging import version
+from sklearn.metrics import mean_squared_error, roc_auc_score
+from torch.nn import DataParallel
 
-from .pytorch_utils import count_parameters
-from ...model.base import Model
+from qlib.contrib.meta.data_selection.utils import ICLoss
+
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
 from ...data.dataset.weight import Reweighter
+from ...log import get_module_logger
+from ...model.base import Model
 from ...utils import (
     auto_filter_kwargs,
-    init_instance_by_config,
-    unpack_archive_with_buffer,
-    save_multiple_parts_file,
     get_or_create_path,
+    init_instance_by_config,
+    save_multiple_parts_file,
+    unpack_archive_with_buffer,
 )
-from ...log import get_module_logger
 from ...workflow import R
-from qlib.contrib.meta.data_selection.utils import ICLoss
-from torch.nn import DataParallel
+from .pytorch_utils import count_parameters
 
 
 class DNNModelPytorch(Model):

@@ -6,6 +6,7 @@ OnlineStrategy module is an element of online serving.
 """
 
 from typing import List, Union
+
 from qlib.log import get_module_logger
 from qlib.model.ens.group import RollingGroup
 from qlib.utils import transform_end_date

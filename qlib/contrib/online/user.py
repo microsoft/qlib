@@ -6,9 +6,9 @@
 
 import logging
 
+from ...data import D
 from ...log import get_module_logger
 from ..evaluate import risk_analysis
-from ...data import D
 
 
 class User:

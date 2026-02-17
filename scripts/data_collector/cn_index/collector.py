@@ -1,27 +1,25 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-import re
 import abc
+import re
 import sys
 from io import BytesIO
-from typing import List, Iterable
 from pathlib import Path
+from typing import Iterable, List
 
-import fire
-import requests
-import pandas as pd
 import baostock as bs
-from tqdm import tqdm
+import fire
+import pandas as pd
+import requests
 from loguru import logger
+from tqdm import tqdm
 
 CUR_DIR = Path(__file__).resolve().parent
 sys.path.append(str(CUR_DIR.parent.parent))
 
 from data_collector.index import IndexBase
-from data_collector.utils import get_calendar_list, get_trading_date_by_shift, deco_retry
-from data_collector.utils import get_instruments
-
+from data_collector.utils import deco_retry, get_calendar_list, get_instruments, get_trading_date_by_shift
 
 NEW_COMPANIES_URL = (
     "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/file/autofile/cons/{index_code}cons.xls"

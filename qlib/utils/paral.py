@@ -1,18 +1,17 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+import concurrent
 import threading
 from functools import partial
+from queue import Empty, Queue
 from threading import Thread
 from typing import Callable, Text, Union
 
 import joblib
+import pandas as pd
 from joblib import Parallel, delayed
 from joblib._parallel_backends import MultiprocessingBackend
-import pandas as pd
-
-from queue import Empty, Queue
-import concurrent
 
 from qlib.config import C, QlibConfig
 

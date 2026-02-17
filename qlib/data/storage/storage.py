@@ -2,10 +2,11 @@
 # Licensed under the MIT License.
 
 import re
-from typing import Iterable, overload, Tuple, List, Text, Union, Dict
+from typing import Dict, Iterable, List, Text, Tuple, Union, overload
 
 import numpy as np
 import pandas as pd
+
 from qlib.log import get_module_logger
 
 # calendar value type

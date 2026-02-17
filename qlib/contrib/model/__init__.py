@@ -25,15 +25,15 @@ except ModuleNotFoundError:
     print("ModuleNotFoundError. LinearModel is skipped(optional: maybe installing scipy and sklearn can fix it).")
 # import pytorch models
 try:
+    from .pytorch_add import ADD
     from .pytorch_alstm import ALSTM
     from .pytorch_gats import GATs
     from .pytorch_gru import GRU
     from .pytorch_lstm import LSTM
     from .pytorch_nn import DNNModelPytorch
-    from .pytorch_tabnet import TabnetModel
     from .pytorch_sfm import SFM_Model
+    from .pytorch_tabnet import TabnetModel
     from .pytorch_tcn import TCN
-    from .pytorch_add import ADD
 
     pytorch_classes = (ALSTM, GATs, GRU, LSTM, DNNModelPytorch, TabnetModel, SFM_Model, TCN, ADD)
 except ModuleNotFoundError:

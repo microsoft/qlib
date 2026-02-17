@@ -11,8 +11,8 @@ Motivation of index_data
 
 from __future__ import annotations
 
-from typing import Dict, Tuple, Union, Callable, List
 import bisect
+from typing import Callable, Dict, List, Tuple, Union
 
 import numpy as np
 import pandas as pd

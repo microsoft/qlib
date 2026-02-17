@@ -1,4 +1,4 @@
-.PHONY: clean deepclean prerequisite dependencies lightgbm rl develop lint docs package test analysis all install dev black pylint flake8 mypy nbqa nbconvert lint build upload docs-gen
+.PHONY: clean deepclean prerequisite dependencies lightgbm rl develop lint docs package test analysis all install dev black isort pylint flake8 mypy nbqa nbconvert lint fix build upload docs-gen
 #You can modify it according to your terminal
 SHELL := /bin/bash
 
@@ -118,6 +118,10 @@ dev: prerequisite all
 black:
 	black . -l 120 --check --diff --exclude qlib/_version.py
 
+# Check import sorting with isort.
+isort:
+	isort --check-only --diff qlib scripts
+
 # Check code folder with pylint.
 # TODO: These problems we will solve in the future. Important among them are: W0221, W0223, W0237, E1102
 # 	C0103: invalid-name
@@ -190,7 +194,14 @@ nbqa:
 nbconvert:
 	jupyter nbconvert --to notebook --execute examples/workflow_by_code.ipynb
 
-lint: black pylint flake8 mypy nbqa
+# Run all lint checks.
+lint: black isort pylint flake8 mypy nbqa
+
+# Auto-fix formatting issues (black + isort).
+fix:
+	black . -l 120 --exclude qlib/_version.py
+	isort qlib scripts
+	nbqa black . -l 120
 
 ########################################################################################
 # Package

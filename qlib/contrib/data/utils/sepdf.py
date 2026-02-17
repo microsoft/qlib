@@ -1,7 +1,8 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-import pandas as pd
 from typing import Dict, Iterable, Union
+
+import pandas as pd
 
 
 def align_index(df_dict, join):

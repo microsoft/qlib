@@ -4,8 +4,8 @@
 """Commonly used types."""
 
 import sys
-from typing import Union
 from pathlib import Path
+from typing import Union
 
 __all__ = ["Literal", "TypedDict", "final"]
 

@@ -4,11 +4,13 @@ Here is a batch of evaluation functions.
 The interface should be redesigned carefully in the future.
 """
 
-import pandas as pd
 from typing import Tuple
-from qlib import get_module_logger
-from qlib.utils.paral import complex_parallel, DelayedDict
+
+import pandas as pd
 from joblib import Parallel, delayed
+
+from qlib import get_module_logger
+from qlib.utils.paral import DelayedDict, complex_parallel
 
 
 def calc_long_short_prec(

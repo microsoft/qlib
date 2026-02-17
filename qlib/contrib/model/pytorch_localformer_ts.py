@@ -2,25 +2,24 @@
 # Licensed under the MIT License.
 
 
-from __future__ import division
-from __future__ import print_function
+from __future__ import division, print_function
+
+import copy
+import math
 
 import numpy as np
 import pandas as pd
-import copy
-import math
-from ...utils import get_or_create_path
-from ...log import get_module_logger
-
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.nn.modules.container import ModuleList
 from torch.utils.data import DataLoader
 
-from ...model.base import Model
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
-from torch.nn.modules.container import ModuleList
+from ...log import get_module_logger
+from ...model.base import Model
+from ...utils import get_or_create_path
 
 
 class LocalformerModel(Model):

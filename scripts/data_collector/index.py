@@ -1,11 +1,11 @@
-import sys
 import abc
+import sys
 from pathlib import Path
 from typing import List
 
 import pandas as pd
-from tqdm import tqdm
 from loguru import logger
+from tqdm import tqdm
 
 CUR_DIR = Path(__file__).resolve().parent
 sys.path.append(str(CUR_DIR.parent))

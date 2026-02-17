@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 
 from qlib.data.dataset import Dataset
+
 from ...utils import init_instance_by_config
 
 

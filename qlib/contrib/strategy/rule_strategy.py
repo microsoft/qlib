@@ -1,22 +1,23 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-from pathlib import Path
 import warnings
+from pathlib import Path
+from typing import IO, List, Tuple, Union
+
 import numpy as np
 import pandas as pd
-from typing import IO, List, Tuple, Union
+
+from qlib.backtest.utils import get_start_end_idx
 from qlib.data.dataset.utils import convert_index_format
-
 from qlib.utils import lazy_sort_index
+from qlib.utils.file import get_io_object
 
-from ...utils.resam import resam_ts_data, ts_data_last
-from ...data.data import D
-from ...strategy.base import BaseStrategy
 from ...backtest.decision import BaseTradeDecision, Order, TradeDecisionWO, TradeRange
 from ...backtest.exchange import Exchange, OrderHelper
 from ...backtest.utils import CommonInfrastructure, LevelInfrastructure
-from qlib.utils.file import get_io_object
-from qlib.backtest.utils import get_start_end_idx
+from ...data.data import D
+from ...strategy.base import BaseStrategy
+from ...utils.resam import resam_ts_data, ts_data_last
 
 
 class TWAPStrategy(BaseStrategy):

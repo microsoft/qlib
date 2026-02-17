@@ -2,15 +2,16 @@
 # Licensed under the MIT License.
 
 import sys
-from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 
 import fire
-import qlib
 import pandas as pd
-from tqdm import tqdm
-from qlib.data import D
 from loguru import logger
+from tqdm import tqdm
+
+import qlib
+from qlib.data import D
 
 CUR_DIR = Path(__file__).resolve().parent
 sys.path.append(str(CUR_DIR.parent.parent.parent))

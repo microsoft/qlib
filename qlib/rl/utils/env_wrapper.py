@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import weakref
-from typing import Any, Callable, cast, Dict, Generic, Iterable, Iterator, Optional, Tuple
+from typing import Any, Callable, Dict, Generic, Iterable, Iterator, Optional, Tuple, cast
 
 import gym
 from gym import Space
@@ -14,6 +14,7 @@ from qlib.rl.interpreter import ActionInterpreter, ObsType, PolicyActType, State
 from qlib.rl.reward import Reward
 from qlib.rl.simulator import ActType, InitialStateType, Simulator, StateType
 from qlib.typehint import TypedDict
+
 from .finite_env import generate_nan_observation
 from .log import LogCollector, LogLevel
 

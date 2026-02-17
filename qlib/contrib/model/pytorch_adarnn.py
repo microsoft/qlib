@@ -1,8 +1,6 @@
 # Copyright (c) Microsoft Corporation.
-import os
-from torch.utils.data import Dataset, DataLoader
-
 import copy
+import os
 from typing import Text, Union
 
 import numpy as np
@@ -12,6 +10,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Function
+from torch.utils.data import DataLoader, Dataset
+
 from qlib.contrib.model.pytorch_utils import count_parameters
 from qlib.data.dataset import DatasetH
 from qlib.data.dataset.handler import DataHandlerLP

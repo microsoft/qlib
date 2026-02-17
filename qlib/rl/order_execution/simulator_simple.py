@@ -3,12 +3,12 @@
 
 from __future__ import annotations
 
-from typing import Any, cast, List, Optional
+from pathlib import Path
+from typing import Any, List, Optional, cast
 
 import numpy as np
 import pandas as pd
 
-from pathlib import Path
 from qlib.backtest.decision import Order, OrderDir
 from qlib.constant import EPS, EPS_T, float_or_ndarray
 from qlib.rl.data.base import BaseIntradayBacktestData
@@ -16,6 +16,7 @@ from qlib.rl.data.native import DataframeIntradayBacktestData, load_handler_intr
 from qlib.rl.data.pickle_styled import load_simple_intraday_backtest_data
 from qlib.rl.simulator import Simulator
 from qlib.rl.utils import LogLevel
+
 from .state import SAOEMetrics, SAOEState
 
 __all__ = ["SingleAssetOrderExecutionSimple"]

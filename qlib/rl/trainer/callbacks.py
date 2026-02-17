@@ -13,7 +13,7 @@ import shutil
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any, List, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, List
 
 import numpy as np
 import pandas as pd

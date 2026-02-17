@@ -12,14 +12,15 @@ Here is an example.
     fa.plot_all(wspace=0.3, sub_figsize=(12, 3), col_n=5)
 
 """
-import pandas as pd
 import numpy as np
+import pandas as pd
+import seaborn as sns
+from loguru import logger
+
+from qlib.contrib.eva.alpha import pred_autocorr_all
 from qlib.contrib.report.data.base import FeaAnalyser
 from qlib.contrib.report.utils import sub_fig_generator
 from qlib.utils.paral import datetime_groupby_apply
-from qlib.contrib.eva.alpha import pred_autocorr_all
-from loguru import logger
-import seaborn as sns
 
 DT_COL_NAME = "datetime"
 

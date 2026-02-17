@@ -2,16 +2,15 @@
 # Licensed under the MIT License.
 
 import sys
-from typing import List
 from pathlib import Path
+from typing import List
 
+# get data from baostock
+import baostock as bs
 import fire
 import numpy as np
 import pandas as pd
 from loguru import logger
-
-# get data from baostock
-import baostock as bs
 
 CUR_DIR = Path(__file__).resolve().parent
 sys.path.append(str(CUR_DIR.parent.parent.parent))

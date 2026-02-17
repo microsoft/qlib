@@ -6,11 +6,11 @@ Collector module can collect objects from everywhere and process them such as me
 """
 
 from collections import defaultdict
-from qlib.log import TimeInspector
 from typing import Callable, Dict, Iterable, List
-from qlib.log import get_module_logger
-from qlib.utils.serial import Serializable
+
+from qlib.log import TimeInspector, get_module_logger
 from qlib.utils.exceptions import LoadObjectError
+from qlib.utils.serial import Serializable
 from qlib.workflow import R
 from qlib.workflow.exp import Experiment
 from qlib.workflow.recorder import Recorder

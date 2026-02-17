@@ -2,16 +2,16 @@
 # Licensed under the MIT License.
 
 import abc
-from pathlib import Path
 import warnings
+from pathlib import Path
+from typing import Dict, List, Tuple, Union
+
 import pandas as pd
 
-from typing import Tuple, Union, List, Dict
-
 from qlib.data import D
-from qlib.utils import load_dataset, init_instance_by_config, time_to_slc_point
-from qlib.utils.pickle_utils import restricted_pickle_load
 from qlib.log import get_module_logger
+from qlib.utils import init_instance_by_config, load_dataset, time_to_slc_point
+from qlib.utils.pickle_utils import restricted_pickle_load
 from qlib.utils.serial import Serializable
 
 

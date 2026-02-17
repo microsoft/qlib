@@ -1,14 +1,15 @@
-from ...utils.serial import Serializable
-from typing import Callable, Union, List, Tuple, Dict, Text, Optional
-from ...utils import init_instance_by_config, np_ffill, time_to_slc_point
-from ...log import get_module_logger
-from .handler import DataHandler, DataHandlerLP
+import bisect
 from copy import copy, deepcopy
 from inspect import getfullargspec
-import pandas as pd
+from typing import Callable, Dict, List, Optional, Text, Tuple, Union
+
 import numpy as np
-import bisect
-from ...utils import lazy_sort_index
+import pandas as pd
+
+from ...log import get_module_logger
+from ...utils import init_instance_by_config, lazy_sort_index, np_ffill, time_to_slc_point
+from ...utils.serial import Serializable
+from .handler import DataHandler, DataHandlerLP
 from .utils import get_level_index
 
 

@@ -7,8 +7,8 @@ from typing import Iterable
 import pandas as pd
 import plotly.graph_objs as go
 
-from ..graph import ScatterGraph
 from ..analysis_position.parse_position import get_position_data
+from ..graph import ScatterGraph
 
 
 def _get_figure_with_position(

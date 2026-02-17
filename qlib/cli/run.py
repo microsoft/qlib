@@ -2,8 +2,8 @@
 #  Licensed under the MIT License.
 import logging
 import os
-from pathlib import Path
 import sys
+from pathlib import Path
 
 import fire
 from jinja2 import Template, meta

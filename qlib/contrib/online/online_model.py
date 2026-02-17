@@ -5,7 +5,9 @@
 # flake8: noqa
 
 import random
+
 import pandas as pd
+
 from ...data import D
 from ..model.base import Model
 

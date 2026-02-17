@@ -1,14 +1,14 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-import numpy as np
-import cvxpy as cp
+from typing import Any, Dict, List, Optional, Union
 
-from typing import Union, Optional, Dict, Any, List
+import cvxpy as cp
+import numpy as np
 
 from qlib.log import get_module_logger
-from .base import BaseOptimizer
 
+from .base import BaseOptimizer
 
 logger = get_module_logger("EnhancedIndexingOptimizer")
 

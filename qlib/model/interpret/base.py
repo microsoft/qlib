@@ -5,8 +5,9 @@
 Interfaces to interpret models
 """
 
-import pandas as pd
 from abc import abstractmethod
+
+import pandas as pd
 
 
 class FeatureInt:

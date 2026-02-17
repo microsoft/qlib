@@ -12,17 +12,16 @@ Two modes are supported
 """
 from __future__ import annotations
 
-import os
-import re
 import copy
 import logging
-import platform
 import multiprocessing
+import os
+import platform
+import re
 from pathlib import Path
-from typing import Callable, Optional, Union
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable, Optional, Union
 
-from qlib.constant import REG_CN, REG_US, REG_TW
+from qlib.constant import REG_CN, REG_TW, REG_US
 
 if TYPE_CHECKING:
     from qlib.utils.time import Freq
@@ -438,7 +437,7 @@ class QlibConfig(Config):
         default_conf : str
             the default config template chosen by user: "server", "client"
         """
-        from .utils import set_log_with_config, get_module_logger, can_use_cache  # pylint: disable=C0415
+        from .utils import can_use_cache, get_module_logger, set_log_with_config  # pylint: disable=C0415
 
         self.reset()
 
@@ -480,10 +479,10 @@ class QlibConfig(Config):
                     )
 
     def register(self):
-        from .utils import init_instance_by_config  # pylint: disable=C0415
-        from .data.ops import register_all_ops  # pylint: disable=C0415
         from .data.data import register_all_wrappers  # pylint: disable=C0415
-        from .workflow import R, QlibRecorder  # pylint: disable=C0415
+        from .data.ops import register_all_ops  # pylint: disable=C0415
+        from .utils import init_instance_by_config  # pylint: disable=C0415
+        from .workflow import QlibRecorder, R  # pylint: disable=C0415
         from .workflow.utils import experiment_exit_handler  # pylint: disable=C0415
 
         register_all_ops(self)

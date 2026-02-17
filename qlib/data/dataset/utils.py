@@ -1,8 +1,11 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 from __future__ import annotations
+
+from typing import TYPE_CHECKING, List, Union
+
 import pandas as pd
-from typing import Union, List, TYPE_CHECKING
+
 from qlib.utils import init_instance_by_config
 
 if TYPE_CHECKING:

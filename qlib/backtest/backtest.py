@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import Dict, TYPE_CHECKING, Generator, Optional, Tuple, Union, cast
+from typing import TYPE_CHECKING, Dict, Generator, Optional, Tuple, Union, cast
 
 import pandas as pd
 
@@ -17,7 +17,6 @@ if TYPE_CHECKING:
 from tqdm.auto import tqdm
 
 from ..utils.time import Freq
-
 
 PORT_METRIC = Dict[str, Tuple[pd.DataFrame, dict]]
 INDICATOR_METRIC = Dict[str, Tuple[pd.DataFrame, Indicator]]

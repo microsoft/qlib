@@ -8,14 +8,15 @@ from abc import ABCMeta, abstractmethod
 from typing import Optional
 
 import pandas as pd
+
 from qlib import get_module_logger
 from qlib.data import D
 from qlib.data.dataset import Dataset, DatasetH, TSDatasetH
 from qlib.data.dataset.handler import DataHandlerLP
 from qlib.model import Model
 from qlib.utils import get_date_by_shift
-from qlib.workflow.recorder import Recorder
 from qlib.workflow.record_temp import SignalRecord
+from qlib.workflow.recorder import Recorder
 
 
 class RMDLoader:

@@ -2,9 +2,10 @@
 # cython: boundscheck=False, wraparound=False, cdivision=True
 cimport cython
 cimport numpy as np
+
 import numpy as np
 
-from libc.math cimport sqrt, isnan, NAN
+from libc.math cimport NAN, isnan, sqrt
 from libcpp.deque cimport deque
 
 

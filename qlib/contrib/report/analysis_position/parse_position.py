@@ -3,7 +3,6 @@
 
 import pandas as pd
 
-
 from ....backtest.profit_attribution import get_stock_weight_df
 
 

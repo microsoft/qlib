@@ -73,6 +73,7 @@ rl = [
 # which can cause false-positive --check results and inconsistent notebook formatting.
 lint = [
   "black!=26.1.0",
+  "isort",
   "pylint",
   "mypy<1.5.0",
   "flake8",
@@ -124,3 +125,13 @@ qrun = "qlib.cli.run:run"
 local_scheme = "no-local-version"
 version_scheme = "guess-next-dev"
 write_to = "qlib/_version.py"
+
+[tool.isort]
+profile = "black"
+line_length = 120
+known_first_party = ["qlib"]
+skip_glob = ["qlib/_version.py"]
+
+[tool.black]
+line-length = 120
+exclude = "qlib/_version.py"

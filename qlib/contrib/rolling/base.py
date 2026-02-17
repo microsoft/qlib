@@ -2,11 +2,11 @@
 # Licensed under the MIT License.
 from copy import deepcopy
 from pathlib import Path
-from ruamel.yaml import YAML
 from typing import List, Optional, Union
 
 import fire
 import pandas as pd
+from ruamel.yaml import YAML
 
 from qlib import auto_init
 from qlib.log import get_module_logger

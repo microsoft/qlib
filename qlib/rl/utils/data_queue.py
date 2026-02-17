@@ -4,11 +4,11 @@
 from __future__ import annotations
 
 import multiprocessing
-from multiprocessing.sharedctypes import Synchronized
 import os
 import threading
 import time
 import warnings
+from multiprocessing.sharedctypes import Synchronized
 from queue import Empty
 from typing import Any, Generator, Generic, Sequence, TypeVar, cast
 

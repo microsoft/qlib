@@ -58,6 +58,10 @@ jobs:
       run: |
         make black
 
+    - name: Check import sorting with isort
+      run: |
+        make isort
+
     - name: Make html with sphinx
       # Since read the docs builds on ubuntu 22.04, we only need to test that the build passes on ubuntu 22.04.
       if: ${{ matrix.os == 'ubuntu-22.04' }}

@@ -10,6 +10,7 @@ import numpy as np
 from gym import spaces
 
 from qlib.typehint import final
+
 from .simulator import ActType, StateType
 
 ObsType = TypeVar("ObsType")

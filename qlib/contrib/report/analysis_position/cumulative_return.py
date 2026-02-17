@@ -7,9 +7,8 @@ from typing import Iterable
 import pandas as pd
 import plotly.graph_objs as go
 
-from ..graph import BaseGraph, SubplotsGraph
-
 from ..analysis_position.parse_position import get_position_data
+from ..graph import BaseGraph, SubplotsGraph
 
 
 def _get_cum_return_data_with_position(

@@ -6,17 +6,19 @@ Some tools for task management.
 
 import bisect
 from copy import deepcopy
+from pathlib import Path
+from typing import Union
+
 import pandas as pd
+from pymongo import MongoClient
+from pymongo.database import Database
+
+from qlib.config import C
 from qlib.data import D
+from qlib.log import get_module_logger
 from qlib.utils import hash_args
 from qlib.utils.mod import init_instance_by_config
 from qlib.workflow import R
-from qlib.config import C
-from qlib.log import get_module_logger
-from pymongo import MongoClient
-from pymongo.database import Database
-from typing import Union
-from pathlib import Path
 
 
 def get_mongodb() -> Database:

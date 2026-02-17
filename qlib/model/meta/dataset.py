@@ -2,8 +2,10 @@
 # Licensed under the MIT License.
 
 import abc
+from typing import Dict, List, Text, Tuple, Union
+
 from qlib.model.meta.task import MetaTask
-from typing import Dict, Union, List, Tuple, Text
+
 from ...utils.serial import Serializable
 
 

@@ -1,12 +1,13 @@
 from abc import abstractmethod
-import pandas as pd
-import numpy as np
+from typing import List, Union
 
-from .handler import DataHandler
-from typing import Union, List
+import numpy as np
+import pandas as pd
+
 from qlib.log import get_module_logger
 
-from .utils import get_level_index, fetch_df_by_index, fetch_df_by_col
+from .handler import DataHandler
+from .utils import fetch_df_by_col, fetch_df_by_index, get_level_index
 
 
 class BaseHandlerStorage:

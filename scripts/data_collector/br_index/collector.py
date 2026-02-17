@@ -1,14 +1,14 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-from functools import partial
-import sys
-from pathlib import Path
 import datetime
+import sys
+from functools import partial
+from pathlib import Path
 
 import fire
 import pandas as pd
-from tqdm import tqdm
 from loguru import logger
+from tqdm import tqdm
 
 CUR_DIR = Path(__file__).resolve().parent
 sys.path.append(str(CUR_DIR.parent.parent))

@@ -2,16 +2,17 @@
 # Licensed under the MIT License.
 
 
-import sys
 import copy
+import sys
+from pathlib import Path
+from typing import Iterable, List
+
+import baostock as bs
 import fire
 import numpy as np
 import pandas as pd
-import baostock as bs
-from tqdm import tqdm
-from pathlib import Path
 from loguru import logger
-from typing import Iterable, List
+from tqdm import tqdm
 
 import qlib
 from qlib.data import D
@@ -20,7 +21,7 @@ CUR_DIR = Path(__file__).resolve().parent
 sys.path.append(str(CUR_DIR.parent.parent))
 
 from data_collector.base import BaseCollector, BaseNormalize, BaseRun
-from data_collector.utils import generate_minutes_calendar_from_daily, calc_adjusted_price
+from data_collector.utils import calc_adjusted_price, generate_minutes_calendar_from_daily
 
 
 class BaostockCollectorHS3005min(BaseCollector):

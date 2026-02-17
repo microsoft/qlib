@@ -2,41 +2,39 @@
 # Licensed under the MIT License.
 
 
-from __future__ import division
-from __future__ import print_function
+from __future__ import division, print_function
 
-import re
 import abc
+import bisect
 import copy
 import queue
-import bisect
+import re
+from typing import List, Optional, Union
+
 import numpy as np
 import pandas as pd
-from typing import List, Union, Optional
 
 # For supporting multiprocessing in outer code, joblib is used
 from joblib import delayed
 
-from .cache import H
 from ..config import C
-from .inst_processor import InstProcessor
-
 from ..log import get_module_logger
-from .cache import DiskDatasetCache
 from ..utils import (
     Wrapper,
-    init_instance_by_config,
-    register_wrapper,
-    get_module_by_module_path,
-    parse_field,
-    hash_args,
-    normalize_cache_fields,
     code_to_fname,
-    time_to_slc_point,
-    read_period_data,
+    get_module_by_module_path,
     get_period_list,
+    hash_args,
+    init_instance_by_config,
+    normalize_cache_fields,
+    parse_field,
+    read_period_data,
+    register_wrapper,
+    time_to_slc_point,
 )
 from ..utils.paral import ParallelExt
+from .cache import DiskDatasetCache, H
+from .inst_processor import InstProcessor
 from .ops import Operators  # pylint: disable=W0611  # noqa: F401
 
 

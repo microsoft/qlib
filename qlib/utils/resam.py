@@ -1,12 +1,12 @@
+from functools import partial
+from typing import Callable, Union
+
 import numpy as np
 import pandas as pd
 
-from functools import partial
-from typing import Union, Callable
-
+from ..config import C
 from . import lazy_sort_index
 from .time import Freq, cal_sam_minute
-from ..config import C
 
 
 def resam_calendar(

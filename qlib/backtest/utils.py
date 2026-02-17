@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import Any, Set, Tuple, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Set, Tuple, Union
 
 import numpy as np
 

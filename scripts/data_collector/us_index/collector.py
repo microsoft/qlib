@@ -2,28 +2,25 @@
 # Licensed under the MIT License.
 
 import abc
-from functools import partial
 import sys
-from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
-from typing import List
+from functools import partial
 from io import StringIO
+from pathlib import Path
+from typing import List
 
 import fire
-import requests
 import pandas as pd
-from tqdm import tqdm
-from loguru import logger
+import requests
 from fake_useragent import UserAgent
-
+from loguru import logger
+from tqdm import tqdm
 
 CUR_DIR = Path(__file__).resolve().parent
 sys.path.append(str(CUR_DIR.parent.parent))
 
 from data_collector.index import IndexBase
-from data_collector.utils import deco_retry, get_calendar_list, get_trading_date_by_shift
-from data_collector.utils import get_instruments
-
+from data_collector.utils import deco_retry, get_calendar_list, get_instruments, get_trading_date_by_shift
 
 WIKI_URL = "https://en.wikipedia.org/wiki"
 

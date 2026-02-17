@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-from pathlib import Path
 import pickle
+from pathlib import Path
 from typing import Optional, Union
 
 import pandas as pd
