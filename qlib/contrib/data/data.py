@@ -18,8 +18,10 @@ from qlib.data.data import FeatureProvider
 
 class ArcticFeatureProvider(FeatureProvider):
     def __init__(
-        self, uri="127.0.0.1", retry_time=0, market_transaction_time_list=[("09:15", "11:30"), ("13:00", "15:00")]
+        self, uri="127.0.0.1", retry_time=0, market_transaction_time_list=None
     ):
+        if market_transaction_time_list is None:
+            market_transaction_time_list = [("09:15", "11:30"), ("13:00", "15:00")]
         super().__init__()
         self.uri = uri
         # TODO:
@@ -36,20 +38,19 @@ class ArcticFeatureProvider(FeatureProvider):
             arctic = Arctic(client)
 
             if freq not in arctic.list_libraries():
-                raise ValueError("lib {} not in arctic".format(freq))
+                raise ValueError(f"lib {freq} not in arctic")
 
             if instrument not in arctic[freq].list_symbols():
                 # instruments does not exist
                 return pd.Series()
-            else:
-                df = arctic[freq].read(instrument, columns=[field], chunk_range=(start_index, end_index))
-                s = df[field]
+            df = arctic[freq].read(instrument, columns=[field], chunk_range=(start_index, end_index))
+            s = df[field]
 
-                if not s.empty:
-                    s = pd.concat(
-                        [
-                            s.between_time(time_tuple[0], time_tuple[1])
-                            for time_tuple in self.market_transaction_time_list
-                        ]
-                    )
-                return s
+            if not s.empty:
+                s = pd.concat(
+                    [
+                        s.between_time(time_tuple[0], time_tuple[1])
+                        for time_tuple in self.market_transaction_time_list
+                    ]
+                )
+            return s

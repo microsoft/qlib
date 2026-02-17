@@ -193,7 +193,7 @@ class MTSDatasetH(DatasetH):
 
         # create daily slices
         daily_slices = {date: [] for date in sorted(self._index.unique(level=1))}  # sorted by date
-        for i, (code, date) in enumerate(self._index):
+        for i, (_code, date) in enumerate(self._index):
             daily_slices[date].append(self._batch_slices[i])
         self._daily_slices = np.array(list(daily_slices.values()), dtype="object")
         self._daily_index = pd.Series(list(daily_slices.keys()))  # index is the original date index

@@ -188,7 +188,7 @@ class Expression(abc.ABC):
         if cache_key in H["f"]:
             return H["f"][cache_key]
         if start_index is not None and end_index is not None and start_index > end_index:
-            raise ValueError("Invalid index range: {} {}".format(start_index, end_index))
+            raise ValueError(f"Invalid index range: {start_index} {end_index}")
         try:
             series = self._load_internal(instrument, start_index, end_index, *args)
         except Exception as e:

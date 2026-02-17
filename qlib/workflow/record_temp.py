@@ -447,10 +447,10 @@ class PortAnaRecord(ACRecordTemp):
             indicator_analysis_freq = [indicator_analysis_freq]
 
         self.risk_analysis_freq = [
-            "{0}{1}".format(*Freq.parse(_analysis_freq)) for _analysis_freq in risk_analysis_freq
+            f"{(p := Freq.parse(_analysis_freq))[0]}{p[1]}" for _analysis_freq in risk_analysis_freq
         ]
         self.indicator_analysis_freq = [
-            "{0}{1}".format(*Freq.parse(_analysis_freq)) for _analysis_freq in indicator_analysis_freq
+            f"{(p := Freq.parse(_analysis_freq))[0]}{p[1]}" for _analysis_freq in indicator_analysis_freq
         ]
         self.indicator_analysis_method = indicator_analysis_method
 

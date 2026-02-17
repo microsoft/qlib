@@ -223,7 +223,7 @@ class TrainerR(Trainer):
         self,
         experiment_name: Optional[str] = None,
         train_func: Callable = task_train,
-        call_in_subproc: bool = False,
+        use_subproc: bool = False,
         default_rec_name: Optional[str] = None,
     ):
         """
@@ -238,7 +238,7 @@ class TrainerR(Trainer):
         self.experiment_name = experiment_name
         self.default_rec_name = default_rec_name
         self.train_func = train_func
-        self._call_in_subproc = call_in_subproc
+        self._call_in_subproc = use_subproc
 
     def train(
         self, tasks: list, train_func: Optional[Callable] = None, experiment_name: Optional[str] = None, **kwargs

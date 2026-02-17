@@ -41,7 +41,7 @@ def get_or_create_path(path: Optional[Text] = None, return_dir: bool = False):
 
 
 @contextlib.contextmanager
-def save_multiple_parts_file(filename, format="gztar"):
+def save_multiple_parts_file(filename, fmt="gztar"):
     """Save multiple parts file
 
     Implementation process:
@@ -52,7 +52,7 @@ def save_multiple_parts_file(filename, format="gztar"):
         5. make_archive 'filename' directory, and rename 'archive file' to filename
 
     :param filename: result model path
-    :param format: archive format: one of "zip", "tar", "gztar", "bztar", or "xztar"
+    :param fmt: archive format: one of "zip", "tar", "gztar", "bztar", or "xztar"
     :return: real model path
 
     Usage::
@@ -74,7 +74,7 @@ def save_multiple_parts_file(filename, format="gztar"):
 
     # Create model dir
     if os.path.exists(file_path):
-        raise FileExistsError("ERROR: file exists: {}, cannot be create the directory.".format(file_path))
+        raise FileExistsError(f"ERROR: file exists: {file_path}, cannot be create the directory.")
 
     os.makedirs(file_path)
 
@@ -82,7 +82,7 @@ def save_multiple_parts_file(filename, format="gztar"):
     yield file_path
 
     # filename dir to filename.tar.gz file
-    tar_file = shutil.make_archive(file_path, format=format, root_dir=file_path)
+    tar_file = shutil.make_archive(file_path, format=fmt, root_dir=file_path)
 
     # Remove filename dir
     if os.path.exists(file_path):
@@ -93,7 +93,7 @@ def save_multiple_parts_file(filename, format="gztar"):
 
 
 @contextlib.contextmanager
-def unpack_archive_with_buffer(buffer, format="gztar"):
+def unpack_archive_with_buffer(buffer, fmt="gztar"):
     """Unpack archive with archive buffer
     After the call is finished, the archive file and directory will be deleted.
 
@@ -105,7 +105,7 @@ def unpack_archive_with_buffer(buffer, format="gztar"):
         5. remove 'tempfile' and 'tempfile directory'
 
     :param buffer: bytes
-    :param format: archive format: one of "zip", "tar", "gztar", "bztar", or "xztar"
+    :param fmt: archive format: one of "zip", "tar", "gztar", "bztar", or "xztar"
     :return: unpack archive directory path
 
     Usage::
@@ -132,7 +132,7 @@ def unpack_archive_with_buffer(buffer, format="gztar"):
         os.rename(file_path, tar_file)
         # Create dir
         os.makedirs(file_path)
-        shutil.unpack_archive(tar_file, format=format, extract_dir=file_path)
+        shutil.unpack_archive(tar_file, format=fmt, extract_dir=file_path)
 
         # Return temp dir
         yield file_path

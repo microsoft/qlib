@@ -9,6 +9,7 @@ from typing import Dict
 
 class HighFreqTrans(Processor):
     def __init__(self, dtype: str = "bool"):
+        super().__init__()
         self.dtype = dtype
 
     def fit(self, df_features):
@@ -17,8 +18,7 @@ class HighFreqTrans(Processor):
     def __call__(self, df_features):
         if self.dtype == "bool":
             return df_features.astype(np.int8)
-        else:
-            return df_features.astype(np.float32)
+        return df_features.astype(np.float32)
 
 
 class HighFreqNorm(Processor):
@@ -29,6 +29,7 @@ class HighFreqNorm(Processor):
         feature_save_dir: str,
         norm_groups: Dict[str, int],
     ):
+        super().__init__()
         self.fit_start_time = fit_start_time
         self.fit_end_time = fit_end_time
         self.feature_save_dir = feature_save_dir

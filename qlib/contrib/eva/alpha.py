@@ -179,8 +179,7 @@ def calc_ic(pred: pd.Series, label: pd.Series, date_col="datetime", dropna=False
     ric = df.groupby(date_col, group_keys=False).apply(lambda df: df["pred"].corr(df["label"], method="spearman"))
     if dropna:
         return ic.dropna(), ric.dropna()
-    else:
-        return ic, ric
+    return ic, ric
 
 
 def calc_all_ic(pred_dict_all, label, date_col="datetime", dropna=False, n_jobs=-1):

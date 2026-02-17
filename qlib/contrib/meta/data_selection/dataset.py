@@ -26,7 +26,9 @@ class InternalData:
         self.step = step
         self.exp_name = exp_name
 
-    def setup(self, trainer=TrainerR, trainer_kwargs={}):
+    def setup(self, trainer=TrainerR, trainer_kwargs=None):
+        if trainer_kwargs is None:
+            trainer_kwargs = {}
         """
         after running this function `self.data_ic_df` will become set.
         Each col represents a data.
@@ -380,8 +382,7 @@ class MetaDatasetDS(MetaTaskDataset):
         total_len = self.step * self.hist_step_n
         if ic_df_avail.shape[0] >= total_len:
             return ic_df_avail.iloc[-total_len:]
-        else:
-            raise ValueError("the history of distribution data is not long enough.")
+        raise ValueError("the history of distribution data is not long enough.")
 
     def _prepare_seg(self, segment: Text) -> List[MetaTask]:
         if isinstance(self.segments, float):
@@ -390,12 +391,11 @@ class MetaDatasetDS(MetaTaskDataset):
                 train_tasks = self.meta_task_l[:train_task_n]
                 get_module_logger("MetaDatasetDS").info(f"The first train meta task: {train_tasks[0]}")
                 return train_tasks
-            elif segment == "test":
+            if segment == "test":
                 test_tasks = self.meta_task_l[train_task_n:]
                 get_module_logger("MetaDatasetDS").info(f"The first test meta task: {test_tasks[0]}")
                 return test_tasks
-            else:
-                raise NotImplementedError(f"This type of input is not supported")
+            raise NotImplementedError(f"This type of input is not supported")
         elif isinstance(self.segments, str):
             train_tasks = []
             test_tasks = []
@@ -409,8 +409,7 @@ class MetaDatasetDS(MetaTaskDataset):
             get_module_logger("MetaDatasetDS").info(f"The first test meta task: {test_tasks[0]}")
             if segment == "train":
                 return train_tasks
-            elif segment == "test":
+            if segment == "test":
                 return test_tasks
             raise NotImplementedError(f"This type of input is not supported")
-        else:
-            raise NotImplementedError(f"This type of input is not supported")
+        raise NotImplementedError(f"This type of input is not supported")

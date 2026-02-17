@@ -66,13 +66,12 @@ class UserManager:
         cur_user_list = list(self.users)
         if user_id in cur_user_list:
             raise ValueError("User {} has been loaded".format(user_id))
-        else:
-            trade_account = Account(0)
-            trade_account.load_account(account_path)
-            strategy = load_instance(strategy_file)
-            model = load_instance(model_file)
-            user = User(account=trade_account, strategy=strategy, model=model)
-            return user
+        trade_account = Account(0)
+        trade_account.load_account(account_path)
+        strategy = load_instance(strategy_file)
+        model = load_instance(model_file)
+        user = User(account=trade_account, strategy=strategy, model=model)
+        return user
 
     def save_user_data(self, user_id):
         """

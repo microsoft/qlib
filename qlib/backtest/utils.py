@@ -220,8 +220,7 @@ class BaseInfrastructure:
     def get(self, infra_name: str) -> Any:
         if hasattr(self, infra_name):
             return getattr(self, infra_name)
-        else:
-            warnings.warn(f"infra {infra_name} is not found!")
+        warnings.warn(f"infra {infra_name} is not found!")
 
     def has(self, infra_name: str) -> bool:
         return infra_name in self.get_support_infra() and hasattr(self, infra_name)

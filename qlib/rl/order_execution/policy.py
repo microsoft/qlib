@@ -9,7 +9,7 @@ from typing import Any, Dict, Generator, Iterable, Optional, OrderedDict, Tuple,
 import gym
 import numpy as np
 import torch
-import torch.nn as nn
+from torch import nn
 from gym.spaces import Discrete
 from tianshou.data import Batch, ReplayBuffer, to_torch
 from tianshou.policy import BasePolicy, PPOPolicy, DQNPolicy
@@ -60,6 +60,8 @@ class AllOne(NonLearnablePolicy):
         state: dict | Batch | np.ndarray = None,
         **kwargs: Any,
     ) -> Batch:
+        if info is None:
+            info = {}
         return Batch(act=np.full(len(batch), self.fill_value), state=state)
 
 
@@ -76,8 +78,10 @@ class PPOActor(nn.Module):
         self,
         obs: torch.Tensor,
         state: torch.Tensor = None,
-        info: dict = {},
+        info: dict = None,
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
+        if info is None:
+            info = {}
         feature = self.extractor(to_torch(obs, device=auto_device(self)))
         out = self.layer_out(feature)
         return out, state
@@ -93,7 +97,7 @@ class PPOCritic(nn.Module):
         self,
         obs: torch.Tensor,
         state: torch.Tensor = None,
-        info: dict = {},
+        info: dict = None,
     ) -> torch.Tensor:
         feature = self.extractor(to_torch(obs, device=auto_device(self)))
         return self.value_out(feature).squeeze(dim=-1)

@@ -23,8 +23,7 @@ logger = get_module_logger("qrun", logging.INFO)
 def get_path_list(path):
     if isinstance(path, str):
         return [path]
-    else:
-        return list(path)
+    return list(path)
 
 
 def sys_config(config, config_path):
@@ -38,14 +37,14 @@ def sys_config(config, config_path):
     config_path : str
         path of the configuration
     """
-    sys_config = config.get("sys", {})
+    sys_cfg = config.get("sys", {})
 
     # abspath
-    for p in get_path_list(sys_config.get("path", [])):
+    for p in get_path_list(sys_cfg.get("path", [])):
         sys.path.append(p)
 
     # relative path to config path
-    for p in get_path_list(sys_config.get("rel_path", [])):
+    for p in get_path_list(sys_cfg.get("rel_path", [])):
         sys.path.append(str(Path(config_path).parent.resolve().absolute() / p))
 
 

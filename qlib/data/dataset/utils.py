@@ -34,8 +34,7 @@ def get_level_index(df: pd.DataFrame, level: Union[str, int]) -> int:
             return ("datetime", "instrument").index(level)
     elif isinstance(level, int):
         return level
-    else:
-        raise NotImplementedError(f"This type of input is not supported")
+    raise NotImplementedError(f"This type of input is not supported")
 
 
 def fetch_df_by_index(
@@ -83,10 +82,9 @@ def fetch_df_by_col(df: pd.DataFrame, col_set: Union[str, List[str]]) -> pd.Data
 
     if not isinstance(df.columns, pd.MultiIndex) or col_set == DataHandler.CS_RAW:
         return df
-    elif col_set == DataHandler.CS_ALL:
+    if col_set == DataHandler.CS_ALL:
         return df.droplevel(axis=1, level=0)
-    else:
-        return df.loc(axis=1)[col_set]
+    return df.loc(axis=1)[col_set]
 
 
 def convert_index_format(df: Union[pd.DataFrame, pd.Series], level: str = "datetime") -> Union[pd.DataFrame, pd.Series]:
@@ -138,5 +136,4 @@ def init_task_handler(task: dict) -> DataHandler:
         handler = init_instance_by_config(h_conf, accept_types=DataHandler)
         task["dataset"]["kwargs"]["handler"] = handler
         return handler
-    else:
-        raise ValueError("The task does not contains a handler part.")
+    raise ValueError("The task does not contains a handler part.")

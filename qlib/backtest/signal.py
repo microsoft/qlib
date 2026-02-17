@@ -95,11 +95,10 @@ def create_signal_from(
     """
     if isinstance(obj, Signal):
         return obj
-    elif isinstance(obj, (tuple, list)):
+    if isinstance(obj, (tuple, list)):
         return ModelSignal(*obj)
-    elif isinstance(obj, (dict, str)):
+    if isinstance(obj, (dict, str)):
         return init_instance_by_config(obj)
-    elif isinstance(obj, (pd.DataFrame, pd.Series)):
+    if isinstance(obj, (pd.DataFrame, pd.Series)):
         return SignalWCache(signal=obj)
-    else:
-        raise NotImplementedError(f"This type of signal is not supported")
+    raise NotImplementedError(f"This type of signal is not supported")

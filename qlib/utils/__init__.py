@@ -87,15 +87,14 @@ def get_period_list(first: int, last: int, quarterly: bool) -> List[int]:
     if not quarterly:
         assert all(1900 <= x <= 2099 for x in (first, last)), "invalid arguments"
         return list(range(first, last + 1))
-    else:
-        assert all(190000 <= x <= 209904 for x in (first, last)), "invalid arguments"
-        res = []
-        for year in range(first // 100, last // 100 + 1):
-            for q in range(1, 5):
-                period = year * 100 + q
-                if first <= period <= last:
-                    res.append(year * 100 + q)
-        return res
+    assert all(190000 <= x <= 209904 for x in (first, last)), "invalid arguments"
+    res = []
+    for year in range(first // 100, last // 100 + 1):
+        for q in range(1, 5):
+            period = year * 100 + q
+            if first <= period <= last:
+                res.append(year * 100 + q)
+    return res
 
 
 def get_period_offset(first_year, period, quarterly):
@@ -233,7 +232,7 @@ def requests_with_retry(url, retry=5, **kwargs):
         except AssertionError:
             continue
         except Exception as e:
-            log.warning("exception encountered {}".format(e))
+            log.warning(f"exception encountered {e}")
             continue
     raise TimeoutError("ERROR: requests failed!")
 
@@ -431,7 +430,7 @@ def get_date_by_shift(
     trading_date = pd.to_datetime(trading_date)
     if align is None:
         if trading_date not in list(cal):
-            raise ValueError("{} is not trading day!".format(str(trading_date)))
+            raise ValueError(f"{str(trading_date)} is not trading day!")
         _index = bisect.bisect_left(cal, trading_date)
     elif align == "left":
         _index = bisect.bisect_right(cal, trading_date) - 1
@@ -484,7 +483,7 @@ def transform_end_date(end_date=None, freq="day"):
     if end_date is None or (str(end_date) == "-1") or (pd.Timestamp(last_date) < pd.Timestamp(end_date)):
         log.warning(
             "\nInfo: the end_date in the configuration file is {}, "
-            "so the default last date {} is used.".format(end_date, last_date)
+            f"so the default last date {end_date} is used."
         )
         end_date = last_date
     return end_date
@@ -559,8 +558,7 @@ def time_to_slc_point(t: Union[None, str, pd.Timestamp]) -> Union[None, pd.Times
     if t is None:
         # None represents unbounded in Qlib or Pandas(e.g. df.loc[slice(None, "20210303")]).
         return t
-    else:
-        return pd.Timestamp(t)
+    return pd.Timestamp(t)
 
 
 def can_use_cache():
@@ -671,8 +669,7 @@ def lazy_sort_index(df: pd.DataFrame, axis=0) -> pd.DataFrame:
         and not idx.is_lexsorted()
     ):  # this case is for the old version
         return df.sort_index(axis=axis)
-    else:
-        return df
+    return df
 
 
 FLATTEN_TUPLE = "_FLATTEN_TUPLE"
@@ -865,7 +862,7 @@ class Wrapper:
         self._provider = provider
 
     def __repr__(self):
-        return "{name}(provider={provider})".format(name=self.__class__.__name__, provider=self._provider)
+        return f"{self.__class__.__name__}(provider={self._provider})"
 
     def __getattr__(self, key):
         if self.__dict__.get("_provider", None) is None:
@@ -886,7 +883,9 @@ def register_wrapper(wrapper, cls_or_obj, module_path=None):
     wrapper.register(obj)
 
 
-def load_dataset(path_or_obj, index_col=[0, 1]):
+def load_dataset(path_or_obj, index_col=None):
+    if index_col is None:
+        index_col = [0, 1]
     """load dataset from multiple file formats"""
     if isinstance(path_or_obj, pd.DataFrame):
         return path_or_obj
@@ -895,9 +894,9 @@ def load_dataset(path_or_obj, index_col=[0, 1]):
     _, extension = os.path.splitext(path_or_obj)
     if extension == ".h5":
         return pd.read_hdf(path_or_obj)
-    elif extension == ".pkl":
+    if extension == ".pkl":
         return pd.read_pickle(path_or_obj)
-    elif extension == ".csv":
+    if extension == ".csv":
         return pd.read_csv(path_or_obj, parse_dates=True, index_col=index_col)
     raise ValueError(f"unsupported file type `{extension}`")
 

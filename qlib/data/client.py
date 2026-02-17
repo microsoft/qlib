@@ -28,7 +28,7 @@ class Client:
         # bind connect/disconnect callbacks
         self.sio.on(
             "connect",
-            lambda: self.logger.debug("Connect to server {}".format(self.sio.connection_url)),
+            lambda: self.logger.debug(f"Connect to server {self.sio.connection_url}"),
         )
         self.sio.on("disconnect", lambda: self.logger.debug("Disconnect from server!"))
 
@@ -44,7 +44,7 @@ class Client:
         try:
             self.sio.eio.disconnect(True)
         except Exception as e:
-            self.logger.error("Cannot disconnect from server : %s" % e)
+            self.logger.error(f"Cannot disconnect from server : {e}")
 
     def send_request(self, request_type, request_content, msg_queue, msg_proc_func=None):
         """Send a certain request to server.

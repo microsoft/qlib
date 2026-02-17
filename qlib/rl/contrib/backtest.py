@@ -215,8 +215,7 @@ def single_with_simulator(
             report = {day: _report}
 
         return records, report
-    else:
-        return records
+    return records
 
 
 def single_with_collect_data_loop(
@@ -310,8 +309,7 @@ def single_with_collect_data_loop(
             day = orders.iloc[0].datetime
             report = {day: _report}
         return records, report
-    else:
-        return records
+    return records
 
 
 def backtest(backtest_config: dict, with_simulator: bool = False) -> pd.DataFrame:

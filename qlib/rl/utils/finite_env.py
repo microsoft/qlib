@@ -46,11 +46,11 @@ def fill_invalid(obj: int | float | bool | T) -> T:
             return np.full_like(obj, np.iinfo(obj.dtype).max)
         # dealing with corner cases that numpy number is not supported by tianshou's sharray
         return fill_invalid(np.array(obj))
-    elif isinstance(obj, dict):
+    if isinstance(obj, dict):
         return {k: fill_invalid(v) for k, v in obj.items()}
-    elif isinstance(obj, list):
+    if isinstance(obj, list):
         return [fill_invalid(v) for v in obj]
-    elif isinstance(obj, tuple):
+    if isinstance(obj, tuple):
         return tuple(fill_invalid(v) for v in obj)
     raise ValueError(f"Unsupported value to fill with invalid: {obj}")
 
@@ -209,7 +209,7 @@ class FiniteVectorEnv(BaseVectorEnv):
 
     def reset(
         self,
-        id: int | List[int] | np.ndarray | None = None,
+        id_: int | List[int] | np.ndarray | None = None,
     ) -> np.ndarray:
         assert not self._zombie
 
@@ -222,7 +222,7 @@ class FiniteVectorEnv(BaseVectorEnv):
                 RuntimeWarning,
             )
 
-        wrapped_id = self._wrap_id(id)
+        wrapped_id = self._wrap_id(id_)
         self._reset_alive_envs()
 
         # ask super to reset alive envs and remap to current index
@@ -261,10 +261,10 @@ class FiniteVectorEnv(BaseVectorEnv):
     def step(
         self,
         action: np.ndarray,
-        id: int | List[int] | np.ndarray | None = None,
+        id_: int | List[int] | np.ndarray | None = None,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         assert not self._zombie
-        wrapped_id = self._wrap_id(id)
+        wrapped_id = self._wrap_id(id_)
         id2idx = {i: k for k, i in enumerate(wrapped_id)}
         request_id = list(filter(lambda i: i in self._alive_env_ids, wrapped_id))
         result = [[None, None, False, None] for _ in range(len(wrapped_id))]

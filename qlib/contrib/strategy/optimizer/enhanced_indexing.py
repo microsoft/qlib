@@ -52,8 +52,10 @@ class EnhancedIndexingOptimizer(BaseOptimizer):
         f_dev: Optional[Union[List[float], np.ndarray]] = None,
         scale_return: bool = True,
         epsilon: float = 5e-5,
-        solver_kwargs: Optional[Dict[str, Any]] = {},
+        solver_kwargs: Optional[Dict[str, Any]] = None,
     ):
+        if solver_kwargs is None:
+            solver_kwargs = {}
         """
         Args:
             lamb (float): risk aversion parameter (larger `lamb` means more focus on risk)

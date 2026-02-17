@@ -40,12 +40,11 @@ def seed_everything(seed: int) -> None:
 def _read_orders(order_dir: Path) -> pd.DataFrame:
     if os.path.isfile(order_dir):
         return pd.read_pickle(order_dir)
-    else:
-        orders = []
-        for file in order_dir.iterdir():
-            order_data = pd.read_pickle(file)
-            orders.append(order_data)
-        return pd.concat(orders)
+    orders = []
+    for file in order_dir.iterdir():
+        order_data = pd.read_pickle(file)
+        orders.append(order_data)
+    return pd.concat(orders)
 
 
 class LazyLoadDataset(Dataset):
@@ -201,20 +200,20 @@ def train_and_test(
         )
 
 
-def main(config: dict, run_training: bool, run_backtest: bool) -> None:
+def main(cfg: dict, run_training: bool, run_backtest: bool) -> None:
     if not run_training and not run_backtest:
         warnings.warn("Skip the entire job since training and backtest are both skipped.")
         return
 
-    if "seed" in config["runtime"]:
-        seed_everything(config["runtime"]["seed"])
+    if "seed" in cfg["runtime"]:
+        seed_everything(cfg["runtime"]["seed"])
 
-    for extra_module_path in config["env"].get("extra_module_paths", []):
+    for extra_module_path in cfg["env"].get("extra_module_paths", []):
         sys.path.append(extra_module_path)
 
-    state_interpreter: StateInterpreter = init_instance_by_config(config["state_interpreter"])
-    action_interpreter: ActionInterpreter = init_instance_by_config(config["action_interpreter"])
-    reward: Reward = init_instance_by_config(config["reward"])
+    state_interpreter: StateInterpreter = init_instance_by_config(cfg["state_interpreter"])
+    action_interpreter: ActionInterpreter = init_instance_by_config(cfg["action_interpreter"])
+    reward: Reward = init_instance_by_config(cfg["reward"])
 
     additional_policy_kwargs = {
         "obs_space": state_interpreter.observation_space,
@@ -222,27 +221,27 @@ def main(config: dict, run_training: bool, run_backtest: bool) -> None:
     }
 
     # Create torch network
-    if "network" in config:
-        if "kwargs" not in config["network"]:
-            config["network"]["kwargs"] = {}
-        config["network"]["kwargs"].update({"obs_space": state_interpreter.observation_space})
-        additional_policy_kwargs["network"] = init_instance_by_config(config["network"])
+    if "network" in cfg:
+        if "kwargs" not in cfg["network"]:
+            cfg["network"]["kwargs"] = {}
+        cfg["network"]["kwargs"].update({"obs_space": state_interpreter.observation_space})
+        additional_policy_kwargs["network"] = init_instance_by_config(cfg["network"])
 
     # Create policy
-    if "kwargs" not in config["policy"]:
-        config["policy"]["kwargs"] = {}
-    config["policy"]["kwargs"].update(additional_policy_kwargs)
-    policy: BasePolicy = init_instance_by_config(config["policy"])
+    if "kwargs" not in cfg["policy"]:
+        cfg["policy"]["kwargs"] = {}
+    cfg["policy"]["kwargs"].update(additional_policy_kwargs)
+    policy: BasePolicy = init_instance_by_config(cfg["policy"])
 
-    use_cuda = config["runtime"].get("use_cuda", False)
+    use_cuda = cfg["runtime"].get("use_cuda", False)
     if use_cuda:
         policy.cuda()
 
     train_and_test(
-        env_config=config["env"],
-        simulator_config=config["simulator"],
-        data_config=config["data"],
-        trainer_config=config["trainer"],
+        env_config=cfg["env"],
+        simulator_config=cfg["simulator"],
+        data_config=cfg["data"],
+        trainer_config=cfg["trainer"],
         action_interpreter=action_interpreter,
         state_interpreter=state_interpreter,
         policy=policy,

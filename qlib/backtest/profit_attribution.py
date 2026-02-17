@@ -206,7 +206,7 @@ def get_stock_group(stock_group_field_df, bench_stock_weight_df, group_method, g
     if group_method == "category":
         # use the value of the benchmark as the category
         return stock_group_field_df
-    elif group_method == "bins":
+    if group_method == "bins":
         assert group_n is not None
         # place the values into `group_n` fields.
         # Each bin corresponds to a category.

@@ -261,7 +261,9 @@ class TaskManager:
 
         return _id_list
 
-    def fetch_task(self, query={}, status=STATUS_WAITING) -> dict:
+    def fetch_task(self, query=None, status=STATUS_WAITING) -> dict:
+        if query is None:
+            query = {}
         """
         Use query to fetch tasks.
 
@@ -285,7 +287,9 @@ class TaskManager:
         return self._decode_task(task)
 
     @contextmanager
-    def safe_fetch_task(self, query={}, status=STATUS_WAITING):
+    def safe_fetch_task(self, query=None, status=STATUS_WAITING):
+        if query is None:
+            query = {}
         """
         Fetch task from task_pool using query with contextmanager
 
@@ -308,14 +312,18 @@ class TaskManager:
                 self.logger.info("Task returned")
             raise
 
-    def task_fetcher_iter(self, query={}):
+    def task_fetcher_iter(self, query=None):
+        if query is None:
+            query = {}
         while True:
             with self.safe_fetch_task(query=query) as task:
                 if task is None:
                     break
                 yield task
 
-    def query(self, query={}, decode=True):
+    def query(self, query=None, decode=True):
+        if query is None:
+            query = {}
         """
         Query task in collection.
         This function may raise exception `pymongo.errors.CursorNotFound: cursor id not found` if it takes too long to iterate the generator
@@ -380,7 +388,9 @@ class TaskManager:
         update_dict = {"$set": {"status": status}}
         self.task_pool.update_one({"_id": task["_id"]}, update_dict)
 
-    def remove(self, query={}):
+    def remove(self, query=None):
+        if query is None:
+            query = {}
         """
         Remove the task using query
 
@@ -394,7 +404,9 @@ class TaskManager:
         query = self._decode_query(query)
         self.task_pool.delete_many(query)
 
-    def task_stat(self, query={}) -> dict:
+    def task_stat(self, query=None) -> dict:
+        if query is None:
+            query = {}
         """
         Count the tasks in every status.
 
@@ -412,7 +424,9 @@ class TaskManager:
             status_stat[t["status"]] = status_stat.get(t["status"], 0) + 1
         return status_stat
 
-    def reset_waiting(self, query={}):
+    def reset_waiting(self, query=None):
+        if query is None:
+            query = {}
         """
         Reset all running task into waiting status. Can be used when some running task exit unexpected.
 
@@ -454,7 +468,9 @@ class TaskManager:
     def _get_total(self, task_stat):
         return sum(task_stat.values())
 
-    def wait(self, query={}):
+    def wait(self, query=None):
+        if query is None:
+            query = {}
         """
         When multiprocessing, the main progress may fetch nothing from TaskManager because there are still some running tasks.
         So main progress should wait until all tasks are trained well by other progress or machines.
@@ -484,12 +500,14 @@ class TaskManager:
 def run_task(
     task_func: Callable,
     task_pool: str,
-    query: dict = {},
+    query: dict = None,
     force_release: bool = False,
     before_status: str = TaskManager.STATUS_WAITING,
     after_status: str = TaskManager.STATUS_DONE,
     **kwargs,
 ):
+    if query is None:
+        query = {}
     r"""
     While the task pool is not empty (has WAITING tasks), use task_func to fetch and run tasks in task_pool
 

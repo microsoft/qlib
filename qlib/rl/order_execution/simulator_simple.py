@@ -79,12 +79,16 @@ class SingleAssetOrderExecutionSimple(Simulator[Order, SAOEState, float]):
         self,
         order: Order,
         data_dir: Path,
-        feature_columns_today: List[str] = [],
-        feature_columns_yesterday: List[str] = [],
+        feature_columns_today: List[str] = None,
+        feature_columns_yesterday: List[str] = None,
         data_granularity: int = 1,
         ticks_per_step: int = 30,
         vol_threshold: Optional[float] = None,
     ) -> None:
+        if feature_columns_today is None:
+            feature_columns_today = []
+        if feature_columns_yesterday is None:
+            feature_columns_yesterday = []
         super().__init__(initial=order)
 
         assert ticks_per_step % data_granularity == 0
@@ -259,8 +263,7 @@ class SingleAssetOrderExecutionSimple(Simulator[Order, SAOEState, float]):
 
         if next_loc < len(self.ticks_index) and self.ticks_index[next_loc] < self.order.end_time:
             return self.ticks_index[next_loc]
-        else:
-            return self.order.end_time
+        return self.order.end_time
 
     def _cur_duration(self) -> pd.Timedelta:
         """The "duration" of this step (step that is about to happen)."""
@@ -347,8 +350,7 @@ def price_advantage(
     if baseline_price == 0:  # something is wrong with data. Should be nan here
         if isinstance(exec_price, float):
             return 0.0
-        else:
-            return np.zeros_like(exec_price)
+        return np.zeros_like(exec_price)
     if direction == OrderDir.BUY:
         res = (1 - exec_price / baseline_price) * 10000
     elif direction == OrderDir.SELL:
@@ -358,5 +360,4 @@ def price_advantage(
     res_wo_nan: np.ndarray = np.nan_to_num(res, nan=0.0)
     if res_wo_nan.size == 1:
         return res_wo_nan.item()
-    else:
-        return cast(float_or_ndarray, res_wo_nan)
+    return cast(float_or_ndarray, res_wo_nan)

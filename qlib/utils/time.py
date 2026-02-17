@@ -95,20 +95,19 @@ def is_single_value(start_time, end_time, freq, region: str = REG_CN):
         if start_time.hour == 14 and start_time.minute == 59 and start_time.second == 0:
             return True
         return False
-    elif region == REG_TW:
+    if region == REG_TW:
         if end_time - start_time < freq:
             return True
         if start_time.hour == 13 and start_time.minute >= 25 and start_time.second == 0:
             return True
         return False
-    elif region == REG_US:
+    if region == REG_US:
         if end_time - start_time < freq:
             return True
         if start_time.hour == 15 and start_time.minute == 59 and start_time.second == 0:
             return True
         return False
-    else:
-        raise NotImplementedError(f"please implement the is_single_value func for {region}")
+    raise NotImplementedError(f"please implement the is_single_value func for {region}")
 
 
 class Freq:
@@ -262,20 +261,17 @@ def time_to_day_index(time_obj: Union[str, datetime], region: str = REG_CN):
     if region == REG_CN:
         if CN_TIME[0] <= time_obj < CN_TIME[1]:
             return int((time_obj - CN_TIME[0]).total_seconds() / 60)
-        elif CN_TIME[2] <= time_obj < CN_TIME[3]:
+        if CN_TIME[2] <= time_obj < CN_TIME[3]:
             return int((time_obj - CN_TIME[2]).total_seconds() / 60) + 120
-        else:
-            raise ValueError(f"{time_obj} is not the opening time of the {region} stock market")
+        raise ValueError(f"{time_obj} is not the opening time of the {region} stock market")
     elif region == REG_US:
         if US_TIME[0] <= time_obj < US_TIME[1]:
             return int((time_obj - US_TIME[0]).total_seconds() / 60)
-        else:
-            raise ValueError(f"{time_obj} is not the opening time of the {region} stock market")
+        raise ValueError(f"{time_obj} is not the opening time of the {region} stock market")
     elif region == REG_TW:
         if TW_TIME[0] <= time_obj < TW_TIME[1]:
             return int((time_obj - TW_TIME[0]).total_seconds() / 60)
-        else:
-            raise ValueError(f"{time_obj} is not the opening time of the {region} stock market")
+        raise ValueError(f"{time_obj} is not the opening time of the {region} stock market")
     else:
         raise ValueError(f"{region} is not supported")
 
@@ -367,10 +363,9 @@ def epsilon_change(date_time: pd.Timestamp, direction: str = "backward") -> pd.T
     """
     if direction == "backward":
         return date_time - pd.Timedelta(seconds=1)
-    elif direction == "forward":
+    if direction == "forward":
         return date_time + pd.Timedelta(seconds=1)
-    else:
-        raise ValueError("Wrong input")
+    raise ValueError("Wrong input")
 
 
 if __name__ == "__main__":

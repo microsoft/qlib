@@ -71,8 +71,10 @@ def get_dataset_config(
     train=("2008-01-01", "2014-12-31"),
     valid=("2015-01-01", "2016-12-31"),
     test=("2017-01-01", "2020-08-01"),
-    handler_kwargs={"instruments": CSI300_MARKET},
+    handler_kwargs=None,
 ):
+    if handler_kwargs is None:
+        handler_kwargs = {"instruments": CSI300_MARKET}
     return {
         "class": "DatasetH",
         "module_path": "qlib.data.dataset",
@@ -91,14 +93,22 @@ def get_dataset_config(
     }
 
 
-def get_gbdt_task(dataset_kwargs={}, handler_kwargs={"instruments": CSI300_MARKET}):
+def get_gbdt_task(dataset_kwargs=None, handler_kwargs=None):
+    if dataset_kwargs is None:
+        dataset_kwargs = {}
+    if handler_kwargs is None:
+        handler_kwargs = {"instruments": CSI300_MARKET}
     return {
         "model": GBDT_MODEL,
         "dataset": get_dataset_config(**dataset_kwargs, handler_kwargs=handler_kwargs),
     }
 
 
-def get_record_lgb_config(dataset_kwargs={}, handler_kwargs={"instruments": CSI300_MARKET}):
+def get_record_lgb_config(dataset_kwargs=None, handler_kwargs=None):
+    if dataset_kwargs is None:
+        dataset_kwargs = {}
+    if handler_kwargs is None:
+        handler_kwargs = {"instruments": CSI300_MARKET}
     return {
         "model": {
             "class": "LGBModel",
@@ -109,7 +119,11 @@ def get_record_lgb_config(dataset_kwargs={}, handler_kwargs={"instruments": CSI3
     }
 
 
-def get_record_xgboost_config(dataset_kwargs={}, handler_kwargs={"instruments": CSI300_MARKET}):
+def get_record_xgboost_config(dataset_kwargs=None, handler_kwargs=None):
+    if dataset_kwargs is None:
+        dataset_kwargs = {}
+    if handler_kwargs is None:
+        handler_kwargs = {"instruments": CSI300_MARKET}
     return {
         "model": {
             "class": "XGBModel",

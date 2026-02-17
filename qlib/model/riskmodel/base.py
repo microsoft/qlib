@@ -26,6 +26,7 @@ class RiskModel(BaseModel):
             assume_centered (bool): whether the data is assumed to be centered.
             scale_return (bool): whether scale returns as percentage.
         """
+        super().__init__()
         # nan
         assert nan_option in [
             self.MASK_NAN,

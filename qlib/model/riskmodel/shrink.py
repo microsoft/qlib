@@ -155,7 +155,7 @@ class ShrinkCovEstimator(RiskModel):
         """
         if self.alpha == self.SHR_OAS:
             return self._get_shrink_param_oas(X, S, F)
-        elif self.alpha == self.SHR_LW:
+        if self.alpha == self.SHR_LW:
             if self.target == self.TGT_CONST_VAR:
                 return self._get_shrink_param_lw_const_var(X, S, F)
             if self.target == self.TGT_CONST_CORR:
@@ -190,7 +190,7 @@ class ShrinkCovEstimator(RiskModel):
 
         This method shrinks the covariance matrix towards the constand variance target.
         """
-        t, n = X.shape
+        t, _n = X.shape
 
         y = X**2
         phi = np.sum(y.T.dot(y) / t - S**2)
@@ -233,7 +233,7 @@ class ShrinkCovEstimator(RiskModel):
 
         This method shrinks the covariance matrix towards the single factor model target.
         """
-        t, n = X.shape
+        t, _n = X.shape
 
         X_mkt = np.nanmean(X, axis=1)
         cov_mkt = np.asarray(X.T.dot(X_mkt) / len(X))

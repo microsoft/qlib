@@ -85,9 +85,11 @@ class DatasetH(Dataset):
         self,
         handler: Union[Dict, DataHandler],
         segments: Dict[Text, Tuple],
-        fetch_kwargs: Dict = {},
+        fetch_kwargs: Dict = None,
         **kwargs,
     ):
+        if fetch_kwargs is None:
+            fetch_kwargs = {}
         """
         Setup the underlying data.
 
@@ -164,9 +166,7 @@ class DatasetH(Dataset):
             self.handler.setup_data(**handler_kwargs)
 
     def __repr__(self):
-        return "{name}(handler={handler}, segments={segments})".format(
-            name=self.__class__.__name__, handler=self.handler, segments=self.segments
-        )
+        return f"{self.__class__.__name__}(handler={self.handler}, segments={self.segments})"
 
     def _prepare_seg(self, slc, **kwargs):
         """
@@ -179,8 +179,7 @@ class DatasetH(Dataset):
         """
         if hasattr(self, "fetch_kwargs"):
             return self.handler.fetch(slc, **kwargs, **self.fetch_kwargs)
-        else:
-            return self.handler.fetch(slc, **kwargs)
+        return self.handler.fetch(slc, **kwargs)
 
     def prepare(
         self,
@@ -264,7 +263,7 @@ class DatasetH(Dataset):
             if point is None:
                 # None indicates unbounded, return directly
                 return None
-            elif candidate is None or cmp(key_func(candidate), key_func(point)):
+            if candidate is None or cmp(key_func(candidate), key_func(point)):
                 candidate = point
         return candidate
 

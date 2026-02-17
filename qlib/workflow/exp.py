@@ -18,14 +18,14 @@ class Experiment:
     (The link: https://mlflow.org/docs/latest/python_api/mlflow.html)
     """
 
-    def __init__(self, id, name):
-        self.id = id
+    def __init__(self, id_, name):
+        self.id = id_
         self.name = name
         self.active_recorder = None  # only one recorder can run each time
         self._default_rec_name = "abstract_recorder"
 
     def __repr__(self):
-        return "{name}(id={id}, info={info})".format(name=self.__class__.__name__, id=self.id, info=self.info)
+        return f"{self.__class__.__name__}(id={self.id}, info={self.info})"
 
     def __str__(self):
         return str(self.info)
@@ -245,14 +245,14 @@ class MLflowExperiment(Experiment):
     Use mlflow to implement Experiment.
     """
 
-    def __init__(self, id, name, uri):
-        super(MLflowExperiment, self).__init__(id, name)
+    def __init__(self, id_, name, uri):
+        super(MLflowExperiment, self).__init__(id_, name)
         self._uri = uri
         self._default_rec_name = "mlflow_recorder"
         self._client = mlflow.tracking.MlflowClient(tracking_uri=self._uri)
 
     def __repr__(self):
-        return "{name}(id={id}, info={info})".format(name=self.__class__.__name__, id=self.id, info=self.info)
+        return f"{self.__class__.__name__}(id={self.id}, info={self.info})"
 
     def start(self, *, recorder_id=None, recorder_name=None, resume=False):
         logger.info(f"Experiment {self.id} starts running ...")
@@ -365,7 +365,7 @@ class MLflowExperiment(Experiment):
         )
         rids = []
         recorders = []
-        for i, n in enumerate(runs):
+        for _i, n in enumerate(runs):
             recorder = MLflowRecorder(self.id, self._uri, mlflow_run=n)
             if status is None or recorder.status == status:
                 rids.append(n.info.run_id)
@@ -373,7 +373,6 @@ class MLflowExperiment(Experiment):
 
         if rtype == Experiment.RT_D:
             return dict(zip(rids, recorders))
-        elif rtype == Experiment.RT_L:
+        if rtype == Experiment.RT_L:
             return recorders
-        else:
-            raise NotImplementedError(f"This type of input is not supported")
+        raise NotImplementedError(f"This type of input is not supported")

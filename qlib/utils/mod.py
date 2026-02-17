@@ -123,9 +123,11 @@ def init_instance_by_config(
     config: InstConf,
     default_module=None,
     accept_types: Union[type, Tuple[type]] = (),
-    try_kwargs: Dict = {},
+    try_kwargs: Dict = None,
     **kwargs,
 ) -> Any:
+    if try_kwargs is None:
+        try_kwargs = {}
     """
     get initialized instance with config
 

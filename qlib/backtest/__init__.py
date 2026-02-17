@@ -36,7 +36,7 @@ def get_exchange(
     start_time: Union[pd.Timestamp, str] = None,
     end_time: Union[pd.Timestamp, str] = None,
     codes: Union[list, str] = "all",
-    subscribe_fields: list = [],
+    subscribe_fields: list = None,
     open_cost: float = 0.0015,
     close_cost: float = 0.0025,
     min_cost: float = 5.0,
@@ -44,6 +44,8 @@ def get_exchange(
     deal_price: Union[str, Tuple[str, str], List[str]] | None = None,
     **kwargs: Any,
 ) -> Exchange:
+    if subscribe_fields is None:
+        subscribe_fields = []
     """get_exchange
 
     Parameters
@@ -106,8 +108,7 @@ def get_exchange(
             **kwargs,
         )
         return exchange
-    else:
-        return init_instance_by_config(exchange, accept_types=Exchange)
+    return init_instance_by_config(exchange, accept_types=Exchange)
 
 
 def create_account_instance(
@@ -181,12 +182,14 @@ def get_strategy_executor(
     executor: Union[str, dict, object, Path],
     benchmark: Optional[str] = "SH000300",
     account: Union[float, int, dict] = 1e9,
-    exchange_kwargs: dict = {},
+    exchange_kwargs: dict = None,
     pos_type: str = "Position",
 ) -> Tuple[BaseStrategy, BaseExecutor]:
     # NOTE:
     # - for avoiding recursive import
     # - typing annotations is not reliable
+    if exchange_kwargs is None:
+        exchange_kwargs = {}
     from ..strategy.base import BaseStrategy  # pylint: disable=C0415
     from .executor import BaseExecutor  # pylint: disable=C0415
 
@@ -221,9 +224,11 @@ def backtest(
     executor: Union[str, dict, object, Path],
     benchmark: str = "SH000300",
     account: Union[float, int, dict] = 1e9,
-    exchange_kwargs: dict = {},
+    exchange_kwargs: dict = None,
     pos_type: str = "Position",
 ) -> Tuple[PORT_METRIC, INDICATOR_METRIC]:
+    if exchange_kwargs is None:
+        exchange_kwargs = {}
     """initialize the strategy and executor, then backtest function for the interaction of the outermost strategy and
     executor in the nested decision execution
 
@@ -283,10 +288,12 @@ def collect_data(
     executor: Union[str, dict, object, Path],
     benchmark: str = "SH000300",
     account: Union[float, int, dict] = 1e9,
-    exchange_kwargs: dict = {},
+    exchange_kwargs: dict = None,
     pos_type: str = "Position",
     return_value: dict | None = None,
 ) -> Generator[object, None, None]:
+    if exchange_kwargs is None:
+        exchange_kwargs = {}
     """initialize the strategy and executor, then collect the trade decision data for rl training
 
     please refer to the docs of the backtest for the explanation of the parameters

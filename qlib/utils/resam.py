@@ -51,22 +51,20 @@ def resam_calendar(
         return _calendar_minute
 
     # else, convert the raw calendar into day calendar, and divide the whole calendar into several bars evenly
-    else:
-        _calendar_day = np.unique(list(map(lambda x: pd.Timestamp(x.year, x.month, x.day, 0, 0, 0), calendar_raw)))
-        if freq_sam.base == Freq.NORM_FREQ_DAY:
-            return _calendar_day[:: freq_sam.count]
+    _calendar_day = np.unique(list(map(lambda x: pd.Timestamp(x.year, x.month, x.day, 0, 0, 0), calendar_raw)))
+    if freq_sam.base == Freq.NORM_FREQ_DAY:
+        return _calendar_day[:: freq_sam.count]
 
-        elif freq_sam.base == Freq.NORM_FREQ_WEEK:
-            _day_in_week = np.array(list(map(lambda x: x.dayofweek, _calendar_day)))
-            _calendar_week = _calendar_day[np.ediff1d(_day_in_week, to_begin=-1) < 0]
-            return _calendar_week[:: freq_sam.count]
+    if freq_sam.base == Freq.NORM_FREQ_WEEK:
+        _day_in_week = np.array(list(map(lambda x: x.dayofweek, _calendar_day)))
+        _calendar_week = _calendar_day[np.ediff1d(_day_in_week, to_begin=-1) < 0]
+        return _calendar_week[:: freq_sam.count]
 
-        elif freq_sam.base == Freq.NORM_FREQ_MONTH:
-            _day_in_month = np.array(list(map(lambda x: x.day, _calendar_day)))
-            _calendar_month = _calendar_day[np.ediff1d(_day_in_month, to_begin=-1) < 0]
-            return _calendar_month[:: freq_sam.count]
-        else:
-            raise ValueError("sampling freq must be xmin, xd, xw, xm")
+    if freq_sam.base == Freq.NORM_FREQ_MONTH:
+        _day_in_month = np.array(list(map(lambda x: x.day, _calendar_day)))
+        _calendar_month = _calendar_day[np.ediff1d(_day_in_month, to_begin=-1) < 0]
+        return _calendar_month[:: freq_sam.count]
+    raise ValueError("sampling freq must be xmin, xd, xw, xm")
 
 
 def get_higher_eq_freq_feature(instruments, fields, start_time=None, end_time=None, freq="day", disk_cache=1):
@@ -104,8 +102,10 @@ def resam_ts_data(
     start_time: Union[str, pd.Timestamp] = None,
     end_time: Union[str, pd.Timestamp] = None,
     method: Union[str, Callable] = "last",
-    method_kwargs: dict = {},
+    method_kwargs: dict = None,
 ):
+    if method_kwargs is None:
+        method_kwargs = {}
     """
     Resample value from time-series data
 
@@ -195,13 +195,13 @@ def resam_ts_data(
         if callable(method):
             method_func = method
             return feature.groupby(level="instrument", group_keys=False).apply(method_func, **method_kwargs)
-        elif isinstance(method, str):
+        if isinstance(method, str):
             return getattr(feature.groupby(level="instrument", group_keys=False), method)(**method_kwargs)
     else:
         if callable(method):
             method_func = method
             return method_func(feature, **method_kwargs)
-        elif isinstance(method, str):
+        if isinstance(method, str):
             return getattr(feature, method)(**method_kwargs)
     return feature
 
@@ -229,10 +229,9 @@ def _ts_data_valid(ts_feature, last=False):
     """get the first/last not nan value of pd.Series|DataFrame with single level index"""
     if isinstance(ts_feature, pd.DataFrame):
         return ts_feature.apply(lambda column: get_valid_value(column, last=last))
-    elif isinstance(ts_feature, pd.Series):
+    if isinstance(ts_feature, pd.Series):
         return get_valid_value(ts_feature, last=last)
-    else:
-        raise TypeError(f"ts_feature should be pd.DataFrame/Series, not {type(ts_feature)}")
+    raise TypeError(f"ts_feature should be pd.DataFrame/Series, not {type(ts_feature)}")
 
 
 ts_data_last = partial(_ts_data_valid, last=True)

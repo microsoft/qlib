@@ -166,7 +166,7 @@ class Rolling:
                 self.logger.info("The prediction horizon is overrided")
                 if isinstance(task["dataset"]["kwargs"]["handler"], dict):
                     task["dataset"]["kwargs"]["handler"]["kwargs"]["label"] = [
-                        "Ref($close, -{}) / Ref($close, -1) - 1".format(self.horizon + 1)
+                        f"Ref($close, -{self.horizon + 1}) / Ref($close, -1) - 1"
                     ]
                 else:
                     self.logger.warning("Try to automatically configure the lablel but failed.")

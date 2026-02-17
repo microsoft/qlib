@@ -120,7 +120,9 @@ class RollingStrategy(OnlineStrategy):
         self.tool = OnlineToolR(self.exp_name)
         self.ta = TimeAdjuster()
 
-    def get_collector(self, process_list=[RollingGroup()], rec_key_func=None, rec_filter_func=None, artifacts_key=None):
+    def get_collector(self, process_list=None, rec_key_func=None, rec_filter_func=None, artifacts_key=None):
+        if process_list is None:
+            process_list = [RollingGroup()]
         """
         Get the instance of `Collector <../advanced/task_management.html#Task Collecting>`_ to collect results. The returned collector must distinguish results in different models.
 

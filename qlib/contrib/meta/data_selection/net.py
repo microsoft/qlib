@@ -30,14 +30,11 @@ class TimeWeightMeta(SingleMetaBase):
         if return_preds:
             if time_belong is None:
                 return preds
-            else:
-                return time_belong @ preds
-        else:
-            weights = preds_to_weight_with_clamp(preds, self.clip_weight, self.clip_method)
-            if time_belong is None:
-                return weights
-            else:
-                return time_belong @ weights
+            return time_belong @ preds
+        weights = preds_to_weight_with_clamp(preds, self.clip_weight, self.clip_method)
+        if time_belong is None:
+            return weights
+        return time_belong @ weights
 
 
 class PredNet(nn.Module):

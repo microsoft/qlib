@@ -34,7 +34,7 @@ def concat(data_list: Union[SingleData], axis=0) -> MultiData:
     """
     if axis == 0:
         raise NotImplementedError(f"please implement this func when axis == 0")
-    elif axis == 1:
+    if axis == 1:
         # get all index and row
         all_index = set()
         for index_data in data_list:
@@ -50,8 +50,7 @@ def concat(data_list: Union[SingleData], axis=0) -> MultiData:
             now_data_map = [all_index_map[index] for index in index_data.index]
             tmp_data[now_data_map, data_id] = index_data.data
         return MultiData(tmp_data, all_index)
-    else:
-        raise ValueError(f"axis must be 0 or 1")
+    raise ValueError(f"axis must be 0 or 1")
 
 
 def sum_by_index(data_list: Union[SingleData], new_index: list, fill_value=0) -> SingleData:
@@ -73,14 +72,14 @@ def sum_by_index(data_list: Union[SingleData], new_index: list, fill_value=0) ->
     """
     data_list = [data.to_dict() for data in data_list]
     data_sum = {}
-    for id in new_index:
+    for idx in new_index:
         item_sum = 0
         for data in data_list:
-            if id in data and not np.isnan(data[id]):
-                item_sum += data[id]
+            if idx in data and not np.isnan(data[idx]):
+                item_sum += data[idx]
             else:
                 item_sum += fill_value
-        data_sum[id] = item_sum
+        data_sum[idx] = item_sum
     return SingleData(data_sum)
 
 
@@ -138,7 +137,7 @@ class Index:
             if isinstance(item, pd.Timestamp):
                 # This happens often when creating index based on pandas.DatetimeIndex and query with pd.Timestamp
                 return item.to_numpy().astype(self.idx_list.dtype)
-            elif isinstance(item, np.datetime64):
+            if isinstance(item, np.datetime64):
                 # This happens often when creating index based on np.datetime64 and query with another precision
                 return item.astype(self.idx_list.dtype)
             # NOTE: It is hard to consider every case at first.
@@ -327,11 +326,10 @@ class BinaryOps:
 
         if isinstance(other, (int, float, np.number)):
             return self.obj.__class__(self_data_method(other), *self.obj.indices)
-        elif isinstance(other, self.obj.__class__):
+        if isinstance(other, self.obj.__class__):
             other_aligned = self.obj._align_indices(other)
             return self.obj.__class__(self_data_method(other_aligned.data), *self.obj.indices)
-        else:
-            return NotImplemented
+        return NotImplemented
 
 
 def index_data_ops_creator(*args, **kwargs):
@@ -476,28 +474,26 @@ class IndexData(metaclass=index_data_ops_creator):
         # FIXME: weird logic and not general
         if axis is None:
             return np.nansum(self.data)
-        elif axis == 0:
+        if axis == 0:
             tmp_data = np.nansum(self.data, axis=0)
             return SingleData(tmp_data, self.columns)
-        elif axis == 1:
+        if axis == 1:
             tmp_data = np.nansum(self.data, axis=1)
             return SingleData(tmp_data, self.index)
-        else:
-            raise ValueError(f"axis must be None, 0 or 1")
+        raise ValueError(f"axis must be None, 0 or 1")
 
     def mean(self, axis=None, dtype=None, out=None):
         assert out is None and dtype is None, "`out` is just for compatible with numpy's aggregating function"
         # FIXME: weird logic and not general
         if axis is None:
             return np.nanmean(self.data)
-        elif axis == 0:
+        if axis == 0:
             tmp_data = np.nanmean(self.data, axis=0)
             return SingleData(tmp_data, self.columns)
-        elif axis == 1:
+        if axis == 1:
             tmp_data = np.nanmean(self.data, axis=1)
             return SingleData(tmp_data, self.index)
-        else:
-            raise ValueError(f"axis must be None, 0 or 1")
+        raise ValueError(f"axis must be None, 0 or 1")
 
     def isna(self):
         return self.__class__(np.isnan(self.data), *self.indices)
@@ -514,8 +510,7 @@ class IndexData(metaclass=index_data_ops_creator):
     def all(self):
         if None in self.data:
             return self.data[self.data is not None].all()
-        else:
-            return self.data.all()
+        return self.data.all()
 
     @property
     def empty(self):
@@ -528,8 +523,12 @@ class IndexData(metaclass=index_data_ops_creator):
 
 class SingleData(IndexData):
     def __init__(
-        self, data: Union[int, float, np.number, list, dict, pd.Series] = [], index: Union[List, pd.Index, Index] = []
+        self, data: Union[int, float, np.number, list, dict, pd.Series] = None, index: Union[List, pd.Index, Index] = None
     ):
+        if data is None:
+            data = []
+        if index is None:
+            index = []
         """A data structure of index and numpy data.
         It's used to replace pd.Series due to high-speed.
 
@@ -559,12 +558,11 @@ class SingleData(IndexData):
     def _align_indices(self, other):
         if self.index == other.index:
             return other
-        elif set(self.index) == set(other.index):
+        if set(self.index) == set(other.index):
             return other.reindex(self.index)
-        else:
-            raise ValueError(
-                f"The indexes of self and other do not meet the requirements of the four arithmetic operations"
-            )
+        raise ValueError(
+            f"The indexes of self and other do not meet the requirements of the four arithmetic operations"
+        )
 
     def reindex(self, index: Index, fill_value=np.nan) -> SingleData:
         """reindex data and fill the missing value with np.nan.
@@ -621,10 +619,16 @@ class SingleData(IndexData):
 class MultiData(IndexData):
     def __init__(
         self,
-        data: Union[int, float, np.number, list] = [],
-        index: Union[List, pd.Index, Index] = [],
-        columns: Union[List, pd.Index, Index] = [],
+        data: Union[int, float, np.number, list] = None,
+        index: Union[List, pd.Index, Index] = None,
+        columns: Union[List, pd.Index, Index] = None,
     ):
+        if data is None:
+            data = []
+        if index is None:
+            index = []
+        if columns is None:
+            columns = []
         """A data structure of index and numpy data.
         It's used to replace pd.DataFrame due to high-speed.
 
@@ -645,10 +649,9 @@ class MultiData(IndexData):
     def _align_indices(self, other):
         if self.indices == other.indices:
             return other
-        else:
-            raise ValueError(
-                f"The indexes of self and other do not meet the requirements of the four arithmetic operations"
-            )
+        raise ValueError(
+            f"The indexes of self and other do not meet the requirements of the four arithmetic operations"
+        )
 
     def __repr__(self) -> str:
         return str(pd.DataFrame(self.data, index=self.index.tolist(), columns=self.columns.tolist()))

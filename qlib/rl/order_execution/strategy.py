@@ -120,8 +120,7 @@ class SAOEStateAdapter:
             and self.backtest_data.ticks_index[next_loc] < self.order.end_time
         ):
             return self.backtest_data.ticks_index[next_loc]
-        else:
-            return self.order.end_time
+        return self.order.end_time
 
     def update(
         self,

@@ -128,7 +128,7 @@ class QLibTuner(Tuner):
                 # if estimator experiment is multi-label training, user need to process the scores by himself
                 # Default method is return the average score
                 return np.mean(exp_info["performance"]["model_score"])
-            elif self.optim_config.report_factor == "model_pearsonr":
+            if self.optim_config.report_factor == "model_pearsonr":
                 # pearsonr is a correlation coefficient, 1 is the best
                 return np.abs(exp_info["performance"]["model_pearsonr"] - 1)
 
@@ -143,11 +143,10 @@ class QLibTuner(Tuner):
         # res = res.values[0] if self.optim_config.optim_type == 'min' else -res.values[0]
         if self.optim_config == "min":
             return res.values[0]
-        elif self.optim_config == "max":
+        if self.optim_config == "max":
             return -res.values[0]
-        else:
-            # self.optim_config == 'correlation'
-            return np.abs(res.values[0] - 1)
+        # self.optim_config == 'correlation'
+        return np.abs(res.values[0] - 1)
 
     def setup_estimator_config(self, params):
         estimator_config = copy.deepcopy(self.tuner_config)

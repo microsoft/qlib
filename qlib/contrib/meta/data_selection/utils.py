@@ -26,7 +26,7 @@ class ICLoss(nn.Module):
         """
         prev = None
         diff_point = []
-        for i, (date, inst) in enumerate(idx):
+        for i, (date, _inst) in enumerate(idx):
             if date != prev:
                 diff_point.append(i)
             prev = date

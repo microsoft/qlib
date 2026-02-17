@@ -79,7 +79,7 @@ def init(default_conf="client", **kwargs):
 
     if "flask_server" in C:
         logger.info(f"flask_server={C['flask_server']}, flask_port={C['flask_port']}")
-    logger.info("qlib successfully initialized based on %s settings." % default_conf)
+    logger.info(f"qlib successfully initialized based on {default_conf} settings.")
     data_path = {_freq: C.dpm.get_data_uri(_freq) for _freq in C.dpm.provider_uri.keys()}
     logger.info(f"data_path={data_path}")
 
@@ -119,10 +119,9 @@ def _mount_nfs_uri(provider_uri, mount_path, auto_mount: bool = False):
                     LOG.warning(f"{provider_uri} already mounted at {mount_path}")
                 elif e.returncode == 53:
                     raise OSError("Network path not found") from e
-                elif "error" in error_output.lower() or "错误" in error_output:
+                if "error" in error_output.lower() or "错误" in error_output:
                     raise OSError("Invalid mount path") from e
-                else:
-                    raise OSError(f"Unknown mount error: {error_output.strip()}") from e
+                raise OSError(f"Unknown mount error: {error_output.strip()}") from e
         else:
             # system: linux/Unix/Mac
             # check mount
@@ -177,10 +176,9 @@ def _mount_nfs_uri(provider_uri, mount_path, auto_mount: bool = False):
                 except subprocess.CalledProcessError as e:
                     if e.returncode == 256:
                         raise OSError("Mount failed: requires sudo or permission denied") from e
-                    elif e.returncode == 32512:
+                    if e.returncode == 32512:
                         raise OSError(f"mount {provider_uri} on {mount_path} error! Command error") from e
-                    else:
-                        raise OSError(f"Mount failed: {e.stderr}") from e
+                    raise OSError(f"Mount failed: {e.stderr}") from e
             else:
                 LOG.warning(f"{_remote_uri} on {_mount_path} is already mounted")
 
@@ -308,7 +306,7 @@ def auto_init(**kwargs):
 
             # merge the arguments
             qlib_conf_update = conf.get("qlib_cfg_update", {})
-            for k, v in kwargs.items():
+            for k, _ in kwargs.items():
                 if k in qlib_conf_update:
                     logger.warning(f"`qlib_conf_update` from conf_pp is override by `kwargs` on key '{k}'")
             qlib_conf_update.update(kwargs)

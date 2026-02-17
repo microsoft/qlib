@@ -25,33 +25,33 @@ class Alpha360DL(QlibDataLoader):
         names = []
 
         for i in range(59, 0, -1):
-            fields += ["Ref($close, %d)/$close" % i]
-            names += ["CLOSE%d" % i]
+            fields += [f"Ref($close, {i})/$close"]
+            names += [f"CLOSE{i}"]
         fields += ["$close/$close"]
         names += ["CLOSE0"]
         for i in range(59, 0, -1):
-            fields += ["Ref($open, %d)/$close" % i]
-            names += ["OPEN%d" % i]
+            fields += [f"Ref($open, {i})/$close"]
+            names += [f"OPEN{i}"]
         fields += ["$open/$close"]
         names += ["OPEN0"]
         for i in range(59, 0, -1):
-            fields += ["Ref($high, %d)/$close" % i]
-            names += ["HIGH%d" % i]
+            fields += [f"Ref($high, {i})/$close"]
+            names += [f"HIGH{i}"]
         fields += ["$high/$close"]
         names += ["HIGH0"]
         for i in range(59, 0, -1):
-            fields += ["Ref($low, %d)/$close" % i]
-            names += ["LOW%d" % i]
+            fields += [f"Ref($low, {i})/$close"]
+            names += [f"LOW{i}"]
         fields += ["$low/$close"]
         names += ["LOW0"]
         for i in range(59, 0, -1):
-            fields += ["Ref($vwap, %d)/$close" % i]
-            names += ["VWAP%d" % i]
+            fields += [f"Ref($vwap, {i})/$close"]
+            names += [f"VWAP{i}"]
         fields += ["$vwap/$close"]
         names += ["VWAP0"]
         for i in range(59, 0, -1):
-            fields += ["Ref($volume, %d)/($volume+1e-12)" % i]
-            names += ["VOLUME%d" % i]
+            fields += [f"Ref($volume, {i})/($volume+1e-12)"]
+            names += [f"VOLUME{i}"]
         fields += ["$volume/($volume+1e-12)"]
         names += ["VOLUME0"]
 
@@ -71,7 +71,10 @@ class Alpha158DL(QlibDataLoader):
 
     @staticmethod
     def get_feature_config(
-        config={
+        config=None
+    ):
+        if config is None:
+            config = {
             "kbar": {},
             "price": {
                 "windows": [0],
@@ -79,7 +82,6 @@ class Alpha158DL(QlibDataLoader):
             },
             "rolling": {},
         }
-    ):
         """create factors from config
 
         config = {
@@ -129,11 +131,11 @@ class Alpha158DL(QlibDataLoader):
             feature = config["price"].get("feature", ["OPEN", "HIGH", "LOW", "CLOSE", "VWAP"])
             for field in feature:
                 field = field.lower()
-                fields += ["Ref($%s, %d)/$close" % (field, d) if d != 0 else "$%s/$close" % field for d in windows]
+                fields += [f"Ref(${field}, {d})/$close" if d != 0 else f"${field}/$close" for d in windows]
                 names += [field.upper() + str(d) for d in windows]
         if "volume" in config:
             windows = config["volume"].get("windows", range(5))
-            fields += ["Ref($volume, %d)/($volume+1e-12)" % d if d != 0 else "$volume/($volume+1e-12)" for d in windows]
+            fields += [f"Ref($volume, {d})/($volume+1e-12)" if d != 0 else "$volume/($volume+1e-12)" for d in windows]
             names += ["VOLUME" + str(d) for d in windows]
         if "rolling" in config:
             windows = config["rolling"].get("windows", [5, 10, 20, 30, 60])
@@ -149,162 +151,159 @@ class Alpha158DL(QlibDataLoader):
             if use("ROC"):
                 # https://www.investopedia.com/terms/r/rateofchange.asp
                 # Rate of change, the price change in the past d days, divided by latest close price to remove unit
-                fields += ["Ref($close, %d)/$close" % d for d in windows]
-                names += ["ROC%d" % d for d in windows]
+                fields += [f"Ref($close, {d})/$close" for d in windows]
+                names += [f"ROC{d}" for d in windows]
             if use("MA"):
                 # https://www.investopedia.com/ask/answers/071414/whats-difference-between-moving-average-and-weighted-moving-average.asp
                 # Simple Moving Average, the simple moving average in the past d days, divided by latest close price to remove unit
-                fields += ["Mean($close, %d)/$close" % d for d in windows]
-                names += ["MA%d" % d for d in windows]
+                fields += [f"Mean($close, {d})/$close" for d in windows]
+                names += [f"MA{d}" for d in windows]
             if use("STD"):
                 # The standard diviation of close price for the past d days, divided by latest close price to remove unit
-                fields += ["Std($close, %d)/$close" % d for d in windows]
-                names += ["STD%d" % d for d in windows]
+                fields += [f"Std($close, {d})/$close" for d in windows]
+                names += [f"STD{d}" for d in windows]
             if use("BETA"):
                 # The rate of close price change in the past d days, divided by latest close price to remove unit
                 # For example, price increase 10 dollar per day in the past d days, then Slope will be 10.
-                fields += ["Slope($close, %d)/$close" % d for d in windows]
-                names += ["BETA%d" % d for d in windows]
+                fields += [f"Slope($close, {d})/$close" for d in windows]
+                names += [f"BETA{d}" for d in windows]
             if use("RSQR"):
                 # The R-sqaure value of linear regression for the past d days, represent the trend linear
-                fields += ["Rsquare($close, %d)" % d for d in windows]
-                names += ["RSQR%d" % d for d in windows]
+                fields += [f"Rsquare($close, {d})" for d in windows]
+                names += [f"RSQR{d}" for d in windows]
             if use("RESI"):
                 # The redisdual for linear regression for the past d days, represent the trend linearity for past d days.
-                fields += ["Resi($close, %d)/$close" % d for d in windows]
-                names += ["RESI%d" % d for d in windows]
+                fields += [f"Resi($close, {d})/$close" for d in windows]
+                names += [f"RESI{d}" for d in windows]
             if use("MAX"):
                 # The max price for past d days, divided by latest close price to remove unit
-                fields += ["Max($high, %d)/$close" % d for d in windows]
-                names += ["MAX%d" % d for d in windows]
+                fields += [f"Max($high, {d})/$close" for d in windows]
+                names += [f"MAX{d}" for d in windows]
             if use("LOW"):
                 # The low price for past d days, divided by latest close price to remove unit
-                fields += ["Min($low, %d)/$close" % d for d in windows]
-                names += ["MIN%d" % d for d in windows]
+                fields += [f"Min($low, {d})/$close" for d in windows]
+                names += [f"MIN{d}" for d in windows]
             if use("QTLU"):
                 # The 80% quantile of past d day's close price, divided by latest close price to remove unit
                 # Used with MIN and MAX
-                fields += ["Quantile($close, %d, 0.8)/$close" % d for d in windows]
-                names += ["QTLU%d" % d for d in windows]
+                fields += [f"Quantile($close, {d}, 0.8)/$close" for d in windows]
+                names += [f"QTLU{d}" for d in windows]
             if use("QTLD"):
                 # The 20% quantile of past d day's close price, divided by latest close price to remove unit
-                fields += ["Quantile($close, %d, 0.2)/$close" % d for d in windows]
-                names += ["QTLD%d" % d for d in windows]
+                fields += [f"Quantile($close, {d}, 0.2)/$close" for d in windows]
+                names += [f"QTLD{d}" for d in windows]
             if use("RANK"):
                 # Get the percentile of current close price in past d day's close price.
                 # Represent the current price level comparing to past N days, add additional information to moving average.
-                fields += ["Rank($close, %d)" % d for d in windows]
-                names += ["RANK%d" % d for d in windows]
+                fields += [f"Rank($close, {d})" for d in windows]
+                names += [f"RANK{d}" for d in windows]
             if use("RSV"):
                 # Represent the price position between upper and lower resistent price for past d days.
-                fields += ["($close-Min($low, %d))/(Max($high, %d)-Min($low, %d)+1e-12)" % (d, d, d) for d in windows]
-                names += ["RSV%d" % d for d in windows]
+                fields += [f"($close-Min($low, {d}))/(Max($high, {d})-Min($low, {d})+1e-12)" for d in windows]
+                names += [f"RSV{d}" for d in windows]
             if use("IMAX"):
                 # The number of days between current date and previous highest price date.
                 # Part of Aroon Indicator https://www.investopedia.com/terms/a/aroon.asp
                 # The indicator measures the time between highs and the time between lows over a time period.
                 # The idea is that strong uptrends will regularly see new highs, and strong downtrends will regularly see new lows.
-                fields += ["IdxMax($high, %d)/%d" % (d, d) for d in windows]
-                names += ["IMAX%d" % d for d in windows]
+                fields += [f"IdxMax($high, {d})/{d}" for d in windows]
+                names += [f"IMAX{d}" for d in windows]
             if use("IMIN"):
                 # The number of days between current date and previous lowest price date.
                 # Part of Aroon Indicator https://www.investopedia.com/terms/a/aroon.asp
                 # The indicator measures the time between highs and the time between lows over a time period.
                 # The idea is that strong uptrends will regularly see new highs, and strong downtrends will regularly see new lows.
-                fields += ["IdxMin($low, %d)/%d" % (d, d) for d in windows]
-                names += ["IMIN%d" % d for d in windows]
+                fields += [f"IdxMin($low, {d})/{d}" for d in windows]
+                names += [f"IMIN{d}" for d in windows]
             if use("IMXD"):
                 # The time period between previous lowest-price date occur after highest price date.
                 # Large value suggest downward momemtum.
-                fields += ["(IdxMax($high, %d)-IdxMin($low, %d))/%d" % (d, d, d) for d in windows]
-                names += ["IMXD%d" % d for d in windows]
+                fields += [f"(IdxMax($high, {d})-IdxMin($low, {d}))/{d}" for d in windows]
+                names += [f"IMXD{d}" for d in windows]
             if use("CORR"):
                 # The correlation between absolute close price and log scaled trading volume
-                fields += ["Corr($close, Log($volume+1), %d)" % d for d in windows]
-                names += ["CORR%d" % d for d in windows]
+                fields += [f"Corr($close, Log($volume+1), {d})" for d in windows]
+                names += [f"CORR{d}" for d in windows]
             if use("CORD"):
                 # The correlation between price change ratio and volume change ratio
-                fields += ["Corr($close/Ref($close,1), Log($volume/Ref($volume, 1)+1), %d)" % d for d in windows]
-                names += ["CORD%d" % d for d in windows]
+                fields += [f"Corr($close/Ref($close,1), Log($volume/Ref($volume, 1)+1), {d})" for d in windows]
+                names += [f"CORD{d}" for d in windows]
             if use("CNTP"):
                 # The percentage of days in past d days that price go up.
-                fields += ["Mean($close>Ref($close, 1), %d)" % d for d in windows]
-                names += ["CNTP%d" % d for d in windows]
+                fields += [f"Mean($close>Ref($close, 1), {d})" for d in windows]
+                names += [f"CNTP{d}" for d in windows]
             if use("CNTN"):
                 # The percentage of days in past d days that price go down.
-                fields += ["Mean($close<Ref($close, 1), %d)" % d for d in windows]
-                names += ["CNTN%d" % d for d in windows]
+                fields += [f"Mean($close<Ref($close, 1), {d})" for d in windows]
+                names += [f"CNTN{d}" for d in windows]
             if use("CNTD"):
                 # The diff between past up day and past down day
-                fields += ["Mean($close>Ref($close, 1), %d)-Mean($close<Ref($close, 1), %d)" % (d, d) for d in windows]
-                names += ["CNTD%d" % d for d in windows]
+                fields += [f"Mean($close>Ref($close, 1), {d})-Mean($close<Ref($close, 1), {d})" for d in windows]
+                names += [f"CNTD{d}" for d in windows]
             if use("SUMP"):
                 # The total gain / the absolute total price changed
                 # Similar to RSI indicator. https://www.investopedia.com/terms/r/rsi.asp
                 fields += [
-                    "Sum(Greater($close-Ref($close, 1), 0), %d)/(Sum(Abs($close-Ref($close, 1)), %d)+1e-12)" % (d, d)
+                    f"Sum(Greater($close-Ref($close, 1), 0), {d})/(Sum(Abs($close-Ref($close, 1)), {d})+1e-12)"
                     for d in windows
                 ]
-                names += ["SUMP%d" % d for d in windows]
+                names += [f"SUMP{d}" for d in windows]
             if use("SUMN"):
                 # The total lose / the absolute total price changed
                 # Can be derived from SUMP by SUMN = 1 - SUMP
                 # Similar to RSI indicator. https://www.investopedia.com/terms/r/rsi.asp
                 fields += [
-                    "Sum(Greater(Ref($close, 1)-$close, 0), %d)/(Sum(Abs($close-Ref($close, 1)), %d)+1e-12)" % (d, d)
+                    f"Sum(Greater(Ref($close, 1)-$close, 0), {d})/(Sum(Abs($close-Ref($close, 1)), {d})+1e-12)"
                     for d in windows
                 ]
-                names += ["SUMN%d" % d for d in windows]
+                names += [f"SUMN{d}" for d in windows]
             if use("SUMD"):
                 # The diff ratio between total gain and total lose
                 # Similar to RSI indicator. https://www.investopedia.com/terms/r/rsi.asp
                 fields += [
-                    "(Sum(Greater($close-Ref($close, 1), 0), %d)-Sum(Greater(Ref($close, 1)-$close, 0), %d))"
-                    "/(Sum(Abs($close-Ref($close, 1)), %d)+1e-12)" % (d, d, d)
+                    f"(Sum(Greater($close-Ref($close, 1), 0), {d})-Sum(Greater(Ref($close, 1)-$close, 0), {d}))"
+                    f"/(Sum(Abs($close-Ref($close, 1)), {d})+1e-12)"
                     for d in windows
                 ]
-                names += ["SUMD%d" % d for d in windows]
+                names += [f"SUMD{d}" for d in windows]
             if use("VMA"):
                 # Simple Volume Moving average: https://www.barchart.com/education/technical-indicators/volume_moving_average
-                fields += ["Mean($volume, %d)/($volume+1e-12)" % d for d in windows]
-                names += ["VMA%d" % d for d in windows]
+                fields += [f"Mean($volume, {d})/($volume+1e-12)" for d in windows]
+                names += [f"VMA{d}" for d in windows]
             if use("VSTD"):
                 # The standard deviation for volume in past d days.
-                fields += ["Std($volume, %d)/($volume+1e-12)" % d for d in windows]
-                names += ["VSTD%d" % d for d in windows]
+                fields += [f"Std($volume, {d})/($volume+1e-12)" for d in windows]
+                names += [f"VSTD{d}" for d in windows]
             if use("WVMA"):
                 # The volume weighted price change volatility
                 fields += [
-                    "Std(Abs($close/Ref($close, 1)-1)*$volume, %d)/(Mean(Abs($close/Ref($close, 1)-1)*$volume, %d)+1e-12)"
-                    % (d, d)
+                    f"Std(Abs($close/Ref($close, 1)-1)*$volume, {d})/(Mean(Abs($close/Ref($close, 1)-1)*$volume, {d})+1e-12)"
                     for d in windows
                 ]
-                names += ["WVMA%d" % d for d in windows]
+                names += [f"WVMA{d}" for d in windows]
             if use("VSUMP"):
                 # The total volume increase / the absolute total volume changed
                 fields += [
-                    "Sum(Greater($volume-Ref($volume, 1), 0), %d)/(Sum(Abs($volume-Ref($volume, 1)), %d)+1e-12)"
-                    % (d, d)
+                    f"Sum(Greater($volume-Ref($volume, 1), 0), {d})/(Sum(Abs($volume-Ref($volume, 1)), {d})+1e-12)"
                     for d in windows
                 ]
-                names += ["VSUMP%d" % d for d in windows]
+                names += [f"VSUMP{d}" for d in windows]
             if use("VSUMN"):
                 # The total volume increase / the absolute total volume changed
                 # Can be derived from VSUMP by VSUMN = 1 - VSUMP
                 fields += [
-                    "Sum(Greater(Ref($volume, 1)-$volume, 0), %d)/(Sum(Abs($volume-Ref($volume, 1)), %d)+1e-12)"
-                    % (d, d)
+                    f"Sum(Greater(Ref($volume, 1)-$volume, 0), {d})/(Sum(Abs($volume-Ref($volume, 1)), {d})+1e-12)"
                     for d in windows
                 ]
-                names += ["VSUMN%d" % d for d in windows]
+                names += [f"VSUMN{d}" for d in windows]
             if use("VSUMD"):
                 # The diff ratio between total volume increase and total volume decrease
                 # RSI indicator for volume
                 fields += [
-                    "(Sum(Greater($volume-Ref($volume, 1), 0), %d)-Sum(Greater(Ref($volume, 1)-$volume, 0), %d))"
-                    "/(Sum(Abs($volume-Ref($volume, 1)), %d)+1e-12)" % (d, d, d)
+                    f"(Sum(Greater($volume-Ref($volume, 1), 0), {d})-Sum(Greater(Ref($volume, 1)-$volume, 0), {d}))"
+                    f"/(Sum(Abs($volume-Ref($volume, 1)), {d})+1e-12)"
                     for d in windows
                 ]
-                names += ["VSUMD%d" % d for d in windows]
+                names += [f"VSUMD{d}" for d in windows]
 
         return fields, names

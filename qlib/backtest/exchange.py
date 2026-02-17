@@ -42,7 +42,7 @@ class Exchange:
         end_time: Union[pd.Timestamp, str] = None,
         codes: Union[list, str] = "all",
         deal_price: Union[str, Tuple[str, str], List[str], None] = None,
-        subscribe_fields: list = [],
+        subscribe_fields: list = None,
         limit_threshold: Union[Tuple[str, str], float, None] = None,
         volume_threshold: Union[tuple, dict, None] = None,
         open_cost: float = 0.0015,
@@ -53,6 +53,8 @@ class Exchange:
         quote_cls: Type[BaseQuote] = NumpyQuote,
         **kwargs: Any,
     ) -> None:
+        if subscribe_fields is None:
+            subscribe_fields = []
         """__init__
         :param freq:             frequency of data
         :param start_time:       closed start time for backtest
@@ -216,7 +218,7 @@ class Exchange:
         for attr in ("buy_price", "sell_price"):
             pstr = getattr(self, attr)  # price string
             if self.quote_df[pstr].isna().any():
-                self.logger.warning("{} field data contains nan.".format(pstr))
+                self.logger.warning(f"{pstr} field data contains nan.")
 
         # update trade_w_adj_price
         if (self.quote_df["$factor"].isna() & ~self.quote_df["$close"].isna()).any():
@@ -263,12 +265,11 @@ class Exchange:
         """get limit type"""
         if isinstance(limit_threshold, tuple):
             return self.LT_TP_EXP
-        elif isinstance(limit_threshold, float):
+        if isinstance(limit_threshold, float):
             return self.LT_FLT
-        elif limit_threshold is None:
+        if limit_threshold is None:
             return self.LT_NONE
-        else:
-            raise NotImplementedError(f"This type of `limit_threshold` is not supported")
+        raise NotImplementedError(f"This type of `limit_threshold` is not supported")
 
     def _update_limit(self, limit_threshold: Union[Tuple, float, None]) -> None:
         # $close may contain NaN, the nan indicates that the stock is not tradable at that timestamp
@@ -368,12 +369,11 @@ class Exchange:
             buy_limit = self.quote.get_data(stock_id, start_time, end_time, field="limit_buy", method="all")
             sell_limit = self.quote.get_data(stock_id, start_time, end_time, field="limit_sell", method="all")
             return bool(buy_limit or sell_limit)
-        elif direction == Order.BUY:
+        if direction == Order.BUY:
             return cast(bool, self.quote.get_data(stock_id, start_time, end_time, field="limit_buy", method="all"))
-        elif direction == Order.SELL:
+        if direction == Order.SELL:
             return cast(bool, self.quote.get_data(stock_id, start_time, end_time, field="limit_sell", method="all"))
-        else:
-            raise ValueError(f"direction {direction} is not supported!")
+        raise ValueError(f"direction {direction} is not supported!")
 
     def check_stock_suspended(
         self,
@@ -390,16 +390,14 @@ class Exchange:
             if close is None:
                 # if no close record exists
                 return True
-            elif isinstance(close, IndexData):
+            if isinstance(close, IndexData):
                 # **any** non-NaN $close represents trading opportunity may exist
                 #  if all returned is nan, then the stock is suspended
                 return cast(bool, cast(IndexData, close).isna().all())
-            else:
-                # it is single value, make sure is not None
-                return np.isnan(close)
-        else:
-            # if the stock is not in the stock list, then it is not tradable and regarded as suspended
-            return True
+            # it is single value, make sure is not None
+            return np.isnan(close)
+        # if the stock is not in the stock list, then it is not tradable and regarded as suspended
+        return True
 
     def is_stock_tradable(
         self,
@@ -423,7 +421,7 @@ class Exchange:
         order: Order,
         trade_account: Account | None = None,
         position: BasePosition | None = None,
-        dealt_order_amount: Dict[str, float] = defaultdict(float),
+        dealt_order_amount: Dict[str, float] | None = None,
     ) -> Tuple[float, float, float]:
         """
         Deal order when the actual transaction
@@ -434,6 +432,8 @@ class Exchange:
         :param dealt_order_amount: the dealt order amount dict with the format of {stock_id: float}
         :return: trade_val, trade_cost, trade_price
         """
+        if dealt_order_amount is None:
+            dealt_order_amount = defaultdict(float)
         # check order first.
         if not self.check_order(order):
             order.deal_amount = 0.0
@@ -559,12 +559,12 @@ class Exchange:
                 # weight_position must be greater than 0 and less than 1
                 if wp < 0 or wp > 1:
                     raise ValueError(
-                        "weight_position is {}, " "weight_position is not in the range of (0, 1).".format(wp),
+                        "weight_position is {}, " f"weight_position is not in the range of (0, 1).",
                     )
                 tradable_weight += wp
 
         if tradable_weight - 1.0 >= 1e-5:
-            raise ValueError("tradable_weight is {}, can not greater than 1.".format(tradable_weight))
+            raise ValueError(f"tradable_weight is {tradable_weight}, can not greater than 1.")
 
         amount_dict = {}
         for stock_id in weight_position:
@@ -596,17 +596,15 @@ class Exchange:
         """
         if current_amount == target_amount:
             return 0
-        elif current_amount < target_amount:
+        if current_amount < target_amount:
             deal_amount = target_amount - current_amount
             deal_amount = self.round_amount_by_trade_unit(deal_amount, factor)
             return deal_amount
-        else:
-            if target_amount == 0:
-                return -current_amount
-            else:
-                deal_amount = current_amount - target_amount
-                deal_amount = self.round_amount_by_trade_unit(deal_amount, factor)
-                return -deal_amount
+        if target_amount == 0:
+            return -current_amount
+        deal_amount = current_amount - target_amount
+        deal_amount = self.round_amount_by_trade_unit(deal_amount, factor)
+        return -deal_amount
 
     def generate_order_for_target_amount_position(
         self,
@@ -755,8 +753,7 @@ class Exchange:
                 end_time=end_time,
             )
             return self.trade_unit / factor
-        else:
-            return None
+        return None
 
     def round_amount_by_trade_unit(
         self,
@@ -942,7 +939,7 @@ class Exchange:
                 order.deal_amount = self.round_amount_by_trade_unit(order.deal_amount, order.factor)
 
         else:
-            raise NotImplementedError("order direction {} error".format(order.direction))
+            raise NotImplementedError(f"order direction {order.direction} error")
 
         trade_val = order.deal_amount * trade_price
         trade_cost = max(trade_val * cost_ratio, self.min_cost)

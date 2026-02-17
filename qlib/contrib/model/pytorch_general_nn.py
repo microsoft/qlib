@@ -12,7 +12,7 @@ from typing import Union
 import copy
 
 import torch
-import torch.optim as optim
+from torch import optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from qlib.data.dataset.weight import Reweighter
@@ -63,14 +63,17 @@ class GeneralPTNN(Model):
         GPU=0,
         seed=None,
         pt_model_uri="qlib.contrib.model.pytorch_gru_ts.GRUModel",
-        pt_model_kwargs={
+        pt_model_kwargs=None,
+    ):
+        super().__init__()
+        # Set logger.
+        if pt_model_kwargs is None:
+            pt_model_kwargs = {
             "d_feat": 6,
             "hidden_size": 64,
             "num_layers": 2,
             "dropout": 0.0,
-        },
-    ):
-        # Set logger.
+        }
         self.logger = get_module_logger("GeneralPTNN")
         self.logger.info("GeneralPTNN pytorch version...")
 
@@ -83,7 +86,7 @@ class GeneralPTNN(Model):
         self.optimizer = optimizer.lower()
         self.loss = loss
         self.weight_decay = weight_decay
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        self.device = torch.device(f"cuda:{GPU}" if torch.cuda.is_available() and GPU >= 0 else "cpu")
         self.n_jobs = n_jobs
         self.seed = seed
 
@@ -91,51 +94,22 @@ class GeneralPTNN(Model):
         self.dnn_model = init_instance_by_config({"class": pt_model_uri, "kwargs": pt_model_kwargs})
 
         self.logger.info(
-            "GeneralPTNN parameters setting:"
-            "\nn_epochs : {}"
-            "\nlr : {}"
-            "\nmetric : {}"
-            "\nbatch_size : {}"
-            "\nearly_stop : {}"
-            "\noptimizer : {}"
-            "\nloss_type : {}"
-            "\ndevice : {}"
-            "\nn_jobs : {}"
-            "\nuse_GPU : {}"
-            "\nweight_decay : {}"
-            "\nseed : {}"
-            "\npt_model_uri: {}"
-            "\npt_model_kwargs: {}".format(
-                n_epochs,
-                lr,
-                metric,
-                batch_size,
-                early_stop,
-                optimizer.lower(),
-                loss,
-                self.device,
-                n_jobs,
-                self.use_gpu,
-                weight_decay,
-                seed,
-                pt_model_uri,
-                pt_model_kwargs,
-            )
+            f"GeneralPTNN parameters setting:\nn_epochs : {n_epochs}\nlr : {lr}\nmetric : {metric}\nbatch_size : {batch_size}\nearly_stop : {early_stop}\noptimizer : {optimizer.lower()}\nloss_type : {loss}\ndevice : {self.device}\nn_jobs : {n_jobs}\nuse_GPU : {self.use_gpu}\nweight_decay : {weight_decay}\nseed : {seed}\npt_model_uri: {pt_model_uri}\npt_model_kwargs: {pt_model_kwargs}"
         )
 
         if self.seed is not None:
             np.random.seed(self.seed)
             torch.manual_seed(self.seed)
 
-        self.logger.info("model:\n{:}".format(self.dnn_model))
-        self.logger.info("model size: {:.4f} MB".format(count_parameters(self.dnn_model)))
+        self.logger.info(f"model:\n{self.dnn_model:}")
+        self.logger.info(f"model size: {count_parameters(self.dnn_model):.4f} MB")
 
         if optimizer.lower() == "adam":
             self.train_optimizer = optim.Adam(self.dnn_model.parameters(), lr=self.lr, weight_decay=weight_decay)
         elif optimizer.lower() == "gd":
             self.train_optimizer = optim.SGD(self.dnn_model.parameters(), lr=self.lr, weight_decay=weight_decay)
         else:
-            raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
+            raise NotImplementedError(f"optimizer {optimizer} is not supported!")
 
         # === ReduceLROnPlateau learning rate scheduler ===
         self.lr_scheduler = ReduceLROnPlateau(
@@ -161,7 +135,7 @@ class GeneralPTNN(Model):
         if self.loss == "mse":
             return self.mse(pred[mask], label[mask].view(-1, 1), weight[mask])
 
-        raise ValueError("unknown loss `%s`" % self.loss)
+        raise ValueError(f"unknown loss `{self}`".loss)
 
     def metric_fn(self, pred, label):
         mask = torch.isfinite(label)
@@ -169,7 +143,7 @@ class GeneralPTNN(Model):
         if self.metric in ("", "loss"):
             return self.loss_fn(pred[mask], label[mask])
 
-        raise ValueError("unknown metric `%s`" % self.metric)
+        raise ValueError(f"unknown metric `{self}`".metric)
 
     def _get_fl(self, data: torch.Tensor):
         """
@@ -235,10 +209,12 @@ class GeneralPTNN(Model):
     def fit(
         self,
         dataset: Union[DatasetH, TSDatasetH],
-        evals_result=dict(),
+        evals_result=None,
         save_path=None,
         reweighter=None,
     ):
+        if evals_result is None:
+            evals_result = {}
         ists = isinstance(dataset, TSDatasetH)  # is this time series dataset
 
         dl_train = dataset.prepare("train", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
@@ -285,7 +261,6 @@ class GeneralPTNN(Model):
         save_path = get_or_create_path(save_path)
 
         stop_steps = 0
-        train_loss = 0
         best_score = np.inf
         best_epoch = 0
         evals_result["train"] = []
@@ -300,9 +275,9 @@ class GeneralPTNN(Model):
             self.logger.info("training...")
             self.train_epoch(train_loader)
             self.logger.info("evaluating...")
-            train_loss, train_score = self.test_epoch(train_loader)
-            val_loss, val_score = self.test_epoch(valid_loader)
-            self.logger.info("Epoch%d: train %.6f, valid %.6f" % (step, train_score, val_score))
+            _train_loss, train_score = self.test_epoch(train_loader)
+            _val_loss, val_score = self.test_epoch(valid_loader)
+            self.logger.info(f"Epoch{step}: train {train_score:.6f}, valid {val_score:.6f}")
             evals_result["train"].append(train_score)
             evals_result["valid"].append(val_score)
 
@@ -324,7 +299,7 @@ class GeneralPTNN(Model):
                     self.logger.info("early stop")
                     break
 
-        self.logger.info("best score: %.6lf @ %d epoch" % (best_score, best_epoch))
+        self.logger.info(f"best score: {best_score:.6f} @ {best_epoch} epoch")
         self.dnn_model.load_state_dict(best_param)
         torch.save(best_param, save_path)
 
