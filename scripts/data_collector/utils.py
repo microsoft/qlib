@@ -9,8 +9,9 @@ import bisect
 import pickle
 import requests
 import functools
+from io import BytesIO
 from pathlib import Path
-from typing import Iterable, Tuple, List
+from typing import Iterable, Tuple, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -36,7 +37,10 @@ CALENDAR_BENCH_URL_MAP = {
     "US_ALL": "^GSPC",
     "IN_ALL": "^NSEI",
     "BR_ALL": "^BVSP",
+    "JP_ALL": "^N225",
 }
+
+JPX_LISTED_COMPANIES_URL = "https://www.jpx.co.jp/markets/statistics-equities/misc/tvdivq0000001vg2-att/data_j.xls"
 
 _BENCH_CALENDAR_LIST = None
 _ALL_CALENDAR_LIST = None
@@ -44,11 +48,19 @@ _HS_SYMBOLS = None
 _US_SYMBOLS = None
 _IN_SYMBOLS = None
 _BR_SYMBOLS = None
+_JP_SYMBOLS = None
 _EN_FUND_SYMBOLS = None
 _CALENDAR_MAP = {}
 
 # NOTE: Until 2020-10-20 20:00:00
 MINIMUM_SYMBOLS_NUM = 3900
+
+
+def _normalize_calendar_timestamp(value) -> pd.Timestamp:
+    ts = pd.Timestamp(value)
+    if ts.tzinfo is not None:
+        ts = ts.tz_localize(None)
+    return ts.normalize()
 
 
 def get_calendar_list(bench_code="CSI300") -> List[pd.Timestamp]:
@@ -57,7 +69,7 @@ def get_calendar_list(bench_code="CSI300") -> List[pd.Timestamp]:
     Parameters
     ----------
     bench_code: str
-        value from ["CSI300", "CSI500", "ALL", "US_ALL"]
+        value from ["CSI300", "CSI500", "ALL", "US_ALL", "IN_ALL", "BR_ALL", "JP_ALL"]
 
     Returns
     -------
@@ -72,11 +84,15 @@ def get_calendar_list(bench_code="CSI300") -> List[pd.Timestamp]:
 
     calendar = _CALENDAR_MAP.get(bench_code, None)
     if calendar is None:
-        if bench_code.startswith("US_") or bench_code.startswith("IN_") or bench_code.startswith("BR_"):
-            print(Ticker(CALENDAR_BENCH_URL_MAP[bench_code]))
-            print(Ticker(CALENDAR_BENCH_URL_MAP[bench_code]).history(interval="1d", period="max"))
-            df = Ticker(CALENDAR_BENCH_URL_MAP[bench_code]).history(interval="1d", period="max")
-            calendar = df.index.get_level_values(level="date").map(pd.Timestamp).unique().tolist()
+        if (
+            bench_code.startswith("US_")
+            or bench_code.startswith("IN_")
+            or bench_code.startswith("BR_")
+            or bench_code.startswith("JP_")
+        ):
+            _ticker = Ticker(CALENDAR_BENCH_URL_MAP[bench_code])
+            df = _ticker.history(interval="1d", period="max")
+            calendar = sorted({_normalize_calendar_timestamp(v) for v in df.index.get_level_values(level="date")})
         else:
             if bench_code.upper() == "ALL":
                 import akshare as ak  # pylint: disable=C0415
@@ -446,6 +462,106 @@ def get_br_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
         _BR_SYMBOLS = sorted(set(map(_format, _all_symbols)))
 
     return _BR_SYMBOLS
+
+
+def _normalize_jpx_column_name(col_name: str) -> str:
+    return str(col_name).replace(" ", "").replace("\u3000", "").replace("\n", "").strip().lower()
+
+
+def _find_jpx_column(columns: list, exact_candidates: list, keyword_candidates: list) -> Optional[str]:
+    normalized_map = {col: _normalize_jpx_column_name(col) for col in columns}
+    exact_candidates = {_normalize_jpx_column_name(col) for col in exact_candidates}
+    keyword_candidates = [_normalize_jpx_column_name(col) for col in keyword_candidates]
+
+    for _col, _normalized_col in normalized_map.items():
+        if _normalized_col in exact_candidates:
+            return _col
+
+    for _col, _normalized_col in normalized_map.items():
+        if all(_keyword in _normalized_col for _keyword in keyword_candidates):
+            return _col
+
+    return None
+
+
+def _extract_jp_prime_symbols(df: pd.DataFrame) -> list:
+    if df is None or df.empty:
+        raise ValueError("JPX listed companies file is empty")
+
+    code_col = _find_jpx_column(
+        columns=df.columns.tolist(),
+        exact_candidates=["コード", "銘柄コード", "code", "securitycode"],
+        keyword_candidates=["コード"],
+    )
+    if code_col is None:
+        raise ValueError("Unable to find stock code column in JPX listed companies file")
+
+    market_col = _find_jpx_column(
+        columns=df.columns.tolist(),
+        exact_candidates=["市場・商品区分", "市場商品区分", "市場区分", "marketsegment"],
+        keyword_candidates=["市場", "区分"],
+    )
+    if market_col is None:
+        raise ValueError("Unable to find market classification column in JPX listed companies file")
+
+    domestic_col = _find_jpx_column(
+        columns=df.columns.tolist(),
+        exact_candidates=["内外株式区分", "内外区分", "domesticforeign"],
+        keyword_candidates=["内外", "区分"],
+    )
+
+    market_series = df[market_col].astype(str)
+    prime_mask = market_series.str.contains("プライム", na=False)
+
+    if market_series.str.contains("内国株式", na=False).any():
+        domestic_mask = market_series.str.contains("内国株式", na=False)
+    elif domestic_col is not None:
+        domestic_mask = df[domestic_col].astype(str).str.contains("内国株式", na=False)
+    else:
+        domestic_mask = market_series.str.contains("内国株式", na=False)
+
+    target_df = df.loc[prime_mask & domestic_mask, [code_col]].copy()
+    if target_df.empty:
+        raise ValueError("No JPX Prime domestic stocks found in listed companies file")
+
+    symbols = (
+        target_df[code_col]
+        .astype(str)
+        .str.extract(r"(\d{4})", expand=False)
+        .dropna()
+        .apply(lambda code: f"{code}.T")
+        .drop_duplicates()
+        .sort_values()
+        .tolist()
+    )
+    if not symbols:
+        raise ValueError("No valid JP stock symbols extracted from JPX listed companies file")
+    return symbols
+
+
+def get_jp_stock_symbols() -> list:
+    """get JP Prime (domestic stock) symbols"""
+
+    global _JP_SYMBOLS  # pylint: disable=W0603
+
+    @deco_retry
+    def _get_jpx_listed_companies_df():
+        resp = requests.get(JPX_LISTED_COMPANIES_URL, timeout=None)
+        if resp.status_code != 200:
+            raise ValueError(f"request error, status_code={resp.status_code}")
+        try:
+            return pd.read_excel(BytesIO(resp.content), dtype=str)
+        except Exception as excel_error:
+            try:
+                return pd.read_html(BytesIO(resp.content))[0].astype(str)
+            except Exception as html_error:
+                raise ValueError(
+                    f"failed to parse JPX listed companies file: excel_error={excel_error}, html_error={html_error}"
+                ) from html_error
+
+    if _JP_SYMBOLS is None:
+        _JP_SYMBOLS = _extract_jp_prime_symbols(_get_jpx_listed_companies_df())
+    return _JP_SYMBOLS
 
 
 def get_en_fund_symbols(qlib_data_path: [str, Path] = None) -> list:
