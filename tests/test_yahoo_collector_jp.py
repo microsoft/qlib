@@ -30,22 +30,23 @@ class TestYahooCollectorJP(unittest.TestCase):
             return yahoo_collector
         return stdlib_importlib.import_module(module_name)
 
-    def test_extract_jp_prime_symbols(self):
+    def test_extract_jp_prime_symbols_with_etf_etn(self):
         source_df = pd.DataFrame(
             {
-                "コード": ["7203", "6758", "1301", "9432", "1301"],
+                "コード": ["7203", "6758", "1301", "9432", "1489", "1489"],
                 "市場・商品区分": [
                     "プライム（内国株式）",
                     "スタンダード（内国株式）",
                     "プライム（内国株式）",
                     "プライム（外国株式）",
-                    "プライム（内国株式）",
+                    "ETF・ETN",
+                    "ＥＴＦ・ＥＴＮ",
                 ],
             }
         )
 
         symbols = dc_utils._extract_jp_prime_symbols(source_df)  # pylint: disable=W0212
-        self.assertEqual(symbols, ["1301.T", "7203.T"])
+        self.assertEqual(symbols, ["1301.T", "1489.T", "7203.T"])
 
     def test_extract_jp_prime_symbols_missing_columns(self):
         with self.assertRaisesRegex(ValueError, "stock code column"):
@@ -57,8 +58,14 @@ class TestYahooCollectorJP(unittest.TestCase):
     def test_get_jp_stock_symbols_from_jpx(self):
         source_df = pd.DataFrame(
             {
-                "コード": ["7203", "1301", "0001", "8306"],
-                "市場・商品区分": ["プライム（内国株式）", "プライム（内国株式）", "ETF・ETN", "プライム（内国株式）"],
+                "コード": ["7203", "1301", "0001", "8306", "1489"],
+                "市場・商品区分": [
+                    "プライム（内国株式）",
+                    "プライム（内国株式）",
+                    "ETF・ETN",
+                    "プライム（内国株式）",
+                    "ＥＴＦ・ＥＴＮ",
+                ],
             }
         )
 
@@ -71,8 +78,8 @@ class TestYahooCollectorJP(unittest.TestCase):
                 symbols = dc_utils.get_jp_stock_symbols()
                 symbols_cached = dc_utils.get_jp_stock_symbols()
 
-        self.assertEqual(symbols, ["1301.T", "7203.T", "8306.T"])
-        self.assertEqual(symbols_cached, ["1301.T", "7203.T", "8306.T"])
+        self.assertEqual(symbols, ["0001.T", "1301.T", "1489.T", "7203.T", "8306.T"])
+        self.assertEqual(symbols_cached, ["0001.T", "1301.T", "1489.T", "7203.T", "8306.T"])
         self.assertEqual(mock_get.call_count, 1)
         self.assertEqual(mock_read_excel.call_count, 1)
 

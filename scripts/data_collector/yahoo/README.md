@@ -55,7 +55,7 @@ pip install -r requirements.txt
 ### Collector *YahooFinance* data to qlib
 > collector *YahooFinance* data and *dump* into `qlib` format.
 > If the above ready-made data can't meet users' requirements,  users can follow this section to crawl the latest data and convert it to qlib-data.
-> For `region=JP`, the symbol universe is **TSE Prime (domestic stocks)** from JPX listed companies file.
+> For `region=JP`, the symbol universe is **TSE Prime (domestic stocks) + ETF/ETN** from JPX listed companies file.
   1. download data to csv: `python scripts/data_collector/yahoo/collector.py download_data`
      
      This will download the raw data such as high, low, open, close, adjclose price from yahoo to a local directory. One file per symbol.
@@ -95,7 +95,7 @@ pip install -r requirements.txt
           # br 1min data
           python collector.py download_data --source_dir ~/.qlib/stock_data/source/br_data_1min --delay 1 --interval 1min --region BR
 
-          # jp 1d data (TSE Prime domestic stocks)
+          # jp 1d data (TSE Prime domestic stocks + ETF/ETN)
           python collector.py download_data --source_dir ~/.qlib/stock_data/source/jp_data --start 2020-01-01 --end 2020-12-31 --delay 1 --interval 1d --region JP
           ```
   2. normalize data: `python scripts/data_collector/yahoo/collector.py normalize_data`

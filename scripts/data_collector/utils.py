@@ -9,6 +9,7 @@ import bisect
 import pickle
 import requests
 import functools
+import unicodedata
 from io import BytesIO
 from pathlib import Path
 from typing import Iterable, Tuple, List, Optional
@@ -468,6 +469,10 @@ def _normalize_jpx_column_name(col_name: str) -> str:
     return str(col_name).replace(" ", "").replace("\u3000", "").replace("\n", "").strip().lower()
 
 
+def _normalize_jpx_market_value(value: str) -> str:
+    return unicodedata.normalize("NFKC", str(value)).upper()
+
+
 def _find_jpx_column(columns: list, exact_candidates: list, keyword_candidates: list) -> Optional[str]:
     normalized_map = {col: _normalize_jpx_column_name(col) for col in columns}
     exact_candidates = {_normalize_jpx_column_name(col) for col in exact_candidates}
@@ -511,18 +516,22 @@ def _extract_jp_prime_symbols(df: pd.DataFrame) -> list:
     )
 
     market_series = df[market_col].astype(str)
-    prime_mask = market_series.str.contains("プライム", na=False)
+    normalized_market_series = market_series.map(_normalize_jpx_market_value)
+    prime_mask = normalized_market_series.str.contains("プライム", na=False)
+    etf_etn_mask = normalized_market_series.str.contains(r"ETF|ETN", na=False)
 
-    if market_series.str.contains("内国株式", na=False).any():
-        domestic_mask = market_series.str.contains("内国株式", na=False)
+    if normalized_market_series.str.contains("内国株式", na=False).any():
+        domestic_mask = normalized_market_series.str.contains("内国株式", na=False)
     elif domestic_col is not None:
-        domestic_mask = df[domestic_col].astype(str).str.contains("内国株式", na=False)
+        domestic_mask = (
+            df[domestic_col].astype(str).map(_normalize_jpx_market_value).str.contains("内国株式", na=False)
+        )
     else:
-        domestic_mask = market_series.str.contains("内国株式", na=False)
+        domestic_mask = normalized_market_series.str.contains("内国株式", na=False)
 
-    target_df = df.loc[prime_mask & domestic_mask, [code_col]].copy()
+    target_df = df.loc[(prime_mask & domestic_mask) | etf_etn_mask, [code_col]].copy()
     if target_df.empty:
-        raise ValueError("No JPX Prime domestic stocks found in listed companies file")
+        raise ValueError("No JPX Prime domestic stocks or ETF/ETN found in listed companies file")
 
     symbols = (
         target_df[code_col]
@@ -540,7 +549,7 @@ def _extract_jp_prime_symbols(df: pd.DataFrame) -> list:
 
 
 def get_jp_stock_symbols() -> list:
-    """get JP Prime (domestic stock) symbols"""
+    """get JP Prime (domestic stock) and ETF/ETN symbols"""
 
     global _JP_SYMBOLS  # pylint: disable=W0603
 

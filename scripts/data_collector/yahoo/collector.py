@@ -367,7 +367,7 @@ class YahooCollectorBR1min(YahooCollectorBR):
 
 class YahooCollectorJP(YahooCollector, ABC):
     def get_instrument_list(self):
-        logger.info("get JP Prime (domestic stock) symbols......")
+        logger.info("get JP Prime (domestic stock) + ETF/ETN symbols......")
         symbols = get_jp_stock_symbols()
         logger.info(f"get {len(symbols)} symbols.")
         return symbols
