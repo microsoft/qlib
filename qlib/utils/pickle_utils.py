@@ -46,15 +46,13 @@ SAFE_PICKLE_CLASSES: Set[Tuple[str, str]] = {
     ("pathlib", "Path"),
     ("pathlib", "PosixPath"),
     ("pathlib", "WindowsPath"),
-    ("qlib.data.dataset.handler", "DataHandler"),
-    ("qlib.data.dataset.handler", "DataHandlerLP"),
-    ("qlib.data.dataset.loader", "StaticDataLoader"),
 }
 
 
 TRUSTED_MODULE_PREFIXES = (
     "pandas",
     "numpy",
+    "qlib",
 )
 
 
