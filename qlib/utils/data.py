@@ -113,5 +113,5 @@ def guess_horizon(label: List):
     Try to guess the horizon by parsing label
     """
     expr = DatasetProvider.parse_fields(label)[0]
-    lft_etd, rght_etd = expr.get_extended_window_size()
+    _lft_etd, rght_etd = expr.get_extended_window_size()
     return rght_etd

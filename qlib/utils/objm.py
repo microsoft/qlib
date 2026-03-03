@@ -21,7 +21,7 @@ class ObjManager:
         name : str
             name of the object
         """
-        raise NotImplementedError(f"Please implement `save_obj`")
+        raise NotImplementedError("Please implement `save_obj`")
 
     def save_objs(self, obj_name_l):
         """
@@ -31,7 +31,7 @@ class ObjManager:
         ----------
         obj_name_l : list of <obj, name>
         """
-        raise NotImplementedError(f"Please implement the `save_objs` method")
+        raise NotImplementedError("Please implement the `save_objs` method")
 
     def load_obj(self, name: str) -> object:
         """
@@ -47,7 +47,7 @@ class ObjManager:
         object:
             loaded object
         """
-        raise NotImplementedError(f"Please implement the `load_obj` method")
+        raise NotImplementedError("Please implement the `load_obj` method")
 
     def exists(self, name: str) -> bool:
         """
@@ -63,7 +63,7 @@ class ObjManager:
         bool:
             If the object exists
         """
-        raise NotImplementedError(f"Please implement the `exists` method")
+        raise NotImplementedError("Please implement the `exists` method")
 
     def list(self) -> list:
         """
@@ -74,7 +74,7 @@ class ObjManager:
         list:
             the list of returned objects
         """
-        raise NotImplementedError(f"Please implement the `list` method")
+        raise NotImplementedError("Please implement the `list` method")
 
     def remove(self, fname=None):
         """remove.
@@ -85,7 +85,7 @@ class ObjManager:
             if file name is provided. specific file is removed
             otherwise, The all the objects will be removed.
         """
-        raise NotImplementedError(f"Please implement the `remove` method")
+        raise NotImplementedError("Please implement the `remove` method")
 
 
 class FileManager(ObjManager):
@@ -104,7 +104,7 @@ class FileManager(ObjManager):
             return tempfile.mkdtemp(prefix=str(C["file_manager_path"]) + os.sep)
         except AttributeError as attribute_e:
             raise NotImplementedError(
-                f"If path is not given, the `create_path` function should be implemented"
+                "If path is not given, the `create_path` function should be implemented"
             ) from attribute_e
 
     def save_obj(self, obj, name):

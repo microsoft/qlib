@@ -33,7 +33,7 @@ def concat(data_list: Union[SingleData], axis=0) -> MultiData:
         the MultiData with ndim == 2
     """
     if axis == 0:
-        raise NotImplementedError(f"please implement this func when axis == 0")
+        raise NotImplementedError("please implement this func when axis == 0")
     elif axis == 1:
         # get all index and row
         all_index = set()
@@ -51,7 +51,7 @@ def concat(data_list: Union[SingleData], axis=0) -> MultiData:
             tmp_data[now_data_map, data_id] = index_data.data
         return MultiData(tmp_data, all_index)
     else:
-        raise ValueError(f"axis must be 0 or 1")
+        raise ValueError("axis must be 0 or 1")
 
 
 def sum_by_index(data_list: Union[SingleData], new_index: list, fill_value=0) -> SingleData:
@@ -432,7 +432,7 @@ class IndexData(metaclass=index_data_ops_creator):
         IndexData:
             the data in `other` with index aligned to `self`
         """
-        raise NotImplementedError(f"please implement _align_indices func")
+        raise NotImplementedError("please implement _align_indices func")
 
     def sort_index(self, axis=0, inplace=True):
         assert inplace, "Only support sorting inplace now"
@@ -483,7 +483,7 @@ class IndexData(metaclass=index_data_ops_creator):
             tmp_data = np.nansum(self.data, axis=1)
             return SingleData(tmp_data, self.index)
         else:
-            raise ValueError(f"axis must be None, 0 or 1")
+            raise ValueError("axis must be None, 0 or 1")
 
     def mean(self, axis=None, dtype=None, out=None):
         assert out is None and dtype is None, "`out` is just for compatible with numpy's aggregating function"
@@ -497,7 +497,7 @@ class IndexData(metaclass=index_data_ops_creator):
             tmp_data = np.nanmean(self.data, axis=1)
             return SingleData(tmp_data, self.index)
         else:
-            raise ValueError(f"axis must be None, 0 or 1")
+            raise ValueError("axis must be None, 0 or 1")
 
     def isna(self):
         return self.__class__(np.isnan(self.data), *self.indices)
@@ -563,7 +563,7 @@ class SingleData(IndexData):
             return other.reindex(self.index)
         else:
             raise ValueError(
-                f"The indexes of self and other do not meet the requirements of the four arithmetic operations"
+                "The indexes of self and other do not meet the requirements of the four arithmetic operations"
             )
 
     def reindex(self, index: Index, fill_value=np.nan) -> SingleData:
@@ -647,7 +647,7 @@ class MultiData(IndexData):
             return other
         else:
             raise ValueError(
-                f"The indexes of self and other do not meet the requirements of the four arithmetic operations"
+                "The indexes of self and other do not meet the requirements of the four arithmetic operations"
             )
 
     def __repr__(self) -> str:
