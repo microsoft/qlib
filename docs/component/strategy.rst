@@ -54,6 +54,25 @@ Qlib also provides a class ``qlib.contrib.strategy.WeightStrategyBase`` that is 
 
 Users can inherit `WeightStrategyBase` and implement the interface `generate_target_weight_position` to customize their strategy class, which only focuses on the target positions.
 
+Order generator behavior and common parameter pitfalls
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+`WeightStrategyBase` supports two order generation modes via the ``order_generator_cls_or_obj`` constructor argument:
+
+- ``OrderGenWOInteract`` (default): generates target amounts without using trade-date execution interaction details.
+- ``OrderGenWInteract``: computes tradable value on the trade date and allocates only across currently tradable instruments.
+
+In practice, ``OrderGenWInteract`` is usually preferred when you want portfolio weights to adapt to tradability constraints (for example, suspended stocks), so available capital is reallocated to tradable instruments.
+
+When configuring backtests/executors, two parameters are easy to misuse:
+
+- ``limit_threshold`` in ``exchange_kwargs``:
+
+  - ``float`` (for example ``0.095``): static limit-up/limit-down threshold.
+  - ``tuple`` expression: dynamic rule evaluated by the exchange implementation.
+
+- ``factor`` field in market data: required for correct lot-size rounding in many markets (integer-share trading). If ``factor`` is missing, generated order amounts may not match execution constraints.
+
 Implemented Strategy
 ====================
 
