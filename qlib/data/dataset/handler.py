@@ -19,7 +19,6 @@ from .loader import DataLoader
 from . import processor as processor_module
 from . import loader as data_loader_module
 
-
 DATA_KEY_TYPE = Literal["raw", "infer", "learn"]
 
 

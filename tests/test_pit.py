@@ -19,7 +19,6 @@ from dump_pit import DumpPitData
 sys.path.append(str(Path(__file__).resolve().parent.parent.joinpath("scripts/data_collector/pit")))
 from collector import Run
 
-
 pd.set_option("display.width", 1000)
 pd.set_option("display.max_columns", None)
 

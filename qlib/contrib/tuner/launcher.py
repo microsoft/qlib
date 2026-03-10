@@ -13,7 +13,6 @@ import yaml
 
 from .config import TunerConfigManager
 
-
 args_parser = argparse.ArgumentParser(prog="tuner")
 args_parser.add_argument(
     "-c",

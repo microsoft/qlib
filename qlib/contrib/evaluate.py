@@ -20,7 +20,6 @@ from ..data import D
 from ..config import C
 from ..data.dataset.utils import get_level_index
 
-
 logger = get_module_logger("Evaluate")
 
 

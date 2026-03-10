@@ -95,7 +95,6 @@ pos  0.000000
 [1706497:MainThread](2021-12-07 14:08:30,627) INFO - qlib.timer - [log.py:113] - Time cost: 0.014s | waiting `async_log` Done
 """
 
-
 from copy import deepcopy
 import qlib
 import fire
