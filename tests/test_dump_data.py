@@ -16,7 +16,6 @@ sys.path.append(str(Path(__file__).resolve().parent.parent.joinpath("scripts")))
 from get_data import GetData
 from dump_bin import DumpDataAll, DumpDataFix
 
-
 DATA_DIR = Path(__file__).parent.joinpath("test_dump_data")
 SOURCE_DIR = DATA_DIR.joinpath("source")
 SOURCE_DIR.mkdir(exist_ok=True, parents=True)

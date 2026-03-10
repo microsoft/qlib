@@ -76,8 +76,11 @@ jobs:
       run: |
         make mypy
     
+    # Due to issues that cannot be automatically fixed when running `nbqa black . -l 120 --check --diff` on Jupyter notebooks,
+    # we reverted to a version of `black` earlier than 26.1.0 before performing the checks.
     - name: Check Qlib ipynb with nbqa
       run: |
+        python -m pip install "black<26.1"
         make nbqa
 
     - name: Test data downloads

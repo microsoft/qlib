@@ -21,6 +21,8 @@ from functools import partial
 from concurrent.futures import ProcessPoolExecutor
 from bs4 import BeautifulSoup
 
+from qlib.utils.pickle_utils import restricted_pickle_load
+
 HS_SYMBOLS_URL = "http://app.finance.ifeng.com/hq/list.php?type=stock_a&class={s_type}"
 
 CALENDAR_URL_BASE = "http://push2his.eastmoney.com/api/qt/stock/kline/get?secid={market}.{bench_code}&fields1=f1%2Cf2%2Cf3%2Cf4%2Cf5&fields2=f51%2Cf52%2Cf53%2Cf54%2Cf55%2Cf56%2Cf57%2Cf58&klt=101&fqt=0&beg=19900101&end=20991231"
@@ -265,7 +267,7 @@ def get_hs_stock_symbols() -> list:
         symbol_cache_path.parent.mkdir(parents=True, exist_ok=True)
         if symbol_cache_path.exists():
             with symbol_cache_path.open("rb") as fp:
-                cache_symbols = pickle.load(fp)
+                cache_symbols = restricted_pickle_load(fp)
                 symbols |= cache_symbols
         with symbol_cache_path.open("wb") as fp:
             pickle.dump(symbols, fp)

@@ -4,6 +4,7 @@
 """
 This order generator is for strategies based on WeightStrategyBase
 """
+
 from ...backtest.position import Position
 from ...backtest.exchange import Exchange
 
