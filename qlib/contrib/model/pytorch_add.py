@@ -318,6 +318,7 @@ class ADD(Model):
         y_train_values = np.squeeze(y_train.values)
         m_train_values = np.squeeze(m_train.values.astype(int))
 
+        best_param = copy.deepcopy(self.ADD_model.state_dict())
         for step in range(self.n_epochs):
             self.logger.info("Epoch%d:", step)
             self.logger.info("training...")
