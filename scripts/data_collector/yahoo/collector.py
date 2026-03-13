@@ -392,8 +392,8 @@ class YahooNormalize(BaseNormalize):
         columns = copy.deepcopy(YahooNormalize.COLUMNS)
         df = df.copy()
         df.set_index(date_field_name, inplace=True)
-        df.index = pd.to_datetime(df.index)
-        df.index = df.index.tz_localize(None)
+        df.index = pd.to_datetime(df.index, utc=True)
+        df.index = df.index.tz_convert(None)
         df = df[~df.index.duplicated(keep="first")]
         if calendar_list is not None:
             df = df.reindex(
@@ -458,6 +458,8 @@ class YahooNormalize1d(YahooNormalize, ABC):
         df = df.copy()
         df.set_index(self._date_field_name, inplace=True)
         if "adjclose" in df:
+            df["adjclose"] = pd.to_numeric(df["adjclose"], errors="coerce")
+            df["close"] = pd.to_numeric(df["close"], errors="coerce")
             df["factor"] = df["adjclose"] / df["close"]
             df["factor"] = df["factor"].ffill()
         else:
@@ -465,6 +467,7 @@ class YahooNormalize1d(YahooNormalize, ABC):
         for _col in self.COLUMNS:
             if _col not in df.columns:
                 continue
+            df[_col] = pd.to_numeric(df[_col], errors="coerce")
             if _col == "volume":
                 df[_col] = df[_col] / df["factor"]
             else:
@@ -500,6 +503,7 @@ class YahooNormalize1d(YahooNormalize, ABC):
             # NOTE: retain original adjclose, required for incremental updates
             if _col in [self._symbol_field_name, "adjclose", "change"]:
                 continue
+            df[_col] = pd.to_numeric(df[_col], errors="coerce")
             if _col == "volume":
                 df[_col] = df[_col] * _close
             else:
