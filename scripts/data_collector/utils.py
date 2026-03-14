@@ -516,6 +516,7 @@ def get_gb_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
             if len(quotes) < page_size:
                 break
             start += page_size
+            time.sleep(1)  # avoid triggering Yahoo Finance screener rate limits between pages
 
         if qlib_data_path is not None:
             for _index in ["ftse100", "ftse250"]:
