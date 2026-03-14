@@ -457,6 +457,83 @@ def get_br_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
     return _BR_SYMBOLS
 
 
+def get_gb_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
+    """get GB (London Stock Exchange) stock symbols via Yahoo Finance screener API.
+
+    Parameters
+    ----------
+    qlib_data_path : str or Path, optional
+        Path to a local qlib data directory whose ``instruments/`` sub-directory
+        will be scanned for additional symbols (e.g. ``ftse100.txt``, ``ftse250.txt``),
+        by default None.
+
+    Returns
+    -------
+    list
+        Sorted, deduplicated list of Yahoo Finance ticker symbols with a ``.L``
+        suffix, e.g. ``["AZN.L", "BP.L", "HSBA.L", ...]``.
+
+    Notes
+    -----
+    Symbols are fetched from the Yahoo Finance predefined ``most_actives_gb``
+    screener endpoint, which covers the full GB market universe tracked by
+    Yahoo Finance.  Pagination is handled automatically (250 results per page).
+    Results are cached in the module-level ``_GB_SYMBOLS`` variable after the
+    first call.
+    """
+    global _GB_SYMBOLS  # pylint: disable=W0603
+
+    _SCREENER_URL = (
+        "https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved"
+        "?scrIds=most_actives_gb&count=250&start={start}"
+    )
+    _HEADERS = {
+        "User-Agent": (
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+            "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        ),
+        "Accept": "application/json",
+    }
+
+    @deco_retry
+    def _fetch_page(start: int) -> list:
+        resp = requests.get(_SCREENER_URL.format(start=start), headers=_HEADERS, timeout=30)
+        resp.raise_for_status()
+        return resp.json().get("finance", {}).get("result", [{}])[0].get("quotes", [])
+
+    if _GB_SYMBOLS is None:
+        _all_symbols = []
+        start = 0
+        page_size = 250
+
+        while True:
+            quotes = _fetch_page(start)
+            if not quotes:
+                break
+            for q in quotes:
+                symbol = q.get("symbol", "")
+                if symbol.endswith(".L"):
+                    _all_symbols.append(symbol)
+            if len(quotes) < page_size:
+                break
+            start += page_size
+
+        if qlib_data_path is not None:
+            for _index in ["ftse100", "ftse250"]:
+                _ins_path = Path(qlib_data_path).joinpath(f"instruments/{_index}.txt")
+                if _ins_path.exists():
+                    ins_df = pd.read_csv(
+                        _ins_path,
+                        sep="\t",
+                        names=["symbol", "start_date", "end_date"],
+                    )
+                    _all_symbols += ins_df["symbol"].unique().tolist()
+
+        _GB_SYMBOLS = sorted(set(_all_symbols))
+
+    return _GB_SYMBOLS
+
+
 def get_en_fund_symbols(qlib_data_path: [str, Path] = None) -> list:
     """get en fund symbols
 
