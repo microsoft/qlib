@@ -31,7 +31,6 @@ for _p in [str(_SCRIPTS_DIR), str(_COLLECTOR_DIR), str(_YAHOO_DIR)]:
 
 import data_collector.utils as dc_utils  # noqa: E402
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -41,11 +40,7 @@ def _make_screener_page(symbols: list) -> MagicMock:
     """Return a mock requests.Response for one screener page."""
     mock_resp = MagicMock()
     mock_resp.raise_for_status = MagicMock()
-    mock_resp.json.return_value = {
-        "finance": {
-            "result": [{"quotes": [{"symbol": s} for s in symbols]}]
-        }
-    }
+    mock_resp.json.return_value = {"finance": {"result": [{"quotes": [{"symbol": s} for s in symbols]}]}}
     return mock_resp
 
 
@@ -139,9 +134,7 @@ class TestCalendarListGBRouting(unittest.TestCase):
     def test_get_calendar_list_calls_ticker_with_ftse(self, mock_ticker_cls):
         """get_calendar_list('GB_ALL') must call Ticker('^FTSE').history(...)."""
         dates = pd.to_datetime(["2024-01-02", "2024-01-03"])
-        idx = pd.MultiIndex.from_tuples(
-            [("^FTSE", d) for d in dates], names=["symbol", "date"]
-        )
+        idx = pd.MultiIndex.from_tuples([("^FTSE", d) for d in dates], names=["symbol", "date"])
         mock_df = pd.DataFrame({"close": [7700.0, 7750.0]}, index=idx)
         mock_instance = MagicMock()
         mock_instance.history.return_value = mock_df
