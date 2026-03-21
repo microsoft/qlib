@@ -371,7 +371,9 @@ class YahooNormalize(BaseNormalize):
     @staticmethod
     def calc_change(df: pd.DataFrame, last_close: float) -> pd.Series:
         df = df.copy()
-        _tmp_series = df["close"].ffill()
+        # Use adjusted close to correctly account for splits/dividends
+        _close_col = "adjclose" if "adjclose" in df.columns else "close"
+        _tmp_series = df[_close_col].ffill()
         _tmp_shift_series = _tmp_series.shift(1)
         if last_close is not None:
             _tmp_shift_series.iloc[0] = float(last_close)
