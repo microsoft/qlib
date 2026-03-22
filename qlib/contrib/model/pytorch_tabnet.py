@@ -151,9 +151,11 @@ class TabnetModel(Model):
     def fit(
         self,
         dataset: DatasetH,
-        evals_result=dict(),
+        evals_result=None,
         save_path=None,
     ):
+        if evals_result is None:
+            evals_result = {}
         if self.pretrain:
             # there is a  pretrained model, load the model
             self.logger.info("Pretrain...")
