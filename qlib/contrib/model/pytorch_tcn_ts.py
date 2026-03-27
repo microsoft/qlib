@@ -279,7 +279,7 @@ class TCN(Model):
             with torch.no_grad():
                 pred = self.TCN_model(feature.float()).detach().cpu().numpy()
 
-            preds.append(pred)
+            preds.append(np.atleast_1d(pred))
 
         return pd.Series(np.concatenate(preds), index=dl_test.get_index())
 
