@@ -9,6 +9,26 @@ from .time import Freq, cal_sam_minute
 from ..config import C
 
 
+def normalize_freq(freq: str) -> str:
+    """Normalize a frequency string to its canonical form.
+
+    This ensures that equivalent frequency representations like
+    "1day" and "day", or "1min" and "min", are mapped to the
+    same canonical string.
+
+    Parameters
+    ----------
+    freq : str
+        Raw frequency string, e.g. "1day", "day", "5min", "1min", "min"
+
+    Returns
+    -------
+    str
+        Canonical frequency string, e.g. "day", "5min", "min"
+    """
+    return str(Freq(freq))
+
+
 def resam_calendar(
     calendar_raw: np.ndarray, freq_raw: Union[str, Freq], freq_sam: Union[str, Freq], region: str = None
 ) -> np.ndarray:
@@ -79,6 +99,7 @@ def get_higher_eq_freq_feature(instruments, fields, start_time=None, end_time=No
 
     from ..data.data import D  # pylint: disable=C0415
 
+    freq = normalize_freq(freq)
     try:
         _result = D.features(instruments, fields, start_time, end_time, freq=freq, disk_cache=disk_cache)
         _freq = freq
