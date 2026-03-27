@@ -148,8 +148,8 @@ class TanhProcess(Processor):
 
     def __call__(self, df):
         def tanh_denoise(data):
-            mask = data.columns.get_level_values(1).str.contains("LABEL")
-            col = df.columns[~mask]
+            mask = data.columns.get_level_values(0).str.contains("LABEL")
+            col = data.columns[~mask]
             data[col] = data[col] - 1
             data[col] = np.tanh(data[col])
 
