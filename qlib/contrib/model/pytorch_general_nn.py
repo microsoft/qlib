@@ -235,10 +235,13 @@ class GeneralPTNN(Model):
     def fit(
         self,
         dataset: Union[DatasetH, TSDatasetH],
-        evals_result=dict(),
+        evals_result=None,
         save_path=None,
         reweighter=None,
     ):
+        if evals_result is None:
+            evals_result = {}
+
         ists = isinstance(dataset, TSDatasetH)  # is this time series dataset
 
         dl_train = dataset.prepare("train", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)

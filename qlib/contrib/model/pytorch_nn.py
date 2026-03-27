@@ -190,11 +190,14 @@ class DNNModelPytorch(Model):
     def fit(
         self,
         dataset: DatasetH,
-        evals_result=dict(),
+        evals_result=None,
         verbose=True,
         save_path=None,
         reweighter=None,
     ):
+        if evals_result is None:
+            evals_result = {}
+
         has_valid = "valid" in dataset.segments
         segments = ["train", "valid"]
         vars = ["x", "y", "w"]
