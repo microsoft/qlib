@@ -471,7 +471,8 @@ class PortAnaRecord(ACRecordTemp):
             setattr(self, k, fill_placeholder(getattr(self, k), placeholder_value))
 
         # if the backtesting time range is not set, it will automatically extract time range from the prediction file
-        dt_values = pred.index.get_level_values("datetime")
+        dt_level = pred.index.names.index("datetime")
+        dt_values = pred.index.get_level_values(dt_level)
         if self.backtest_config["start_time"] is None:
             self.backtest_config["start_time"] = dt_values.min()
         if self.backtest_config["end_time"] is None:
@@ -617,7 +618,8 @@ class MultiPassPortAnaRecord(PortAnaRecord):
     def random_init(self):
         pred_df = self.load("pred.pkl")
 
-        all_pred_dates = pred_df.index.get_level_values("datetime")
+        dt_level = pred_df.index.names.index("datetime")
+        all_pred_dates = pred_df.index.get_level_values(dt_level)
         bt_start_date = pd.to_datetime(self.backtest_config.get("start_time"))
         if bt_start_date is None:
             first_bt_pred_date = all_pred_dates.min()
