@@ -116,6 +116,7 @@ def create_account_instance(
     benchmark: Optional[str],
     account: Union[float, int, dict],
     pos_type: str = "Position",
+    freq: str = "day",
 ) -> Account:
     """
     # TODO: is very strange pass benchmark_config in the account (maybe for report)
@@ -161,6 +162,7 @@ def create_account_instance(
     return Account(
         init_cash=init_cash,
         position_dict=position_dict,
+        freq=freq,
         pos_type=pos_type,
         benchmark_config=(
             {}
@@ -183,6 +185,7 @@ def get_strategy_executor(
     account: Union[float, int, dict] = 1e9,
     exchange_kwargs: dict = {},
     pos_type: str = "Position",
+    freq: str = "day",
 ) -> Tuple[BaseStrategy, BaseExecutor]:
     # NOTE:
     # - for avoiding recursive import
@@ -196,6 +199,7 @@ def get_strategy_executor(
         benchmark=benchmark,
         account=account,
         pos_type=pos_type,
+        freq=freq,
     )
 
     exchange_kwargs = copy.copy(exchange_kwargs)
@@ -223,6 +227,7 @@ def backtest(
     account: Union[float, int, dict] = 1e9,
     exchange_kwargs: dict = {},
     pos_type: str = "Position",
+    freq: str = "day",
 ) -> Tuple[PORT_METRIC, INDICATOR_METRIC]:
     """initialize the strategy and executor, then backtest function for the interaction of the outermost strategy and
     executor in the nested decision execution
@@ -272,6 +277,7 @@ def backtest(
         account,
         exchange_kwargs,
         pos_type=pos_type,
+        freq=freq,
     )
     return backtest_loop(start_time, end_time, trade_strategy, trade_executor)
 
@@ -286,6 +292,7 @@ def collect_data(
     exchange_kwargs: dict = {},
     pos_type: str = "Position",
     return_value: dict | None = None,
+    freq: str = "day",
 ) -> Generator[object, None, None]:
     """initialize the strategy and executor, then collect the trade decision data for rl training
 
@@ -305,6 +312,7 @@ def collect_data(
         account,
         exchange_kwargs,
         pos_type=pos_type,
+        freq=freq,
     )
     yield from collect_data_loop(start_time, end_time, trade_strategy, trade_executor, return_value=return_value)
 
