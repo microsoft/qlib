@@ -183,8 +183,11 @@ def register_user(
         role=user.role
     )
     
-    # Send verification email if email is provided
-    if user.email:
+    # Skip email verification if configured
+    if settings.skip_email_verification:
+        db_user.email_verified = True
+    elif user.email:
+        # Send verification email if email is provided
         send_verification_email(db_user)
     
     db.add(db_user)

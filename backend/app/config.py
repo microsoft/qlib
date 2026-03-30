@@ -32,6 +32,32 @@ class Settings:
     
     # Email verification settings
     verification_token_expire_minutes = int(os.getenv("VERIFICATION_TOKEN_EXPIRE_MINUTES", "1440"))  # 24 hours
+    skip_email_verification = os.getenv("SKIP_EMAIL_VERIFICATION", "False").lower() in ("true", "1", "t")
+    
+    # CORS settings
+    cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3001,http://localhost:3000,http://localhost:8000,http://127.0.0.1:3001,http://127.0.0.1:3000,http://127.0.0.1:8000")
+
+    # Default production origins always included
+    _default_origins = [
+        "http://116.62.59.244",
+        "http://qlib.hoo.ink",
+        "http://ddns.hoo.ink:8000",
+    ]
+
+    def get_cors_origins(self) -> list:
+        """Parse CORS origins from settings, combining env var and defaults."""
+        origins = self.cors_origins
+        if isinstance(origins, str):
+            parsed = [o.strip() for o in origins.split(",") if o.strip()]
+        elif isinstance(origins, list):
+            parsed = origins
+        else:
+            parsed = []
+        # Merge with defaults, avoiding duplicates
+        for o in self._default_origins:
+            if o not in parsed:
+                parsed.append(o)
+        return parsed
 
 # Create settings instance
 settings = Settings()

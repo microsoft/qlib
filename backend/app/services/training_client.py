@@ -9,8 +9,8 @@ class TrainingClient:
     """API client for communicating with the training server"""
     
     def __init__(self):
-        self.base_url = settings.TRAINING_SERVER_URL
-        self.timeout = settings.TRAINING_SERVER_TIMEOUT
+        self.base_url = settings.training_server_url
+        self.timeout = settings.training_server_timeout
         self.client = httpx.AsyncClient(
             base_url=self.base_url,
             timeout=self.timeout,

@@ -67,16 +67,8 @@ app = FastAPI(
 # Configure CORS from environment variable if available, otherwise use production origins
 from app.db.database import settings
 
-# Get allowed origins from settings or use default production origins
-allow_origins = getattr(settings, "cors_origins", [
-    "http://116.62.59.244",  # Production IP
-    "http://qlib.hoo.ink",    # Production domain
-    "http://ddns.hoo.ink:8000"  # DDNS server for training
-])
-
-# Ensure allow_origins is a list
-if isinstance(allow_origins, str):
-    allow_origins = allow_origins.split(",")
+# Get allowed origins from settings
+allow_origins = settings.get_cors_origins()
 
 app.add_middleware(
     CORSMiddleware,
