@@ -32,6 +32,10 @@ class Settings:
     
     # Email verification settings
     verification_token_expire_minutes = int(os.getenv("VERIFICATION_TOKEN_EXPIRE_MINUTES", "1440"))  # 24 hours
+    skip_email_verification = os.getenv("SKIP_EMAIL_VERIFICATION", "True").lower() in ("true", "1", "t")
+    
+    # CORS settings
+    cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3001,http://localhost:3000,http://localhost:8000,http://127.0.0.1:3001,http://127.0.0.1:3000,http://127.0.0.1:8000")
 
 # Create settings instance
 settings = Settings()

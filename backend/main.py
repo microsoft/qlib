@@ -69,14 +69,20 @@ from app.db.database import settings
 
 # Get allowed origins from settings or use default production origins
 allow_origins = getattr(settings, "cors_origins", [
-    "http://116.62.59.244",  # Production IP
-    "http://qlib.hoo.ink",    # Production domain
-    "http://ddns.hoo.ink:8000"  # DDNS server for training
+    "http://localhost:3001",     # Frontend dev server
+    "http://localhost:3000",     # Frontend alt dev server
+    "http://localhost:8000",     # Backend dev server
+    "http://127.0.0.1:3001",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:8000",
+    "http://116.62.59.244",      # Production IP
+    "http://qlib.hoo.ink",       # Production domain
+    "http://ddns.hoo.ink:8000"   # DDNS server for training
 ])
 
 # Ensure allow_origins is a list
 if isinstance(allow_origins, str):
-    allow_origins = allow_origins.split(",")
+    allow_origins = [o.strip() for o in allow_origins.split(",") if o.strip()]
 
 app.add_middleware(
     CORSMiddleware,
@@ -207,7 +213,7 @@ async def monitor_performance(request, call_next):
     return response
 
 # Include API router without training endpoints
-from app.api import auth, experiments, models, configs, benchmarks, factors, data, monitoring
+from app.api import auth, experiments, models, configs, benchmarks, factors, data, monitoring, train, tasks
 
 # Create main API router without training
 main_api_router = APIRouter()
@@ -221,6 +227,8 @@ main_api_router.include_router(benchmarks.router, prefix="/benchmarks", tags=["b
 main_api_router.include_router(factors.router, prefix="/factors", tags=["factors"])
 main_api_router.include_router(data.router, prefix="/data", tags=["data"])
 main_api_router.include_router(monitoring.router, prefix="/monitoring", tags=["monitoring"])
+main_api_router.include_router(train.router, prefix="/train", tags=["train"])
+main_api_router.include_router(tasks.router, prefix="/tasks", tags=["tasks"])
 
 # Include main API router
 app.include_router(main_api_router, prefix="/api")
