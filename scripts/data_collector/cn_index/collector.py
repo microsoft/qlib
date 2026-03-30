@@ -22,7 +22,6 @@ from data_collector.index import IndexBase
 from data_collector.utils import get_calendar_list, get_trading_date_by_shift, deco_retry
 from data_collector.utils import get_instruments
 
-
 NEW_COMPANIES_URL = (
     "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/file/autofile/cons/{index_code}cons.xls"
 )

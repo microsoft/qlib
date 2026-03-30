@@ -19,7 +19,6 @@ from time import mktime
 from datetime import datetime as dt
 import time
 
-
 _CG_CRYPTO_SYMBOLS = None
 
 

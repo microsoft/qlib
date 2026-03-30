@@ -317,7 +317,7 @@ class TabnetModel(Model):
             feature = x_train_values.float().to(self.device)
             label = y_train_values.float().to(self.device)
             priors = 1 - S_mask
-            (vec, sparse_loss) = self.tabnet_model(feature, priors)
+            vec, sparse_loss = self.tabnet_model(feature, priors)
             f = self.tabnet_decoder(vec)
             loss = self.pretrain_loss_fn(label, f, S_mask)
 
@@ -348,7 +348,7 @@ class TabnetModel(Model):
             S_mask = S_mask.to(self.device)
             priors = 1 - S_mask
             with torch.no_grad():
-                (vec, sparse_loss) = self.tabnet_model(feature, priors)
+                vec, sparse_loss = self.tabnet_model(feature, priors)
                 f = self.tabnet_decoder(vec)
 
                 loss = self.pretrain_loss_fn(label, f, S_mask)

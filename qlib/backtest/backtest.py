@@ -18,7 +18,6 @@ from tqdm.auto import tqdm
 
 from ..utils.time import Freq
 
-
 PORT_METRIC = Dict[str, Tuple[pd.DataFrame, dict]]
 INDICATOR_METRIC = Dict[str, Tuple[pd.DataFrame, Indicator]]
 

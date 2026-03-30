@@ -69,6 +69,7 @@ rl = [
   "torch",
   "numpy<2.0.0",
 ]
+
 lint = [
   "black",
   "pylint",
@@ -100,6 +101,10 @@ test = [
 analysis = [
   "plotly",
   "statsmodels",
+]
+client = [
+  "python-socketio<6",
+  "tables",
 ]
 
 # In the process of releasing a new version, when checking the manylinux package with twine, an error is reported:

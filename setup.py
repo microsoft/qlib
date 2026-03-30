@@ -3,7 +3,6 @@ import os
 import numpy
 from setuptools import Extension, setup
 
-
 NUMPY_INCLUDE = numpy.get_include()
 
 

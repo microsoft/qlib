@@ -6,6 +6,7 @@ import tempfile
 from pathlib import Path
 
 from qlib.config import C
+from qlib.utils.pickle_utils import restricted_pickle_load
 
 
 class ObjManager:
@@ -116,7 +117,7 @@ class FileManager(ObjManager):
 
     def load_obj(self, name):
         with (self.path / name).open("rb") as f:
-            return pickle.load(f)
+            return restricted_pickle_load(f)
 
     def exists(self, name):
         return (self.path / name).exists()

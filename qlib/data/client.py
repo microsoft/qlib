@@ -2,15 +2,15 @@
 # Licensed under the MIT License.
 
 
-from __future__ import division
-from __future__ import print_function
+from __future__ import division, print_function
+
+import json
 
 import socketio
 
 import qlib
-from ..config import C
+
 from ..log import get_module_logger
-import pickle
 
 
 class Client:
@@ -96,7 +96,7 @@ class Client:
         self.logger.debug("connected")
         # The pickle is for passing some parameters with special type(such as
         # pd.Timestamp)
-        request_content = {"head": head_info, "body": pickle.dumps(request_content, protocol=C.dump_protocol_version)}
+        request_content = {"head": head_info, "body": json.dumps(request_content, default=str)}
         self.sio.on(request_type + "_response", request_callback)
         self.logger.debug("try sending")
         self.sio.emit(request_type + "_request", request_content)

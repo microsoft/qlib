@@ -10,6 +10,7 @@ Two modes are supported
 - server
 
 """
+
 from __future__ import annotations
 
 import os

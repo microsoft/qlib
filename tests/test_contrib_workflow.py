@@ -13,7 +13,6 @@ from qlib.workflow import R
 from qlib.tests import TestAutoData
 from qlib.tests.config import GBDT_MODEL, get_dataset_config, CSI300_MARKET
 
-
 CSI300_GBDT_TASK = {
     "model": GBDT_MODEL,
     "dataset": get_dataset_config(

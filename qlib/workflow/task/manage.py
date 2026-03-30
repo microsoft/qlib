@@ -12,6 +12,7 @@ A task in TaskManager consists of 3 parts
 - tasks status: the status of the task
 - tasks result: A user can get the task with the task description and task result.
 """
+
 import concurrent
 import pickle
 import time
@@ -28,6 +29,7 @@ from tqdm.cli import tqdm
 
 from .utils import get_mongodb
 from ...config import C
+from ...utils.pickle_utils import restricted_pickle_loads
 
 
 class TaskManager:
@@ -131,7 +133,7 @@ class TaskManager:
         for prefix in self.ENCODE_FIELDS_PREFIX:
             for k in list(task.keys()):
                 if k.startswith(prefix):
-                    task[k] = pickle.loads(task[k])
+                    task[k] = restricted_pickle_loads(task[k])
         return task
 
     def _dict_to_str(self, flt):
