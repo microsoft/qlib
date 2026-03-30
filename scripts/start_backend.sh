@@ -17,7 +17,10 @@ cd "$BACKEND_DIR"
 
 # Set default environment variables if not already set
 export DATABASE_URL="${DATABASE_URL:-sqlite:///./qlib_management.db}"
-export SECRET_KEY="${SECRET_KEY:-dev-secret-key-change-in-production}"
+if [ -z "$SECRET_KEY" ]; then
+    export SECRET_KEY="$(python3 -c 'import secrets; print(secrets.token_hex(32))')"
+    echo "WARNING: SECRET_KEY not set, using auto-generated key (sessions will not persist across restarts)"
+fi
 export ALGORITHM="${ALGORITHM:-HS256}"
 export ACCESS_TOKEN_EXPIRE_MINUTES="${ACCESS_TOKEN_EXPIRE_MINUTES:-30}"
 export SKIP_EMAIL_VERIFICATION="${SKIP_EMAIL_VERIFICATION:-True}"

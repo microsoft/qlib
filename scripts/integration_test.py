@@ -126,7 +126,7 @@ class IntegrationTest:
                 "username": "admin",
                 "password": "wrongpassword"
             })
-            self._record("AUTH-02 Bad password", r.status_code in [401, 500], f"status={r.status_code}")
+            self._record("AUTH-02 Bad password", r.status_code == 401, f"status={r.status_code}")
         except Exception as e:
             self._record("AUTH-02 Bad password", False, str(e))
 
@@ -149,9 +149,11 @@ class IntegrationTest:
             if r.status_code == 200:
                 user_data = r.json()
                 self._record("AUTH-04 Register user", True, f"user_id={user_data.get('id')}")
+            elif r.status_code == 400:
+                # User already exists from previous test run - this is acceptable
+                self._record("AUTH-04 Register user", True, "user already exists (expected on re-run)")
             else:
-                # May already exist
-                self._record("AUTH-04 Register user", r.status_code == 400, f"status={r.status_code} (may already exist)")
+                self._record("AUTH-04 Register user", False, f"status={r.status_code} body={r.text[:200]}")
         except Exception as e:
             self._record("AUTH-04 Register user", False, str(e))
 
@@ -575,8 +577,11 @@ task:
                 uid = r.json().get("id")
                 self.created_resources["users"].append(uid)
                 self._record("ADM-01 Create user", True, f"id={uid}")
+            elif r.status_code == 400:
+                # User already exists from previous test run
+                self._record("ADM-01 Create user", True, "user already exists (expected on re-run)")
             else:
-                self._record("ADM-01 Create user", r.status_code == 400, f"status={r.status_code} (may exist)")
+                self._record("ADM-01 Create user", False, f"status={r.status_code} body={r.text[:200]}")
         except Exception as e:
             self._record("ADM-01 Create user", False, str(e))
 
