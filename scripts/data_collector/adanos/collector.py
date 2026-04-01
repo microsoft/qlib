@@ -3,7 +3,7 @@
 
 import sys
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Dict, Iterable, List, Optional, Sequence
 
 import pandas as pd
 import requests
@@ -168,22 +168,27 @@ def build_sentiment_frame(
     return merged.reset_index(drop=True)
 
 
-def merge_price_and_sentiment(price_df: pd.DataFrame, sentiment_df: pd.DataFrame) -> pd.DataFrame:
+def merge_price_and_sentiment(
+    price_df: pd.DataFrame,
+    sentiment_df: pd.DataFrame,
+    date_field_name: str = "date",
+    symbol_field_name: str = "symbol",
+) -> pd.DataFrame:
     if price_df.empty:
         return price_df
     if sentiment_df.empty:
         return price_df.copy()
 
     merged = price_df.copy()
-    merged["date"] = pd.to_datetime(merged["date"]).dt.strftime("%Y-%m-%d")
-    merged["symbol"] = merged["symbol"].astype(str)
+    merged[date_field_name] = pd.to_datetime(merged[date_field_name]).dt.strftime("%Y-%m-%d")
+    merged[symbol_field_name] = merged[symbol_field_name].astype(str)
 
     sentiment = sentiment_df.copy()
-    sentiment["date"] = pd.to_datetime(sentiment["date"]).dt.strftime("%Y-%m-%d")
-    sentiment["symbol"] = sentiment["symbol"].astype(str)
+    sentiment[date_field_name] = pd.to_datetime(sentiment[date_field_name]).dt.strftime("%Y-%m-%d")
+    sentiment[symbol_field_name] = sentiment[symbol_field_name].astype(str)
 
-    merged = merged.merge(sentiment, on=["symbol", "date"], how="left")
-    return merged.sort_values(["date"]).reset_index(drop=True)
+    merged = merged.merge(sentiment, on=[symbol_field_name, date_field_name], how="left")
+    return merged.sort_values([date_field_name]).reset_index(drop=True)
 
 
 class AdanosCollector(BaseCollector):
@@ -355,7 +360,12 @@ class Run(BaseRun):
                 sentiment_df = pd.read_csv(sentiment_path)
             else:
                 sentiment_df = pd.DataFrame(columns=[symbol_field_name, date_field_name])
-            merged = merge_price_and_sentiment(price_df, sentiment_df)
+            merged = merge_price_and_sentiment(
+                price_df,
+                sentiment_df,
+                date_field_name=date_field_name,
+                symbol_field_name=symbol_field_name,
+            )
             merged.to_csv(target_dir.joinpath(price_path.name), index=False)
 
 

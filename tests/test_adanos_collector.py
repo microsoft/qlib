@@ -5,7 +5,11 @@ import pandas as pd
 
 sys.path.append(str(Path(__file__).resolve().parents[1] / "scripts"))
 
-from data_collector.adanos.collector import build_sentiment_frame, merge_price_and_sentiment
+from data_collector.adanos.collector import (
+    build_sentiment_frame,
+    merge_price_and_sentiment,
+    resolve_api_lookback_days,
+)
 
 
 def test_build_sentiment_frame_aggregates_daily_source_rows():
@@ -70,6 +74,31 @@ def test_merge_price_and_sentiment_keeps_price_rows():
     assert merged.loc[1, "retail_buzz_avg"] == 28.75
 
 
+def test_merge_price_and_sentiment_honors_custom_key_columns():
+    price_df = pd.DataFrame(
+        [
+            {"ticker": "AAPL", "trading_day": "2026-03-24", "close": 100.0},
+            {"ticker": "AAPL", "trading_day": "2026-03-25", "close": 101.0},
+        ]
+    )
+    sentiment_df = pd.DataFrame(
+        [
+            {"ticker": "AAPL", "trading_day": "2026-03-25", "retail_buzz_avg": 28.75},
+        ]
+    )
+
+    merged = merge_price_and_sentiment(
+        price_df,
+        sentiment_df,
+        date_field_name="trading_day",
+        symbol_field_name="ticker",
+    )
+
+    assert len(merged) == 2
+    assert pd.isna(merged.loc[0, "retail_buzz_avg"])
+    assert merged.loc[1, "retail_buzz_avg"] == 28.75
+
+
 def test_build_sentiment_frame_handles_partially_missing_sources():
     payloads = {
         "reddit": {
@@ -95,3 +124,8 @@ def test_build_sentiment_frame_handles_partially_missing_sources():
     assert row["retail_coverage"] == 1.0
     assert row["retail_alignment_score"] == 1.0
     assert pd.isna(row["x_buzz"])
+
+
+def test_resolve_api_lookback_days_caps_to_supported_window():
+    days = resolve_api_lookback_days(pd.Timestamp("2025-01-01"), pd.Timestamp("2026-01-01"))
+    assert days == 90
