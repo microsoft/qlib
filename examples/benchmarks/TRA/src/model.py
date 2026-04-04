@@ -200,7 +200,9 @@ class TRAModel(Model):
 
         return metrics, preds
 
-    def fit(self, dataset, evals_result=dict()):
+    def fit(self, dataset, evals_result=None):
+        if evals_result is None:
+            evals_result = {}
         train_set, valid_set, test_set = dataset.prepare(["train", "valid", "test"])
 
         best_score = -1
