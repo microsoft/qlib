@@ -82,12 +82,31 @@ def risk_analysis(r, N: int = None, freq: str = "day", mode: Literal["sum", "pro
         raise ValueError(f"risk_analysis accumulation mode {mode} is not supported. Expected `sum` or `product`.")
 
     information_ratio = mean / std * np.sqrt(N)
+
+    downside = r.clip(upper=0)
+    downside_std = downside.std(ddof=1)
+    sortino_ratio = mean / downside_std * np.sqrt(N) if downside_std > 0 else np.inf
+    calmar_ratio = annualized_return / abs(max_drawdown) if max_drawdown != 0 else np.inf
+
+    if mode == "sum":
+        cum = r.cumsum()
+    else:
+        cum = (1 + r).cumprod()
+    peak = cum.cummax()
+    in_drawdown = cum < peak
+    dd_groups = (~in_drawdown).cumsum()
+    dd_groups = dd_groups[in_drawdown]
+    max_drawdown_duration = dd_groups.value_counts().max() if len(dd_groups) > 0 else 0
+
     data = {
         "mean": mean,
         "std": std,
         "annualized_return": annualized_return,
         "information_ratio": information_ratio,
         "max_drawdown": max_drawdown,
+        "sortino_ratio": sortino_ratio,
+        "calmar_ratio": calmar_ratio,
+        "max_drawdown_duration": max_drawdown_duration,
     }
     res = pd.Series(data).to_frame("risk")
     return res
