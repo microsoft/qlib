@@ -36,7 +36,6 @@ from .cache import (
     MemoryCalendarCache,
 )
 
-
 __all__ = [
     "D",
     "CalendarProvider",

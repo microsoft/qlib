@@ -1,10 +1,10 @@
 import os
-import pickle
-import shutil
 import unittest
-from qlib.tests import TestAutoData
+
 from qlib.data import D
 from qlib.data.dataset.handler import DataHandlerLP
+from qlib.tests import TestAutoData
+from qlib.utils.pickle_utils import restricted_pickle_load
 
 
 class HandlerTests(TestAutoData):
@@ -23,7 +23,7 @@ class HandlerTests(TestAutoData):
         dh.to_pickle(fname, dump_all=True)
 
         with open(fname, "rb") as f:
-            dh_d = pickle.load(f)
+            dh_d = restricted_pickle_load(f)
 
         self.assertTrue(dh_d._data.equals(df))
         self.assertTrue(dh_d._infer is dh_d._data)

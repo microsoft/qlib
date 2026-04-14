@@ -12,6 +12,7 @@ from ...data import D
 from ...config import C
 from ...log import get_module_logger
 from ...utils import get_next_trading_date
+from ...utils.pickle_utils import restricted_pickle_load
 from ...backtest.exchange import Exchange
 
 log = get_module_logger("utils")
@@ -30,7 +31,7 @@ def load_instance(file_path):
     if not file_path.exists():
         raise ValueError("Cannot find file {}".format(file_path))
     with file_path.open("rb") as fr:
-        instance = pickle.load(fr)
+        instance = restricted_pickle_load(fr)
     return instance
 
 

@@ -87,7 +87,7 @@ def workflow(config_path, experiment_name="workflow", uri_folder="mlruns"):
     """
     This is a Qlib CLI entrance.
     User can run the whole Quant research workflow defined by a configure file
-    - the code is located here ``qlib/cli/run.py`
+    - the code is located here ``qlib/cli/run.py``
 
     User can specify a base_config file in your workflow.yml file by adding "BASE_CONFIG_PATH".
     Qlib will load the configuration in BASE_CONFIG_PATH first, and the user only needs to update the custom fields

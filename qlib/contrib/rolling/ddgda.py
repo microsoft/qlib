@@ -14,6 +14,7 @@ from qlib.model.meta.task import MetaTask
 from qlib.model.trainer import TrainerR
 from qlib.typehint import Literal
 from qlib.utils import init_instance_by_config
+from qlib.utils.pickle_utils import restricted_pickle_load
 from qlib.workflow import R
 from qlib.workflow.task.utils import replace_task_handler_with_cache
 
@@ -298,7 +299,7 @@ class DDGDA(Rolling):
         # but their task test segment are not aligned! It worked in my previous experiment.
         # So the misalignment will not affect the effectiveness of the method.
         with self._internal_data_path.open("rb") as f:
-            internal_data = pickle.load(f)
+            internal_data = restricted_pickle_load(f)
 
         md = MetaDatasetDS(exp_name=internal_data, **kwargs)
 
@@ -360,7 +361,7 @@ class DDGDA(Rolling):
         )
 
         with self._internal_data_path.open("rb") as f:
-            internal_data = pickle.load(f)
+            internal_data = restricted_pickle_load(f)
         mds = MetaDatasetDS(exp_name=internal_data, **kwargs)
 
         # 3) meta model make inference and get new qlib task

@@ -129,7 +129,7 @@ For example, it looks quite long and complicated:
 
 
 But using string is not the only way to implement the expression. You can also implement expression by code.
-Here is an exmaple which does the same thing as above examples.
+Here is an example which does the same thing as above examples.
 
 
 .. code-block:: python
