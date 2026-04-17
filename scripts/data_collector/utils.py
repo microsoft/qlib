@@ -73,11 +73,11 @@ def get_calendar_list(bench_code="CSI300") -> List[pd.Timestamp]:
         bs.login()
         rs = bs.query_trade_dates(start_date="2005-01-01", end_date=end_date)
         data_list = []
-        while (rs.error_code == '0') & rs.next():
+        while (rs.error_code == "0") & rs.next():
             data_list.append(rs.get_row_data())
         bs.logout()
         df = pd.DataFrame(data_list, columns=rs.fields)
-        trade_days = df[df['is_trading_day'] == '1']['calendar_date']
+        trade_days = df[df["is_trading_day"] == "1"]["calendar_date"]
         return sorted(map(lambda x: pd.Timestamp(x), trade_days.to_list()))
 
     calendar = _CALENDAR_MAP.get(bench_code, None)
