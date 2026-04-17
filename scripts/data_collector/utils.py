@@ -78,7 +78,7 @@ def get_calendar_list(bench_code="CSI300") -> List[pd.Timestamp]:
         bs.logout()
         df = pd.DataFrame(data_list, columns=rs.fields)
         trade_days = df[df["is_trading_day"] == "1"]["calendar_date"]
-        return sorted(map(lambda x: pd.Timestamp(x), trade_days.to_list()))
+        return sorted(map(pd.Timestamp, trade_days.to_list()))
 
     calendar = _CALENDAR_MAP.get(bench_code, None)
     if calendar is None:
