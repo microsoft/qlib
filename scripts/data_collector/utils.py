@@ -20,6 +20,7 @@ from tqdm import tqdm
 from functools import partial
 from concurrent.futures import ProcessPoolExecutor
 from bs4 import BeautifulSoup
+import baostock as bs
 
 from qlib.utils.pickle_utils import restricted_pickle_load
 
@@ -68,9 +69,16 @@ def get_calendar_list(bench_code="CSI300") -> List[pd.Timestamp]:
 
     logger.info(f"get calendar list: {bench_code}......")
 
-    def _get_calendar(url):
-        _value_list = requests.get(url, timeout=None).json()["data"]["klines"]
-        return sorted(map(lambda x: pd.Timestamp(x.split(",")[0]), _value_list))
+    def _get_calendar(end_date):
+        bs.login()
+        rs = bs.query_trade_dates(start_date="2005-01-01", end_date=end_date)
+        data_list = []
+        while (rs.error_code == "0") & rs.next():
+            data_list.append(rs.get_row_data())
+        bs.logout()
+        df = pd.DataFrame(data_list, columns=rs.fields)
+        trade_days = df[df["is_trading_day"] == "1"]["calendar_date"]
+        return sorted(map(pd.Timestamp, trade_days.to_list()))
 
     calendar = _CALENDAR_MAP.get(bench_code, None)
     if calendar is None:
@@ -90,7 +98,8 @@ def get_calendar_list(bench_code="CSI300") -> List[pd.Timestamp]:
                 filtered_dates = dates[(dates >= "2000-01-04") & (dates <= pd.Timestamp.today().normalize())]
                 calendar = filtered_dates.tolist()
             else:
-                calendar = _get_calendar(CALENDAR_BENCH_URL_MAP[bench_code])
+                end_date = time.strftime("%Y-%m-%d", time.localtime())
+                calendar = _get_calendar(end_date=end_date)
         _CALENDAR_MAP[bench_code] = calendar
     logger.info(f"end of get calendar list: {bench_code}.")
     return calendar
