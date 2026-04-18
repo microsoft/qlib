@@ -145,8 +145,7 @@ class TimeInspector:
         try:
             yield None
         finally:
-            pass
-        cls.log_cost_time(info=f"{name} Done")
+            cls.log_cost_time(info=f"{name} Done")
 
 
 def set_log_with_config(log_config: Dict[Text, Any]):
