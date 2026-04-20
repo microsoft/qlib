@@ -1337,7 +1337,7 @@ class WMA(Rolling):
         def weighted_mean(x):
             w = np.arange(len(x)) + 1
             w = w / w.sum()
-            return np.nanmean(w * x)
+            return np.nansum(w * x)
 
         if self.N == 0:
             series = series.expanding(min_periods=1).apply(weighted_mean, raw=True)
