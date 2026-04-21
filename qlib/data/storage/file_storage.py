@@ -156,7 +156,7 @@ class FileCalendarStorage(FileStorageMixin, CalendarStorage):
     def index(self, value: CalVT) -> int:
         self.check()
         calendar = self._read_calendar()
-        return int(np.argwhere(calendar == value)[0])
+        return calendar.index(value)
 
     def insert(self, index: int, value: CalVT):
         calendar = self._read_calendar()
