@@ -1,0 +1,87 @@
+{
+  "name": "use-isomorphic-layout-effect",
+  "version": "1.2.1",
+  "description": "A React helper hook for scheduling a layout effect with a fallback to a regular effect for environments where layout effects should not be used (such as server-side rendering).",
+  "main": "dist/use-isomorphic-layout-effect.cjs.js",
+  "module": "dist/use-isomorphic-layout-effect.esm.js",
+  "react-native": "./dist/use-isomorphic-layout-effect.browser.esm.js",
+  "browser": {
+    "./dist/use-isomorphic-layout-effect.esm.js": "./dist/use-isomorphic-layout-effect.browser.esm.js"
+  },
+  "types": "./dist/use-isomorphic-layout-effect.cjs.d.ts",
+  "exports": {
+    ".": {
+      "types": {
+        "import": "./dist/use-isomorphic-layout-effect.cjs.mjs",
+        "default": "./dist/use-isomorphic-layout-effect.cjs.js"
+      },
+      "browser": {
+        "module": "./dist/use-isomorphic-layout-effect.browser.esm.js",
+        "import": "./dist/use-isomorphic-layout-effect.browser.cjs.mjs",
+        "default": "./dist/use-isomorphic-layout-effect.browser.cjs.js"
+      },
+      "react-native": {
+        "module": "./dist/use-isomorphic-layout-effect.browser.esm.js",
+        "import": "./dist/use-isomorphic-layout-effect.browser.cjs.mjs",
+        "default": "./dist/use-isomorphic-layout-effect.browser.cjs.js"
+      },
+      "module": "./dist/use-isomorphic-layout-effect.esm.js",
+      "import": "./dist/use-isomorphic-layout-effect.cjs.mjs",
+      "default": "./dist/use-isomorphic-layout-effect.cjs.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "imports": {
+    "#is-client": {
+      "react-native": "./src/conditions/true.ts",
+      "browser": "./src/conditions/true.ts",
+      "default": "./src/conditions/is-client.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "test": "echo \"Warning: no test specified\"",
+    "build": "preconstruct build",
+    "prepare": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Andarist/use-isomorphic-layout-effect.git"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Andarist/use-isomorphic-layout-effect/issues"
+  },
+  "homepage": "https://github.com/Andarist/use-isomorphic-layout-effect#readme",
+  "peerDependencies": {
+    "react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@types/react": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@babel/core": "^7.26.0",
+    "@babel/preset-env": "^7.26.0",
+    "@babel/preset-typescript": "^7.26.0",
+    "@preconstruct/cli": "^2.8.10",
+    "@types/react": "^19.0.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^10.2.11",
+    "prettier": "^3.4.2",
+    "react": "^19.0.0",
+    "typescript": "^5.7.2"
+  },
+  "preconstruct": {
+    "exports": {
+      "importConditionDefaultExport": "default"
+    },
+    "___experimentalFlags_WILL_CHANGE_IN_PATCH": {
+      "importsConditions": true
+    }
+  },
+  "packageManager": "pnpm@10.11.0+sha512.6540583f41cc5f628eb3d9773ecee802f4f9ef9923cc45b69890fb47991d4b092964694ec3a4f738a420c918a333062c8b925d312f42e4f0c263eb603551f977"
+}

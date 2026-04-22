@@ -1,0 +1,1 @@
+{"version":3,"file":"is-string.js","sourceRoot":"","sources":["../../src/helper/is-string.ts"],"names":[],"mappings":"AAAA,MAAM,UAAU,QAAQ,CAAC,CAAM;IAC7B,OAAO,OAAO,CAAC,KAAK,QAAQ,CAAC;AAC/B,CAAC","sourcesContent":["export function isString(v: any): boolean {\n  return typeof v === 'string';\n}\n"]}

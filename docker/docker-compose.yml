@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/backend.Dockerfile
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mysql
+    restart: on-failure
+    environment:
+      - DATABASE_URL=mysql+pymysql://user:password@mysql:3306/qlib_management
+      - SECRET_KEY=your-secret-key-here
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - qlib_network
+
+  task_worker:
+    build:
+      context: ..
+      dockerfile: docker/backend.Dockerfile
+    depends_on:
+      - mysql
+      - backend
+    restart: on-failure
+    environment:
+      - DATABASE_URL=mysql+pymysql://user:password@mysql:3306/qlib_management
+      - SECRET_KEY=your-secret-key-here
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+    volumes:
+      - ./logs:/app/logs
+    command: ["bash", "start_worker.sh"]
+    networks:
+      - qlib_network
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: ../docker/frontend.Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - qlib_network
+
+  mysql:
+    image: mysql:8.0
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=qlib_management
+      - MYSQL_USER=user
+      - MYSQL_PASSWORD=password
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - qlib_network
+
+networks:
+  qlib_network:
+    driver: bridge
+
+volumes:
+  mysql_data:

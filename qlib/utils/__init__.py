@@ -10,7 +10,7 @@ import os
 import re
 import copy
 import json
-import redis
+# import redis  # Redis is not needed according to user requirements
 import bisect
 import struct
 import difflib
@@ -42,12 +42,8 @@ is_deprecated_lexsorted_pandas = version.parse(pd.__version__) > version.parse("
 #################### Server ####################
 def get_redis_connection():
     """get redis connection instance."""
-    return redis.StrictRedis(
-        host=C.redis_host,
-        port=C.redis_port,
-        db=C.redis_task_db,
-        password=C.redis_password,
-    )
+    # Redis is not needed according to user requirements
+    raise NotImplementedError("Redis is not configured for this application")
 
 
 #################### Data ####################
@@ -564,15 +560,9 @@ def time_to_slc_point(t: Union[None, str, pd.Timestamp]) -> Union[None, pd.Times
 
 
 def can_use_cache():
-    res = True
-    r = get_redis_connection()
-    try:
-        r.client()
-    except redis.exceptions.ConnectionError:
-        res = False
-    finally:
-        r.close()
-    return res
+    """Check if cache can be used."""
+    # Redis is not needed according to user requirements
+    return False
 
 
 def exists_qlib_data(qlib_dir):

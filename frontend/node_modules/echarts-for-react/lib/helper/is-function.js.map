@@ -1,0 +1,1 @@
+{"version":3,"file":"is-function.js","sourceRoot":"","sources":["../../src/helper/is-function.ts"],"names":[],"mappings":";;;AAAA,SAAgB,UAAU,CAAC,CAAM;IAC/B,OAAO,OAAO,CAAC,KAAK,UAAU,CAAC;AACjC,CAAC;AAFD,gCAEC","sourcesContent":["export function isFunction(v: any): boolean {\n  return typeof v === 'function';\n}\n"]}

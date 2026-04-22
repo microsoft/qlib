@@ -1,0 +1,579 @@
+2025-12-02 10:35:55,720 - app.services.monitoring - INFO - Running monitoring checks...
+2025-12-02 10:35:56,818 - app.services.monitoring - INFO - Monitoring results: failed_tasks=0, failed_experiments=0, stuck_tasks=0, stuck_experiments=0, resources={'cpu_percent': 14.3, 'memory_percent': 53.6, 'disk_percent': 21.6}
+2025-12-02 10:35:56,832 - __main__ - INFO - Monitoring check completed, sleeping for 300 seconds...
+2025-12-02 10:40:16,821 - app.services.monitoring - INFO - Running monitoring checks...
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/clsregistry.py", line 516, in _resolve_name
+    rval = d[token]
+           ~^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/util/_collections.py", line 345, in __missing__
+    self[key] = val = self.creator(key)
+                      ^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/clsregistry.py", line 484, in _access_cls
+    return self.fallback[key]
+           ~~~~~~~~~~~~~^^^^^
+KeyError: 'ExperimentLog'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/qlib_t/backend/run_monitoring.py", line 28, in <module>
+    run_monitoring()
+  File "/home/qlib_t/backend/run_monitoring.py", line 20, in run_monitoring
+    result = monitoring_service.run_monitoring()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qlib_t/backend/app/services/monitoring.py", line 117, in run_monitoring
+    failed_tasks = self.check_failed_tasks()
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qlib_t/backend/app/services/monitoring.py", line 24, in check_failed_tasks
+    failed_tasks = self.db.query(Task).filter(Task.status == "failed").all()
+                   ^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/session.py", line 2941, in query
+    return self._query_cls(entities, self, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/query.py", line 276, in __init__
+    self._set_entities(entities)
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/query.py", line 289, in _set_entities
+    coercions.expect(
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/coercions.py", line 388, in expect
+    insp._post_inspect
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py", line 1338, in __get__
+    obj.__dict__[self.__name__] = result = self.fget(obj)
+                                           ^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/mapper.py", line 2724, in _post_inspect
+    self._check_configure()
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/mapper.py", line 2401, in _check_configure
+    _configure_registries({self.registry}, cascade=True)
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/mapper.py", line 4218, in _configure_registries
+    _do_configure_registries(registries, cascade)
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/mapper.py", line 4259, in _do_configure_registries
+    mapper._post_configure_properties()
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/mapper.py", line 2418, in _post_configure_properties
+    prop.init()
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/interfaces.py", line 595, in init
+    self.do_init()
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/relationships.py", line 1655, in do_init
+    self._setup_entity()
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/relationships.py", line 1865, in _setup_entity
+    self._clsregistry_resolve_name(argument)(),
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/clsregistry.py", line 520, in _resolve_name
+    self._raise_for_name(name, err)
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/clsregistry.py", line 501, in _raise_for_name
+    raise exc.InvalidRequestError(
+sqlalchemy.exc.InvalidRequestError: When initializing mapper Mapper[Experiment(experiments)], expression 'ExperimentLog' failed to locate a name ('ExperimentLog'). If this is a class name, consider adding this relationship() to the <class 'app.models.experiment.Experiment'> class after both dependent classes have been defined.
+2025-12-02 10:40:19,395 - app.services.monitoring - INFO - Running monitoring checks...
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/clsregistry.py", line 516, in _resolve_name
+    rval = d[token]
+           ~^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/util/_collections.py", line 345, in __missing__
+    self[key] = val = self.creator(key)
+                      ^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/clsregistry.py", line 484, in _access_cls
+    return self.fallback[key]
+           ~~~~~~~~~~~~~^^^^^
+KeyError: 'ExperimentLog'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/qlib_t/backend/run_monitoring.py", line 28, in <module>
+    run_monitoring()
+  File "/home/qlib_t/backend/run_monitoring.py", line 20, in run_monitoring
+    result = monitoring_service.run_monitoring()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qlib_t/backend/app/services/monitoring.py", line 117, in run_monitoring
+    failed_tasks = self.check_failed_tasks()
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qlib_t/backend/app/services/monitoring.py", line 24, in check_failed_tasks
+    failed_tasks = self.db.query(Task).filter(Task.status == "failed").all()
+                   ^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/session.py", line 2941, in query
+    return self._query_cls(entities, self, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/query.py", line 276, in __init__
+    self._set_entities(entities)
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/query.py", line 289, in _set_entities
+    coercions.expect(
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/coercions.py", line 388, in expect
+    insp._post_inspect
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py", line 1338, in __get__
+    obj.__dict__[self.__name__] = result = self.fget(obj)
+                                           ^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/mapper.py", line 2724, in _post_inspect
+    self._check_configure()
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/mapper.py", line 2401, in _check_configure
+    _configure_registries({self.registry}, cascade=True)
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/mapper.py", line 4218, in _configure_registries
+    _do_configure_registries(registries, cascade)
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/mapper.py", line 4259, in _do_configure_registries
+    mapper._post_configure_properties()
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/mapper.py", line 2418, in _post_configure_properties
+    prop.init()
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/interfaces.py", line 595, in init
+    self.do_init()
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/relationships.py", line 1655, in do_init
+    self._setup_entity()
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/relationships.py", line 1865, in _setup_entity
+    self._clsregistry_resolve_name(argument)(),
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/clsregistry.py", line 520, in _resolve_name
+    self._raise_for_name(name, err)
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/clsregistry.py", line 501, in _raise_for_name
+    raise exc.InvalidRequestError(
+sqlalchemy.exc.InvalidRequestError: When initializing mapper Mapper[Experiment(experiments)], expression 'ExperimentLog' failed to locate a name ('ExperimentLog'). If this is a class name, consider adding this relationship() to the <class 'app.models.experiment.Experiment'> class after both dependent classes have been defined.
+2025-12-02 10:40:21,877 - app.services.monitoring - INFO - Running monitoring checks...
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/clsregistry.py", line 516, in _resolve_name
+    rval = d[token]
+           ~^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/util/_collections.py", line 345, in __missing__
+    self[key] = val = self.creator(key)
+                      ^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/clsregistry.py", line 484, in _access_cls
+    return self.fallback[key]
+           ~~~~~~~~~~~~~^^^^^
+KeyError: 'ExperimentLog'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/qlib_t/backend/run_monitoring.py", line 28, in <module>
+    run_monitoring()
+  File "/home/qlib_t/backend/run_monitoring.py", line 20, in run_monitoring
+    result = monitoring_service.run_monitoring()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qlib_t/backend/app/services/monitoring.py", line 117, in run_monitoring
+    failed_tasks = self.check_failed_tasks()
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qlib_t/backend/app/services/monitoring.py", line 24, in check_failed_tasks
+    failed_tasks = self.db.query(Task).filter(Task.status == "failed").all()
+                   ^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/session.py", line 2941, in query
+    return self._query_cls(entities, self, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/query.py", line 276, in __init__
+    self._set_entities(entities)
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/query.py", line 289, in _set_entities
+    coercions.expect(
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/coercions.py", line 388, in expect
+    insp._post_inspect
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py", line 1338, in __get__
+    obj.__dict__[self.__name__] = result = self.fget(obj)
+                                           ^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/mapper.py", line 2724, in _post_inspect
+    self._check_configure()
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/mapper.py", line 2401, in _check_configure
+    _configure_registries({self.registry}, cascade=True)
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/mapper.py", line 4218, in _configure_registries
+    _do_configure_registries(registries, cascade)
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/mapper.py", line 4259, in _do_configure_registries
+    mapper._post_configure_properties()
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/mapper.py", line 2418, in _post_configure_properties
+    prop.init()
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/interfaces.py", line 595, in init
+    self.do_init()
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/relationships.py", line 1655, in do_init
+    self._setup_entity()
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/relationships.py", line 1865, in _setup_entity
+    self._clsregistry_resolve_name(argument)(),
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/clsregistry.py", line 520, in _resolve_name
+    self._raise_for_name(name, err)
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/clsregistry.py", line 501, in _raise_for_name
+    raise exc.InvalidRequestError(
+sqlalchemy.exc.InvalidRequestError: When initializing mapper Mapper[Experiment(experiments)], expression 'ExperimentLog' failed to locate a name ('ExperimentLog'). If this is a class name, consider adding this relationship() to the <class 'app.models.experiment.Experiment'> class after both dependent classes have been defined.
+2025-12-02 10:40:25,327 - app.services.monitoring - INFO - Running monitoring checks...
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/clsregistry.py", line 516, in _resolve_name
+    rval = d[token]
+           ~^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/util/_collections.py", line 345, in __missing__
+    self[key] = val = self.creator(key)
+                      ^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/clsregistry.py", line 484, in _access_cls
+    return self.fallback[key]
+           ~~~~~~~~~~~~~^^^^^
+KeyError: 'ExperimentLog'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/qlib_t/backend/run_monitoring.py", line 28, in <module>
+    run_monitoring()
+  File "/home/qlib_t/backend/run_monitoring.py", line 20, in run_monitoring
+    result = monitoring_service.run_monitoring()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qlib_t/backend/app/services/monitoring.py", line 117, in run_monitoring
+    failed_tasks = self.check_failed_tasks()
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qlib_t/backend/app/services/monitoring.py", line 24, in check_failed_tasks
+    failed_tasks = self.db.query(Task).filter(Task.status == "failed").all()
+                   ^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/session.py", line 2941, in query
+    return self._query_cls(entities, self, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/query.py", line 276, in __init__
+    self._set_entities(entities)
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/query.py", line 289, in _set_entities
+    coercions.expect(
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/coercions.py", line 388, in expect
+    insp._post_inspect
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py", line 1338, in __get__
+    obj.__dict__[self.__name__] = result = self.fget(obj)
+                                           ^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/mapper.py", line 2724, in _post_inspect
+    self._check_configure()
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/mapper.py", line 2401, in _check_configure
+    _configure_registries({self.registry}, cascade=True)
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/mapper.py", line 4218, in _configure_registries
+    _do_configure_registries(registries, cascade)
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/mapper.py", line 4259, in _do_configure_registries
+    mapper._post_configure_properties()
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/mapper.py", line 2418, in _post_configure_properties
+    prop.init()
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/interfaces.py", line 595, in init
+    self.do_init()
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/relationships.py", line 1655, in do_init
+    self._setup_entity()
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/relationships.py", line 1865, in _setup_entity
+    self._clsregistry_resolve_name(argument)(),
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/clsregistry.py", line 520, in _resolve_name
+    self._raise_for_name(name, err)
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/clsregistry.py", line 501, in _raise_for_name
+    raise exc.InvalidRequestError(
+sqlalchemy.exc.InvalidRequestError: When initializing mapper Mapper[Experiment(experiments)], expression 'ExperimentLog' failed to locate a name ('ExperimentLog'). If this is a class name, consider adding this relationship() to the <class 'app.models.experiment.Experiment'> class after both dependent classes have been defined.
+2025-12-02 11:05:22,486 - app.services.monitoring - INFO - Running monitoring checks...
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/clsregistry.py", line 516, in _resolve_name
+    rval = d[token]
+           ~^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/util/_collections.py", line 345, in __missing__
+    self[key] = val = self.creator(key)
+                      ^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/clsregistry.py", line 484, in _access_cls
+    return self.fallback[key]
+           ~~~~~~~~~~~~~^^^^^
+KeyError: 'ExperimentLog'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/qlib_t/backend/run_monitoring.py", line 28, in <module>
+    run_monitoring()
+  File "/home/qlib_t/backend/run_monitoring.py", line 20, in run_monitoring
+    result = monitoring_service.run_monitoring()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qlib_t/backend/app/services/monitoring.py", line 117, in run_monitoring
+    failed_tasks = self.check_failed_tasks()
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qlib_t/backend/app/services/monitoring.py", line 24, in check_failed_tasks
+    failed_tasks = self.db.query(Task).filter(Task.status == "failed").all()
+                   ^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/session.py", line 2941, in query
+    return self._query_cls(entities, self, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/query.py", line 276, in __init__
+    self._set_entities(entities)
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/query.py", line 289, in _set_entities
+    coercions.expect(
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/coercions.py", line 388, in expect
+    insp._post_inspect
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py", line 1338, in __get__
+    obj.__dict__[self.__name__] = result = self.fget(obj)
+                                           ^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/mapper.py", line 2724, in _post_inspect
+    self._check_configure()
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/mapper.py", line 2401, in _check_configure
+    _configure_registries({self.registry}, cascade=True)
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/mapper.py", line 4218, in _configure_registries
+    _do_configure_registries(registries, cascade)
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/mapper.py", line 4259, in _do_configure_registries
+    mapper._post_configure_properties()
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/mapper.py", line 2418, in _post_configure_properties
+    prop.init()
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/interfaces.py", line 595, in init
+    self.do_init()
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/relationships.py", line 1655, in do_init
+    self._setup_entity()
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/relationships.py", line 1865, in _setup_entity
+    self._clsregistry_resolve_name(argument)(),
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/clsregistry.py", line 520, in _resolve_name
+    self._raise_for_name(name, err)
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/clsregistry.py", line 501, in _raise_for_name
+    raise exc.InvalidRequestError(
+sqlalchemy.exc.InvalidRequestError: When initializing mapper Mapper[Experiment(experiments)], expression 'ExperimentLog' failed to locate a name ('ExperimentLog'). If this is a class name, consider adding this relationship() to the <class 'app.models.experiment.Experiment'> class after both dependent classes have been defined.
+2025-12-02 11:05:25,517 - app.services.monitoring - INFO - Running monitoring checks...
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/clsregistry.py", line 516, in _resolve_name
+    rval = d[token]
+           ~^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/util/_collections.py", line 345, in __missing__
+    self[key] = val = self.creator(key)
+                      ^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/clsregistry.py", line 484, in _access_cls
+    return self.fallback[key]
+           ~~~~~~~~~~~~~^^^^^
+KeyError: 'ExperimentLog'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/qlib_t/backend/run_monitoring.py", line 28, in <module>
+    run_monitoring()
+  File "/home/qlib_t/backend/run_monitoring.py", line 20, in run_monitoring
+    result = monitoring_service.run_monitoring()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qlib_t/backend/app/services/monitoring.py", line 117, in run_monitoring
+    failed_tasks = self.check_failed_tasks()
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qlib_t/backend/app/services/monitoring.py", line 24, in check_failed_tasks
+    failed_tasks = self.db.query(Task).filter(Task.status == "failed").all()
+                   ^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/session.py", line 2941, in query
+    return self._query_cls(entities, self, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/query.py", line 276, in __init__
+    self._set_entities(entities)
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/query.py", line 289, in _set_entities
+    coercions.expect(
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/coercions.py", line 388, in expect
+    insp._post_inspect
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py", line 1338, in __get__
+    obj.__dict__[self.__name__] = result = self.fget(obj)
+                                           ^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/mapper.py", line 2724, in _post_inspect
+    self._check_configure()
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/mapper.py", line 2401, in _check_configure
+    _configure_registries({self.registry}, cascade=True)
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/mapper.py", line 4218, in _configure_registries
+    _do_configure_registries(registries, cascade)
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/mapper.py", line 4259, in _do_configure_registries
+    mapper._post_configure_properties()
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/mapper.py", line 2418, in _post_configure_properties
+    prop.init()
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/interfaces.py", line 595, in init
+    self.do_init()
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/relationships.py", line 1655, in do_init
+    self._setup_entity()
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/relationships.py", line 1865, in _setup_entity
+    self._clsregistry_resolve_name(argument)(),
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/clsregistry.py", line 520, in _resolve_name
+    self._raise_for_name(name, err)
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/clsregistry.py", line 501, in _raise_for_name
+    raise exc.InvalidRequestError(
+sqlalchemy.exc.InvalidRequestError: When initializing mapper Mapper[Experiment(experiments)], expression 'ExperimentLog' failed to locate a name ('ExperimentLog'). If this is a class name, consider adding this relationship() to the <class 'app.models.experiment.Experiment'> class after both dependent classes have been defined.
+2025-12-02 11:05:28,801 - app.services.monitoring - INFO - Running monitoring checks...
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/clsregistry.py", line 516, in _resolve_name
+    rval = d[token]
+           ~^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/util/_collections.py", line 345, in __missing__
+    self[key] = val = self.creator(key)
+                      ^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/clsregistry.py", line 484, in _access_cls
+    return self.fallback[key]
+           ~~~~~~~~~~~~~^^^^^
+KeyError: 'ExperimentLog'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/qlib_t/backend/run_monitoring.py", line 28, in <module>
+    run_monitoring()
+  File "/home/qlib_t/backend/run_monitoring.py", line 20, in run_monitoring
+    result = monitoring_service.run_monitoring()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qlib_t/backend/app/services/monitoring.py", line 117, in run_monitoring
+    failed_tasks = self.check_failed_tasks()
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qlib_t/backend/app/services/monitoring.py", line 24, in check_failed_tasks
+    failed_tasks = self.db.query(Task).filter(Task.status == "failed").all()
+                   ^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/session.py", line 2941, in query
+    return self._query_cls(entities, self, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/query.py", line 276, in __init__
+    self._set_entities(entities)
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/query.py", line 289, in _set_entities
+    coercions.expect(
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/coercions.py", line 388, in expect
+    insp._post_inspect
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py", line 1338, in __get__
+    obj.__dict__[self.__name__] = result = self.fget(obj)
+                                           ^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/mapper.py", line 2724, in _post_inspect
+    self._check_configure()
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/mapper.py", line 2401, in _check_configure
+    _configure_registries({self.registry}, cascade=True)
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/mapper.py", line 4218, in _configure_registries
+    _do_configure_registries(registries, cascade)
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/mapper.py", line 4259, in _do_configure_registries
+    mapper._post_configure_properties()
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/mapper.py", line 2418, in _post_configure_properties
+    prop.init()
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/interfaces.py", line 595, in init
+    self.do_init()
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/relationships.py", line 1655, in do_init
+    self._setup_entity()
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/relationships.py", line 1865, in _setup_entity
+    self._clsregistry_resolve_name(argument)(),
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/clsregistry.py", line 520, in _resolve_name
+    self._raise_for_name(name, err)
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/clsregistry.py", line 501, in _raise_for_name
+    raise exc.InvalidRequestError(
+sqlalchemy.exc.InvalidRequestError: When initializing mapper Mapper[Experiment(experiments)], expression 'ExperimentLog' failed to locate a name ('ExperimentLog'). If this is a class name, consider adding this relationship() to the <class 'app.models.experiment.Experiment'> class after both dependent classes have been defined.
+2025-12-02 11:05:32,393 - app.services.monitoring - INFO - Running monitoring checks...
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/clsregistry.py", line 516, in _resolve_name
+    rval = d[token]
+           ~^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/util/_collections.py", line 345, in __missing__
+    self[key] = val = self.creator(key)
+                      ^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/clsregistry.py", line 484, in _access_cls
+    return self.fallback[key]
+           ~~~~~~~~~~~~~^^^^^
+KeyError: 'ExperimentLog'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/qlib_t/backend/run_monitoring.py", line 28, in <module>
+    run_monitoring()
+  File "/home/qlib_t/backend/run_monitoring.py", line 20, in run_monitoring
+    result = monitoring_service.run_monitoring()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qlib_t/backend/app/services/monitoring.py", line 117, in run_monitoring
+    failed_tasks = self.check_failed_tasks()
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qlib_t/backend/app/services/monitoring.py", line 24, in check_failed_tasks
+    failed_tasks = self.db.query(Task).filter(Task.status == "failed").all()
+                   ^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/session.py", line 2941, in query
+    return self._query_cls(entities, self, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/query.py", line 276, in __init__
+    self._set_entities(entities)
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/query.py", line 289, in _set_entities
+    coercions.expect(
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/coercions.py", line 388, in expect
+    insp._post_inspect
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py", line 1338, in __get__
+    obj.__dict__[self.__name__] = result = self.fget(obj)
+                                           ^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/mapper.py", line 2724, in _post_inspect
+    self._check_configure()
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/mapper.py", line 2401, in _check_configure
+    _configure_registries({self.registry}, cascade=True)
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/mapper.py", line 4218, in _configure_registries
+    _do_configure_registries(registries, cascade)
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/mapper.py", line 4259, in _do_configure_registries
+    mapper._post_configure_properties()
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/mapper.py", line 2418, in _post_configure_properties
+    prop.init()
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/interfaces.py", line 595, in init
+    self.do_init()
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/relationships.py", line 1655, in do_init
+    self._setup_entity()
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/relationships.py", line 1865, in _setup_entity
+    self._clsregistry_resolve_name(argument)(),
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/clsregistry.py", line 520, in _resolve_name
+    self._raise_for_name(name, err)
+  File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/clsregistry.py", line 501, in _raise_for_name
+    raise exc.InvalidRequestError(
+sqlalchemy.exc.InvalidRequestError: When initializing mapper Mapper[Experiment(experiments)], expression 'ExperimentLog' failed to locate a name ('ExperimentLog'). If this is a class name, consider adding this relationship() to the <class 'app.models.experiment.Experiment'> class after both dependent classes have been defined.
+Traceback (most recent call last):
+  File "/home/qlib_t/backend/run_monitoring.py", line 8, in <module>
+    from app.services.monitoring import MonitoringService
+ImportError: cannot import name 'MonitoringService' from 'app.services.monitoring' (/home/qlib_t/backend/app/services/monitoring.py)
+Traceback (most recent call last):
+  File "/home/qlib_t/backend/run_monitoring.py", line 8, in <module>
+    from app.services.monitoring import MonitoringService
+ImportError: cannot import name 'MonitoringService' from 'app.services.monitoring' (/home/qlib_t/backend/app/services/monitoring.py)
+Traceback (most recent call last):
+  File "/home/qlib_t/backend/run_monitoring.py", line 8, in <module>
+    from app.services.monitoring import MonitoringService
+ImportError: cannot import name 'MonitoringService' from 'app.services.monitoring' (/home/qlib_t/backend/app/services/monitoring.py)
+Traceback (most recent call last):
+  File "/home/qlib_t/backend/run_monitoring.py", line 8, in <module>
+    from app.services.monitoring import MonitoringService
+ImportError: cannot import name 'MonitoringService' from 'app.services.monitoring' (/home/qlib_t/backend/app/services/monitoring.py)
+Traceback (most recent call last):
+  File "/home/qlib_t/backend/run_monitoring.py", line 9, in <module>
+    from app.services.monitoring import MonitoringService
+ImportError: cannot import name 'MonitoringService' from 'app.services.monitoring' (/home/qlib_t/backend/app/services/monitoring.py)
+Traceback (most recent call last):
+  File "/home/qlib_t/backend/run_monitoring.py", line 9, in <module>
+    from app.services.monitoring import MonitoringService
+ImportError: cannot import name 'MonitoringService' from 'app.services.monitoring' (/home/qlib_t/backend/app/services/monitoring.py)
+Traceback (most recent call last):
+  File "/home/qlib_t/backend/run_monitoring.py", line 9, in <module>
+    from app.services.monitoring import MonitoringService
+ImportError: cannot import name 'MonitoringService' from 'app.services.monitoring' (/home/qlib_t/backend/app/services/monitoring.py)
+Traceback (most recent call last):
+  File "/home/qlib_t/backend/run_monitoring.py", line 9, in <module>
+    from app.services.monitoring import MonitoringService
+ImportError: cannot import name 'MonitoringService' from 'app.services.monitoring' (/home/qlib_t/backend/app/services/monitoring.py)
+Traceback (most recent call last):
+  File "/home/qlib_t/backend/run_monitoring.py", line 9, in <module>
+    from app.services.monitoring import MonitoringService
+ImportError: cannot import name 'MonitoringService' from 'app.services.monitoring' (/home/qlib_t/backend/app/services/monitoring.py)
+Traceback (most recent call last):
+  File "/home/qlib_t/backend/run_monitoring.py", line 9, in <module>
+    from app.services.monitoring import MonitoringService
+ImportError: cannot import name 'MonitoringService' from 'app.services.monitoring' (/home/qlib_t/backend/app/services/monitoring.py)
+Traceback (most recent call last):
+  File "/home/qlib_t/backend/run_monitoring.py", line 9, in <module>
+    from app.services.monitoring import MonitoringService
+ImportError: cannot import name 'MonitoringService' from 'app.services.monitoring' (/home/qlib_t/backend/app/services/monitoring.py)
+Traceback (most recent call last):
+  File "/home/qlib_t/backend/run_monitoring.py", line 9, in <module>
+    from app.services.monitoring import MonitoringService
+ImportError: cannot import name 'MonitoringService' from 'app.services.monitoring' (/home/qlib_t/backend/app/services/monitoring.py)
+Traceback (most recent call last):
+  File "/home/qlib_t/backend/run_monitoring.py", line 9, in <module>
+    from app.services.monitoring import MonitoringService
+ImportError: cannot import name 'MonitoringService' from 'app.services.monitoring' (/home/qlib_t/backend/app/services/monitoring.py)
+Traceback (most recent call last):
+  File "/home/qlib_t/backend/run_monitoring.py", line 9, in <module>
+    from app.services.monitoring import MonitoringService
+ImportError: cannot import name 'MonitoringService' from 'app.services.monitoring' (/home/qlib_t/backend/app/services/monitoring.py)
+Traceback (most recent call last):
+  File "/home/qlib_t/backend/run_monitoring.py", line 9, in <module>
+    from app.services.monitoring import MonitoringService
+ImportError: cannot import name 'MonitoringService' from 'app.services.monitoring' (/home/qlib_t/backend/app/services/monitoring.py)
+Traceback (most recent call last):
+  File "/home/qlib_t/backend/run_monitoring.py", line 9, in <module>
+    from app.services.monitoring import MonitoringService
+ImportError: cannot import name 'MonitoringService' from 'app.services.monitoring' (/home/qlib_t/backend/app/services/monitoring.py)
+Traceback (most recent call last):
+  File "/home/qlib_t/backend/run_monitoring.py", line 9, in <module>
+    from app.services.monitoring import MonitoringService
+ImportError: cannot import name 'MonitoringService' from 'app.services.monitoring' (/home/qlib_t/backend/app/services/monitoring.py)
+Traceback (most recent call last):
+  File "/home/qlib_t/backend/run_monitoring.py", line 9, in <module>
+    from app.services.monitoring import MonitoringService
+ImportError: cannot import name 'MonitoringService' from 'app.services.monitoring' (/home/qlib_t/backend/app/services/monitoring.py)
+Traceback (most recent call last):
+  File "/home/qlib_t/backend/run_monitoring.py", line 9, in <module>
+    from app.services.monitoring import MonitoringService
+ImportError: cannot import name 'MonitoringService' from 'app.services.monitoring' (/home/qlib_t/backend/app/services/monitoring.py)
+Traceback (most recent call last):
+  File "/home/qlib_t/backend/run_monitoring.py", line 9, in <module>
+    from app.services.monitoring import MonitoringService
+ImportError: cannot import name 'MonitoringService' from 'app.services.monitoring' (/home/qlib_t/backend/app/services/monitoring.py)
+Traceback (most recent call last):
+  File "/home/qlib_t/backend/run_monitoring.py", line 9, in <module>
+    from app.services.monitoring import MonitoringService
+ImportError: cannot import name 'MonitoringService' from 'app.services.monitoring' (/home/qlib_t/backend/app/services/monitoring.py)
+Traceback (most recent call last):
+  File "/home/qlib_t/backend/run_monitoring.py", line 9, in <module>
+    from app.services.monitoring import MonitoringService
+ImportError: cannot import name 'MonitoringService' from 'app.services.monitoring' (/home/qlib_t/backend/app/services/monitoring.py)

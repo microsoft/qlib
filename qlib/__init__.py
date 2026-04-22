@@ -2,12 +2,8 @@
 # Licensed under the MIT License.
 from pathlib import Path
 
-from setuptools_scm import get_version
-
-try:
-    from ._version import version as __version__
-except ImportError:
-    __version__ = get_version(root="..", relative_to=__file__)
+# Hardcode version to avoid setuptools_scm issues in Docker containers
+__version__ = "0.1.0"
 __version__bak = __version__  # This version is backup for QlibConfig.reset_qlib_version
 import logging
 import os

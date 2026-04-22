@@ -1,0 +1,96 @@
+{
+  "name": "react-select",
+  "version": "5.10.2",
+  "description": "A Select control built with and for ReactJS",
+  "main": "dist/react-select.cjs.js",
+  "module": "dist/react-select.esm.js",
+  "types": "dist/react-select.cjs.d.ts",
+  "sideEffects": false,
+  "author": "Jed Watson",
+  "license": "MIT",
+  "repository": "https://github.com/JedWatson/react-select/tree/master/packages/react-select",
+  "dependencies": {
+    "@babel/runtime": "^7.12.0",
+    "@emotion/cache": "^11.4.0",
+    "@emotion/react": "^11.8.1",
+    "@floating-ui/dom": "^1.0.1",
+    "@types/react-transition-group": "^4.4.0",
+    "memoize-one": "^6.0.0",
+    "prop-types": "^15.6.0",
+    "react-transition-group": "^4.3.0",
+    "use-isomorphic-layout-effect": "^1.2.0"
+  },
+  "devDependencies": {
+    "@types/jest-in-case": "^1.0.6",
+    "enzyme": "^3.8.0",
+    "enzyme-to-json": "^3.3.0",
+    "jest-in-case": "^1.0.2",
+    "react": "^16.13.0",
+    "react-dom": "^16.13.0"
+  },
+  "peerDependencies": {
+    "react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0",
+    "react-dom": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0"
+  },
+  "files": [
+    "dist",
+    "base",
+    "animated",
+    "async",
+    "creatable",
+    "async-creatable"
+  ],
+  "keywords": [
+    "combobox",
+    "form",
+    "input",
+    "multiselect",
+    "react",
+    "react-component",
+    "select",
+    "ui"
+  ],
+  "preconstruct": {
+    "entrypoints": [
+      "index.ts",
+      "base/index.ts",
+      "animated/index.ts",
+      "async/index.ts",
+      "creatable/index.ts",
+      "async-creatable/index.ts"
+    ]
+  },
+  "exports": {
+    ".": {
+      "module": "./dist/react-select.esm.js",
+      "import": "./dist/react-select.cjs.mjs",
+      "default": "./dist/react-select.cjs.js"
+    },
+    "./base": {
+      "module": "./base/dist/react-select-base.esm.js",
+      "import": "./base/dist/react-select-base.cjs.mjs",
+      "default": "./base/dist/react-select-base.cjs.js"
+    },
+    "./async": {
+      "module": "./async/dist/react-select-async.esm.js",
+      "import": "./async/dist/react-select-async.cjs.mjs",
+      "default": "./async/dist/react-select-async.cjs.js"
+    },
+    "./animated": {
+      "module": "./animated/dist/react-select-animated.esm.js",
+      "import": "./animated/dist/react-select-animated.cjs.mjs",
+      "default": "./animated/dist/react-select-animated.cjs.js"
+    },
+    "./creatable": {
+      "module": "./creatable/dist/react-select-creatable.esm.js",
+      "import": "./creatable/dist/react-select-creatable.cjs.mjs",
+      "default": "./creatable/dist/react-select-creatable.cjs.js"
+    },
+    "./async-creatable": {
+      "module": "./async-creatable/dist/react-select-async-creatable.esm.js",
+      "import": "./async-creatable/dist/react-select-async-creatable.cjs.mjs",
+      "default": "./async-creatable/dist/react-select-async-creatable.cjs.js"
+    },
+    "./package.json": "./package.json"
+  }
+}

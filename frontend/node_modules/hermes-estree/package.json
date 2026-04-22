@@ -1,0 +1,16 @@
+{
+  "name": "hermes-estree",
+  "version": "0.25.1",
+  "description": "Flow types for the Flow-ESTree spec produced by the hermes parser",
+  "main": "dist/index.js",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:facebook/hermes.git"
+  },
+  "files": [
+    "dist",
+    "LICENCE",
+    "README.md"
+  ]
+}

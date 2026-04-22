@@ -17,7 +17,6 @@ dist/
 .env
 .vim
 .nvimrc
-.vscode
 
 qlib/VERSION.txt
 qlib/data/_libs/expanding.cpp
@@ -44,10 +43,163 @@ tags
 
 .pytest_cache/
 .mypy_cache/
-.vscode/
 
 *.swp
+*.swo
 
 ./pretrain
 .idea/
 .aider*
+.trae/
+
+# Frontend dependencies
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/.eslintcache
+frontend/tsconfig.node.tsbuildinfo
+
+# Frontend environment variables
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+
+# Backend database files
+backend/*.db
+backend/*.sqlite3
+backend/*.log
+
+# Backend cache files
+backend/.cache/
+backend/__pycache__/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+*.tmp
+*.temp
+.temp/
+.tmp/
+
+# IDE files
+*.sublime-project
+*.sublime-workspace
+*.idea/
+*.vscode/
+
+# Docker related
+.docker/
+*.dockerignore
+
+# Log files
+*.log
+logs/
+
+# Backup files
+*.bak
+*.backup
+
+# Python virtual environments
+venv/
+env/
+.env/
+
+# Build files
+*.o
+*.obj
+*.a
+*.lib
+*.dll
+*.exe
+*.out
+*.app
+
+# Coverage files
+.coverage
+coverage.xml
+coverage/
+
+# Profiling files
+*.prof
+*.profile
+
+# Local configuration files
+local_config.py
+local_settings.py
+
+# Secrets and credentials
+secrets.json
+credentials.json
+*.key
+*.pem
+*.crt
+*.cer
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Dependency directories
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# parcel-bundler cache (https://parceljs.org/)
+.cache
+.parcel-cache
+
+# Next.js build output
+.next
+out
+
+# Nuxt.js build / generate output
+.nuxt
+
+# Gatsby files
+.cache/
+# Comment in the public line in if your project uses Gatsby and not Next.js
+# https://nextjs.org/blog/next-9-1#public-directory-support
+# public
+
+# vuepress build output
+.vuepress/dist
+
+# Docusaurus cache and generated files
+.docusaurus
+
+# Serverless directories
+.serverless/
+
+# FuseBox cache
+.fusebox/
+
+# DynamoDB Local files
+.dynamodb/
+
+# TernJS port file
+.tern-port
+
+# Stores VSCode versions used for testing VSCode extensions
+.vscode-test
+
+# yarn v2
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# Custom additions
+qlib/_version.py

@@ -1,0 +1,5 @@
+{
+  "main": "dist/react-select-animated.cjs.js",
+  "module": "dist/react-select-animated.esm.js",
+  "types": "dist/react-select-animated.cjs.d.ts"
+}

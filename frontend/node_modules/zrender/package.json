@@ -1,0 +1,89 @@
+{
+  "name": "zrender",
+  "version": "5.6.1",
+  "description": "A lightweight graphic library providing 2d draw for Apache ECharts",
+  "keywords": [
+    "canvas",
+    "svg",
+    "2d",
+    "html5",
+    "vector-graphics"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ecomfe/zrender.git"
+  },
+  "scripts": {
+    "prepare": "npm run build:lib",
+    "build": "npm run build:bundle && npm run build:lib",
+    "release": "node build/build.js --minify && npm run build:lib",
+    "prepublishOnly": "node build/prepublish.js",
+    "prepare:nightly": "node build/prepareNightly.js",
+    "prepare:nightly-next": "node build/prepareNightly.js --next",
+    "build:bundle": "node build/build.js",
+    "build:lib": "npx tsc -m ES2015 --outDir lib && node build/processLib.js",
+    "watch:bundle": "node build/build.js --watch",
+    "watch:lib": "npx tsc-watch -m ES2015 --outDir lib --synchronousWatchDirectory --onSuccess \"node build/processLib.js\"",
+    "test": "npx jest --config test/ut/jest.config.js",
+    "lint": "npx eslint src/**/*.ts"
+  },
+  "license": "BSD-3-Clause",
+  "types": "index.d.ts",
+  "module": "index.js",
+  "main": "dist/zrender.js",
+  "dependencies": {
+    "tslib": "2.3.0"
+  },
+  "sideEffects": [
+    "lib/canvas/canvas.js",
+    "lib/svg/svg.js",
+    "lib/all.js"
+  ],
+  "devDependencies": {
+    "@microsoft/api-extractor": "^7.7.2",
+    "@rollup/plugin-node-resolve": "^11.0.0",
+    "@rollup/plugin-replace": "^3.0.0",
+    "@types/jest": "^27.0.2",
+    "@typescript-eslint/eslint-plugin": "^4.33.0",
+    "@typescript-eslint/parser": "^4.33.0",
+    "chalk": "^3.0.0",
+    "commander": "2.11.0",
+    "eslint": "6.3.0",
+    "fs-extra": "4.0.2",
+    "globby": "^11.0.4",
+    "jest": "^27.2.5",
+    "jsdom": "^16.0.0",
+    "rollup": "^1.28.0",
+    "rollup-plugin-typescript2": "^0.25.3",
+    "rollup-plugin-uglify": "^6.0.4",
+    "ts-jest": "^27.0.6",
+    "typescript": "^4.4.3",
+    "uglify-js": "^3.10.0"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "require": "./dist/zrender.js",
+      "import": "./index.js"
+    },
+    "./lib/canvas/canvas": "./lib/canvas/canvas.js",
+    "./lib/svg/svg": "./lib/svg/svg.js",
+    "./lib/vml/vml": "./lib/vml/vml.js",
+    "./lib/canvas/Painter": "./lib/canvas/Painter.js",
+    "./lib/svg/Painter": "./lib/svg/Painter.js",
+    "./lib/svg/patch": "./lib/svg/patch.js",
+    "./lib/Storage": "./lib/Storage.js",
+    "./lib/core/util": "./lib/core/util.js",
+    "./lib/core/env": "./lib/core/env.js",
+    "./lib/core/Transformable": "./lib/core/Transformable.js",
+    "./lib/core/BoundingRect": "./lib/core/BoundingRect.js",
+    "./lib/core/vector": "./lib/core/vector.js",
+    "./lib/core/bbox": "./lib/core/bbox.js",
+    "./lib/contain/polygon": "./lib/contain/polygon.js",
+    "./lib/tool/color": "./lib/tool/color.js",
+    "./lib/graphic/LinearGradient": "./lib/graphic/LinearGradient.js",
+    "./lib/graphic/RadialGradient": "./lib/graphic/RadialGradient.js",
+    "./*": "./*"
+  }
+}

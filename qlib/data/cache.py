@@ -11,7 +11,7 @@ import stat
 import time
 import pickle
 import traceback
-import redis_lock
+# import redis_lock  # Redis is not needed according to user requirements
 import contextlib
 import abc
 from pathlib import Path
@@ -216,8 +216,8 @@ class CacheUtils:
 
     @staticmethod
     def reset_lock():
-        r = get_redis_connection()
-        redis_lock.reset_all(r)
+        # Redis is not needed according to user requirements
+        pass
 
     @staticmethod
     def visit(cache_path: Union[str, Path]):
@@ -239,57 +239,20 @@ class CacheUtils:
 
     @staticmethod
     def acquire(lock, lock_name):
-        try:
-            lock.acquire()
-        except redis_lock.AlreadyAcquired as lock_acquired:
-            raise QlibCacheException(
-                f"""It sees the key(lock:{repr(lock_name)[1:-1]}-wlock) of the redis lock has existed in your redis db now.
-                    You can use the following command to clear your redis keys and rerun your commands:
-                    $ redis-cli
-                    > select {C.redis_task_db}
-                    > del "lock:{repr(lock_name)[1:-1]}-wlock"
-                    > quit
-                    If the issue is not resolved, use "keys *" to find if multiple keys exist. If so, try using "flushall" to clear all the keys.
-                """
-            ) from lock_acquired
+        # Redis is not needed according to user requirements
+        pass
 
     @staticmethod
     @contextlib.contextmanager
     def reader_lock(redis_t, lock_name: str):
-        current_cache_rlock = redis_lock.Lock(redis_t, f"{lock_name}-rlock")
-        current_cache_wlock = redis_lock.Lock(redis_t, f"{lock_name}-wlock")
-        lock_reader = f"{lock_name}-reader"
-        # make sure only one reader is entering
-        current_cache_rlock.acquire(timeout=60)
-        try:
-            current_cache_readers = redis_t.get(lock_reader)
-            if current_cache_readers is None or int(current_cache_readers) == 0:
-                CacheUtils.acquire(current_cache_wlock, lock_name)
-            redis_t.incr(lock_reader)
-        finally:
-            current_cache_rlock.release()
-        try:
-            yield
-        finally:
-            # make sure only one reader is leaving
-            current_cache_rlock.acquire(timeout=60)
-            try:
-                redis_t.decr(lock_reader)
-                if int(redis_t.get(lock_reader)) == 0:
-                    redis_t.delete(lock_reader)
-                    current_cache_wlock.reset()
-            finally:
-                current_cache_rlock.release()
+        # Redis is not needed according to user requirements
+        yield
 
     @staticmethod
     @contextlib.contextmanager
     def writer_lock(redis_t, lock_name):
-        current_cache_wlock = redis_lock.Lock(redis_t, f"{lock_name}-wlock", id=CacheUtils.LOCK_ID)
-        CacheUtils.acquire(current_cache_wlock, lock_name)
-        try:
-            yield
-        finally:
-            current_cache_wlock.release()
+        # Redis is not needed according to user requirements
+        yield
 
 
 class BaseProviderCache:

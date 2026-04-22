@@ -1,0 +1,14 @@
+/home/qlib_t/backend/uvicorn.log {
+    daily
+    rotate 7
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 644 root root
+    sharedscripts
+    postrotate
+        # 重启服务或发送信号以重新打开日志文件
+        /bin/systemctl reload uvicorn.service 2>/dev/null || true
+    endscript
+}
