@@ -7,10 +7,10 @@ import logging
 import re
 from typing import Any, Tuple
 
-import gym
+import gymnasium as gym
 import numpy as np
 import pandas as pd
-from gym import spaces
+from gymnasium import spaces
 from tianshou.data import Collector, Batch
 from tianshou.policy import BasePolicy
 
