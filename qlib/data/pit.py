@@ -13,6 +13,7 @@ The calculation of both <period_time, feature> and <observe_time, feature> data 
 2) concatenate all th collasped data, we will get data with format <observe_time, feature>.
 Qlib will use the operator `P` to perform the collapse.
 """
+
 import numpy as np
 import pandas as pd
 from qlib.data.ops import ElemOperator

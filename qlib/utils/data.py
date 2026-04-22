@@ -3,6 +3,7 @@
 """
 This module covers some utility functions that operate on data or basic object
 """
+
 from copy import deepcopy
 from typing import List, Union
 

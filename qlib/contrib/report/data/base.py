@@ -7,6 +7,7 @@ Assumptions
 - The analyse each feature individually
 
 """
+
 import pandas as pd
 from qlib.log import TimeInspector
 from qlib.contrib.report.utils import sub_fig_generator

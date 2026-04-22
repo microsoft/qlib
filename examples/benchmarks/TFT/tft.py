@@ -19,7 +19,6 @@ from qlib.model.base import ModelFT
 from qlib.data.dataset import DatasetH
 from qlib.data.dataset.handler import DataHandlerLP
 
-
 # To register new datasets, please add them here.
 ALLOW_DATASET = ["Alpha158", "Alpha360"]
 # To register new datasets, please add their configurations here.

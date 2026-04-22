@@ -17,7 +17,6 @@ from qlib.rl.utils.finite_env import (
     generate_nan_observation,
 )
 
-
 _test_space = gym.spaces.Dict(
     {
         "sensors": gym.spaces.Dict(

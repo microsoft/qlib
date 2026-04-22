@@ -3,6 +3,7 @@
 """
 Time related utils are compiled in this script
 """
+
 import bisect
 from datetime import datetime, time, date, timedelta
 from typing import List, Optional, Tuple, Union
@@ -13,7 +14,6 @@ import pandas as pd
 
 from qlib.config import C
 from qlib.constant import REG_CN, REG_TW, REG_US
-
 
 CN_TIME = [
     datetime.strptime("9:30", "%H:%M"),

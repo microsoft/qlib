@@ -3,6 +3,7 @@
 """
 TaskGenerator module can generate many tasks based on TaskGen and some task templates.
 """
+
 import abc
 import copy
 import pandas as pd

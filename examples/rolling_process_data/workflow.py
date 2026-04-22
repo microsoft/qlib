@@ -3,12 +3,12 @@
 
 import qlib
 import fire
-import pickle
 
 from datetime import datetime
 from qlib.constant import REG_CN
 from qlib.data.dataset.handler import DataHandlerLP
 from qlib.utils import init_instance_by_config
+from qlib.utils.pickle_utils import restricted_pickle_load
 from qlib.tests.data import GetData
 
 
@@ -42,7 +42,7 @@ class RollingDataWorkflow:
 
     def _load_pre_handler(self, path):
         with open(path, "rb") as file_dataset:
-            pre_handler = pickle.load(file_dataset)
+            pre_handler = restricted_pickle_load(file_dataset)
         return pre_handler
 
     def rolling_process(self):

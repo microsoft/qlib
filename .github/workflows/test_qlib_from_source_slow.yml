@@ -1,5 +1,9 @@
 name: Test qlib from source slow
 
+concurrency:
+  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.ref }}
+
 on:
   push:
     branches: [ main ]

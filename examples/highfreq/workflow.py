@@ -4,11 +4,11 @@
 import fire
 
 import qlib
-import pickle
 from qlib.constant import REG_CN
 from qlib.config import HIGH_FREQ_CONFIG
 
 from qlib.utils import init_instance_by_config
+from qlib.utils.pickle_utils import restricted_pickle_load
 from qlib.data.dataset.handler import DataHandlerLP
 from qlib.data.ops import Operators
 from qlib.data.data import Cal
@@ -125,10 +125,10 @@ class HighfreqWorkflow:
         del dataset, dataset_backtest
         ##=============reload dataset=============
         with open("dataset.pkl", "rb") as file_dataset:
-            dataset = pickle.load(file_dataset)
+            dataset = restricted_pickle_load(file_dataset)
 
         with open("dataset_backtest.pkl", "rb") as file_dataset_backtest:
-            dataset_backtest = pickle.load(file_dataset_backtest)
+            dataset_backtest = restricted_pickle_load(file_dataset_backtest)
 
         self._prepare_calender_cache()
         ##=============reinit dataset=============

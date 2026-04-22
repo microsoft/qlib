@@ -12,6 +12,7 @@ Here is an example.
     fa.plot_all(wspace=0.3, sub_figsize=(12, 3), col_n=5)
 
 """
+
 import pandas as pd
 import numpy as np
 from qlib.contrib.report.data.base import FeaAnalyser
