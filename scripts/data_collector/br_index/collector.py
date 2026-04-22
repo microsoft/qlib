@@ -226,7 +226,7 @@ class IBOVIndex(IndexBase):
             return df
 
         except Exception as E:
-            logger.error("An error occured while downloading 2008 index composition - {}".format(E))
+            logger.error("An error occurred while downloading 2008 index composition - {}".format(E))
 
     def get_new_companies(self):
         """
@@ -274,7 +274,7 @@ class IBOVIndex(IndexBase):
             return df
 
         except Exception as E:
-            logger.error("An error occured while getting new companies - {}".format(E))
+            logger.error("An error occurred while getting new companies - {}".format(E))
 
     def filter_df(self, df: pd.DataFrame) -> pd.DataFrame:
         if "Código" in df.columns:
