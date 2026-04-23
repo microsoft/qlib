@@ -26,6 +26,7 @@ from ...utils import (
     get_or_create_path,
 )
 from ...log import get_module_logger
+from .pytorch_utils import empty_cache
 
 from ...model.utils import ConcatDataset
 
@@ -83,7 +84,10 @@ class GeneralPTNN(Model):
         self.optimizer = optimizer.lower()
         self.loss = loss
         self.weight_decay = weight_decay
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        if isinstance(GPU, str):
+            self.device = torch.device(GPU)
+        else:
+            self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
         self.n_jobs = n_jobs
         self.seed = seed
 
@@ -329,7 +333,7 @@ class GeneralPTNN(Model):
         torch.save(best_param, save_path)
 
         if self.use_gpu:
-            torch.cuda.empty_cache()
+            empty_cache(self.device)
 
     def predict(
         self,

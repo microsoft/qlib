@@ -26,6 +26,7 @@ from qlib.constant import EPS
 from qlib.log import get_module_logger
 from qlib.model.base import Model
 from qlib.contrib.data.dataset import MTSDatasetH
+from .pytorch_utils import empty_cache
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -83,6 +84,8 @@ class TRAModel(Model):
         freeze_predictors=False,
         transport_method="none",
         memory_mode="sample",
+        GPU=0,
+        **kwargs,
     ):
         self.logger = get_module_logger("TRA")
 
@@ -132,15 +135,20 @@ class TRAModel(Model):
             if SummaryWriter is not None:
                 self._writer = SummaryWriter(log_dir=self.logdir)
 
+        if isinstance(GPU, str):
+            self.device = torch.device(GPU)
+        else:
+            self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+
         self._init_model()
 
     def _init_model(self):
         self.logger.info("init TRAModel...")
 
-        self.model = eval(self.model_type)(**self.model_config).to(device)
+        self.model = eval(self.model_type)(**self.model_config).to(self.device)
         print(self.model)
 
-        self.tra = TRA(self.model.output_size, **self.tra_config).to(device)
+        self.tra = TRA(self.model.output_size, **self.tra_config).to(self.device)
         print(self.tra)
 
         if self.init_state:
@@ -495,6 +503,9 @@ class TRAModel(Model):
             }
             with open(self.logdir + "/info.json", "w") as f:
                 json.dump(info, f)
+
+        if self.use_gpu:
+            empty_cache(self.device)
 
     def predict(self, dataset, segment="test"):
         assert isinstance(dataset, MTSDatasetH), "TRAModel only supports `qlib.contrib.data.dataset.MTSDatasetH`"

@@ -11,6 +11,7 @@ import copy
 import random
 from ...utils import get_or_create_path
 from ...log import get_module_logger
+from .pytorch_utils import empty_cache
 
 import torch
 import torch.nn as nn
@@ -73,7 +74,10 @@ class TCTS(Model):
         self.batch_size = batch_size
         self.early_stop = early_stop
         self.loss = loss
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() else "cpu")
+        if isinstance(GPU, str):
+            self.device = torch.device(GPU)
+        else:
+            self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() else "cpu")
         self.use_gpu = torch.cuda.is_available()
         self.seed = seed
         self.input_dim = input_dim
@@ -344,7 +348,7 @@ class TCTS(Model):
         self.fitted = True
 
         if self.use_gpu:
-            torch.cuda.empty_cache()
+            empty_cache(self.device)
 
         return best_loss
 
