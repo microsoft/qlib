@@ -209,9 +209,11 @@ class GRU(Model):
     def fit(
         self,
         dataset: DatasetH,
-        evals_result=dict(),
+        evals_result=None,
         save_path=None,
     ):
+        if evals_result is None:
+            evals_result = {}
         # prepare training and validation data
         dfs = {
             k: dataset.prepare(
