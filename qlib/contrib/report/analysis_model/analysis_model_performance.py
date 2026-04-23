@@ -337,5 +337,6 @@ def model_performance_graph(
 
     if show_notebook:
         BarGraph.show_graph_in_notebook(figure_list)
+        return None
     else:
         return figure_list

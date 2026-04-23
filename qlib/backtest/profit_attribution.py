@@ -221,6 +221,8 @@ def get_stock_group(stock_group_field_df, bench_stock_weight_df, group_method, g
                 group_n=group_n,
             )
         return new_stock_group_df
+    else:
+        raise ValueError(f"Unknown group_method: {group_method}. Expected 'category' or 'bins'.")
 
 
 def brinson_pa(
