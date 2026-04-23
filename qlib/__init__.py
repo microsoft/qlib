@@ -27,8 +27,8 @@ def init(default_conf="client", **kwargs):
 
     Parameters
     ----------
-    default_conf: str
-        the default value is client. Accepted values: client/server.
+    default_conf: str or ModeType
+        the default value is client. Accepted values: ModeType.CLIENT/ModeType.SERVER (or "client"/"server").
     **kwargs :
         clear_mem_cache: str
             the default value is True;
