@@ -1,0 +1,155 @@
+qlib_init:
+    provider_uri: "~/.qlib/qlib_data/us_data"
+    region: us
+
+market: &market sp500
+benchmark: &benchmark ^GSPC
+
+data_handler_config: &data_handler_config
+    start_time: "2018-01-01"
+    end_time: "2024-12-31"
+    fit_start_time: "2018-01-01"
+    fit_end_time: "2022-12-31"
+    instruments: *market
+    infer_processors:
+        - class: ProcessInf
+          kwargs: {}
+        - class: ZScoreNorm
+          kwargs: {}
+        - class: Fillna
+          kwargs: {}
+    learn_processors:
+        - class: DropnaLabel
+        - class: CSZScoreNorm
+          kwargs:
+              fields_group: label
+
+data_loader_config: &data_loader_config
+    class: QlibDataLoader
+    kwargs:
+        config:
+            feature:
+                # ── Technical factors (Alpha158 US-tuned) ──────────────
+                # K-bar features
+                - ["($close-$open)/$open", "KMID"]
+                - ["($high-$low)/$open", "KLEN"]
+                - ["($close-$open)/($high-$low+1e-12)", "KMID2"]
+
+                # Price features (no VWAP)
+                - ["$open/$close", "OPEN0"]
+                - ["$high/$close", "HIGH0"]
+                - ["$low/$close", "LOW0"]
+
+                # Momentum (extended windows for US market)
+                - ["Ref($close, 5)/$close", "ROC5"]
+                - ["Ref($close, 10)/$close", "ROC10"]
+                - ["Ref($close, 20)/$close", "ROC20"]
+                - ["Ref($close, 60)/$close", "ROC60"]
+                - ["Ref($close, 120)/$close", "ROC120"]
+                - ["Ref($close, 250)/$close", "ROC250"]
+
+                # Moving averages
+                - ["Mean($close, 5)/$close", "MA5"]
+                - ["Mean($close, 10)/$close", "MA10"]
+                - ["Mean($close, 20)/$close", "MA20"]
+                - ["Mean($close, 60)/$close", "MA60"]
+                - ["Mean($close, 120)/$close", "MA120"]
+                - ["Mean($close, 250)/$close", "MA250"]
+
+                # Volatility
+                - ["Std($close, 5)/$close", "STD5"]
+                - ["Std($close, 20)/$close", "STD20"]
+                - ["Std($close, 60)/$close", "STD60"]
+                - ["Std($close, 250)/$close", "STD250"]
+
+                # 12-1 month momentum (Jegadeesh & Titman)
+                - ["Ref($close, 250)/$close - Ref($close, 20)/$close", "MOM_12_1"]
+
+                # Overnight gap
+                - ["$open / Ref($close, 1) - 1", "GAP"]
+
+                # ── Fundamental factors ────────────────────────────────
+                # Quality
+                - ["$roe", "ROE"]
+                - ["$roa", "ROA"]
+                - ["$gross_margin", "GMARGIN"]
+                - ["$accruals", "ACCRUALS"]
+
+                # Leverage
+                - ["$debt_to_equity", "DE_RATIO"]
+
+                # Growth
+                - ["$revenue_yoy", "REV_YOY"]
+                - ["$earnings_yoy", "EARN_YOY"]
+
+                # Value (price-relative)
+                - ["$netincome / ($close + 1e-12)", "EARN_YIELD"]
+                - ["$totalrevenue / ($close + 1e-12)", "SALES_YIELD"]
+                - ["$freecashflow / ($close + 1e-12)", "FCF_YIELD"]
+                - ["$stockholdersequity / ($close + 1e-12)", "BOOK_YIELD"]
+
+            label:
+                - ["Ref($close, -2)/Ref($close, -1) - 1", "LABEL0"]
+
+task:
+    model:
+        class: LGBModel
+        module_path: qlib.contrib.model.gbdt
+        kwargs:
+            loss: mse
+            colsample_bytree: 0.8879
+            learning_rate: 0.05
+            subsample: 0.8789
+            lambda_l1: 205.6999
+            lambda_l2: 580.9768
+            max_depth: 8
+            num_leaves: 210
+            num_threads: 20
+            n_estimators: 1000
+            early_stopping_rounds: 50
+            verbose: -1
+    dataset:
+        class: DatasetH
+        module_path: qlib.data.dataset
+        kwargs:
+            handler:
+                class: USAlphaFundamental
+                module_path: qlib.contrib.data.handler_us
+                kwargs: *data_handler_config
+            segments:
+                train: ["2018-01-01", "2021-12-31"]
+                valid: ["2022-01-01", "2022-12-31"]
+                test: ["2023-01-01", "2024-12-31"]
+    record:
+        - class: SignalRecord
+          module_path: qlib.workflow.record_temp
+          kwargs:
+              model: <MODEL>
+              dataset: <DATASET>
+        - class: SigAnaRecord
+          module_path: qlib.workflow.record_temp
+          kwargs:
+              ana_long_short: false
+              ann_scaler: 252
+        - class: PortAnaRecord
+          module_path: qlib.workflow.record_temp
+          kwargs:
+              config:
+                  strategy:
+                      class: TopkDropoutStrategy
+                      module_path: qlib.contrib.strategy
+                      kwargs:
+                          signal: <PRED>
+                          topk: 50
+                          n_drop: 5
+                  backtest:
+                      start_time: "2023-01-01"
+                      end_time: "2024-12-31"
+                      account: 100000000
+                      benchmark: *benchmark
+                      exchange_kwargs:
+                          limit_threshold: null  # No price limits in US
+                          deal_price: close
+                          open_cost: 0.0005
+                          close_cost: 0.0015
+                          min_cost: 5
