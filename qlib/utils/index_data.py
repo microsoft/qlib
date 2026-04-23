@@ -612,7 +612,7 @@ class SingleData(IndexData):
         return dict(zip(self.index, self.data.tolist()))
 
     def to_series(self):
-        return pd.Series(self.data, index=self.index)
+        return pd.Series(self.data, index=self.index.tolist())
 
     def __repr__(self) -> str:
         return str(pd.Series(self.data, index=self.index.tolist()))
