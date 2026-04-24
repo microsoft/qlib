@@ -7,11 +7,11 @@ from datetime import datetime
 from qlib import init
 from qlib.config import C
 from qlib.log import TimeInspector
-from qlib.constant import REG_CN, REG_US, REG_TW
-from qlib.utils.time import cal_sam_minute as cal_sam_minute_new, get_min_cal, CN_TIME, US_TIME, TW_TIME
+from qlib.constant import REG_CN, REG_IN, REG_US, REG_TW
+from qlib.utils.time import cal_sam_minute as cal_sam_minute_new, get_min_cal, CN_TIME, IN_TIME, US_TIME, TW_TIME
 from qlib.utils.data import guess_horizon
 
-REG_MAP = {REG_CN: CN_TIME, REG_US: US_TIME, REG_TW: TW_TIME}
+REG_MAP = {REG_CN: CN_TIME, REG_US: US_TIME, REG_TW: TW_TIME, REG_IN: IN_TIME}
 
 
 def cal_sam_minute(x: pd.Timestamp, sam_minutes: int, region: str):
@@ -77,7 +77,7 @@ class TimeUtils(TestCase):
     def test_cal_sam_minute(self):
         # test the correctness of the code
         random_n = 1000
-        regions = [REG_CN, REG_US, REG_TW]
+        regions = [REG_CN, REG_US, REG_TW, REG_IN]
 
         def gen_args(cal: List):
             for time in np.random.choice(cal, size=random_n, replace=True):
