@@ -28,6 +28,7 @@ Document Structure
    Installation <start/installation.rst>
    Initialization <start/initialization.rst>
    Data Retrieval <start/getdata.rst>
+   RQAlpha To Qlib Quickstart <start/rqalpha_to_qlib_quickstart.rst>
    Custom Model Integration <start/integration.rst>
 
 

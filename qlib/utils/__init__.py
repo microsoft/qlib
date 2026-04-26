@@ -22,6 +22,7 @@ import collections
 import numpy as np
 import pandas as pd
 from pathlib import Path
+from numbers import Integral
 from typing import List, Union, Optional, Callable
 from packaging import version
 from ruamel.yaml import YAML
@@ -522,9 +523,18 @@ def split_pred(pred, number=None, split_date=None):
         raise ValueError("`number` and `split date` cannot both be None")
     dates = sorted(pred.index.get_level_values("datetime").unique())
     dates = list(map(pd.Timestamp, dates))
+    if not dates:
+        raise ValueError("`pred` must contain at least one datetime value")
+    if number is not None:
+        if not isinstance(number, Integral):
+            raise TypeError("`number` must be an integer")
+        if number <= 0:
+            raise ValueError("`number` must be a positive integer")
     if split_date is None:
+        if number > len(dates):
+            raise ValueError("`number` cannot be greater than the number of available dates")
         date_left_end = dates[number - 1]
-        date_right_begin = dates[number]
+        date_right_begin = dates[number] if number < len(dates) else None
         date_left_start = None
     else:
         split_date = pd.Timestamp(split_date)
@@ -534,10 +544,15 @@ def split_pred(pred, number=None, split_date=None):
             date_left_start = None
         else:
             end_idx = bisect.bisect_right(dates, split_date)
+            if number > end_idx:
+                raise ValueError("`number` cannot be greater than the number of dates on or before `split_date`")
             date_left_start = dates[end_idx - number]
     pred_temp = pred.sort_index()
     pred_left = pred_temp.loc(axis=0)[:, date_left_start:date_left_end]
-    pred_right = pred_temp.loc(axis=0)[:, date_right_begin:]
+    if date_right_begin is None:
+        pred_right = pred_temp.iloc[0:0]
+    else:
+        pred_right = pred_temp.loc(axis=0)[:, date_right_begin:]
     return pred_left, pred_right
 
 
