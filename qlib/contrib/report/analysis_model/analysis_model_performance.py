@@ -157,7 +157,7 @@ def _pred_ic(
     _month_list = pd.date_range(
         start=pd.Timestamp(f"{_index.min()[:4]}0101"),
         end=pd.Timestamp(f"{_index.max()[:4]}1231"),
-        freq="1M",
+        freq = '1ME' if tuple(map(int, pd.__version__.split('.'))) >= (2, 2, 0) else '1M',
     )
     _years = []
     _month = []
