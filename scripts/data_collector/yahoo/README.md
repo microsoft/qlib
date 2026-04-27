@@ -63,7 +63,7 @@ pip install -r requirements.txt
           - `source_dir`: save the directory
           - `interval`: `1d` or `1min`, by default `1d`
             > **due to the limitation of the *YahooFinance API*, only the last month's data is available in `1min`**
-          - `region`: `CN` or `US` or `IN` or `BR`, by default `CN`
+          - `region`: `CN` or `US` or `IN` or `BR` or `GB`, by default `CN`
           - `delay`: `time.sleep(delay)`, by default *0.5*
           - `start`: start datetime, by default *"2000-01-01"*; *closed interval(including start)*
           - `end`: end datetime, by default `pd.Timestamp(datetime.datetime.now() + pd.Timedelta(days=1))`; *open interval(excluding end)*
@@ -92,6 +92,11 @@ pip install -r requirements.txt
           python collector.py download_data --source_dir ~/.qlib/stock_data/source/br_data --start 2003-01-03 --end 2022-03-01 --delay 1 --interval 1d --region BR
           # br 1min data
           python collector.py download_data --source_dir ~/.qlib/stock_data/source/br_data_1min --delay 1 --interval 1min --region BR
+
+          # gb 1d data
+          python collector.py download_data --source_dir ~/.qlib/stock_data/source/gb_data --start 2000-01-04 --end 2025-12-31 --delay 1 --interval 1d --region GB
+          # gb 1min data
+          python collector.py download_data --source_dir ~/.qlib/stock_data/source/gb_data_1min --delay 1 --interval 1min --region GB
           ```
   2. normalize data: `python scripts/data_collector/yahoo/collector.py normalize_data`
      
@@ -105,7 +110,7 @@ pip install -r requirements.txt
           - `max_workers`: number of concurrent, by default *1*
           - `interval`: `1d` or `1min`, by default `1d`
             > if **`interval == 1min`**, `qlib_data_1d_dir` cannot be `None`
-          - `region`: `CN` or `US` or `IN`, by default `CN`
+          - `region`: `CN` or `US` or `IN` or `GB`, by default `CN`
           - `date_field_name`: column *name* identifying time in csv files, by default `date`
           - `symbol_field_name`: column *name* identifying symbol in csv files, by default `symbol`
           - `end_date`: if not `None`, normalize the last date saved (*including end_date*); if `None`, it will ignore this parameter; by default `None`
@@ -133,6 +138,12 @@ pip install -r requirements.txt
 
         # normalize 1min br
         python collector.py normalize_data --qlib_data_1d_dir ~/.qlib/qlib_data/br_data --source_dir ~/.qlib/stock_data/source/br_data_1min --normalize_dir ~/.qlib/stock_data/source/br_1min_nor --region BR --interval 1min
+
+        # normalize 1d gb
+        python scripts/data_collector/yahoo/collector.py normalize_data --source_dir ~/.qlib/stock_data/source/gb_data --normalize_dir ~/.qlib/stock_data/source/gb_1d_nor --region GB --interval 1d
+
+        # normalize 1min gb
+        python collector.py normalize_data --qlib_data_1d_dir ~/.qlib/qlib_data/gb_data --source_dir ~/.qlib/stock_data/source/gb_data_1min --normalize_dir ~/.qlib/stock_data/source/gb_1min_nor --region GB --interval 1min
         ```
   3. dump data: `python scripts/dump_bin.py dump_all`
     
@@ -221,5 +232,16 @@ pip install -r requirements.txt
   df = D.features(inst[:100], ["$close"], freq="1min")
   # get all symbol data
   # df = D.features(D.instruments("all"), ["$close"], freq="1min")
+
+  # 1d data gb
+  # NOTE: Yahoo Finance quotes GB (.L) equities in GBp (pence), not GBP pounds.
+  # e.g. HSBA.L price ~1200 means 1200p = £12. No scaling is applied by the normaliser.
+  qlib.init(provider_uri="~/.qlib/qlib_data/gb_data", region="gb")
+  df = D.features(D.instruments("all"), ["$close"], freq="day")
+
+  # 1min data gb
+  qlib.init(provider_uri="~/.qlib/qlib_data/gb_data_1min", region="gb")
+  inst = D.list_instruments(D.instruments("all"), freq="1min", as_list=True)
+  df = D.features(inst[:100], ["$close"], freq="1min")
   ```
 
