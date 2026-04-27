@@ -296,6 +296,35 @@ class TopkDropoutStrategy(BaseSignalStrategy):
 
 
 class WeightStrategyBase(BaseSignalStrategy):
+    """Base class for portfolio strategies that express decisions as target weights.
+
+    Subclasses must implement ``generate_target_weight_position`` to return
+    a ``{stock_id: weight}`` dict. The base class then delegates to an
+    **order generator** to convert weights into executable ``Order`` objects.
+
+    Order generators
+    ~~~~~~~~~~~~~~~~
+    The ``order_generator_cls_or_obj`` parameter controls how weights are
+    translated into orders. Two built-in options are provided:
+
+    * ``OrderGenWOInteract`` (**default**) – generates orders using
+      prediction-date prices only. Untradable stocks are skipped, so
+      capital may not be fully utilised when stocks become suspended between
+      prediction and execution.
+    * ``OrderGenWInteract`` – uses trade-date prices and **re-normalises**
+      weights across tradable stocks, ensuring full capital utilisation. Use
+      this when the executor has access to real-time market data.
+
+    ``factor`` field and round-lot trading
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    For markets that require integer-lot trading (e.g. 100-share lots in
+    China A-shares), the ``Exchange`` uses the ``$factor`` field from quote
+    data together with ``trade_unit`` (set via region config, e.g. 100 for
+    China) to round order amounts. Without ``$factor`` in the data, orders
+    may contain fractional share amounts that fail during execution. Ensure
+    that your data includes a ``$factor`` column when ``trade_unit`` is set.
+    """
+
     # TODO:
     # 1. Supporting leverage the get_range_limit result from the decision
     # 2. Supporting alter_outer_trade_decision
@@ -307,6 +336,14 @@ class WeightStrategyBase(BaseSignalStrategy):
         **kwargs,
     ):
         """
+        Parameters
+        ----------
+        order_generator_cls_or_obj : type or OrderGenerator, optional
+            The order generator class or instance used to convert target
+            weight positions into order lists. Defaults to
+            ``OrderGenWOInteract``. Pass ``OrderGenWInteract`` (or an
+            instance of it) for weight re-normalisation across tradable
+            stocks.
         signal :
             the information to describe a signal. Please refer to the docs of `qlib.backtest.signal.create_signal_from`
             the decision of the strategy will base on the given signal
@@ -314,7 +351,7 @@ class WeightStrategyBase(BaseSignalStrategy):
             exchange that provides market info, used to deal order and generate report
 
             - If `trade_exchange` is None, self.trade_exchange will be set with common_infra
-            - It allowes different trade_exchanges is used in different executions.
+            - It allows different trade_exchanges in different executions.
             - For example:
 
                 - In daily execution, both daily exchange and minutely are usable, but the daily exchange is recommended because it runs faster.
