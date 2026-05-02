@@ -199,7 +199,33 @@ def main():
     pred_label = pd.concat([label_data, pred_df], axis=1, sort=True).reindex(label_data.index)
     print(f"\nIC 数据: {pred_label.shape}")
 
-    figs = score_ic_graph(pred_label, show_notebook=False)
+    try:
+        figs = score_ic_graph(pred_label, show_notebook=False)
+    except ValueError:
+        print("[warn] score_ic_graph 内部报错（可能是 groupby 返回标量），改为手动计算 IC")
+        data = pred_label.dropna()
+        if len(data) > 0:
+            ic = data.groupby(level="datetime").apply(
+                lambda x: x["label"].corr(x["score"])
+            )
+            rank_ic = data.groupby(level="datetime").apply(
+                lambda x: x["label"].corr(x["score"], method="spearman")
+            )
+            if not hasattr(ic, "index"):
+                ic = pd.Series([ic], index=[data.index.get_level_values("datetime")[0]])
+                rank_ic = pd.Series([rank_ic], index=ic.index)
+            ic_df = pd.DataFrame({"ic": ic, "rank_ic": rank_ic})
+            from qlib.contrib.report.graph import ScatterGraph
+
+            fig = ScatterGraph(
+                ic_df,
+                layout=dict(title="Score IC", xaxis=dict(tickangle=45)),
+                graph_kwargs={"mode": "lines+markers"},
+            ).figure
+            figs = (fig,)
+        else:
+            print("[warn] 无有效数据，跳过 IC 图")
+            figs = ()
     show_or_save(figs, "score_ic")
 
     # 8c. 风险分析图
