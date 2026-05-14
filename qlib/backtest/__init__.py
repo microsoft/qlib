@@ -116,6 +116,7 @@ def create_account_instance(
     benchmark: Optional[str],
     account: Union[float, int, dict],
     pos_type: str = "Position",
+    freq: str = "day",
 ) -> Account:
     """
     # TODO: is very strange pass benchmark_config in the account (maybe for report)
@@ -148,6 +149,11 @@ def create_account_instance(
             ...
     pos_type: str
         Postion type.
+    freq: str
+        Trading frequency for the account (e.g. "day", "60min"). The Account
+        defaulted to "day" before #1846 even when the executor ran at a higher
+        frequency, which broke benchmark fetches for users with only intraday
+        data.
     """
     if isinstance(account, (int, float)):
         init_cash = account
@@ -161,6 +167,7 @@ def create_account_instance(
     return Account(
         init_cash=init_cash,
         position_dict=position_dict,
+        freq=freq,
         pos_type=pos_type,
         benchmark_config=(
             {}
@@ -172,6 +179,22 @@ def create_account_instance(
             }
         ),
     )
+
+
+def _executor_time_per_step(executor: Union[str, dict, object, Path]) -> Optional[str]:
+    """Extract ``time_per_step`` from an executor config or instance.
+
+    Returns ``None`` when it cannot be determined (e.g. executor is a path
+    or an already-instantiated executor without an exposed attribute).
+    """
+    if isinstance(executor, dict):
+        kwargs = executor.get("kwargs") or {}
+        tps = kwargs.get("time_per_step")
+        if isinstance(tps, str):
+            return tps
+        return None
+    tps = getattr(executor, "time_per_step", None)
+    return tps if isinstance(tps, str) else None
 
 
 def get_strategy_executor(
@@ -190,12 +213,18 @@ def get_strategy_executor(
     from ..strategy.base import BaseStrategy  # pylint: disable=C0415
     from .executor import BaseExecutor  # pylint: disable=C0415
 
+    # Derive the account's freq from the executor's time_per_step so the
+    # benchmark / portfolio metrics match the executor's bar frequency
+    # (see #1846). Falls back to the historic "day" default when the
+    # executor's frequency cannot be determined.
+    account_freq = _executor_time_per_step(executor) or "day"
     trade_account = create_account_instance(
         start_time=start_time,
         end_time=end_time,
         benchmark=benchmark,
         account=account,
         pos_type=pos_type,
+        freq=account_freq,
     )
 
     exchange_kwargs = copy.copy(exchange_kwargs)
