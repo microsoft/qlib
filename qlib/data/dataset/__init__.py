@@ -673,7 +673,10 @@ class TSDatasetH(DatasetH):
     def setup_data(self, **kwargs):
         super().setup_data(**kwargs)
         # make sure the calendar is updated to latest when loading data from new config
-        cal = self.handler.fetch(col_set=self.handler.CS_RAW).index.get_level_values("datetime").unique()
+        _raw = self.handler.fetch(col_set=self.handler.CS_RAW)
+        # Resolve positionally for duplicate "datetime" level names (#1909).
+        _dt_level = _raw.index.names.index("datetime")
+        cal = _raw.index.get_level_values(_dt_level).unique()
         self.cal = sorted(cal)
 
     @staticmethod

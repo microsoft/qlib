@@ -80,7 +80,12 @@ class RollingEnsemble(Ensemble):
     def __call__(self, ensemble_dict: dict) -> pd.DataFrame:
         get_module_logger("RollingEnsemble").info(f"keys in group: {list(ensemble_dict.keys())}")
         artifact_list = list(ensemble_dict.values())
-        artifact_list.sort(key=lambda x: x.index.get_level_values("datetime").min())
+
+        def _min_dt(x: pd.DataFrame) -> pd.Timestamp:
+            # Resolve positionally for duplicate "datetime" level names (#1909).
+            return x.index.get_level_values(x.index.names.index("datetime")).min()
+
+        artifact_list.sort(key=_min_dt)
         artifact = pd.concat(artifact_list)
         # If there are duplicated predition, use the latest perdiction
         artifact = artifact[~artifact.index.duplicated(keep="last")]

@@ -277,7 +277,9 @@ class OnlineManager(Serializable):
         signals = prepare_func(self.get_collector()())
         old_signals = self.signals
         if old_signals is not None and not over_write:
-            old_max = old_signals.index.get_level_values("datetime").max()
+            # Resolve positionally for duplicate "datetime" level names (#1909).
+            _dt_level = old_signals.index.names.index("datetime")
+            old_max = old_signals.index.get_level_values(_dt_level).max()
             new_signals = signals.loc[old_max:]
             signals = pd.concat([old_signals, new_signals], axis=0)
         else:
@@ -379,4 +381,6 @@ class OnlineManager(Serializable):
                         f"The signals have already parpred to {signals_time} by last preparation, but current time is only {cur_time}. This may be because the online models predict more than they should, which can cause signals to be contaminated by the offline models."
                     )
                 need_prepare = False
-                signals_time = self.signals.index.get_level_values("datetime").max()
+                # Resolve positionally for duplicate "datetime" level names (#1909).
+                _dt_level = self.signals.index.names.index("datetime")
+                signals_time = self.signals.index.get_level_values(_dt_level).max()

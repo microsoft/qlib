@@ -173,7 +173,10 @@ class DSBasedUpdater(RecordUpdater, metaclass=ABCMeta):
         if from_date is None:
             # dropna is for being compatible to some data with future information(e.g. label)
             # The recent label data should be updated together
-            self.last_end = self.old_data.dropna().index.get_level_values("datetime").max()
+            _old_clean = self.old_data.dropna()
+            # Resolve the "datetime" level positionally for duplicate names (#1909).
+            _dt_level = _old_clean.index.names.index("datetime")
+            self.last_end = _old_clean.index.get_level_values(_dt_level).max()
         else:
             self.last_end = get_date_by_shift(from_date, -1, align="right")
 
@@ -259,7 +262,9 @@ class DSBasedUpdater(RecordUpdater, metaclass=ABCMeta):
 
 
 def _replace_range(data, new_data):
-    dates = new_data.index.get_level_values("datetime")
+    # Resolve the "datetime" level positionally for duplicate names (#1909).
+    _dt_level = new_data.index.names.index("datetime")
+    dates = new_data.index.get_level_values(_dt_level)
     data = data.sort_index()
     data = data.drop(data.loc[dates.min() : dates.max()].index)
     cb_data = pd.concat([data, new_data], axis=0)
