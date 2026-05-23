@@ -85,6 +85,8 @@ SAFE_PICKLE_CLASSES: Set[Tuple[str, str]] = {
     ("qlib.data.dataset.processor", "CSZFillna"),
     ("qlib.data.dataset.processor", "HashStockFormat"),
     ("qlib.data.dataset.processor", "TimeRangeFlt"),
+    # Utility functions used in data processing
+    ("qlib.utils.data", "zscore"),
 }
 
 

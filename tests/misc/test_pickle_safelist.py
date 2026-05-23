@@ -93,6 +93,14 @@ class SafePickleClassesContainDatasetHierarchyTest(unittest.TestCase):
                 self.assertTrue(_is_safe("qlib.data.dataset.processor", cls))
 
 
+class SafePickleClassesContainUtilityFunctionsTest(unittest.TestCase):
+    """DDG-DA workflow requires utility functions like zscore to be safelisted
+    because they are used in data processing and get pickled with the dataset."""
+
+    def test_zscore_is_safelisted(self) -> None:
+        self.assertTrue(_is_safe("qlib.utils.data", "zscore"))
+
+
 class RestrictedUnpicklerFindClassForAlpha158Test(unittest.TestCase):
     """End-to-end: ``RestrictedUnpickler.find_class`` must return the real
     ``Alpha158`` class object, not raise."""
