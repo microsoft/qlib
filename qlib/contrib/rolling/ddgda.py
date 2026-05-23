@@ -241,7 +241,9 @@ class DDGDA(Rolling):
         sim_task = replace_task_handler_with_cache(sim_task, self.working_dir)
 
         if self.sim_task_model == "gbdt":
-            sim_task["model"].setdefault("kwargs", {}).update({"early_stopping_rounds": None, "num_boost_round": 150})
+            sim_task["model"].setdefault("kwargs", {}).update({"num_boost_round": 150})
+            # Don't set early_stopping_rounds to disable it (LightGBM 4.0+ doesn't accept None)
+            sim_task["model"]["kwargs"].pop("early_stopping_rounds", None)
 
         exp_name_sim = f"data_sim_s{self.step}"
 
