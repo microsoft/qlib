@@ -101,6 +101,14 @@ class SafePickleClassesContainUtilityFunctionsTest(unittest.TestCase):
         self.assertTrue(_is_safe("qlib.utils.data", "zscore"))
 
 
+class SafePickleClassesContainMetaLearningClassesTest(unittest.TestCase):
+    """DDG-DA workflow requires meta-learning classes like InternalData to be
+    safelisted because they are pickled and reloaded during the workflow."""
+
+    def test_internal_data_is_safelisted(self) -> None:
+        self.assertTrue(_is_safe("qlib.contrib.meta.data_selection.dataset", "InternalData"))
+
+
 class RestrictedUnpicklerFindClassForAlpha158Test(unittest.TestCase):
     """End-to-end: ``RestrictedUnpickler.find_class`` must return the real
     ``Alpha158`` class object, not raise."""
