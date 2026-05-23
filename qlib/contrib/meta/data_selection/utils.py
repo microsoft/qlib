@@ -43,7 +43,7 @@ class ICLoss(nn.Module):
                 continue
             y_focus = y[start_i:end_i]
             if pred_focus.std() < EPS or y_focus.std() < EPS:
-                # These cases often happend at the end of test data.
+                # These cases often happen at the end of test data.
                 # Usually caused by fillna(0.)
                 skip_n += 1
                 continue
