@@ -87,6 +87,8 @@ SAFE_PICKLE_CLASSES: Set[Tuple[str, str]] = {
     ("qlib.data.dataset.processor", "TimeRangeFlt"),
     # Utility functions used in data processing
     ("qlib.utils.data", "zscore"),
+    # Meta-learning data selection classes used in DDG-DA workflow
+    ("qlib.contrib.meta.data_selection.dataset", "InternalData"),
 }
 
 
