@@ -199,6 +199,35 @@ class QlibDataLoader(DLWParser):
                     self.inst_processors
                 ), f"freq(={self.freq}), inst_processors(={self.inst_processors}) cannot be None/empty"
 
+    def _resolve_instruments(self, instruments):
+        if instruments is None:
+            warnings.warn("`instruments` is not set, will load all stocks")
+            instruments = "all"
+        if isinstance(instruments, str):
+            return D.instruments(instruments, filter_pipe=self.filter_pipe)
+        if self.filter_pipe is not None:
+            warnings.warn(
+                "`filter_pipe` is not None, but it will not be used with `instruments` as list"
+            )
+        return instruments
+
+    def load(self, instruments=None, start_time=None, end_time=None) -> pd.DataFrame:
+        instruments = self._resolve_instruments(instruments)
+        if self.is_group:
+            df = pd.concat(
+                {
+                    grp: self._load_group_df(
+                        instruments, exprs, names, start_time, end_time, grp
+                    )
+                    for grp, (exprs, names) in self.fields.items()
+                },
+                axis=1,
+            )
+        else:
+            exprs, names = self.fields
+            df = self._load_group_df(instruments, exprs, names, start_time, end_time)
+        return df
+
     def load_group_df(
         self,
         instruments,
@@ -208,19 +237,34 @@ class QlibDataLoader(DLWParser):
         end_time: Union[str, pd.Timestamp] = None,
         gp_name: str = None,
     ) -> pd.DataFrame:
-        if instruments is None:
-            warnings.warn("`instruments` is not set, will load all stocks")
-            instruments = "all"
-        if isinstance(instruments, str):
-            instruments = D.instruments(instruments, filter_pipe=self.filter_pipe)
-        elif self.filter_pipe is not None:
-            warnings.warn("`filter_pipe` is not None, but it will not be used with `instruments` as list")
+        instruments = self._resolve_instruments(instruments)
+        return self._load_group_df(
+            instruments, exprs, names, start_time, end_time, gp_name
+        )
 
+    def _load_group_df(
+        self,
+        instruments,
+        exprs: list,
+        names: list,
+        start_time: Union[str, pd.Timestamp] = None,
+        end_time: Union[str, pd.Timestamp] = None,
+        gp_name: str = None,
+    ) -> pd.DataFrame:
         freq = self.freq[gp_name] if isinstance(self.freq, dict) else self.freq
         inst_processors = (
-            self.inst_processors if isinstance(self.inst_processors, list) else self.inst_processors.get(gp_name, [])
+            self.inst_processors
+            if isinstance(self.inst_processors, list)
+            else self.inst_processors.get(gp_name, [])
         )
-        df = D.features(instruments, exprs, start_time, end_time, freq=freq, inst_processors=inst_processors)
+        df = D.features(
+            instruments,
+            exprs,
+            start_time,
+            end_time,
+            freq=freq,
+            inst_processors=inst_processors,
+        )
         df.columns = names
         if self.swap_level:
             df = df.swaplevel().sort_index()  # NOTE: if swaplevel, return <datetime, instrument>

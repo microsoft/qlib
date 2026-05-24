@@ -4,7 +4,9 @@
 import sys
 import unittest
 import qlib
+import pandas as pd
 from pathlib import Path
+from unittest.mock import patch
 
 sys.path.append(str(Path(__file__).resolve().parent))
 from qlib.data.dataset.loader import NestedDataLoader, QlibDataLoader
@@ -15,6 +17,41 @@ from qlib.data import D
 
 
 class TestDataLoader(unittest.TestCase):
+
+    def test_group_loader_applies_filter_pipe_once(self):
+        filter_pipe = [{"filter_type": "NameDFilter", "name_rule_re": "SH.*"}]
+        instruments = {
+            "SH600000": [(pd.Timestamp("2020-01-01"), pd.Timestamp("2020-01-02"))]
+        }
+        loader = QlibDataLoader(
+            config={
+                "feature": (["$close"], ["CLOSE"]),
+                "label": (["Ref($close, -1)"], ["LABEL0"]),
+            },
+            filter_pipe=filter_pipe,
+            swap_level=False,
+        )
+
+        def mock_features(
+            instruments_arg, exprs, start_time, end_time, freq, inst_processors
+        ):
+            self.assertIs(instruments_arg, instruments)
+            return pd.DataFrame(
+                [[1.0]], index=pd.Index(["SH600000"], name="instrument")
+            )
+
+        with patch(
+            "qlib.data.dataset.loader.D.instruments", return_value=instruments
+        ) as mock_instruments, patch(
+            "qlib.data.dataset.loader.D.features", side_effect=mock_features
+        ) as mock_features_fn:
+            df = loader.load(
+                instruments="csi300", start_time="2020-01-01", end_time="2020-01-02"
+            )
+
+        mock_instruments.assert_called_once_with("csi300", filter_pipe=filter_pipe)
+        self.assertEqual(mock_features_fn.call_count, 2)
+        self.assertEqual(list(df.columns.get_level_values(0)), ["feature", "label"])
 
     def test_nested_data_loader(self):
         qlib.init(kernels=1)
