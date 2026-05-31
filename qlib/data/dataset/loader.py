@@ -199,6 +199,11 @@ class QlibDataLoader(DLWParser):
                     self.inst_processors
                 ), f"freq(={self.freq}), inst_processors(={self.inst_processors}) cannot be None/empty"
 
+    def load(self, instruments=None, start_time=None, end_time=None) -> pd.DataFrame:
+        if self.is_group and isinstance(instruments, str):
+            instruments = D.instruments(instruments, filter_pipe=self.filter_pipe)
+        return super().load(instruments, start_time, end_time)
+
     def load_group_df(
         self,
         instruments,
@@ -213,7 +218,7 @@ class QlibDataLoader(DLWParser):
             instruments = "all"
         if isinstance(instruments, str):
             instruments = D.instruments(instruments, filter_pipe=self.filter_pipe)
-        elif self.filter_pipe is not None:
+        elif self.filter_pipe is not None and not isinstance(instruments, dict):
             warnings.warn("`filter_pipe` is not None, but it will not be used with `instruments` as list")
 
         freq = self.freq[gp_name] if isinstance(self.freq, dict) else self.freq

@@ -4,11 +4,14 @@
 import sys
 import unittest
 import qlib
+import pandas as pd
 from pathlib import Path
+from unittest.mock import patch
 
 sys.path.append(str(Path(__file__).resolve().parent))
 from qlib.data.dataset.loader import NestedDataLoader, QlibDataLoader
 from qlib.data.dataset.handler import DataHandlerLP
+from qlib.contrib.data.handler import Alpha158
 from qlib.contrib.data.loader import Alpha158DL, Alpha360DL
 from qlib.data.dataset.processor import Fillna
 from qlib.data import D
@@ -83,6 +86,71 @@ class TestDataLoader(unittest.TestCase):
         data = data_handler.fetch()
         print(data)
         """
+
+    def test_grouped_loader_applies_filter_pipe_once(self):
+        loader = QlibDataLoader(
+            config={
+                "feature": (["$close"], ["close"]),
+                "label": (["Ref($close, -1)"], ["label"]),
+            },
+            filter_pipe=[{"filter_type": "SeriesDFilter"}],
+        )
+        instruments_config = {"market": "csi300", "filter_pipe": loader.filter_pipe}
+        index = pd.MultiIndex.from_tuples(
+            [("SH600000", pd.Timestamp("2020-01-01"))],
+            names=["instrument", "datetime"],
+        )
+
+        def fake_features(instruments, exprs, start_time, end_time, freq="day", inst_processors=None):
+            self.assertIs(instruments, instruments_config)
+            return pd.DataFrame([[1.0] * len(exprs)], index=index, columns=exprs)
+
+        with (
+            patch(
+                "qlib.data.dataset.loader.D.instruments",
+                return_value=instruments_config,
+                create=True,
+            ) as instruments_mock,
+            patch("qlib.data.dataset.loader.D.features", side_effect=fake_features, create=True) as features_mock,
+        ):
+            df = loader.load("csi300", start_time="2020-01-01", end_time="2020-01-02")
+
+        instruments_mock.assert_called_once_with("csi300", filter_pipe=loader.filter_pipe)
+        self.assertEqual(features_mock.call_count, 2)
+        self.assertEqual({"feature", "label"}, set(df.columns.get_level_values(0)))
+
+    def test_alpha158_handler_applies_filter_pipe_once(self):
+        filter_pipe = [{"filter_type": "SeriesDFilter"}]
+        instruments_config = {"market": "csi300", "filter_pipe": filter_pipe}
+        index = pd.MultiIndex.from_tuples(
+            [("SH600000", pd.Timestamp("2020-01-01"))],
+            names=["instrument", "datetime"],
+        )
+
+        def fake_features(instruments, exprs, start_time, end_time, freq="day", inst_processors=None):
+            self.assertIs(instruments, instruments_config)
+            return pd.DataFrame([[1.0] * len(exprs)], index=index, columns=exprs)
+
+        with (
+            patch(
+                "qlib.data.dataset.loader.D.instruments",
+                return_value=instruments_config,
+                create=True,
+            ) as instruments_mock,
+            patch("qlib.data.dataset.loader.D.features", side_effect=fake_features, create=True) as features_mock,
+        ):
+            handler = Alpha158(
+                instruments="csi300",
+                start_time="2020-01-01",
+                end_time="2020-01-02",
+                filter_pipe=filter_pipe,
+                infer_processors=[],
+                learn_processors=[],
+            )
+
+        instruments_mock.assert_called_once_with("csi300", filter_pipe=filter_pipe)
+        self.assertEqual(features_mock.call_count, 2)
+        self.assertEqual({"feature", "label"}, set(handler._data.columns.get_level_values(0)))
 
 
 if __name__ == "__main__":
