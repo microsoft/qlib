@@ -171,7 +171,7 @@ class CSIIndex(IndexBase):
         for _s_name, _type, _date in [("调入", self.ADD, add_date), ("调出", self.REMOVE, remove_date)]:
             _df = df_map[_s_name]
             _df = _df.loc[_df["指数代码"] == self.index_code, ["证券代码"]]
-            _df = _df.applymap(self.normalize_symbol)
+            _df = _df.map(self.normalize_symbol)
             _df.columns = [self.SYMBOL_FIELD_NAME]
             _df["type"] = _type
             _df[self.DATE_FIELD_NAME] = _date
