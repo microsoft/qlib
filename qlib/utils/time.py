@@ -249,9 +249,9 @@ class Freq:
             if _min_delta < 0:
                 continue
             if min_freq is None:
-                min_freq = (_min_delta, str(_freq))
+                min_freq = (_min_delta, Freq(_freq))
                 continue
-            min_freq = min_freq if min_freq[0] <= _min_delta else (_min_delta, _freq)
+            min_freq = min_freq if min_freq[0] <= _min_delta else (_min_delta, Freq(_freq))
         return min_freq[1] if min_freq else None
 
 
