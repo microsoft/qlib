@@ -240,7 +240,7 @@ class YahooCollectorCN1d(YahooCollectorCN):
                 logger.warning(f"get {_index_name} error: {e}")
                 continue
             df.columns = ["date", "open", "close", "high", "low", "volume", "money", "change"]
-            df["date"] = pd.to_datetime(df["date"])
+            df["date"] = pd.to_datetime(df["date"], format="mixed")
             df = df.astype(float, errors="ignore")
             df["adjclose"] = df["close"]
             df["symbol"] = f"sh{_index_code}"
@@ -392,7 +392,7 @@ class YahooNormalize(BaseNormalize):
         columns = copy.deepcopy(YahooNormalize.COLUMNS)
         df = df.copy()
         df.set_index(date_field_name, inplace=True)
-        df.index = pd.to_datetime(df.index)
+        df.index = pd.to_datetime(df.index, format="mixed")
         df.index = df.index.tz_localize(None)
         df = df[~df.index.duplicated(keep="first")]
         if calendar_list is not None:
