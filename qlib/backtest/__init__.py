@@ -116,6 +116,7 @@ def create_account_instance(
     benchmark: Optional[str],
     account: Union[float, int, dict],
     pos_type: str = "Position",
+    freq: str = "day",
 ) -> Account:
     """
     # TODO: is very strange pass benchmark_config in the account (maybe for report)
@@ -148,6 +149,8 @@ def create_account_instance(
             ...
     pos_type: str
         Postion type.
+    freq: str
+        trading frequency, passed through to Account for report metrics.
     """
     if isinstance(account, (int, float)):
         init_cash = account
@@ -162,6 +165,7 @@ def create_account_instance(
         init_cash=init_cash,
         position_dict=position_dict,
         pos_type=pos_type,
+        freq=freq,
         benchmark_config=(
             {}
             if benchmark is None
@@ -196,6 +200,7 @@ def get_strategy_executor(
         benchmark=benchmark,
         account=account,
         pos_type=pos_type,
+        freq=exchange_kwargs.get("freq", "day"),
     )
 
     exchange_kwargs = copy.copy(exchange_kwargs)
