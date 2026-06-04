@@ -916,10 +916,16 @@ def code_to_fname(code: str):
     replace_names += [f"LPT{i}" for i in range(10)]
 
     prefix = "_qlib_"
-    if str(code).upper() in replace_names:
-        code = prefix + str(code)
+    code = str(code)
+    if code.upper() in replace_names:
+        code = prefix + code
 
-    return code
+    # Normalize to lowercase for case-insensitive file paths.
+    # All file-based storage (FileFeatureStorage, FileInstrumentStorage, etc.)
+    # assumes lowercase paths internally, but not all callers pre-normalize.
+    # Centralizing the normalization here prevents path mismatches on
+    # case-sensitive filesystems (e.g., Linux ext4).
+    return code.lower()
 
 
 def fname_to_code(fname: str):

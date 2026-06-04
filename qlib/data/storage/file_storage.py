@@ -286,7 +286,9 @@ class FileFeatureStorage(FileStorageMixin, FeatureStorage):
     def __init__(self, instrument: str, field: str, freq: str, provider_uri: dict = None, **kwargs):
         super(FileFeatureStorage, self).__init__(instrument, field, freq, **kwargs)
         self._provider_uri = None if provider_uri is None else C.DataPathManager.format_provider_uri(provider_uri)
-        self.file_name = f"{instrument.lower()}/{field.lower()}.{freq.lower()}.bin"
+        # NOTE: instrument case is normalized by code_to_fname() before reaching here.
+        # freq/field are also normalized to lowercase for path consistency.
+        self.file_name = f"{instrument}/{field.lower()}.{freq.lower()}.bin"
 
     def clear(self):
         with self.uri.open("wb") as _:

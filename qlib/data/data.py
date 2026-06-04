@@ -779,8 +779,8 @@ class LocalPITProvider(PITProvider):
         if not field.endswith("_q") and not field.endswith("_a"):
             raise ValueError("period field must ends with '_q' or '_a'")
         quarterly = field.endswith("_q")
-        index_path = C.dpm.get_data_uri() / "financial" / instrument.lower() / f"{field}.index"
-        data_path = C.dpm.get_data_uri() / "financial" / instrument.lower() / f"{field}.data"
+        index_path = C.dpm.get_data_uri() / "financial" / instrument / f"{field}.index"
+        data_path = C.dpm.get_data_uri() / "financial" / instrument / f"{field}.data"
         if not (index_path.exists() and data_path.exists()):
             raise FileNotFoundError("No file is found.")
         # NOTE: The most significant performance loss is here.
