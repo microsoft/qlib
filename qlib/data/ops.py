@@ -1335,9 +1335,13 @@ class WMA(Rolling):
         # TODO: implement in Cython
 
         def weighted_mean(x):
+            mask = ~np.isnan(x)
             w = np.arange(len(x)) + 1
+            w = w[mask]
+            if len(w) == 0:
+                return np.nan
             w = w / w.sum()
-            return np.nanmean(w * x)
+            return np.sum(w * x[mask])
 
         if self.N == 0:
             series = series.expanding(min_periods=1).apply(weighted_mean, raw=True)
