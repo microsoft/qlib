@@ -76,8 +76,10 @@ class PPOActor(nn.Module):
         self,
         obs: torch.Tensor,
         state: torch.Tensor = None,
-        info: dict = {},
+        info: dict = None,
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
+        if info is None:
+            info = {}
         feature = self.extractor(to_torch(obs, device=auto_device(self)))
         out = self.layer_out(feature)
         return out, state
@@ -93,8 +95,10 @@ class PPOCritic(nn.Module):
         self,
         obs: torch.Tensor,
         state: torch.Tensor = None,
-        info: dict = {},
+        info: dict = None,
     ) -> torch.Tensor:
+        if info is None:
+            info = {}
         feature = self.extractor(to_torch(obs, device=auto_device(self)))
         return self.value_out(feature).squeeze(dim=-1)
 

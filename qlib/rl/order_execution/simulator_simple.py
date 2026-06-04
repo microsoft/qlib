@@ -79,8 +79,8 @@ class SingleAssetOrderExecutionSimple(Simulator[Order, SAOEState, float]):
         self,
         order: Order,
         data_dir: Path,
-        feature_columns_today: List[str] = [],
-        feature_columns_yesterday: List[str] = [],
+        feature_columns_today: List[str] = None,
+        feature_columns_yesterday: List[str] = None,
         data_granularity: int = 1,
         ticks_per_step: int = 30,
         vol_threshold: Optional[float] = None,
@@ -88,6 +88,11 @@ class SingleAssetOrderExecutionSimple(Simulator[Order, SAOEState, float]):
         super().__init__(initial=order)
 
         assert ticks_per_step % data_granularity == 0
+
+        if feature_columns_today is None:
+            feature_columns_today = []
+        if feature_columns_yesterday is None:
+            feature_columns_yesterday = []
 
         self.order = order
         self.data_dir = data_dir
