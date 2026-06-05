@@ -42,7 +42,7 @@ class Exchange:
         end_time: Union[pd.Timestamp, str] = None,
         codes: Union[list, str] = "all",
         deal_price: Union[str, Tuple[str, str], List[str], None] = None,
-        subscribe_fields: list = [],
+        subscribe_fields: list = None,
         limit_threshold: Union[Tuple[str, str], float, None] = None,
         volume_threshold: Union[tuple, dict, None] = None,
         open_cost: float = 0.0015,
@@ -140,6 +140,9 @@ class Exchange:
             limit_threshold = C.limit_threshold
         if deal_price is None:
             deal_price = C.deal_price
+
+        if subscribe_fields is None:
+            subscribe_fields = []
 
         # we have some verbose information here. So logging is enabled
         self.logger = get_module_logger("online operator")

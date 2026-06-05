@@ -36,7 +36,7 @@ def get_exchange(
     start_time: Union[pd.Timestamp, str] = None,
     end_time: Union[pd.Timestamp, str] = None,
     codes: Union[list, str] = "all",
-    subscribe_fields: list = [],
+    subscribe_fields: list = None,
     open_cost: float = 0.0015,
     close_cost: float = 0.0025,
     min_cost: float = 5.0,
@@ -87,6 +87,8 @@ def get_exchange(
     an initialized Exchange object
     """
 
+    if subscribe_fields is None:
+        subscribe_fields = []
     if limit_threshold is None:
         limit_threshold = C.limit_threshold
     if exchange is None:
@@ -181,7 +183,7 @@ def get_strategy_executor(
     executor: Union[str, dict, object, Path],
     benchmark: Optional[str] = "SH000300",
     account: Union[float, int, dict] = 1e9,
-    exchange_kwargs: dict = {},
+    exchange_kwargs: dict = None,
     pos_type: str = "Position",
 ) -> Tuple[BaseStrategy, BaseExecutor]:
     # NOTE:
@@ -189,6 +191,9 @@ def get_strategy_executor(
     # - typing annotations is not reliable
     from ..strategy.base import BaseStrategy  # pylint: disable=C0415
     from .executor import BaseExecutor  # pylint: disable=C0415
+
+    if exchange_kwargs is None:
+        exchange_kwargs = {}
 
     trade_account = create_account_instance(
         start_time=start_time,
@@ -221,7 +226,7 @@ def backtest(
     executor: Union[str, dict, object, Path],
     benchmark: str = "SH000300",
     account: Union[float, int, dict] = 1e9,
-    exchange_kwargs: dict = {},
+    exchange_kwargs: dict = None,
     pos_type: str = "Position",
 ) -> Tuple[PORT_METRIC, INDICATOR_METRIC]:
     """initialize the strategy and executor, then backtest function for the interaction of the outermost strategy and
@@ -263,6 +268,8 @@ def backtest(
         It is organized in a dict format
 
     """
+    if exchange_kwargs is None:
+        exchange_kwargs = {}
     trade_strategy, trade_executor = get_strategy_executor(
         start_time,
         end_time,
@@ -283,7 +290,7 @@ def collect_data(
     executor: Union[str, dict, object, Path],
     benchmark: str = "SH000300",
     account: Union[float, int, dict] = 1e9,
-    exchange_kwargs: dict = {},
+    exchange_kwargs: dict = None,
     pos_type: str = "Position",
     return_value: dict | None = None,
 ) -> Generator[object, None, None]:
@@ -296,6 +303,8 @@ def collect_data(
     object
         trade decision
     """
+    if exchange_kwargs is None:
+        exchange_kwargs = {}
     trade_strategy, trade_executor = get_strategy_executor(
         start_time,
         end_time,

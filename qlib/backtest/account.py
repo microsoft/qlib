@@ -79,9 +79,9 @@ class Account:
     def __init__(
         self,
         init_cash: float = 1e9,
-        position_dict: dict = {},
+        position_dict: dict = None,
         freq: str = "day",
-        benchmark_config: dict = {},
+        benchmark_config: dict = None,
         pos_type: str = "Position",
         port_metr_enabled: bool = True,
     ) -> None:
@@ -103,6 +103,10 @@ class Account:
             by default {}.
         """
 
+        if position_dict is None:
+            position_dict = {}
+        if benchmark_config is None:
+            benchmark_config = {}
         self._pos_type = pos_type
         self._port_metr_enabled = port_metr_enabled
         self.benchmark_config: dict = {}  # avoid no attribute error
@@ -306,12 +310,22 @@ class Account:
         trade_exchange: Exchange,
         atomic: bool,
         outer_trade_decision: BaseTradeDecision,
-        trade_info: list = [],
-        inner_order_indicators: List[BaseOrderIndicator] = [],
-        decision_list: List[Tuple[BaseTradeDecision, pd.Timestamp, pd.Timestamp]] = [],
-        indicator_config: dict = {},
+        trade_info: list = None,
+        inner_order_indicators: List[BaseOrderIndicator] = None,
+        decision_list: List[Tuple[BaseTradeDecision, pd.Timestamp, pd.Timestamp]] = None,
+        indicator_config: dict = None,
     ) -> None:
         """update trade indicators and order indicators in each bar end"""
+        # TODO: will skip empty decisions make it faster?  `outer_trade_decision.empty():`
+
+        if trade_info is None:
+            trade_info = []
+        if inner_order_indicators is None:
+            inner_order_indicators = []
+        if decision_list is None:
+            decision_list = []
+        if indicator_config is None:
+            indicator_config = {}
         # TODO: will skip empty decisions make it faster?  `outer_trade_decision.empty():`
 
         # indicator is trading (e.g. high-frequency order execution) related analysis
@@ -342,10 +356,10 @@ class Account:
         trade_exchange: Exchange,
         atomic: bool,
         outer_trade_decision: BaseTradeDecision,
-        trade_info: list = [],
-        inner_order_indicators: List[BaseOrderIndicator] = [],
-        decision_list: List[Tuple[BaseTradeDecision, pd.Timestamp, pd.Timestamp]] = [],
-        indicator_config: dict = {},
+        trade_info: list = None,
+        inner_order_indicators: List[BaseOrderIndicator] = None,
+        decision_list: List[Tuple[BaseTradeDecision, pd.Timestamp, pd.Timestamp]] = None,
+        indicator_config: dict = None,
     ) -> None:
         """update account at each trading bar step
 

@@ -242,7 +242,7 @@ class Position(BasePosition):
     }
     """
 
-    def __init__(self, cash: float = 0, position_dict: Dict[str, Union[Dict[str, float], float]] = {}) -> None:
+    def __init__(self, cash: float = 0, position_dict: Dict[str, Union[Dict[str, float], float]] | None = None) -> None:
         """Init position by cash and position_dict.
 
         Parameters
@@ -261,6 +261,9 @@ class Position(BasePosition):
             by default {}.
         """
         super().__init__()
+
+        if position_dict is None:
+            position_dict = {}
 
         # NOTE: The position dict must be copied!!!
         # Otherwise the initial value

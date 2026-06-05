@@ -39,13 +39,13 @@ class PortfolioMetrics:
         update report
     """
 
-    def __init__(self, freq: str = "day", benchmark_config: dict = {}) -> None:
+    def __init__(self, freq: str = "day", benchmark_config: dict | None = None) -> None:
         """
         Parameters
         ----------
         freq : str
             frequency of trading bar, used for updating hold count of trading bar
-        benchmark_config : dict
+        benchmark_config : dict, optional
             config of benchmark, may including the following arguments:
             - benchmark : Union[str, list, pd.Series]
                 - If `benchmark` is pd.Series, `index` is trading date; the value T is the change from T-1 to T.
@@ -73,6 +73,8 @@ class PortfolioMetrics:
         """
 
         self.init_vars()
+        if benchmark_config is None:
+            benchmark_config = {}
         self.init_bench(freq=freq, benchmark_config=benchmark_config)
 
     def init_vars(self) -> None:
@@ -385,13 +387,15 @@ class Indicator:
         direction: OrderDir,
         decision: BaseTradeDecision,
         trade_exchange: Exchange,
-        pa_config: dict = {},
+        pa_config: dict | None = None,
     ) -> Tuple[Optional[float], Optional[float]]:
         """
         Get the base volume and price information
         All the base price values are rooted from this function
         """
 
+        if pa_config is None:
+            pa_config = {}
         agg = pa_config.get("agg", "twap").lower()
         price = pa_config.get("price", "deal_price").lower()
 
@@ -457,7 +461,7 @@ class Indicator:
         inner_order_indicators: List[BaseOrderIndicator],
         decision_list: List[Tuple[BaseTradeDecision, pd.Timestamp, pd.Timestamp]],
         trade_exchange: Exchange,
-        pa_config: dict = {},
+        pa_config: dict | None = None,
     ) -> None:
         """
         # NOTE:!!!!
@@ -472,7 +476,7 @@ class Indicator:
             a list of decisions according to inner_order_indicators
         trade_exchange : Exchange
             for retrieving trading price
-        pa_config : dict
+        pa_config : dict, optional
             For example
             {
                 "agg": "twap",  # "vwap"
@@ -481,6 +485,8 @@ class Indicator:
             }
         """
 
+        if pa_config is None:
+            pa_config = {}
         # TODO: I think there are potentials to be optimized
         trade_dir = self.order_indicator.get_index_data("trade_dir")
         if len(trade_dir) > 0:
@@ -542,8 +548,10 @@ class Indicator:
         decision_list: List[Tuple[BaseTradeDecision, pd.Timestamp, pd.Timestamp]],
         outer_trade_decision: BaseTradeDecision,
         trade_exchange: Exchange,
-        indicator_config: dict = {},
+        indicator_config: dict | None = None,
     ) -> None:
+        if indicator_config is None:
+            indicator_config = {}
         self._agg_order_trade_info(inner_order_indicators)
         self._update_trade_amount(outer_trade_decision)
         self._update_order_fulfill_rate()
@@ -609,8 +617,10 @@ class Indicator:
         self,
         trade_start_time: Union[str, pd.Timestamp],
         freq: str,
-        indicator_config: dict = {},
+        indicator_config: dict | None = None,
     ) -> None:
+        if indicator_config is None:
+            indicator_config = {}
         show_indicator = indicator_config.get("show_indicator", False)
         ffr_config = indicator_config.get("ffr_config", {})
         pa_config = indicator_config.get("pa_config", {})

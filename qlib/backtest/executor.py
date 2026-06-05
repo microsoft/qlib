@@ -27,7 +27,7 @@ class BaseExecutor:
         time_per_step: str,
         start_time: Union[str, pd.Timestamp] = None,
         end_time: Union[str, pd.Timestamp] = None,
-        indicator_config: dict = {},
+        indicator_config: dict = None,
         generate_portfolio_metrics: bool = False,
         verbose: bool = False,
         track_data: bool = False,
@@ -108,6 +108,8 @@ class BaseExecutor:
             Please refer to the docs of BasePosition.settle_start
         """
         self.time_per_step = time_per_step
+        if indicator_config is None:
+            indicator_config = {}
         self.indicator_config = indicator_config
         self.generate_portfolio_metrics = generate_portfolio_metrics
         self.verbose = verbose
@@ -321,7 +323,7 @@ class NestedExecutor(BaseExecutor):
         inner_strategy: Union[BaseStrategy, dict],
         start_time: Union[str, pd.Timestamp] = None,
         end_time: Union[str, pd.Timestamp] = None,
-        indicator_config: dict = {},
+        indicator_config: dict = None,
         generate_portfolio_metrics: bool = False,
         verbose: bool = False,
         track_data: bool = False,
@@ -346,6 +348,8 @@ class NestedExecutor(BaseExecutor):
             force to align the trade_range decision
             It is only for nested executor, because range_limit is given by outer strategy
         """
+        if indicator_config is None:
+            indicator_config = {}
         self.inner_executor: BaseExecutor = init_instance_by_config(
             inner_executor,
             common_infra=common_infra,
@@ -530,7 +534,7 @@ class SimulatorExecutor(BaseExecutor):
         time_per_step: str,
         start_time: Union[str, pd.Timestamp] = None,
         end_time: Union[str, pd.Timestamp] = None,
-        indicator_config: dict = {},
+        indicator_config: dict = None,
         generate_portfolio_metrics: bool = False,
         verbose: bool = False,
         track_data: bool = False,
