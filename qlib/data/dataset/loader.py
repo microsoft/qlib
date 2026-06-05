@@ -360,7 +360,7 @@ class DataLoaderDH(DataLoader):
         - The underlayer data handler should be configured. But data loader doesn't provide such interface & hook.
     """
 
-    def __init__(self, handler_config: dict, fetch_kwargs: dict = {}, is_group=False):
+    def __init__(self, handler_config: dict, fetch_kwargs: dict = None, is_group=False):
         """
         Parameters
         ----------
@@ -385,6 +385,9 @@ class DataLoaderDH(DataLoader):
 
         """
         from qlib.data.dataset.handler import DataHandler  # pylint: disable=C0415
+
+        if fetch_kwargs is None:
+            fetch_kwargs = {}
 
         if is_group:
             self.handlers = {

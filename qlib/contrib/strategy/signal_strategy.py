@@ -409,11 +409,15 @@ class EnhancedIndexingStrategy(WeightStrategyBase):
         riskmodel_root,
         market="csi500",
         turn_limit=None,
-        name_mapping={},
-        optimizer_kwargs={},
+        name_mapping=None,
+        optimizer_kwargs=None,
         verbose=False,
         **kwargs,
     ):
+        if name_mapping is None:
+            name_mapping = {}
+        if optimizer_kwargs is None:
+            optimizer_kwargs = {}
         super().__init__(**kwargs)
 
         self.logger = get_module_logger("EnhancedIndexingStrategy")

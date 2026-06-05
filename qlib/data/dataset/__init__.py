@@ -85,7 +85,7 @@ class DatasetH(Dataset):
         self,
         handler: Union[Dict, DataHandler],
         segments: Dict[Text, Tuple],
-        fetch_kwargs: Dict = {},
+        fetch_kwargs: Dict = None,
         **kwargs,
     ):
         """
@@ -116,6 +116,8 @@ class DatasetH(Dataset):
                         'outsample': ("2017-01-01", "2020-08-01",),
                     }
         """
+        if fetch_kwargs is None:
+            fetch_kwargs = {}
         self.handler: DataHandler = init_instance_by_config(handler, accept_types=DataHandler)
         self.segments = segments.copy()
         self.fetch_kwargs = copy(fetch_kwargs)

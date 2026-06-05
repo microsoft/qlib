@@ -71,13 +71,15 @@ class DNNModelPytorch(Model):
         init_model=None,
         eval_train_metric=False,
         pt_model_uri="qlib.contrib.model.pytorch_nn.Net",
-        pt_model_kwargs={
-            "input_dim": 360,
-            "layers": (256,),
-        },
+        pt_model_kwargs=None,
         valid_key=DataHandlerLP.DK_L,
         # TODO: Infer Key is a more reasonable key. But it requires more detailed processing on label processing
     ):
+        if pt_model_kwargs is None:
+            pt_model_kwargs = {
+                "input_dim": 360,
+                "layers": (256,),
+            }
         # Set logger.
         self.logger = get_module_logger("DNNModelPytorch")
         self.logger.info("DNN pytorch version...")

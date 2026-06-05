@@ -379,7 +379,7 @@ class AdaRNN(nn.Module):
         use_bottleneck=False,
         bottleneck_width=256,
         n_input=128,
-        n_hiddens=[64, 64],
+        n_hiddens=None,
         n_output=6,
         dropout=0.0,
         len_seq=9,
@@ -387,6 +387,8 @@ class AdaRNN(nn.Module):
         trans_loss="mmd",
         GPU=0,
     ):
+        if n_hiddens is None:
+            n_hiddens = [64, 64]
         super(AdaRNN, self).__init__()
         self.use_bottleneck = use_bottleneck
         self.n_input = n_input

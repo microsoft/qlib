@@ -439,9 +439,9 @@ class DataHandlerLP(DataHandler):
         start_time=None,
         end_time=None,
         data_loader: Union[dict, str, DataLoader] = None,
-        infer_processors: List = [],
-        learn_processors: List = [],
-        shared_processors: List = [],
+        infer_processors: List = None,
+        learn_processors: List = None,
+        shared_processors: List = None,
         process_type=PTYPE_A,
         drop_raw=False,
         **kwargs,
@@ -488,6 +488,13 @@ class DataHandlerLP(DataHandler):
         drop_raw: bool
             Whether to drop the raw data
         """
+
+        if infer_processors is None:
+            infer_processors = []
+        if learn_processors is None:
+            learn_processors = []
+        if shared_processors is None:
+            shared_processors = []
 
         # Setup preprocessor
         self.infer_processors = []  # for lint

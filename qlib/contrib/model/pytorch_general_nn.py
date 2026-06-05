@@ -63,13 +63,15 @@ class GeneralPTNN(Model):
         GPU=0,
         seed=None,
         pt_model_uri="qlib.contrib.model.pytorch_gru_ts.GRUModel",
-        pt_model_kwargs={
-            "d_feat": 6,
-            "hidden_size": 64,
-            "num_layers": 2,
-            "dropout": 0.0,
-        },
+        pt_model_kwargs=None,
     ):
+        if pt_model_kwargs is None:
+            pt_model_kwargs = {
+                "d_feat": 6,
+                "hidden_size": 64,
+                "num_layers": 2,
+                "dropout": 0.0,
+            }
         # Set logger.
         self.logger = get_module_logger("GeneralPTNN")
         self.logger.info("GeneralPTNN pytorch version...")

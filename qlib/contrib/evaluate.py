@@ -283,7 +283,7 @@ def long_short_backtest(
     trade_unit=None,
     limit_threshold=None,
     min_cost=5,
-    subscribe_fields=[],
+    subscribe_fields=None,
     extract_codes=False,
 ):
     """
@@ -307,6 +307,8 @@ def long_short_backtest(
                         "short": short_returns(excess),
                         "long_short": long_short_returns}
     """
+    if subscribe_fields is None:
+        subscribe_fields = []
     if get_level_index(pred, level="datetime") == 1:
         pred = pred.swaplevel().sort_index()
 

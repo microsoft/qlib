@@ -70,16 +70,7 @@ class Alpha158DL(QlibDataLoader):
         super().__init__(config=_config, **kwargs)
 
     @staticmethod
-    def get_feature_config(
-        config={
-            "kbar": {},
-            "price": {
-                "windows": [0],
-                "feature": ["OPEN", "HIGH", "LOW", "VWAP"],
-            },
-            "rolling": {},
-        }
-    ):
+    def get_feature_config(config=None):
         """create factors from config
 
         config = {
@@ -99,6 +90,15 @@ class Alpha158DL(QlibDataLoader):
             }
         }
         """
+        if config is None:
+            config = {
+                "kbar": {},
+                "price": {
+                    "windows": [0],
+                    "feature": ["OPEN", "HIGH", "LOW", "VWAP"],
+                },
+                "rolling": {},
+            }
         fields = []
         names = []
         if "kbar" in config:

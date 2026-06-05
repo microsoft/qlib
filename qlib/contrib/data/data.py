@@ -18,8 +18,10 @@ from qlib.data.data import FeatureProvider
 
 class ArcticFeatureProvider(FeatureProvider):
     def __init__(
-        self, uri="127.0.0.1", retry_time=0, market_transaction_time_list=[("09:15", "11:30"), ("13:00", "15:00")]
+        self, uri="127.0.0.1", retry_time=0, market_transaction_time_list=None
     ):
+        if market_transaction_time_list is None:
+            market_transaction_time_list = [("09:15", "11:30"), ("13:00", "15:00")]
         super().__init__()
         self.uri = uri
         # TODO:

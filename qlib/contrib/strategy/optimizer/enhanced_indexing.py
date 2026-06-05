@@ -51,7 +51,7 @@ class EnhancedIndexingOptimizer(BaseOptimizer):
         f_dev: Optional[Union[List[float], np.ndarray]] = None,
         scale_return: bool = True,
         epsilon: float = 5e-5,
-        solver_kwargs: Optional[Dict[str, Any]] = {},
+        solver_kwargs: Optional[Dict[str, Any]] = None,
     ):
         """
         Args:
@@ -63,8 +63,8 @@ class EnhancedIndexingOptimizer(BaseOptimizer):
             epsilon (float): minimum weight
             solver_kwargs (dict): kwargs for cvxpy solver
         """
-
-        assert lamb >= 0, "risk aversion parameter `lamb` should be positive"
+        if solver_kwargs is None:
+            solver_kwargs = {}
         self.lamb = lamb
 
         assert delta >= 0, "turnover limit `delta` should be positive"

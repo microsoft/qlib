@@ -11,12 +11,16 @@ class HighFreqHandler(DataHandlerLP):
         instruments="csi300",
         start_time=None,
         end_time=None,
-        infer_processors=[],
-        learn_processors=[],
+        infer_processors=None,
+        learn_processors=None,
         fit_start_time=None,
         fit_end_time=None,
         drop_raw=True,
     ):
+        if infer_processors is None:
+            infer_processors = []
+        if learn_processors is None:
+            learn_processors = []
         infer_processors = check_transform_proc(infer_processors, fit_start_time, fit_end_time)
         learn_processors = check_transform_proc(learn_processors, fit_start_time, fit_end_time)
 
@@ -106,8 +110,8 @@ class HighFreqGeneralHandler(DataHandlerLP):
         instruments="csi300",
         start_time=None,
         end_time=None,
-        infer_processors=[],
-        learn_processors=[],
+        infer_processors=None,
+        learn_processors=None,
         fit_start_time=None,
         fit_end_time=None,
         drop_raw=True,
@@ -116,6 +120,10 @@ class HighFreqGeneralHandler(DataHandlerLP):
         columns=["$open", "$high", "$low", "$close", "$vwap"],
         inst_processors=None,
     ):
+        if infer_processors is None:
+            infer_processors = []
+        if learn_processors is None:
+            learn_processors = []
         self.day_length = day_length
         self.columns = columns
 
@@ -310,13 +318,17 @@ class HighFreqOrderHandler(DataHandlerLP):
         instruments="csi300",
         start_time=None,
         end_time=None,
-        infer_processors=[],
-        learn_processors=[],
+        infer_processors=None,
+        learn_processors=None,
         fit_start_time=None,
         fit_end_time=None,
         inst_processors=None,
         drop_raw=True,
     ):
+        if infer_processors is None:
+            infer_processors = []
+        if learn_processors is None:
+            learn_processors = []
         infer_processors = check_transform_proc(infer_processors, fit_start_time, fit_end_time)
         learn_processors = check_transform_proc(learn_processors, fit_start_time, fit_end_time)
 

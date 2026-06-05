@@ -296,7 +296,7 @@ def model_performance_graph(
     N: int = 5,
     reverse=False,
     rank=False,
-    graph_names: list = ["group_return", "pred_ic", "pred_autocorr"],
+    graph_names: list = None,
     show_notebook: bool = True,
     show_nature_day: bool = False,
     **kwargs,
@@ -328,6 +328,8 @@ def model_performance_graph(
        - `rangebreaks`: https://plotly.com/python/time-series/#Hiding-Weekends-and-Holidays
     :return: if show_notebook is True, display in notebook; else return `plotly.graph_objs.Figure` list.
     """
+    if graph_names is None:
+        graph_names = ["group_return", "pred_ic", "pred_autocorr"]
     figure_list = []
     for graph_name in graph_names:
         fun_res = eval(f"_{graph_name}")(

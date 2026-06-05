@@ -121,7 +121,9 @@ class HighFreqProvider:
         Cal.calendar(freq=self.freq)
         get_calendar_day(freq=self.freq)
 
-    def _gen_dataframe(self, config, datasets=["train", "valid", "test"]):
+    def _gen_dataframe(self, config, datasets=None):
+        if datasets is None:
+            datasets = ["train", "valid", "test"]
         try:
             path = config.pop("path")
         except KeyError as e:
@@ -163,7 +165,9 @@ class HighFreqProvider:
             self.logger.info(f"[{__name__}]Data generated, time cost: {(time.time() - start_time):.2f}")
         return res
 
-    def _gen_data(self, config, datasets=["train", "valid", "test"]):
+    def _gen_data(self, config, datasets=None):
+        if datasets is None:
+            datasets = ["train", "valid", "test"]
         try:
             path = config.pop("path")
         except KeyError as e:
