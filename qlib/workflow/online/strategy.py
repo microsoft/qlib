@@ -120,7 +120,7 @@ class RollingStrategy(OnlineStrategy):
         self.tool = OnlineToolR(self.exp_name)
         self.ta = TimeAdjuster()
 
-    def get_collector(self, process_list=[RollingGroup()], rec_key_func=None, rec_filter_func=None, artifacts_key=None):
+    def get_collector(self, process_list=None, rec_key_func=None, rec_filter_func=None, artifacts_key=None):
         """
         Get the instance of `Collector <../advanced/task_management.html#Task Collecting>`_ to collect results. The returned collector must distinguish results in different models.
 
@@ -132,6 +132,8 @@ class RollingStrategy(OnlineStrategy):
             rec_filter_func (Callable, optional): filter the recorder by return True or False. Defaults to None.
             artifacts_key (List[str], optional): the artifacts key you want to get. If None, get all artifacts.
         """
+        if process_list is None:
+            process_list = [RollingGroup()]
 
         def rec_key(recorder):
             task_config = recorder.load_object("task")

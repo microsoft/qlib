@@ -153,7 +153,7 @@ class OnlineManager(Serializable):
         """
         return self.status == self.STATUS_SIMULATING and self.trainer.is_delay()
 
-    def first_train(self, strategies: List[OnlineStrategy] = None, model_kwargs: dict = {}):
+    def first_train(self, strategies: List[OnlineStrategy] = None, model_kwargs: dict = None):
         """
         Get tasks from every strategy's first_tasks method and train them.
         If using DelayTrainer, it can finish training all together after every strategy's first_tasks.
@@ -164,6 +164,8 @@ class OnlineManager(Serializable):
         """
         if strategies is None:
             strategies = self.strategies
+        if model_kwargs is None:
+            model_kwargs = {}
 
         models_list = []
         for strategy in strategies:
@@ -346,7 +348,7 @@ class OnlineManager(Serializable):
         self.status = self.STATUS_ONLINE
         return self.get_signals()
 
-    def delay_prepare(self, model_kwargs={}, signal_kwargs={}):
+    def delay_prepare(self, model_kwargs=None, signal_kwargs=None):
         """
         Prepare all models and signals if something is waiting for preparation.
 
@@ -354,6 +356,10 @@ class OnlineManager(Serializable):
             model_kwargs: the params for `end_train`
             signal_kwargs: the params for `prepare_signals`
         """
+        if model_kwargs is None:
+            model_kwargs = {}
+        if signal_kwargs is None:
+            signal_kwargs = {}
         # FIXME:
         # This method is not implemented in the proper way!!!
         last_models = {}

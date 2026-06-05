@@ -26,7 +26,7 @@ class InternalData:
         self.step = step
         self.exp_name = exp_name
 
-    def setup(self, trainer=TrainerR, trainer_kwargs={}):
+    def setup(self, trainer=TrainerR, trainer_kwargs=None):
         """
         after running this function `self.data_ic_df` will become set.
         Each col represents a data.
@@ -46,6 +46,9 @@ class InternalData:
             ...               ...        ...        ...        ...        ...        ...        ...        ...  ...
 
         """
+
+        if trainer_kwargs is None:
+            trainer_kwargs = {}
 
         # 1) prepare the prediction of proxy models
         perf_task_tpl = deepcopy(self.task_tpl)  # this task is supposed to contains no complicated objects

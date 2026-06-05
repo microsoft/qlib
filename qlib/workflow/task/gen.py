@@ -302,7 +302,7 @@ class RollingGen(TaskGen):
 
 
 class MultiHorizonGenBase(TaskGen):
-    def __init__(self, horizon: List[int] = [5], label_leak_n=2):
+    def __init__(self, horizon: List[int] = None, label_leak_n=2):
         """
         This task generator tries to generate tasks for different horizons based on an existing task
 
@@ -317,6 +317,8 @@ class MultiHorizonGenBase(TaskGen):
             - The label is the return of buying stock on `T + 1` and selling it on `T + 2`
             - the `label_leak_n` will be 2 (e.g. two days of information is leaked to leverage this sample)
         """
+        if horizon is None:
+            horizon = [5]
         self.horizon = list(horizon)
         self.label_leak_n = label_leak_n
         self.ta = TimeAdjuster()

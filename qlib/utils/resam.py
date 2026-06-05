@@ -104,8 +104,10 @@ def resam_ts_data(
     start_time: Union[str, pd.Timestamp] = None,
     end_time: Union[str, pd.Timestamp] = None,
     method: Union[str, Callable] = "last",
-    method_kwargs: dict = {},
+    method_kwargs: dict = None,
 ):
+    if method_kwargs is None:
+        method_kwargs = {}
     """
     Resample value from time-series data
 

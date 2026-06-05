@@ -886,7 +886,9 @@ def register_wrapper(wrapper, cls_or_obj, module_path=None):
     wrapper.register(obj)
 
 
-def load_dataset(path_or_obj, index_col=[0, 1]):
+def load_dataset(path_or_obj, index_col=None):
+    if index_col is None:
+        index_col = [0, 1]
     """load dataset from multiple file formats"""
     if isinstance(path_or_obj, pd.DataFrame):
         return path_or_obj
