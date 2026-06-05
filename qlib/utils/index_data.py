@@ -528,19 +528,25 @@ class IndexData(metaclass=index_data_ops_creator):
 
 class SingleData(IndexData):
     def __init__(
-        self, data: Union[int, float, np.number, list, dict, pd.Series] = [], index: Union[List, pd.Index, Index] = []
+        self,
+        data: Union[int, float, np.number, list, dict, pd.Series] | None = None,
+        index: Union[List, pd.Index, Index] | None = None,
     ):
         """A data structure of index and numpy data.
         It's used to replace pd.Series due to high-speed.
 
         Parameters
         ----------
-        data : Union[int, float, np.number, list, dict, pd.Series]
+        data : Union[int, float, np.number, list, dict, pd.Series], optional
             the input data
-        index : Union[list, pd.Index]
+        index : Union[list, pd.Index], optional
             the index of data.
             empty list indicates that auto filling the index to the length of data
         """
+        if data is None:
+            data = []
+        if index is None:
+            index = []
         # for special data type
         if isinstance(data, dict):
             assert len(index) == 0

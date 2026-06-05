@@ -450,7 +450,7 @@ class DatasetProvider(abc.ABC):
     """
 
     @abc.abstractmethod
-    def dataset(self, instruments, fields, start_time=None, end_time=None, freq="day", inst_processors=[]):
+    def dataset(self, instruments, fields, start_time=None, end_time=None, freq="day", inst_processors=None):
         """Get dataset data.
 
         Parameters
@@ -473,6 +473,8 @@ class DatasetProvider(abc.ABC):
         pd.DataFrame
             a pandas dataframe with <instrument, datetime> index.
         """
+        if inst_processors is None:
+            inst_processors = []
         raise NotImplementedError("Subclass of DatasetProvider must implement `Dataset` method")
 
     def _uri(
@@ -483,7 +485,7 @@ class DatasetProvider(abc.ABC):
         end_time=None,
         freq="day",
         disk_cache=1,
-        inst_processors=[],
+        inst_processors=None,
         **kwargs,
     ):
         """Get task uri, used when generating rabbitmq task in qlib_server
@@ -504,6 +506,8 @@ class DatasetProvider(abc.ABC):
             whether to skip(0)/use(1)/replace(2) disk_cache.
 
         """
+        if inst_processors is None:
+            inst_processors = []
         # TODO: qlib-server support inst_processors
         return DiskDatasetCache._uri(instruments, fields, start_time, end_time, freq, disk_cache, inst_processors)
 
@@ -545,12 +549,14 @@ class DatasetProvider(abc.ABC):
         return [ExpressionD.get_expression_instance(f) for f in fields]
 
     @staticmethod
-    def dataset_processor(instruments_d, column_names, start_time, end_time, freq, inst_processors=[]):
+    def dataset_processor(instruments_d, column_names, start_time, end_time, freq, inst_processors=None):
         """
         Load and process the data, return the data set.
         - default using multi-kernel method.
 
         """
+        if inst_processors is None:
+            inst_processors = []
         normalize_column_names = normalize_cache_fields(column_names)
         # One process for one task, so that the memory will be freed quicker.
         workers = max(min(C.get_kernels(freq), len(instruments_d)), 1)
@@ -597,7 +603,7 @@ class DatasetProvider(abc.ABC):
         return data
 
     @staticmethod
-    def inst_calculator(inst, start_time, end_time, freq, column_names, spans=None, g_config=None, inst_processors=[]):
+    def inst_calculator(inst, start_time, end_time, freq, column_names, spans=None, g_config=None, inst_processors=None):
         """
         Calculate the expressions for **one** instrument, return a df result.
         If the expression has been calculated before, load from cache.
@@ -605,6 +611,8 @@ class DatasetProvider(abc.ABC):
         return value: A data frame with index 'datetime' and other data columns.
 
         """
+        if inst_processors is None:
+            inst_processors = []
         # FIXME: Windows OS or MacOS using spawn: https://docs.python.org/3.8/library/multiprocessing.html?highlight=spawn#contexts-and-start-methods
         # NOTE: This place is compatible with windows, windows multi-process is spawn
         C.register_from_C(g_config)
@@ -640,7 +648,9 @@ class LocalCalendarProvider(CalendarProvider, ProviderBackendMixin):
     Provide calendar data from local data source.
     """
 
-    def __init__(self, remote=False, backend={}):
+    def __init__(self, remote=False, backend=None):
+        if backend is None:
+            backend = {}
         super().__init__()
         self.remote = remote
         self.backend = backend
@@ -681,7 +691,9 @@ class LocalInstrumentProvider(InstrumentProvider, ProviderBackendMixin):
     Provide instrument data from local data source.
     """
 
-    def __init__(self, backend={}) -> None:
+    def __init__(self, backend=None) -> None:
+        if backend is None:
+            backend = {}
         super().__init__()
         self.backend = backend
 
@@ -729,7 +741,9 @@ class LocalFeatureProvider(FeatureProvider, ProviderBackendMixin):
     Provide feature data from local data source.
     """
 
-    def __init__(self, remote=False, backend={}):
+    def __init__(self, remote=False, backend=None):
+        if backend is None:
+            backend = {}
         super().__init__()
         self.remote = remote
         self.backend = backend
@@ -906,8 +920,10 @@ class LocalDatasetProvider(DatasetProvider):
         start_time=None,
         end_time=None,
         freq="day",
-        inst_processors=[],
+        inst_processors=None,
     ):
+        if inst_processors is None:
+            inst_processors = []
         instruments_d = self.get_instruments_d(instruments, freq)
         column_names = self.get_column_names(fields)
         if self.align_time:
@@ -1046,8 +1062,10 @@ class ClientDatasetProvider(DatasetProvider):
         freq="day",
         disk_cache=0,
         return_uri=False,
-        inst_processors=[],
+        inst_processors=None,
     ):
+        if inst_processors is None:
+            inst_processors = []
         if Inst.get_inst_type(instruments) == Inst.DICT:
             get_module_logger("data").warning(
                 "Getting features from a dict of instruments is not recommended because the features will not be "
@@ -1167,7 +1185,7 @@ class BaseProvider:
         end_time=None,
         freq="day",
         disk_cache=None,
-        inst_processors=[],
+        inst_processors=None,
     ):
         """
         Parameters
@@ -1180,6 +1198,8 @@ class BaseProvider:
         and will use provider method if a type error is raised because the DatasetD instance
         is a provider class.
         """
+        if inst_processors is None:
+            inst_processors = []
         disk_cache = C.default_disk_cache if disk_cache is None else disk_cache
         fields = list(fields)  # In case of tuple.
         try:

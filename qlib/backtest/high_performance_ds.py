@@ -508,7 +508,9 @@ class SingleMetric(BaseSingleMetric):
 class PandasSingleMetric(SingleMetric):
     """Each SingleMetric is based on pd.Series."""
 
-    def __init__(self, metric: Union[dict, pd.Series] = {}):
+    def __init__(self, metric: Union[dict, pd.Series] | None = None):
+        if metric is None:
+            metric = {}
         if isinstance(metric, dict):
             self.metric = pd.Series(metric)
         elif isinstance(metric, pd.Series):
