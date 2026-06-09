@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 
 from urllib.parse import urlparse
+from urllib.request import url2pathname
 import mlflow
 from filelock import FileLock
 from mlflow.exceptions import MlflowException, RESOURCE_ALREADY_EXISTS, ErrorCode
@@ -17,6 +18,19 @@ from ..log import get_module_logger
 from ..utils.exceptions import ExpAlreadyExistError
 
 logger = get_module_logger("workflow")
+
+
+def _file_uri_to_path(uri: Text) -> Path:
+    pr = urlparse(uri)
+    if pr.scheme != "file":
+        return Path(uri)
+
+    path = url2pathname(pr.path)
+    if os.name == "nt" and len(path) >= 3 and path[0] == "/" and path[2] == ":":
+        path = path[1:]
+    if pr.netloc and pr.netloc != "localhost":
+        path = f"//{pr.netloc}{path}"
+    return Path(path)
 
 
 class ExpManager:
@@ -233,7 +247,7 @@ class ExpManager:
             # So we supported it in the interface wrapper
             pr = urlparse(self.uri)
             if pr.scheme == "file":
-                with FileLock(Path(os.path.join(pr.netloc, pr.path.lstrip("/"), "filelock"))):  # pylint: disable=E0110
+                with FileLock(_file_uri_to_path(self.uri) / "filelock"):  # pylint: disable=E0110
                     return self.create_exp(experiment_name), True
             # NOTE: for other schemes like http, we double check to avoid create exp conflicts
             try:
