@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 
 
+import json
 import logging
 from typing import Optional, Text, Dict, Any
 import re
@@ -10,6 +11,33 @@ from time import time
 from contextlib import contextmanager
 
 from .config import C
+
+
+_LOG_RECORD_ATTRIBUTES = frozenset(logging.makeLogRecord({}).__dict__)
+
+
+class JSONFormatter(logging.Formatter):
+    """Format log records as JSON, including fields supplied through ``extra``."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        log_data = {
+            "timestamp": self.formatTime(record, self.datefmt),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+        }
+        log_data.update(
+            {
+                key: value
+                for key, value in record.__dict__.items()
+                if key not in _LOG_RECORD_ATTRIBUTES and key not in log_data
+            }
+        )
+
+        if record.exc_info:
+            log_data["exception"] = self.formatException(record.exc_info)
+
+        return json.dumps(log_data, default=str)
 
 
 class MetaLogger(type):
