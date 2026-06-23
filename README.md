@@ -201,7 +201,7 @@ Also, users can install the latest dev version ``Qlib`` by the source code accor
 * Clone the repository and install ``Qlib`` as follows.
     ```bash
     git clone https://github.com/microsoft/qlib.git && cd qlib
-    pip install .  # `pip install -e .[dev]` is recommended for development. check details in docs/developer/code_standard_and_dev_guide.rst
+    pip install .  # `pip install -e '.[dev]'` is recommended for development. check details in docs/developer/code_standard_and_dev_guide.rst
     ```
 
 **Tips**: If you fail to install `Qlib` or run the examples in your environment,  comparing your steps and the [CI workflow](.github/workflows/test_qlib_from_source.yml) may help you find the problem.
