@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 
 
+import copy
 import json
 import logging
 from typing import Optional, Text, Dict, Any
@@ -14,6 +15,7 @@ from .config import C
 
 
 _LOG_RECORD_ATTRIBUTES = frozenset(logging.makeLogRecord({}).__dict__)
+_STRUCTURED_LOGGING_FORMAT = "json"
 
 
 class JSONFormatter(logging.Formatter):
@@ -38,6 +40,43 @@ class JSONFormatter(logging.Formatter):
             log_data["exception"] = self.formatException(record.exc_info)
 
         return json.dumps(log_data, default=str)
+
+
+def _normalize_logging_config(log_config: Dict[Text, Any]) -> Dict[Text, Any]:
+    """Normalize Qlib's logging config before passing it to ``dictConfig``.
+
+    Qlib continues to accept a standard ``logging.config.dictConfig`` mapping.
+    In addition, users can opt into structured JSON logs with a compact config:
+
+    .. code-block:: python
+
+        qlib.init(logging_config={"structured": True, "format": "json"})
+
+    The compact config reuses Qlib's default handlers and only swaps their
+    formatter to :class:`JSONFormatter`.
+    """
+    if not isinstance(log_config, dict):
+        return log_config
+
+    is_dict_config = "version" in log_config
+    structured = bool(log_config.get("structured", False))
+
+    if not structured:
+        return copy.deepcopy(log_config)
+
+    log_format = log_config.get("format", _STRUCTURED_LOGGING_FORMAT)
+    if log_format != _STRUCTURED_LOGGING_FORMAT:
+        raise ValueError(f"Unsupported structured logging format: {log_format}")
+
+    normalized_config = copy.deepcopy(log_config if is_dict_config else C.logging_config)
+    normalized_config.pop("structured", None)
+    normalized_config.pop("format", None)
+
+    normalized_config.setdefault("formatters", {})[_STRUCTURED_LOGGING_FORMAT] = {"()": "qlib.log.JSONFormatter"}
+    for handler_config in normalized_config.get("handlers", {}).values():
+        handler_config["formatter"] = _STRUCTURED_LOGGING_FORMAT
+
+    return normalized_config
 
 
 class MetaLogger(type):
@@ -183,6 +222,7 @@ def set_log_with_config(log_config: Dict[Text, Any]):
     :param log_config:
     :return:
     """
+    log_config = _normalize_logging_config(log_config)
     logging_config.dictConfig(log_config)
 
 
