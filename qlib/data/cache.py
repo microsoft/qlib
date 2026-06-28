@@ -33,6 +33,7 @@ from ..utils import (
 from ..utils.pickle_utils import restricted_pickle_load
 
 from ..log import get_module_logger
+from ..metrics import get_metrics_recorder
 from .base import Feature
 from .ops import Operators  # pylint: disable=W0611  # noqa: F401
 
@@ -1085,6 +1086,16 @@ class SimpleDatasetCache(DatasetCache):
     def _dataset(
         self, instruments, fields, start_time=None, end_time=None, freq="day", disk_cache=1, inst_processors=[]
     ):
+        metrics = get_metrics_recorder()
+        metric_tags = {"cache": "simple", "freq": freq}
+        with metrics.timer("qlib.cache.dataset.load_seconds", tags=metric_tags):
+            return self._dataset_with_metrics(
+                instruments, fields, start_time, end_time, freq, disk_cache, inst_processors, metrics, metric_tags
+            )
+
+    def _dataset_with_metrics(
+        self, instruments, fields, start_time, end_time, freq, disk_cache, inst_processors, metrics, metric_tags
+    ):
         if disk_cache == 0:
             # In this case, data_set cache is configured but will not be used.
             return self.provider.dataset(instruments, fields, start_time, end_time, freq)
@@ -1099,6 +1110,7 @@ class SimpleDatasetCache(DatasetCache):
         if cache_file.exists():
             if disk_cache == 1:
                 # use cache
+                metrics.increment("qlib.cache.dataset.hit", tags=metric_tags)
                 df = pd.read_pickle(cache_file)
                 return self.cache_to_origin_data(df, fields)
             elif disk_cache == 2:
@@ -1108,6 +1120,7 @@ class SimpleDatasetCache(DatasetCache):
             gen_flag = True
 
         if gen_flag:
+            metrics.increment("qlib.cache.dataset.miss", tags=metric_tags)
             data = self.provider.dataset(
                 instruments, normalize_cache_fields(fields), start_time, end_time, freq, inst_processors=inst_processors
             )
@@ -1183,15 +1196,20 @@ class CalendarCache(BaseProviderCache):
 
 class MemoryCalendarCache(CalendarCache):
     def calendar(self, start_time=None, end_time=None, freq="day", future=False):
+        metrics = get_metrics_recorder()
+        metric_tags = {"cache": "memory", "freq": freq}
         uri = self._uri(start_time, end_time, freq, future)
-        result, expire = MemCacheExpire.get_cache(H["c"], uri)
-        if result is None or expire:
-            result = self.provider.calendar(start_time, end_time, freq, future)
-            MemCacheExpire.set_cache(H["c"], uri, result)
+        with metrics.timer("qlib.cache.calendar.load_seconds", tags=metric_tags):
+            result, expire = MemCacheExpire.get_cache(H["c"], uri)
+            if result is None or expire:
+                metrics.increment("qlib.cache.calendar.miss", tags=metric_tags)
+                result = self.provider.calendar(start_time, end_time, freq, future)
+                MemCacheExpire.set_cache(H["c"], uri, result)
 
-            get_module_logger("data").debug(f"get calendar from {C.calendar_provider}")
-        else:
-            get_module_logger("data").debug("get calendar from local cache")
+                get_module_logger("data").debug(f"get calendar from {C.calendar_provider}")
+            else:
+                metrics.increment("qlib.cache.calendar.hit", tags=metric_tags)
+                get_module_logger("data").debug("get calendar from local cache")
 
         return result
 
