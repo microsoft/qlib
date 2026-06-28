@@ -7,7 +7,7 @@ import time
 from collections import defaultdict
 from contextlib import contextmanager
 from threading import RLock
-from typing import Any, Dict, Iterator, Optional
+from typing import Any, Dict, Iterator, List, Optional
 
 
 class NoOpMetricsRecorder:
@@ -30,6 +30,15 @@ class NoOpMetricsRecorder:
 
     def snapshot(self) -> Dict[str, Dict[str, Any]]:
         return {"counters": {}, "gauges": {}, "timings": {}}
+
+    def export(self) -> Dict[str, Dict[str, Any]]:
+        return self.snapshot()
+
+    def summary(self) -> List[str]:
+        return []
+
+    def log_summary(self, logger=None) -> None:
+        return None
 
     def reset(self) -> None:
         return None
@@ -102,6 +111,42 @@ class InMemoryMetricsRecorder:
                 "gauges": dict(self._gauges),
                 "timings": {name: dict(stats) for name, stats in self._timings.items()},
             }
+
+    def export(self) -> Dict[str, Dict[str, Any]]:
+        """Export collected metrics as a plain dictionary."""
+        return self.snapshot()
+
+    def summary(self) -> List[str]:
+        """Return a human-readable metrics summary."""
+        snapshot = self.snapshot()
+        lines = []
+
+        for name, value in sorted(snapshot["counters"].items()):
+            lines.append(f"counter {name}={value:g}")
+
+        for name, value in sorted(snapshot["gauges"].items()):
+            lines.append(f"gauge {name}={value:g}")
+
+        for name, stats in sorted(snapshot["timings"].items()):
+            count = stats["count"]
+            avg = stats["total"] / count if count else 0
+            lines.append(
+                "timing "
+                f"{name} count={count} total={stats['total']:.6f}s avg={avg:.6f}s "
+                f"min={stats['min']:.6f}s max={stats['max']:.6f}s last={stats['last']:.6f}s"
+            )
+
+        return lines
+
+    def log_summary(self, logger=None) -> None:
+        """Log a human-readable metrics summary."""
+        if logger is None:
+            from qlib.log import get_module_logger  # pylint: disable=C0415
+
+            logger = get_module_logger("metrics")
+
+        for line in self.summary():
+            logger.info(line)
 
     def reset(self) -> None:
         with self._lock:

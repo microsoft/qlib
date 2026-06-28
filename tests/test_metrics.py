@@ -36,6 +36,14 @@ class FakeCalendarProvider:
         return [pd.Timestamp("2020-01-01")]
 
 
+class FakeLogger:
+    def __init__(self):
+        self.messages = []
+
+    def info(self, message):
+        self.messages.append(message)
+
+
 def test_metrics_are_disabled_by_default():
     configure_metrics({"enabled": False})
 
@@ -100,6 +108,44 @@ def test_metrics_can_be_enabled_from_qlib_config():
 
     assert metrics.enabled is True
     assert metrics.snapshot()["counters"]["qlib.config.enabled"] == 1
+
+
+def test_metrics_export_returns_snapshot():
+    configure_metrics({"enabled": True})
+
+    metrics = get_metrics_recorder()
+    metrics.increment("qlib.cache.hit")
+    metrics.gauge("qlib.memory.usage_mb", 128)
+    metrics.timing("qlib.data.load_seconds", 0.25)
+
+    assert metrics.export() == metrics.snapshot()
+
+
+def test_metrics_summary_formats_collected_metrics():
+    configure_metrics({"enabled": True})
+
+    metrics = get_metrics_recorder()
+    metrics.increment("qlib.cache.hit", 2)
+    metrics.gauge("qlib.memory.usage_mb", 128)
+    metrics.timing("qlib.data.load_seconds", 0.25)
+    metrics.timing("qlib.data.load_seconds", 0.75)
+
+    assert metrics.summary() == [
+        "counter qlib.cache.hit=2",
+        "gauge qlib.memory.usage_mb=128",
+        "timing qlib.data.load_seconds count=2 total=1.000000s avg=0.500000s min=0.250000s max=0.750000s last=0.750000s",
+    ]
+
+
+def test_metrics_log_summary_writes_to_logger():
+    configure_metrics({"enabled": True})
+
+    metrics = get_metrics_recorder()
+    metrics.increment("qlib.cache.hit")
+    logger = FakeLogger()
+    metrics.log_summary(logger)
+
+    assert logger.messages == ["counter qlib.cache.hit=1"]
 
 
 def test_simple_dataset_cache_emits_hit_miss_and_timing_metrics(tmp_path):
