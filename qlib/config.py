@@ -111,6 +111,7 @@ class Config:
     @staticmethod
     def register_from_C(config, skip_register=True):
         from .utils import set_log_with_config  # pylint: disable=C0415
+        from .metrics import configure_metrics  # pylint: disable=C0415
 
         if C.registered and skip_register:
             return
@@ -118,6 +119,7 @@ class Config:
         C.set_conf_from_C(config)
         if C.logging_config:
             set_log_with_config(C.logging_config)
+        configure_metrics(C.get("metrics_config", {}))
         C.register()
 
 
@@ -183,6 +185,10 @@ _default_config = {
     "redis_password": None,
     # This value can be reset via qlib.init
     "logging_level": logging.INFO,
+    # Optional process-local observability metrics. Disabled by default.
+    "metrics_config": {
+        "enabled": False,
+    },
     # Global configuration of qlib log
     # logging_level can control the logging level more finely
     "logging_config": {
@@ -440,6 +446,7 @@ class QlibConfig(Config):
             the default config template chosen by user: "server", "client"
         """
         from .utils import set_log_with_config, get_module_logger, can_use_cache  # pylint: disable=C0415
+        from .metrics import configure_metrics  # pylint: disable=C0415
 
         self.reset()
 
@@ -459,6 +466,8 @@ class QlibConfig(Config):
             if k not in self:
                 logger.warning("Unrecognized config %s" % k)
             self[k] = v
+
+        configure_metrics(self.get("metrics_config", {}))
 
         self.resolve_path()
 
