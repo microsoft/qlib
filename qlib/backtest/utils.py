@@ -8,7 +8,7 @@ from typing import Any, Set, Tuple, TYPE_CHECKING, Union
 
 import numpy as np
 
-from qlib.utils.time import epsilon_change
+from qlib.utils.time import Freq, epsilon_change
 
 if TYPE_CHECKING:
     from qlib.backtest.decision import BaseTradeDecision
@@ -128,7 +128,13 @@ class TradeCalendarManager:
         if trade_step is None:
             trade_step = self.get_trade_step()
         calendar_index = self.start_index + trade_step - shift
-        return self._calendar[calendar_index], epsilon_change(self._calendar[calendar_index + 1])
+        start_time = self._calendar[calendar_index]
+        if calendar_index + 1 < len(self._calendar):
+            end_time = epsilon_change(self._calendar[calendar_index + 1])
+        else:
+            count, base = Freq.parse(self.freq)
+            end_time = epsilon_change(start_time + Freq.get_timedelta(count, base))
+        return start_time, end_time
 
     def get_data_cal_range(self, rtype: str = "full") -> Tuple[int, int]:
         """
