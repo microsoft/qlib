@@ -1,8 +1,11 @@
 import io
 import json
 import logging
+import logging.config
 from contextlib import contextmanager
+from unittest.mock import patch
 
+from qlib.config import C
 from qlib.log import JSONFormatter, get_module_logger, set_log_with_config
 from qlib.trace import configure_tracing, trace_span
 
@@ -86,6 +89,23 @@ def test_structured_logging_can_be_enabled_with_compact_config(capsys):
         qlib_logger.handlers = original_handlers
         qlib_logger.setLevel(original_level)
         qlib_logger.propagate = original_propagate
+
+
+def test_compact_structured_logging_config_expands_when_stored_on_global_config():
+    original_logging_config = C.logging_config
+    compact_config = {"structured": True, "format": "json"}
+
+    try:
+        C.logging_config = compact_config
+        with patch.object(logging.config, "dictConfig") as dict_config:
+            set_log_with_config(compact_config)
+
+        normalized_config = dict_config.call_args.args[0]
+        assert normalized_config["version"] == 1
+        assert normalized_config["formatters"]["json"] == {"()": "qlib.log.JSONFormatter"}
+        assert normalized_config["handlers"]["console"]["formatter"] == "json"
+    finally:
+        C.logging_config = original_logging_config
 
 
 def test_json_formatter_includes_trace_context_when_enabled():

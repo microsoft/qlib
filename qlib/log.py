@@ -75,7 +75,8 @@ def _normalize_logging_config(log_config: Dict[Text, Any]) -> Dict[Text, Any]:
     if log_format != _STRUCTURED_LOGGING_FORMAT:
         raise ValueError(f"Unsupported structured logging format: {log_format}")
 
-    normalized_config = copy.deepcopy(log_config if is_dict_config else C.logging_config)
+    default_logging_config = C.__dict__["_default_config"]["logging_config"]
+    normalized_config = copy.deepcopy(log_config if is_dict_config else default_logging_config)
     normalized_config.pop("structured", None)
     normalized_config.pop("format", None)
 
