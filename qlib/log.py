@@ -28,6 +28,13 @@ class JSONFormatter(logging.Formatter):
             "logger": record.name,
             "message": record.getMessage(),
         }
+        try:
+            from .trace import get_current_trace_context  # pylint: disable=C0415
+
+            log_data.update(get_current_trace_context())
+        except Exception:
+            pass
+
         log_data.update(
             {
                 key: value

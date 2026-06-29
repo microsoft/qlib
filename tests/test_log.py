@@ -4,6 +4,7 @@ import logging
 from contextlib import contextmanager
 
 from qlib.log import JSONFormatter, get_module_logger, set_log_with_config
+from qlib.trace import configure_tracing, trace_span
 
 
 @contextmanager
@@ -18,6 +19,7 @@ def _logger_with_handler(name, formatter):
         yield logger, stream
     finally:
         logger.logger.handlers = []
+        configure_tracing({"enabled": False})
 
 
 def test_default_logging_remains_plain_text():
@@ -84,3 +86,29 @@ def test_structured_logging_can_be_enabled_with_compact_config(capsys):
         qlib_logger.handlers = original_handlers
         qlib_logger.setLevel(original_level)
         qlib_logger.propagate = original_propagate
+
+
+def test_json_formatter_includes_trace_context_when_enabled():
+    configure_tracing({"enabled": True})
+
+    with _logger_with_handler("test.structured_trace", JSONFormatter()) as (logger, stream):
+        with trace_span("dataset.prepare", trace_id="trace-1") as span:
+            logger.info("Preparing dataset")
+
+        output = json.loads(stream.getvalue())
+        assert output["trace_id"] == "trace-1"
+        assert output["span_id"] == span.span_id
+        assert output["span_name"] == "dataset.prepare"
+
+
+def test_json_formatter_omits_trace_context_when_disabled():
+    configure_tracing({"enabled": False})
+
+    with _logger_with_handler("test.no_trace", JSONFormatter()) as (logger, stream):
+        with trace_span("dataset.prepare"):
+            logger.info("Preparing dataset")
+
+        output = json.loads(stream.getvalue())
+        assert "trace_id" not in output
+        assert "span_id" not in output
+        assert "span_name" not in output
