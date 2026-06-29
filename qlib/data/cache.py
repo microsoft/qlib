@@ -34,6 +34,7 @@ from ..utils.pickle_utils import restricted_pickle_load
 
 from ..log import get_module_logger
 from ..metrics import get_metrics_recorder
+from ..trace import trace_span
 from .base import Feature
 from .ops import Operators  # pylint: disable=W0611  # noqa: F401
 
@@ -1088,10 +1089,11 @@ class SimpleDatasetCache(DatasetCache):
     ):
         metrics = get_metrics_recorder()
         metric_tags = {"cache": "simple", "freq": freq}
-        with metrics.timer("qlib.cache.dataset.load_seconds", tags=metric_tags):
-            return self._dataset_with_metrics(
-                instruments, fields, start_time, end_time, freq, disk_cache, inst_processors, metrics, metric_tags
-            )
+        with trace_span("cache.dataset"):
+            with metrics.timer("qlib.cache.dataset.load_seconds", tags=metric_tags):
+                return self._dataset_with_metrics(
+                    instruments, fields, start_time, end_time, freq, disk_cache, inst_processors, metrics, metric_tags
+                )
 
     def _dataset_with_metrics(
         self, instruments, fields, start_time, end_time, freq, disk_cache, inst_processors, metrics, metric_tags
@@ -1199,17 +1201,18 @@ class MemoryCalendarCache(CalendarCache):
         metrics = get_metrics_recorder()
         metric_tags = {"cache": "memory", "freq": freq}
         uri = self._uri(start_time, end_time, freq, future)
-        with metrics.timer("qlib.cache.calendar.load_seconds", tags=metric_tags):
-            result, expire = MemCacheExpire.get_cache(H["c"], uri)
-            if result is None or expire:
-                metrics.increment("qlib.cache.calendar.miss", tags=metric_tags)
-                result = self.provider.calendar(start_time, end_time, freq, future)
-                MemCacheExpire.set_cache(H["c"], uri, result)
+        with trace_span("cache.calendar"):
+            with metrics.timer("qlib.cache.calendar.load_seconds", tags=metric_tags):
+                result, expire = MemCacheExpire.get_cache(H["c"], uri)
+                if result is None or expire:
+                    metrics.increment("qlib.cache.calendar.miss", tags=metric_tags)
+                    result = self.provider.calendar(start_time, end_time, freq, future)
+                    MemCacheExpire.set_cache(H["c"], uri, result)
 
-                get_module_logger("data").debug(f"get calendar from {C.calendar_provider}")
-            else:
-                metrics.increment("qlib.cache.calendar.hit", tags=metric_tags)
-                get_module_logger("data").debug("get calendar from local cache")
+                    get_module_logger("data").debug(f"get calendar from {C.calendar_provider}")
+                else:
+                    metrics.increment("qlib.cache.calendar.hit", tags=metric_tags)
+                    get_module_logger("data").debug("get calendar from local cache")
 
         return result
 

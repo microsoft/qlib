@@ -3,10 +3,12 @@ import pandas as pd
 from qlib.config import C
 from qlib.data.cache import H, MemoryCalendarCache, SimpleDatasetCache
 from qlib.metrics import configure_metrics, get_metrics_recorder
+from qlib.trace import configure_tracing, get_current_trace_context
 
 
 def teardown_function():
     configure_metrics({"enabled": False})
+    configure_tracing({"enabled": False})
     H.clear()
     C.reset()
 
@@ -14,9 +16,11 @@ def teardown_function():
 class FakeDatasetProvider:
     def __init__(self):
         self.calls = 0
+        self.trace_contexts = []
 
     def dataset(self, instruments, fields, start_time=None, end_time=None, freq="day", inst_processors=[]):
         self.calls += 1
+        self.trace_contexts.append(get_current_trace_context())
         index = pd.MultiIndex.from_product(
             [["SH600000"], [pd.Timestamp("2020-01-01")]], names=["instrument", "datetime"]
         )
@@ -26,6 +30,7 @@ class FakeDatasetProvider:
 class FakeCalendarProvider:
     def __init__(self):
         self.calls = 0
+        self.trace_contexts = []
 
     @staticmethod
     def _uri(start_time=None, end_time=None, freq="day", future=False):
@@ -33,6 +38,7 @@ class FakeCalendarProvider:
 
     def calendar(self, start_time=None, end_time=None, freq="day", future=False):
         self.calls += 1
+        self.trace_contexts.append(get_current_trace_context())
         return [pd.Timestamp("2020-01-01")]
 
 
@@ -164,6 +170,19 @@ def test_simple_dataset_cache_emits_hit_miss_and_timing_metrics(tmp_path):
     assert snapshot["timings"]["qlib.cache.dataset.load_seconds{cache=simple,freq=day}"]["count"] == 2
 
 
+def test_simple_dataset_cache_executes_provider_inside_trace_span(tmp_path):
+    C["local_cache_path"] = str(tmp_path)
+    configure_tracing({"enabled": True})
+    provider = FakeDatasetProvider()
+    cache = SimpleDatasetCache(provider)
+
+    cache.dataset(["SH600000"], ["close"], freq="day")
+
+    assert provider.trace_contexts[0]["span_name"] == "cache.dataset"
+    assert "trace_id" in provider.trace_contexts[0]
+    assert "span_id" in provider.trace_contexts[0]
+
+
 def test_memory_calendar_cache_emits_hit_miss_and_timing_metrics():
     configure_metrics({"enabled": True})
     provider = FakeCalendarProvider()
@@ -177,3 +196,15 @@ def test_memory_calendar_cache_emits_hit_miss_and_timing_metrics():
     assert snapshot["counters"]["qlib.cache.calendar.miss{cache=memory,freq=day}"] == 1
     assert snapshot["counters"]["qlib.cache.calendar.hit{cache=memory,freq=day}"] == 1
     assert snapshot["timings"]["qlib.cache.calendar.load_seconds{cache=memory,freq=day}"]["count"] == 2
+
+
+def test_memory_calendar_cache_executes_provider_inside_trace_span():
+    configure_tracing({"enabled": True})
+    provider = FakeCalendarProvider()
+    cache = MemoryCalendarCache(provider)
+
+    cache.calendar(freq="day")
+
+    assert provider.trace_contexts[0]["span_name"] == "cache.calendar"
+    assert "trace_id" in provider.trace_contexts[0]
+    assert "span_id" in provider.trace_contexts[0]
