@@ -347,10 +347,9 @@ class FileFeatureStorage(FileStorageMixin, FeatureStorage):
         if not self.uri.exists():
             if isinstance(i, int):
                 return None, None
-            elif isinstance(i, slice):
+            if isinstance(i, slice):
                 return pd.Series(dtype=np.float32)
-            else:
-                raise TypeError(f"type(i) = {type(i)}")
+            raise TypeError(f"type(i) = {type(i)}")
 
         storage_start_index = self.start_index
         storage_end_index = self.end_index
@@ -360,7 +359,7 @@ class FileFeatureStorage(FileStorageMixin, FeatureStorage):
                     raise IndexError(f"{i}: start index is {storage_start_index}")
                 fp.seek(4 * (i - storage_start_index) + 4)
                 return i, struct.unpack("f", fp.read(4))[0]
-            elif isinstance(i, slice):
+            if isinstance(i, slice):
                 start_index = storage_start_index if i.start is None else i.start
                 end_index = storage_end_index if i.stop is None else i.stop - 1
                 si = max(start_index, storage_start_index)
@@ -371,8 +370,7 @@ class FileFeatureStorage(FileStorageMixin, FeatureStorage):
                 count = end_index - si + 1
                 data = np.frombuffer(fp.read(4 * count), dtype="<f")
                 return pd.Series(data, index=pd.RangeIndex(si, si + len(data)))
-            else:
-                raise TypeError(f"type(i) = {type(i)}")
+            raise TypeError(f"type(i) = {type(i)}")
 
     def __len__(self) -> int:
         self.check()
