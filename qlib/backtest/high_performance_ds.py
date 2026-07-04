@@ -117,12 +117,11 @@ class PandasQuote(BaseQuote):
         stock_data = resam_ts_data(self.data[stock_id][field], start_time, end_time, method=method)
         if stock_data is None:
             return None
-        elif isinstance(stock_data, (bool, np.bool_, int, float, np.number)):
+        if isinstance(stock_data, (bool, np.bool_, int, float, np.number)):
             return stock_data
-        elif isinstance(stock_data, pd.Series):
+        if isinstance(stock_data, pd.Series):
             return idd.SingleData(stock_data)
-        else:
-            raise ValueError(f"stock data from resam_ts_data must be a number, pd.Series or pd.DataFrame")
+        raise ValueError(f"stock data from resam_ts_data must be a number, pd.Series or pd.DataFrame")
 
 
 class NumpyQuote(BaseQuote):
@@ -561,7 +560,7 @@ class PandasOrderIndicator(BaseOrderIndicator):
     """
 
     def __init__(self) -> None:
-        super(PandasOrderIndicator, self).__init__()
+        super().__init__()
         self.data: Dict[str, PandasSingleMetric] = OrderedDict()
 
     def assign(self, col: str, metric: Union[dict, pd.Series]) -> None:
@@ -609,7 +608,7 @@ class NumpyOrderIndicator(BaseOrderIndicator):
     """
 
     def __init__(self) -> None:
-        super(NumpyOrderIndicator, self).__init__()
+        super().__init__()
         self.data: Dict[str, SingleData] = OrderedDict()
 
     def assign(self, col: str, metric: dict) -> None:

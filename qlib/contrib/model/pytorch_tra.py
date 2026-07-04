@@ -583,7 +583,7 @@ class RNN(nn.Module):
 class PositionalEncoding(nn.Module):
     # reference: https://pytorch.org/tutorials/beginner/transformer_tutorial.html
     def __init__(self, d_model, dropout=0.1, max_len=5000):
-        super(PositionalEncoding, self).__init__()
+        super().__init__()
         self.dropout = nn.Dropout(p=dropout)
 
         pe = torch.zeros(max_len, d_model)

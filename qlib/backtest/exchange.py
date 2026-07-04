@@ -263,12 +263,11 @@ class Exchange:
         """get limit type"""
         if isinstance(limit_threshold, tuple):
             return self.LT_TP_EXP
-        elif isinstance(limit_threshold, float):
+        if isinstance(limit_threshold, float):
             return self.LT_FLT
-        elif limit_threshold is None:
+        if limit_threshold is None:
             return self.LT_NONE
-        else:
-            raise NotImplementedError(f"This type of `limit_threshold` is not supported")
+        raise NotImplementedError(f"This type of `limit_threshold` is not supported")
 
     def _update_limit(self, limit_threshold: Union[Tuple, float, None]) -> None:
         # $close may contain NaN, the nan indicates that the stock is not tradable at that timestamp
@@ -368,12 +367,11 @@ class Exchange:
             buy_limit = self.quote.get_data(stock_id, start_time, end_time, field="limit_buy", method="all")
             sell_limit = self.quote.get_data(stock_id, start_time, end_time, field="limit_sell", method="all")
             return bool(buy_limit or sell_limit)
-        elif direction == Order.BUY:
+        if direction == Order.BUY:
             return cast(bool, self.quote.get_data(stock_id, start_time, end_time, field="limit_buy", method="all"))
-        elif direction == Order.SELL:
+        if direction == Order.SELL:
             return cast(bool, self.quote.get_data(stock_id, start_time, end_time, field="limit_sell", method="all"))
-        else:
-            raise ValueError(f"direction {direction} is not supported!")
+        raise ValueError(f"direction {direction} is not supported!")
 
     def check_stock_suspended(
         self,
@@ -596,17 +594,15 @@ class Exchange:
         """
         if current_amount == target_amount:
             return 0
-        elif current_amount < target_amount:
+        if current_amount < target_amount:
             deal_amount = target_amount - current_amount
             deal_amount = self.round_amount_by_trade_unit(deal_amount, factor)
             return deal_amount
-        else:
-            if target_amount == 0:
-                return -current_amount
-            else:
-                deal_amount = current_amount - target_amount
-                deal_amount = self.round_amount_by_trade_unit(deal_amount, factor)
-                return -deal_amount
+        if target_amount == 0:
+            return -current_amount
+        deal_amount = current_amount - target_amount
+        deal_amount = self.round_amount_by_trade_unit(deal_amount, factor)
+        return -deal_amount
 
     def generate_order_for_target_amount_position(
         self,
@@ -755,8 +751,7 @@ class Exchange:
                 end_time=end_time,
             )
             return self.trade_unit / factor
-        else:
-            return None
+        return None
 
     def round_amount_by_trade_unit(
         self,

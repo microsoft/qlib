@@ -433,8 +433,7 @@ class Position(BasePosition):
         """the days the account has been hold, it may be used in some special strategies"""
         if f"count_{bar}" in self.position[code]:
             return self.position[code][f"count_{bar}"]
-        else:
-            return 0
+        return 0
 
     def get_stock_weight(self, code: str) -> float:
         return self.position[code]["weight"]

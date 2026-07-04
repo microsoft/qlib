@@ -299,13 +299,13 @@ class Indicator:
         self.trade_indicator_his[trade_start_time] = self.get_trade_indicator()
 
     def _update_order_trade_info(self, trade_info: List[Tuple[Order, float, float, float]]) -> None:
-        amount = dict()
-        deal_amount = dict()
-        trade_price = dict()
-        trade_value = dict()
-        trade_cost = dict()
-        trade_dir = dict()
-        pa = dict()
+        amount = {}
+        deal_amount = {}
+        trade_price = {}
+        trade_value = {}
+        trade_cost = {}
+        trade_dir = {}
+        pa = {}
 
         for order, _trade_val, _trade_cost, _trade_price in trade_info:
             amount[order.stock_id] = order.amount_delta
