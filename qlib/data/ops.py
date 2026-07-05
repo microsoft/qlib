@@ -1413,8 +1413,8 @@ class PairRolling(ExpressionOps):
         return "{}({},{},{})".format(type(self).__name__, self.feature_left, self.feature_right, self.N)
 
     def _load_internal(self, instrument, start_index, end_index, *args):
-        assert any(
-            [isinstance(self.feature_left, Expression), self.feature_right, Expression]
+        assert isinstance(self.feature_left, Expression) or isinstance(
+            self.feature_right, Expression
         ), "at least one of two inputs is Expression instance"
 
         if isinstance(self.feature_left, Expression):
