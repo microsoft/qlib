@@ -3,11 +3,13 @@ import sys
 import datetime
 from abc import ABC
 from pathlib import Path
+from typing import Union, Optional
 
 import fire
 import pandas as pd
 from loguru import logger
 from dateutil.tz import tzlocal
+from pandas import DataFrame
 
 CUR_DIR = Path(__file__).resolve().parent
 sys.path.append(str(CUR_DIR.parent.parent))
@@ -22,7 +24,7 @@ import time
 _CG_CRYPTO_SYMBOLS = None
 
 
-def get_cg_crypto_symbols(qlib_data_path: [str, Path] = None) -> list:
+def get_cg_crypto_symbols(qlib_data_path: Union[str, Path] = None) -> list:
     """get crypto symbols in coingecko
 
     Returns
@@ -56,7 +58,7 @@ def get_cg_crypto_symbols(qlib_data_path: [str, Path] = None) -> list:
 class CryptoCollector(BaseCollector):
     def __init__(
         self,
-        save_dir: [str, Path],
+        save_dir: Union[str, Path],
         start=None,
         end=None,
         interval="1d",
@@ -115,7 +117,7 @@ class CryptoCollector(BaseCollector):
         self.end_datetime = self.convert_datetime(self.end_datetime, self._timezone)
 
     @staticmethod
-    def convert_datetime(dt: [pd.Timestamp, datetime.date, str], timezone):
+    def convert_datetime(dt: Union[pd.Timestamp, datetime.date, str], timezone):
         try:
             dt = pd.Timestamp(dt, tz=timezone).timestamp()
             dt = pd.Timestamp(dt, tz=tzlocal(), unit="s")
@@ -150,7 +152,7 @@ class CryptoCollector(BaseCollector):
 
     def get_data(
         self, symbol: str, interval: str, start_datetime: pd.Timestamp, end_datetime: pd.Timestamp
-    ) -> [pd.DataFrame]:
+    ) -> Optional[DataFrame]:
         def _get_simple(start_, end_):
             self.sleep()
             _remote_interval = interval
@@ -249,7 +251,7 @@ class Run(BaseRun):
         return f"CryptoNormalize{self.interval}"
 
     @property
-    def default_base_dir(self) -> [Path, str]:
+    def default_base_dir(self) -> Union[Path, str]:
         return CUR_DIR
 
     def download_data(
