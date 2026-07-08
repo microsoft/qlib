@@ -493,7 +493,7 @@ class TRAModel(Model):
                 "best_eval_metric": -best_score,  # NOTE: -1 for minimize
                 "metrics": {"train": train_metrics, "valid": valid_metrics, "test": test_metrics},
             }
-            with open(self.logdir + "/info.json", "w") as f:
+            with open(self.logdir + "/info.json", "w", encoding="utf-8") as f:
                 json.dump(info, f)
 
     def predict(self, dataset, segment="test"):
