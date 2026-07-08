@@ -15,7 +15,7 @@ sys.path.append(str(CUR_DIR.parent.parent))
 
 from data_collector.base import BaseCollector, BaseNormalize, BaseRun, Normalize
 
-DEFAULT_BASE_URL = "https://fxmacrodata.com/api/v1"
+DEFAULT_BASE_URL = "https://api.fxmacrodata.com/v1"
 DEFAULT_PAIRS = (
     "EURUSD",
     "GBPUSD",
