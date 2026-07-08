@@ -5,8 +5,21 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pandas as pd
+import pytest
+import requests
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
+
+
+class FXMacroDataErrorResponse:
+    status_code = 403
+    text = ""
+
+    def json(self):
+        return {"detail": "Professional API key required"}
+
+    def raise_for_status(self):
+        raise requests.HTTPError("403 Client Error", response=self)
 
 
 def load_fxmacrodata_collector():
@@ -50,6 +63,14 @@ def load_fxmacrodata_collector():
     return module
 
 
+def test_public_urls_point_to_canonical_api_and_subscription_pages():
+    collector = load_fxmacrodata_collector()
+
+    assert collector.DEFAULT_BASE_URL == "https://api.fxmacrodata.com/v1"
+    assert collector.DOCUMENTATION_URL == "https://fxmacrodata.com/documentation"
+    assert collector.SUBSCRIBE_URL == "https://fxmacrodata.com/subscribe"
+
+
 def test_macro_rows_to_frame_flattens_announcement_and_prediction_data():
     collector = load_fxmacrodata_collector()
 
@@ -76,6 +97,76 @@ def test_macro_rows_to_frame_flattens_announcement_and_prediction_data():
     assert data.loc[0, "prediction"] == 4.1
     assert data.loc[0, "prediction_count"] == 1.0
     assert data.loc[0, "announcement_datetime"] == 1781094600
+
+
+def test_catalogue_rows_flatten_indicator_metadata():
+    collector = load_fxmacrodata_collector()
+
+    rows = collector.FXMacroDataCollector._catalogue_rows(
+        "USD",
+        {
+            "currency": "USD",
+            "catalogue": {
+                "inflation": {
+                    "name": "Inflation",
+                    "unit": "%",
+                    "frequency": "Monthly",
+                    "source": "BLS",
+                    "source_series_id": "BLS:CPI",
+                    "coverage": {
+                        "available": True,
+                        "earliest_available_date": "2010-01-01",
+                        "latest_available_date": "2026-06-30",
+                        "requires_api_key": False,
+                        "row_count": 100,
+                        "coverage_quality": "complete",
+                        "freshness_quality": "fresh",
+                        "usable_for_context": True,
+                        "usable_for_signal": True,
+                    },
+                    "has_official_forecast": True,
+                },
+            },
+        },
+    )
+
+    assert rows == [
+        {
+            "currency": "usd",
+            "indicator": "inflation",
+            "name": "Inflation",
+            "unit": "%",
+            "frequency": "Monthly",
+            "source": "BLS",
+            "source_series_id": "BLS:CPI",
+            "source_series_name": None,
+            "available": True,
+            "history_start": "2010-01-01",
+            "latest_available_date": "2026-06-30",
+            "has_official_forecast": True,
+            "requires_api_key": False,
+            "row_count": 100,
+            "coverage_quality": "complete",
+            "freshness_quality": "fresh",
+            "usable_for_context": True,
+            "usable_for_signal": True,
+        }
+    ]
+
+
+def test_authenticated_error_points_users_to_subscription():
+    collector = load_fxmacrodata_collector()
+
+    with pytest.raises(collector.requests.HTTPError) as excinfo:
+        collector.FXMacroDataCollector._raise_for_status(
+            FXMacroDataErrorResponse(),
+            "announcements/eur/inflation",
+        )
+
+    message = str(excinfo.value)
+    assert "Professional API key required" in message
+    assert "Set FXMACRODATA_API_KEY or FXMD_API_KEY" in message
+    assert "https://fxmacrodata.com/subscribe" in message
 
 
 def test_macro_normalize_keeps_numeric_feature_columns():
