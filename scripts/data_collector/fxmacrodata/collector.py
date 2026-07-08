@@ -16,6 +16,8 @@ sys.path.append(str(CUR_DIR.parent.parent))
 from data_collector.base import BaseCollector, BaseNormalize, BaseRun, Normalize
 
 DEFAULT_BASE_URL = "https://api.fxmacrodata.com/v1"
+DOCUMENTATION_URL = "https://fxmacrodata.com/documentation"
+SUBSCRIBE_URL = "https://fxmacrodata.com/subscribe"
 DEFAULT_PAIRS = (
     "EURUSD",
     "GBPUSD",
@@ -137,7 +139,7 @@ class FXMacroDataCollector(BaseCollector):
             headers=headers,
             timeout=self.timeout,
         )
-        response.raise_for_status()
+        self._raise_for_status(response, f"forex/{base}/{quote}")
         rows = self._payload_rows(response.json())
         return self._rows_to_frame(pair, rows)
 
@@ -183,6 +185,113 @@ class FXMacroDataCollector(BaseCollector):
             data = payload.get("data", [])
             return data if isinstance(data, list) else []
         return []
+
+    @classmethod
+    def _request_json(
+        cls,
+        base_url: str,
+        path: str,
+        params: Optional[dict] = None,
+        api_key: Optional[str] = None,
+        timeout: float = 30,
+    ):
+        headers = {}
+        if api_key:
+            headers["X-API-Key"] = api_key
+        response = requests.get(
+            f"{base_url.rstrip('/')}/{path.lstrip('/')}",
+            params={k: v for k, v in (params or {}).items() if v is not None},
+            headers=headers,
+            timeout=timeout,
+        )
+        cls._raise_for_status(response, path)
+        return response.json()
+
+    @staticmethod
+    def _raise_for_status(response, path: str):
+        try:
+            response.raise_for_status()
+        except requests.HTTPError as exc:
+            detail = FXMacroDataCollector._error_detail(response)
+            message = f"FXMacroData request failed for {path} with HTTP {response.status_code}"
+            if detail:
+                message = f"{message}: {detail}"
+            if response.status_code in {401, 403}:
+                message = (
+                    f"{message}. Set FXMACRODATA_API_KEY or FXMD_API_KEY for authenticated access. "
+                    f"Subscribe at {SUBSCRIBE_URL} for broader history, non-USD macro data, COT, "
+                    "commodities, and higher limits."
+                )
+            elif response.status_code == 404:
+                message = (
+                    f"{message}. Check available currencies and indicators with download_catalogue "
+                    f"or {DOCUMENTATION_URL}."
+                )
+            raise requests.HTTPError(message, response=response) from exc
+
+    @staticmethod
+    def _error_detail(response) -> str:
+        try:
+            payload = response.json()
+        except ValueError:
+            payload = None
+        if isinstance(payload, dict):
+            for key in ("detail", "message", "error"):
+                value = payload.get(key)
+                if value is not None:
+                    return str(value)
+        text = getattr(response, "text", "") or ""
+        return text.strip()[:300]
+
+    @classmethod
+    def _catalogue_rows(cls, currency: str, payload) -> list:
+        if isinstance(payload, dict):
+            if isinstance(payload.get("data"), dict):
+                payload = payload["data"]
+            elif isinstance(payload.get("catalogue"), dict):
+                payload = payload["catalogue"]
+        if not isinstance(payload, dict):
+            return []
+
+        rows = []
+        for indicator, meta in sorted(payload.items()):
+            if not isinstance(meta, dict):
+                continue
+            coverage = meta.get("coverage") if isinstance(meta.get("coverage"), dict) else {}
+            rows.append(
+                {
+                    "currency": currency.lower(),
+                    "indicator": indicator,
+                    "name": meta.get("name"),
+                    "unit": meta.get("unit"),
+                    "frequency": meta.get("frequency"),
+                    "source": meta.get("source"),
+                    "source_series_id": meta.get("source_series_id"),
+                    "source_series_name": meta.get("source_series_name"),
+                    "available": coverage.get("available"),
+                    "history_start": (
+                        meta.get("history_start")
+                        or meta.get("earliest_available_date")
+                        or meta.get("earliest_date")
+                        or coverage.get("history_start")
+                        or coverage.get("earliest_available_date")
+                        or coverage.get("earliest_date")
+                    ),
+                    "latest_available_date": meta.get("latest_available_date") or coverage.get("latest_available_date"),
+                    "has_official_forecast": meta.get("has_official_forecast"),
+                    "requires_api_key": (
+                        meta.get("requires_api_key")
+                        if meta.get("requires_api_key") is not None
+                        else coverage.get("requires_api_key")
+                    ),
+                    "row_count": coverage.get("row_count"),
+                    "coverage_quality": coverage.get("coverage_quality"),
+                    "freshness_quality": coverage.get("freshness_quality"),
+                    "usable_for_context": coverage.get("usable_for_context"),
+                    "usable_for_signal": coverage.get("usable_for_signal"),
+                }
+            )
+        return rows
 
     @classmethod
     def _rows_to_frame(cls, pair: str, rows: list) -> pd.DataFrame:
@@ -299,17 +408,14 @@ class FXMacroDataMacroCollector(BaseCollector):
         return self._rows_to_macro_frame(currency, indicator, rows)
 
     def _request_rows(self, path: str, params: dict) -> list:
-        headers = {}
-        if self.api_key:
-            headers["X-API-Key"] = self.api_key
-        response = requests.get(
-            f"{self.base_url}/{path}",
-            params={k: v for k, v in params.items() if v is not None},
-            headers=headers,
+        payload = FXMacroDataCollector._request_json(
+            self.base_url,
+            path,
+            params=params,
+            api_key=self.api_key,
             timeout=self.timeout,
         )
-        response.raise_for_status()
-        return FXMacroDataCollector._payload_rows(response.json())
+        return FXMacroDataCollector._payload_rows(payload)
 
     @staticmethod
     def _normalize_list(values: [str, Sequence[str], None], lower=False) -> List[str]:
@@ -518,6 +624,36 @@ class Run(BaseRun):
             base_url=base_url,
             timeout=timeout,
         ).collector_data()
+
+    def download_catalogue(
+        self,
+        currencies: str = ",".join(DEFAULT_MACRO_CURRENCIES),
+        include_coverage: bool = True,
+        api_key: Optional[str] = None,
+        base_url: str = DEFAULT_BASE_URL,
+        timeout: float = 30,
+        output_file: str = "data_catalogue.csv",
+    ):
+        """Download FXMacroData indicator catalogue metadata to a CSV file."""
+
+        rows = []
+        resolved_api_key = api_key or FXMacroDataCollector._get_env_api_key()
+        for currency in FXMacroDataMacroCollector._normalize_list(currencies, lower=True):
+            payload = FXMacroDataCollector._request_json(
+                base_url,
+                f"data_catalogue/{currency}",
+                params={"include_coverage": str(include_coverage).lower()},
+                api_key=resolved_api_key,
+                timeout=timeout,
+            )
+            rows.extend(FXMacroDataCollector._catalogue_rows(currency, payload))
+
+        catalogue = pd.DataFrame(rows)
+        if not catalogue.empty:
+            catalogue = catalogue.sort_values(["currency", "indicator"])
+        output_path = self.source_dir.joinpath(output_file)
+        catalogue.to_csv(output_path, index=False)
+        print(f"Saved FXMacroData catalogue to {output_path}")
 
     def normalize_data(self, date_field_name: str = "date", symbol_field_name: str = "symbol"):
         """Normalize FXMacroData daily data."""
