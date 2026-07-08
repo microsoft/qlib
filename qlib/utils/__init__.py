@@ -246,7 +246,7 @@ def parse_config(config):
     # Check whether config is file
     yaml = YAML(typ="safe", pure=True)
     if os.path.exists(config):
-        with open(config, "r") as f:
+        with open(config, "r", encoding="utf-8") as f:
             return yaml.load(f)
     # Check whether the str can be parsed
     try:
