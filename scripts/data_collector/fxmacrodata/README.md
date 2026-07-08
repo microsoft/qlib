@@ -1,8 +1,9 @@
 # Collect Data From FXMacroData
 
-FXMacroData provides daily FX spot-rate series for currency pairs such as `EUR/USD`.
-This collector downloads those series into qlib-compatible CSV files and then uses
-qlib's existing `dump_bin.py` script to convert them into qlib binary data.
+FXMacroData provides daily FX spot rates plus macroeconomic announcement,
+release-calendar, and forecast data for currency-driven research. This collector
+downloads those series into qlib-compatible CSV files and then uses qlib's
+existing `dump_bin.py` script to convert them into qlib binary data.
 
 ## Requirements
 
@@ -43,6 +44,49 @@ FX spot data is shaped with `open`, `high`, `low`, and `close` equal to the dail
 spot rate. `volume` is set to `0`, `factor` is set to `1`, and `change` is the
 daily percentage change in `close`.
 
+## Download Macro Announcement Features
+
+Realized announcement values are available through the announcements dataset:
+
+```bash
+python scripts/data_collector/fxmacrodata/collector.py download_macro_data \
+  --source_dir ~/.qlib/fxmacrodata/macro_source \
+  --dataset announcements \
+  --currencies usd \
+  --indicators inflation,policy_rate,non_farm_payrolls \
+  --start 2025-01-01 \
+  --end 2026-01-01
+```
+
+Upcoming official release-calendar rows and forecast groups use the same command
+with a different `--dataset`:
+
+```bash
+python scripts/data_collector/fxmacrodata/collector.py download_macro_data \
+  --source_dir ~/.qlib/fxmacrodata/calendar_source \
+  --dataset calendar \
+  --currencies usd \
+  --indicators inflation,policy_rate
+
+python scripts/data_collector/fxmacrodata/collector.py download_macro_data \
+  --source_dir ~/.qlib/fxmacrodata/prediction_source \
+  --dataset predictions \
+  --currencies usd \
+  --indicators inflation
+```
+
+Macro files use symbols such as `usd_inflation` and include numeric features
+such as `value`, `actual`, `consensus`, `forecast`, `surprise`, `prediction`,
+`prediction_count`, `announcement_datetime`, and `is_future`.
+
+Normalize the macro CSVs before dumping them:
+
+```bash
+python scripts/data_collector/fxmacrodata/collector.py normalize_macro_data \
+  --source_dir ~/.qlib/fxmacrodata/macro_source \
+  --normalize_dir ~/.qlib/fxmacrodata/macro_normalize
+```
+
 ## Dump To qlib Format
 
 ```bash
@@ -62,4 +106,5 @@ from qlib.data import D
 
 qlib.init(provider_uri="~/.qlib/qlib_data/fxmacrodata", region="us")
 df = D.features(["eurusd", "gbpusd"], ["$close", "$change"], freq="day")
+macro = D.features(["usd_inflation"], ["$value", "$forecast", "$announcement_datetime"], freq="day")
 ```
