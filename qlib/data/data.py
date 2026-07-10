@@ -28,7 +28,6 @@ from ..utils import (
     init_instance_by_config,
     register_wrapper,
     get_module_by_module_path,
-    parse_field,
     hash_args,
     normalize_cache_fields,
     code_to_fname,
@@ -38,6 +37,7 @@ from ..utils import (
 )
 from ..utils.paral import ParallelExt
 from .ops import Operators  # pylint: disable=W0611  # noqa: F401
+from .expression_parser import parse_expression
 
 
 class ProviderBackendMixin:
@@ -394,7 +394,7 @@ class ExpressionProvider(abc.ABC):
             if field in self.expression_instance_cache:
                 expression = self.expression_instance_cache[field]
             else:
-                expression = eval(parse_field(field))
+                expression = parse_expression(field)
                 self.expression_instance_cache[field] = expression
         except NameError as e:
             get_module_logger("data").exception(
