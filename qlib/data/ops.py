@@ -716,6 +716,15 @@ class Rolling(ExpressionOps):
     When the window is set to 0, the behaviour of the operator should follow `expanding`
     Otherwise, it follows `rolling`
 
+    NOTE: the rolling window uses ``min_periods=1``, so the first ``N - 1`` values of a series
+    are **partial-window** results computed from fewer than ``N`` observations instead of NaN.
+    For example, ``Mean($close, 20)`` on a newly listed stock with only 5 days of history will
+    emit a "20-day" mean computed from just 1-5 observations. This is the long-standing default
+    behaviour and is kept for backward compatibility (downstream benchmark results depend on it).
+    If you want strict full-window semantics, mask the early values yourself, e.g. filter out
+    rows where the instrument has less than ``N`` periods of history, or use an expression such
+    as ``If(Ge(Count($close, N), N), Mean($close, N), <fallback>)`` to invalidate partial windows.
+
     Parameters
     ----------
     feature : Expression
