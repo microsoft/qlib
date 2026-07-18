@@ -212,6 +212,9 @@ class FileInstrumentStorage(FileStorageMixin, InstrumentStorage):
             names=[self.SYMBOL_FIELD_NAME, self.INSTRUMENT_START_FIELD, self.INSTRUMENT_END_FIELD],
             dtype={self.SYMBOL_FIELD_NAME: str},
             parse_dates=[self.INSTRUMENT_START_FIELD, self.INSTRUMENT_END_FIELD],
+            # Symbols are opaque identifiers: tickers literally named "NA" or "NULL" must not be
+            # read as missing values (#1736 fixed the same defect in `exists_qlib_data` only).
+            keep_default_na=False,
         )
         for row in df.itertuples(index=False):
             _instruments.setdefault(row[0], []).append((row[1], row[2]))
@@ -230,10 +233,11 @@ class FileInstrumentStorage(FileStorageMixin, InstrumentStorage):
             res.append(_df)
 
         df = pd.concat(res, sort=False)
+        # A single write in the on-disk column order expected by `_read_instrument`: [symbol, start, end].
+        # (Previously a second, unordered `to_csv` overwrote this file with [start, end, symbol].)
         df.loc[:, [self.SYMBOL_FIELD_NAME, self.INSTRUMENT_START_FIELD, self.INSTRUMENT_END_FIELD]].to_csv(
-            self.uri, header=False, sep=self.INSTRUMENT_SEP, index=False
+            self.uri, header=False, sep=self.INSTRUMENT_SEP, index=False, encoding="utf-8"
         )
-        df.to_csv(self.uri, sep="\t", encoding="utf-8", header=False, index=False)
 
     def clear(self) -> None:
         self._write_instrument(data={})
