@@ -30,14 +30,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         if: needs.release.outputs.release_created == 'true'
         with:
           fetch-depth: 0
 
       - name: Set up Python ${{ matrix.python-version }}
         if: needs.release.outputs.release_created == 'true'
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -76,14 +76,14 @@ jobs:
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         if: needs.release.outputs.release_created == 'true'
         with:
           fetch-depth: 0
 
       - name: Set up Python ${{ matrix.python-version }}
         if: needs.release.outputs.release_created == 'true'
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
 
