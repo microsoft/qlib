@@ -364,18 +364,38 @@ class MLflowRecorder(Recorder):
         Mlflow only log the commit id of the current repo. But usually, user will have a lot of uncommitted changes.
         So this tries to automatically to log them all.
         """
+        # This is an opportunistic reproducibility hook, not a precondition for running an experiment.
+        # When the CWD is not inside a git work tree (containers, CI sandboxes, a tempdir, ...) the git
+        # commands below fail; previously `shell=True` without capturing stderr leaked git's multi-line
+        # "usage: git diff --no-index ..." banner to the parent's stderr (bypassing this logger), and each
+        # failure emitted a noisy INFO record. So we first check for a work tree and skip silently if absent.
+        try:
+            probe = subprocess.run(
+                ["git", "rev-parse", "--is-inside-work-tree"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                check=False,
+            )
+        except OSError:
+            # git is not installed / not on PATH
+            logger.debug("Skip logging uncommitted code: git is not available.")
+            return
+        if probe.returncode != 0 or probe.stdout.strip() != b"true":
+            logger.debug(f"Skip logging uncommitted code: $CWD({os.getcwd()}) is not a git work tree.")
+            return
+
         # TODO: the sub-directories maybe git repos.
         # So it will be better if we can walk the sub-directories and log the uncommitted changes.
         for cmd, fname in [
-            ("git diff", "code_diff.txt"),
-            ("git status", "code_status.txt"),
-            ("git diff --cached", "code_cached.txt"),
+            (["git", "diff"], "code_diff.txt"),
+            (["git", "status"], "code_status.txt"),
+            (["git", "diff", "--cached"], "code_cached.txt"),
         ]:
             try:
-                out = subprocess.check_output(cmd, shell=True)
+                out = subprocess.check_output(cmd, stderr=subprocess.DEVNULL)
                 self.client.log_text(self.id, out.decode(), fname)  # this behaves same as above
             except subprocess.CalledProcessError:
-                logger.info(f"Fail to log the uncommitted code of $CWD({os.getcwd()}) when run {cmd}.")
+                logger.debug(f"Fail to log the uncommitted code of $CWD({os.getcwd()}) when run {' '.join(cmd)}.")
 
     def end_run(self, status: str = Recorder.STATUS_S):
         assert status in [

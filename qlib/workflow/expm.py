@@ -2,11 +2,11 @@
 # Licensed under the MIT License.
 
 from urllib.parse import urlparse
+from urllib.request import url2pathname
 import mlflow
 from filelock import FileLock
 from mlflow.exceptions import MlflowException, RESOURCE_ALREADY_EXISTS, ErrorCode
 from mlflow.entities import ViewType
-import os
 from typing import Optional, Text
 from pathlib import Path
 
@@ -233,7 +233,14 @@ class ExpManager:
             # So we supported it in the interface wrapper
             pr = urlparse(self.uri)
             if pr.scheme == "file":
-                with FileLock(Path(os.path.join(pr.netloc, pr.path.lstrip("/"), "filelock"))):  # pylint: disable=E0110
+                # `pr.path` of an absolute file:// URI is already an absolute path. The previous
+                # `os.path.join(pr.netloc, pr.path.lstrip("/"), ...)` stripped the leading "/" and
+                # produced a CWD-relative lock path, so the lock (and its parent dirs) landed wherever
+                # the process happened to be running instead of at the URI's location. `url2pathname`
+                # restores the absolute path and also handles Windows drive-letter URIs correctly.
+                lock_dir = Path(url2pathname(pr.path))
+                lock_dir.mkdir(parents=True, exist_ok=True)
+                with FileLock(lock_dir / "filelock"):  # pylint: disable=E0110
                     return self.create_exp(experiment_name), True
             # NOTE: for other schemes like http, we double check to avoid create exp conflicts
             try:
