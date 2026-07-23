@@ -38,6 +38,7 @@ from data_collector.utils import (
     get_us_stock_symbols,
     get_in_stock_symbols,
     get_br_stock_symbols,
+    get_jp_stock_symbols,
     generate_minutes_calendar_from_daily,
     calc_adjusted_price,
 )
@@ -362,6 +363,33 @@ class YahooCollectorBR1d(YahooCollectorBR):
 
 class YahooCollectorBR1min(YahooCollectorBR):
     retry = 2
+
+
+class YahooCollectorJP(YahooCollector, ABC):
+    def get_instrument_list(self):
+        logger.info("get JP Prime (domestic stock) + ETF/ETN symbols......")
+        symbols = get_jp_stock_symbols()
+        logger.info(f"get {len(symbols)} symbols.")
+        return symbols
+
+    def download_index_data(self):
+        pass
+
+    def normalize_symbol(self, symbol):
+        return code_to_fname(symbol).upper()
+
+    @property
+    def _timezone(self):
+        return "Asia/Tokyo"
+
+
+class YahooCollectorJP1d(YahooCollectorJP):
+    pass
+
+
+class YahooCollectorJP1min(YahooCollectorJP):
+    def __init__(self, *args, **kwargs):
+        raise ValueError("JP region does not support 1min data collection")
 
 
 class YahooNormalize(BaseNormalize):
@@ -720,6 +748,27 @@ class YahooNormalizeBR1min(YahooNormalizeBR, YahooNormalize1min):
         return fname_to_code(symbol)
 
 
+class YahooNormalizeJP:
+    def _get_calendar_list(self) -> Iterable[pd.Timestamp]:
+        return get_calendar_list("JP_ALL")
+
+
+class YahooNormalizeJP1d(YahooNormalizeJP, YahooNormalize1d):
+    pass
+
+
+class YahooNormalizeJP1dExtend(YahooNormalizeJP, YahooNormalize1dExtend):
+    pass
+
+
+class YahooNormalizeJP1min(YahooNormalizeJP, YahooNormalize1min):
+    def __init__(self, *args, **kwargs):
+        raise ValueError("JP region does not support 1min normalization")
+
+    def symbol_to_yahoo(self, symbol):
+        return fname_to_code(symbol)
+
+
 class Run(BaseRun):
     def __init__(self, source_dir=None, normalize_dir=None, max_workers=1, interval="1d", region=REGION_CN):
         """
@@ -735,10 +784,14 @@ class Run(BaseRun):
         interval: str
             freq, value from [1min, 1d], default 1d
         region: str
-            region, value from ["CN", "US", "BR"], default "CN"
+            region, value from ["CN", "US", "IN", "BR", "JP"], default "CN"
         """
         super().__init__(source_dir, normalize_dir, max_workers, interval)
         self.region = region
+
+    def _validate_region_interval(self):
+        if self.region.upper() == "JP" and self.interval.lower() == "1min":
+            raise ValueError("JP region does not support 1min data")
 
     @property
     def collector_class_name(self):
@@ -792,6 +845,7 @@ class Run(BaseRun):
             # get 1m data
             $ python collector.py download_data --source_dir ~/.qlib/stock_data/source --region CN --start 2020-11-01 --end 2020-11-10 --delay 0.1 --interval 1m
         """
+        self._validate_region_interval()
         if self.interval == "1d" and pd.Timestamp(end) > pd.Timestamp(datetime.datetime.now().strftime("%Y-%m-%d")):
             raise ValueError(f"end_date: {end} is greater than the current date.")
 
@@ -828,6 +882,7 @@ class Run(BaseRun):
             $ python collector.py normalize_data --source_dir ~/.qlib/stock_data/source --normalize_dir ~/.qlib/stock_data/normalize --region cn --interval 1d
             $ python collector.py normalize_data --qlib_data_1d_dir ~/.qlib/qlib_data/cn_data --source_dir ~/.qlib/stock_data/source_cn_1min --normalize_dir ~/.qlib/stock_data/normalize_cn_1min --region CN --interval 1min
         """
+        self._validate_region_interval()
         if self.interval.lower() == "1min":
             if qlib_data_1d_dir is None or not Path(qlib_data_1d_dir).expanduser().exists():
                 raise ValueError(
@@ -937,6 +992,7 @@ class Run(BaseRun):
         check_data_length: int = None,
         delay: float = 1,
         exists_skip: bool = False,
+        limit_nums: int = None,
     ):
         """update yahoo data to bin
 
@@ -953,6 +1009,8 @@ class Run(BaseRun):
             time.sleep(delay), default 1
         exists_skip: bool
             exists skip, by default False
+        limit_nums: int
+            using for debug, by default None
         Notes
         -----
             If the data in qlib_data_dir is incomplete, np.nan will be populated to trading_date for the previous trading day
@@ -981,7 +1039,13 @@ class Run(BaseRun):
 
         # download data from yahoo
         # NOTE: when downloading data from YahooFinance, max_workers is recommended to be 1
-        self.download_data(delay=delay, start=trading_date, end=end_date, check_data_length=check_data_length)
+        self.download_data(
+            delay=delay,
+            start=trading_date,
+            end=end_date,
+            check_data_length=check_data_length,
+            limit_nums=limit_nums,
+        )
         # NOTE: a larger max_workers setting here would be faster
         self.max_workers = (
             max(multiprocessing.cpu_count() - 2, 1)

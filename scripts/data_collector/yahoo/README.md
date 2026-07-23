@@ -55,6 +55,7 @@ pip install -r requirements.txt
 ### Collector *YahooFinance* data to qlib
 > collector *YahooFinance* data and *dump* into `qlib` format.
 > If the above ready-made data can't meet users' requirements,  users can follow this section to crawl the latest data and convert it to qlib-data.
+> For `region=JP`, the symbol universe is **TSE Prime (domestic stocks) + ETF/ETN** from JPX listed companies file.
   1. download data to csv: `python scripts/data_collector/yahoo/collector.py download_data`
      
      This will download the raw data such as high, low, open, close, adjclose price from yahoo to a local directory. One file per symbol.
@@ -63,7 +64,8 @@ pip install -r requirements.txt
           - `source_dir`: save the directory
           - `interval`: `1d` or `1min`, by default `1d`
             > **due to the limitation of the *YahooFinance API*, only the last month's data is available in `1min`**
-          - `region`: `CN` or `US` or `IN` or `BR`, by default `CN`
+          - `region`: `CN` or `US` or `IN` or `BR` or `JP`, by default `CN`
+            > `JP` supports `1d` only
           - `delay`: `time.sleep(delay)`, by default *0.5*
           - `start`: start datetime, by default *"2000-01-01"*; *closed interval(including start)*
           - `end`: end datetime, by default `pd.Timestamp(datetime.datetime.now() + pd.Timedelta(days=1))`; *open interval(excluding end)*
@@ -92,6 +94,9 @@ pip install -r requirements.txt
           python collector.py download_data --source_dir ~/.qlib/stock_data/source/br_data --start 2003-01-03 --end 2022-03-01 --delay 1 --interval 1d --region BR
           # br 1min data
           python collector.py download_data --source_dir ~/.qlib/stock_data/source/br_data_1min --delay 1 --interval 1min --region BR
+
+          # jp 1d data (TSE Prime domestic stocks + ETF/ETN)
+          python collector.py download_data --source_dir ~/.qlib/stock_data/source/jp_data --start 2020-01-01 --end 2020-12-31 --delay 1 --interval 1d --region JP
           ```
   2. normalize data: `python scripts/data_collector/yahoo/collector.py normalize_data`
      
@@ -105,7 +110,8 @@ pip install -r requirements.txt
           - `max_workers`: number of concurrent, by default *1*
           - `interval`: `1d` or `1min`, by default `1d`
             > if **`interval == 1min`**, `qlib_data_1d_dir` cannot be `None`
-          - `region`: `CN` or `US` or `IN`, by default `CN`
+          - `region`: `CN` or `US` or `IN` or `BR` or `JP`, by default `CN`
+            > `JP` supports `1d` only
           - `date_field_name`: column *name* identifying time in csv files, by default `date`
           - `symbol_field_name`: column *name* identifying symbol in csv files, by default `symbol`
           - `end_date`: if not `None`, normalize the last date saved (*including end_date*); if `None`, it will ignore this parameter; by default `None`
@@ -133,6 +139,9 @@ pip install -r requirements.txt
 
         # normalize 1min br
         python collector.py normalize_data --qlib_data_1d_dir ~/.qlib/qlib_data/br_data --source_dir ~/.qlib/stock_data/source/br_data_1min --normalize_dir ~/.qlib/stock_data/source/br_1min_nor --region BR --interval 1min
+
+        # normalize 1d jp
+        python collector.py normalize_data --source_dir ~/.qlib/stock_data/source/jp_data --normalize_dir ~/.qlib/stock_data/source/jp_1d_nor --region JP --interval 1d
         ```
   3. dump data: `python scripts/dump_bin.py dump_all`
     
@@ -222,4 +231,3 @@ pip install -r requirements.txt
   # get all symbol data
   # df = D.features(D.instruments("all"), ["$close"], freq="1min")
   ```
-
