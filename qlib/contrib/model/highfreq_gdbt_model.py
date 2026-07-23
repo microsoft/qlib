@@ -124,16 +124,24 @@ class HFLGBModel(ModelFT, LightGBMFInt):
         if evals_result is None:
             evals_result = dict()
         dtrain, dvalid = self._prepare_data(dataset)
-        early_stopping_callback = lgb.early_stopping(early_stopping_rounds)
-        verbose_eval_callback = lgb.log_evaluation(period=verbose_eval)
-        evals_result_callback = lgb.record_evaluation(evals_result)
+
+        # Build callbacks list
+        callbacks = []
+
+        # Only add early_stopping callback if rounds is not None (LightGBM 4.0+ compatibility)
+        if early_stopping_rounds is not None:
+            callbacks.append(lgb.early_stopping(early_stopping_rounds))
+
+        callbacks.append(lgb.log_evaluation(period=verbose_eval))
+        callbacks.append(lgb.record_evaluation(evals_result))
+
         self.model = lgb.train(
             self.params,
             dtrain,
             num_boost_round=num_boost_round,
             valid_sets=[dtrain, dvalid],
             valid_names=["train", "valid"],
-            callbacks=[early_stopping_callback, verbose_eval_callback, evals_result_callback],
+            callbacks=callbacks,
         )
         evals_result["train"] = list(evals_result["train"].values())[0]
         evals_result["valid"] = list(evals_result["valid"].values())[0]

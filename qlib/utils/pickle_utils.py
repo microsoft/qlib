@@ -46,9 +46,49 @@ SAFE_PICKLE_CLASSES: Set[Tuple[str, str]] = {
     ("pathlib", "Path"),
     ("pathlib", "PosixPath"),
     ("pathlib", "WindowsPath"),
+    ("qlib.data.dataset.handler", "DataHandlerABC"),
     ("qlib.data.dataset.handler", "DataHandler"),
     ("qlib.data.dataset.handler", "DataHandlerLP"),
+    ("qlib.data.dataset.loader", "DataLoader"),
+    ("qlib.data.dataset.loader", "DLWParser"),
+    ("qlib.data.dataset.loader", "QlibDataLoader"),
     ("qlib.data.dataset.loader", "StaticDataLoader"),
+    ("qlib.data.dataset.loader", "NestedDataLoader"),
+    ("qlib.data.dataset.loader", "DataLoaderDH"),
+    # Dataset hierarchy - needed when a recorder/rolling workflow pickles a
+    # full dataset and the unpickler walks the wrapped handler/loader graph.
+    ("qlib.data.dataset", "Dataset"),
+    ("qlib.data.dataset", "DatasetH"),
+    ("qlib.data.dataset", "TSDatasetH"),
+    # Stock-data handlers shipped in qlib.contrib. Without these the
+    # ``Rolling._train_rolling_tasks`` -> recorder load path fails with
+    # ``Forbidden class: qlib.contrib.data.handler.Alpha158`` (issue #2130).
+    ("qlib.contrib.data.handler", "Alpha158"),
+    ("qlib.contrib.data.handler", "Alpha158vwap"),
+    ("qlib.contrib.data.handler", "Alpha360"),
+    ("qlib.contrib.data.handler", "Alpha360vwap"),
+    # Processors are part of every Dataset's processor chain and must be
+    # restorable when the dataset is reloaded from disk.
+    ("qlib.data.dataset.processor", "Processor"),
+    ("qlib.data.dataset.processor", "DropnaProcessor"),
+    ("qlib.data.dataset.processor", "DropnaLabel"),
+    ("qlib.data.dataset.processor", "DropCol"),
+    ("qlib.data.dataset.processor", "FilterCol"),
+    ("qlib.data.dataset.processor", "TanhProcess"),
+    ("qlib.data.dataset.processor", "ProcessInf"),
+    ("qlib.data.dataset.processor", "Fillna"),
+    ("qlib.data.dataset.processor", "MinMaxNorm"),
+    ("qlib.data.dataset.processor", "ZScoreNorm"),
+    ("qlib.data.dataset.processor", "RobustZScoreNorm"),
+    ("qlib.data.dataset.processor", "CSZScoreNorm"),
+    ("qlib.data.dataset.processor", "CSRankNorm"),
+    ("qlib.data.dataset.processor", "CSZFillna"),
+    ("qlib.data.dataset.processor", "HashStockFormat"),
+    ("qlib.data.dataset.processor", "TimeRangeFlt"),
+    # Utility functions used in data processing
+    ("qlib.utils.data", "zscore"),
+    # Meta-learning data selection classes used in DDG-DA workflow
+    ("qlib.contrib.meta.data_selection.dataset", "InternalData"),
 }
 
 
