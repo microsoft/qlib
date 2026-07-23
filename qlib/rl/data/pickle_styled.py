@@ -249,6 +249,28 @@ class PickleProcessedDataProvider(ProcessedDataProvider):
         )
 
 
+class TeacherActionData:
+    teacher_action: pd.DataFrame
+    step: int
+
+    def __init__(self, teacher_action_file: Path, stock_id: str, date: pd.Timestamp) -> None:  # type: ignore
+        data = pd.read_pickle(teacher_action_file).loc[pd.IndexSlice[stock_id, date.date()]]  # type: ignore
+        self.teacher_action = data["policy_act"]
+        self.step = data["step"]
+
+
+def load_teacher_action_data(teacher_action_file: Path, stock_id: str, date: pd.Timestamp) -> TeacherActionData:  # type: ignore
+    return TeacherActionData(teacher_action_file, stock_id, date)
+
+
+class TeacherActionDataProvider:
+    def __init__(self, teacher_action_file: Path) -> None:
+        self._teacher_action_file = teacher_action_file
+
+    def get_data(self, stock_id: str, date: pd.Timestamp) -> TeacherActionData:
+        return load_teacher_action_data(self._teacher_action_file, stock_id, date)
+
+
 def load_orders(
     order_path: Path,
     start_time: pd.Timestamp = None,
