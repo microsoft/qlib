@@ -8,7 +8,7 @@ from typing import Any, Set, Tuple, TYPE_CHECKING, Union
 
 import numpy as np
 
-from qlib.utils.time import epsilon_change
+from qlib.utils.time import epsilon_change, Freq
 
 if TYPE_CHECKING:
     from qlib.backtest.decision import BaseTradeDecision
@@ -128,7 +128,14 @@ class TradeCalendarManager:
         if trade_step is None:
             trade_step = self.get_trade_step()
         calendar_index = self.start_index + trade_step - shift
-        return self._calendar[calendar_index], epsilon_change(self._calendar[calendar_index + 1])
+        left = self._calendar[calendar_index]
+        # if we're at the very last bar, there's no next entry to peek at, so
+        # derive the right endpoint from the current bar's own frequency instead
+        if calendar_index + 1 < len(self._calendar):
+            right = self._calendar[calendar_index + 1]
+        else:
+            right = left + Freq.get_timedelta(*Freq.parse(self.freq))
+        return left, epsilon_change(right)
 
     def get_data_cal_range(self, rtype: str = "full") -> Tuple[int, int]:
         """
