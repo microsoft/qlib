@@ -6,7 +6,7 @@ The interface should be redesigned carefully in the future.
 
 import pandas as pd
 from typing import Tuple
-from qlib import get_module_logger
+from qlib.log import get_module_logger
 from qlib.utils.paral import complex_parallel, DelayedDict
 from joblib import Parallel, delayed
 

@@ -1,0 +1,108 @@
+{
+  "name": "zod-validation-error",
+  "version": "4.0.2",
+  "description": "Wrap zod validation errors in user-friendly readable messages",
+  "keywords": [
+    "zod",
+    "error",
+    "validation"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/causaly/zod-validation-error.git"
+  },
+  "author": {
+    "name": "Dimitrios C. Michalakos",
+    "email": "dimitris@jmike.gr",
+    "url": "https://github.com/jmike"
+  },
+  "contributors": [
+    {
+      "name": "Thanos Karagiannis",
+      "email": "hey@maestros.io",
+      "url": "https://github.com/thanoskrg"
+    },
+    {
+      "name": "Nikos Tsompanides",
+      "email": "nikostsompanides@gmail.com",
+      "url": "https://github.com/NikosTsompanides"
+    },
+    {
+      "name": "Nikos Kalogridis",
+      "url": "https://github.com/nikoskalogridis"
+    }
+  ],
+  "main": "./v4/index.js",
+  "module": "./v4/index.mjs",
+  "types": "./v4/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./v4/index.d.ts",
+      "require": "./v4/index.js",
+      "import": "./v4/index.mjs"
+    },
+    "./v3": {
+      "types": "./v3/index.d.ts",
+      "require": "./v3/index.js",
+      "import": "./v3/index.mjs"
+    },
+    "./v4": {
+      "types": "./v4/index.d.ts",
+      "require": "./v4/index.js",
+      "import": "./v4/index.mjs"
+    }
+  },
+  "files": [
+    "v3",
+    "v4"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsup --config ./tsup.config.ts",
+    "lint": "eslint lib --ext .ts",
+    "format": "prettier --config ./.prettierrc --ignore-path .gitignore -w .",
+    "test": "vitest run",
+    "changeset": "changeset",
+    "prerelease": "npm run build && npm run test",
+    "release": "changeset publish",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --config ./.prettierrc.json --write"
+    ]
+  },
+  "devDependencies": {
+    "@changesets/changelog-github": "^0.5.0",
+    "@changesets/cli": "^2.27.7",
+    "@commitlint/cli": "^18.0.0",
+    "@commitlint/config-conventional": "^18.0.0",
+    "@types/node": "^20.5.0",
+    "@typescript-eslint/eslint-plugin": "^6.4.1",
+    "@typescript-eslint/parser": "^6.4.1",
+    "concurrently": "^8.2.0",
+    "eslint": "^8.4.1",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-prettier": "^4.2.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.0.1",
+    "prettier": "^2.8.8",
+    "tsup": "^8.0.2",
+    "typescript": "^5.1.6",
+    "vitest": "^3.1.2",
+    "zod": "^4.0.2"
+  },
+  "peerDependencies": {
+    "zod": "^3.25.0 || ^4.0.0"
+  }
+}

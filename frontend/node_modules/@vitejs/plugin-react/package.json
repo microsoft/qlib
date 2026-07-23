@@ -1,0 +1,65 @@
+{
+  "name": "@vitejs/plugin-react",
+  "version": "5.1.1",
+  "license": "MIT",
+  "author": "Evan You",
+  "description": "The default Vite plugin for React projects",
+  "keywords": [
+    "vite",
+    "vite-plugin",
+    "react",
+    "babel",
+    "react-refresh",
+    "fast refresh"
+  ],
+  "contributors": [
+    "Alec Larson",
+    "Arnaud Barré"
+  ],
+  "files": [
+    "types",
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": "./dist/index.js",
+    "./preamble": "./types/preamble.d.ts"
+  },
+  "scripts": {
+    "dev": "tsdown --watch ./src --watch ../common",
+    "build": "tsdown",
+    "prepublishOnly": "npm run build",
+    "test-unit": "vitest run"
+  },
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vitejs/vite-plugin-react.git",
+    "directory": "packages/plugin-react"
+  },
+  "bugs": {
+    "url": "https://github.com/vitejs/vite-plugin-react/issues"
+  },
+  "homepage": "https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#readme",
+  "dependencies": {
+    "@babel/core": "^7.28.5",
+    "@babel/plugin-transform-react-jsx-self": "^7.27.1",
+    "@babel/plugin-transform-react-jsx-source": "^7.27.1",
+    "@rolldown/pluginutils": "1.0.0-beta.47",
+    "@types/babel__core": "^7.20.5",
+    "react-refresh": "^0.18.0"
+  },
+  "peerDependencies": {
+    "vite": "^4.2.0 || ^5.0.0 || ^6.0.0 || ^7.0.0"
+  },
+  "devDependencies": {
+    "@vitejs/react-common": "workspace:*",
+    "babel-plugin-react-compiler": "19.1.0-rc.3",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "rolldown": "1.0.0-beta.47",
+    "tsdown": "^0.16.1"
+  }
+}

@@ -1,0 +1,273 @@
+
+/*
+* Licensed to the Apache Software Foundation (ASF) under one
+* or more contributor license agreements.  See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership.  The ASF licenses this file
+* to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License.  You may obtain a copy of the License at
+*
+*   http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied.  See the License for the
+* specific language governing permissions and limitations
+* under the License.
+*/
+
+
+/**
+ * AUTO-GENERATED FILE. DO NOT MODIFY.
+ */
+
+/*
+* Licensed to the Apache Software Foundation (ASF) under one
+* or more contributor license agreements.  See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership.  The ASF licenses this file
+* to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License.  You may obtain a copy of the License at
+*
+*   http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied.  See the License for the
+* specific language governing permissions and limitations
+* under the License.
+*/
+import * as zrUtil from 'zrender/lib/core/util.js';
+import * as numberUtil from './number.js';
+import { getDefaultLocaleModel, getLocaleModel, SYSTEM_LANG } from '../core/locale.js';
+import Model from '../model/Model.js';
+export var ONE_SECOND = 1000;
+export var ONE_MINUTE = ONE_SECOND * 60;
+export var ONE_HOUR = ONE_MINUTE * 60;
+export var ONE_DAY = ONE_HOUR * 24;
+export var ONE_YEAR = ONE_DAY * 365;
+export var defaultLeveledFormatter = {
+  year: '{yyyy}',
+  month: '{MMM}',
+  day: '{d}',
+  hour: '{HH}:{mm}',
+  minute: '{HH}:{mm}',
+  second: '{HH}:{mm}:{ss}',
+  millisecond: '{HH}:{mm}:{ss} {SSS}',
+  none: '{yyyy}-{MM}-{dd} {HH}:{mm}:{ss} {SSS}'
+};
+var fullDayFormatter = '{yyyy}-{MM}-{dd}';
+export var fullLeveledFormatter = {
+  year: '{yyyy}',
+  month: '{yyyy}-{MM}',
+  day: fullDayFormatter,
+  hour: fullDayFormatter + ' ' + defaultLeveledFormatter.hour,
+  minute: fullDayFormatter + ' ' + defaultLeveledFormatter.minute,
+  second: fullDayFormatter + ' ' + defaultLeveledFormatter.second,
+  millisecond: defaultLeveledFormatter.none
+};
+export var primaryTimeUnits = ['year', 'month', 'day', 'hour', 'minute', 'second', 'millisecond'];
+export var timeUnits = ['year', 'half-year', 'quarter', 'month', 'week', 'half-week', 'day', 'half-day', 'quarter-day', 'hour', 'minute', 'second', 'millisecond'];
+export function pad(str, len) {
+  str += '';
+  return '0000'.substr(0, len - str.length) + str;
+}
+export function getPrimaryTimeUnit(timeUnit) {
+  switch (timeUnit) {
+    case 'half-year':
+    case 'quarter':
+      return 'month';
+    case 'week':
+    case 'half-week':
+      return 'day';
+    case 'half-day':
+    case 'quarter-day':
+      return 'hour';
+    default:
+      // year, minutes, second, milliseconds
+      return timeUnit;
+  }
+}
+export function isPrimaryTimeUnit(timeUnit) {
+  return timeUnit === getPrimaryTimeUnit(timeUnit);
+}
+export function getDefaultFormatPrecisionOfInterval(timeUnit) {
+  switch (timeUnit) {
+    case 'year':
+    case 'month':
+      return 'day';
+    case 'millisecond':
+      return 'millisecond';
+    default:
+      // Also for day, hour, minute, second
+      return 'second';
+  }
+}
+export function format(
+// Note: The result based on `isUTC` are totally different, which can not be just simply
+// substituted by the result without `isUTC`. So we make the param `isUTC` mandatory.
+time, template, isUTC, lang) {
+  var date = numberUtil.parseDate(time);
+  var y = date[fullYearGetterName(isUTC)]();
+  var M = date[monthGetterName(isUTC)]() + 1;
+  var q = Math.floor((M - 1) / 3) + 1;
+  var d = date[dateGetterName(isUTC)]();
+  var e = date['get' + (isUTC ? 'UTC' : '') + 'Day']();
+  var H = date[hoursGetterName(isUTC)]();
+  var h = (H - 1) % 12 + 1;
+  var m = date[minutesGetterName(isUTC)]();
+  var s = date[secondsGetterName(isUTC)]();
+  var S = date[millisecondsGetterName(isUTC)]();
+  var a = H >= 12 ? 'pm' : 'am';
+  var A = a.toUpperCase();
+  var localeModel = lang instanceof Model ? lang : getLocaleModel(lang || SYSTEM_LANG) || getDefaultLocaleModel();
+  var timeModel = localeModel.getModel('time');
+  var month = timeModel.get('month');
+  var monthAbbr = timeModel.get('monthAbbr');
+  var dayOfWeek = timeModel.get('dayOfWeek');
+  var dayOfWeekAbbr = timeModel.get('dayOfWeekAbbr');
+  return (template || '').replace(/{a}/g, a + '').replace(/{A}/g, A + '').replace(/{yyyy}/g, y + '').replace(/{yy}/g, pad(y % 100 + '', 2)).replace(/{Q}/g, q + '').replace(/{MMMM}/g, month[M - 1]).replace(/{MMM}/g, monthAbbr[M - 1]).replace(/{MM}/g, pad(M, 2)).replace(/{M}/g, M + '').replace(/{dd}/g, pad(d, 2)).replace(/{d}/g, d + '').replace(/{eeee}/g, dayOfWeek[e]).replace(/{ee}/g, dayOfWeekAbbr[e]).replace(/{e}/g, e + '').replace(/{HH}/g, pad(H, 2)).replace(/{H}/g, H + '').replace(/{hh}/g, pad(h + '', 2)).replace(/{h}/g, h + '').replace(/{mm}/g, pad(m, 2)).replace(/{m}/g, m + '').replace(/{ss}/g, pad(s, 2)).replace(/{s}/g, s + '').replace(/{SSS}/g, pad(S, 3)).replace(/{S}/g, S + '');
+}
+export function leveledFormat(tick, idx, formatter, lang, isUTC) {
+  var template = null;
+  if (zrUtil.isString(formatter)) {
+    // Single formatter for all units at all levels
+    template = formatter;
+  } else if (zrUtil.isFunction(formatter)) {
+    // Callback formatter
+    template = formatter(tick.value, idx, {
+      level: tick.level
+    });
+  } else {
+    var defaults = zrUtil.extend({}, defaultLeveledFormatter);
+    if (tick.level > 0) {
+      for (var i = 0; i < primaryTimeUnits.length; ++i) {
+        defaults[primaryTimeUnits[i]] = "{primary|" + defaults[primaryTimeUnits[i]] + "}";
+      }
+    }
+    var mergedFormatter = formatter ? formatter.inherit === false ? formatter // Use formatter with bigger units
+    : zrUtil.defaults(formatter, defaults) : defaults;
+    var unit = getUnitFromValue(tick.value, isUTC);
+    if (mergedFormatter[unit]) {
+      template = mergedFormatter[unit];
+    } else if (mergedFormatter.inherit) {
+      // Unit formatter is not defined and should inherit from bigger units
+      var targetId = timeUnits.indexOf(unit);
+      for (var i = targetId - 1; i >= 0; --i) {
+        if (mergedFormatter[unit]) {
+          template = mergedFormatter[unit];
+          break;
+        }
+      }
+      template = template || defaults.none;
+    }
+    if (zrUtil.isArray(template)) {
+      var levelId = tick.level == null ? 0 : tick.level >= 0 ? tick.level : template.length + tick.level;
+      levelId = Math.min(levelId, template.length - 1);
+      template = template[levelId];
+    }
+  }
+  return format(new Date(tick.value), template, isUTC, lang);
+}
+export function getUnitFromValue(value, isUTC) {
+  var date = numberUtil.parseDate(value);
+  var M = date[monthGetterName(isUTC)]() + 1;
+  var d = date[dateGetterName(isUTC)]();
+  var h = date[hoursGetterName(isUTC)]();
+  var m = date[minutesGetterName(isUTC)]();
+  var s = date[secondsGetterName(isUTC)]();
+  var S = date[millisecondsGetterName(isUTC)]();
+  var isSecond = S === 0;
+  var isMinute = isSecond && s === 0;
+  var isHour = isMinute && m === 0;
+  var isDay = isHour && h === 0;
+  var isMonth = isDay && d === 1;
+  var isYear = isMonth && M === 1;
+  if (isYear) {
+    return 'year';
+  } else if (isMonth) {
+    return 'month';
+  } else if (isDay) {
+    return 'day';
+  } else if (isHour) {
+    return 'hour';
+  } else if (isMinute) {
+    return 'minute';
+  } else if (isSecond) {
+    return 'second';
+  } else {
+    return 'millisecond';
+  }
+}
+export function getUnitValue(value, unit, isUTC) {
+  var date = zrUtil.isNumber(value) ? numberUtil.parseDate(value) : value;
+  unit = unit || getUnitFromValue(value, isUTC);
+  switch (unit) {
+    case 'year':
+      return date[fullYearGetterName(isUTC)]();
+    case 'half-year':
+      return date[monthGetterName(isUTC)]() >= 6 ? 1 : 0;
+    case 'quarter':
+      return Math.floor((date[monthGetterName(isUTC)]() + 1) / 4);
+    case 'month':
+      return date[monthGetterName(isUTC)]();
+    case 'day':
+      return date[dateGetterName(isUTC)]();
+    case 'half-day':
+      return date[hoursGetterName(isUTC)]() / 24;
+    case 'hour':
+      return date[hoursGetterName(isUTC)]();
+    case 'minute':
+      return date[minutesGetterName(isUTC)]();
+    case 'second':
+      return date[secondsGetterName(isUTC)]();
+    case 'millisecond':
+      return date[millisecondsGetterName(isUTC)]();
+  }
+}
+export function fullYearGetterName(isUTC) {
+  return isUTC ? 'getUTCFullYear' : 'getFullYear';
+}
+export function monthGetterName(isUTC) {
+  return isUTC ? 'getUTCMonth' : 'getMonth';
+}
+export function dateGetterName(isUTC) {
+  return isUTC ? 'getUTCDate' : 'getDate';
+}
+export function hoursGetterName(isUTC) {
+  return isUTC ? 'getUTCHours' : 'getHours';
+}
+export function minutesGetterName(isUTC) {
+  return isUTC ? 'getUTCMinutes' : 'getMinutes';
+}
+export function secondsGetterName(isUTC) {
+  return isUTC ? 'getUTCSeconds' : 'getSeconds';
+}
+export function millisecondsGetterName(isUTC) {
+  return isUTC ? 'getUTCMilliseconds' : 'getMilliseconds';
+}
+export function fullYearSetterName(isUTC) {
+  return isUTC ? 'setUTCFullYear' : 'setFullYear';
+}
+export function monthSetterName(isUTC) {
+  return isUTC ? 'setUTCMonth' : 'setMonth';
+}
+export function dateSetterName(isUTC) {
+  return isUTC ? 'setUTCDate' : 'setDate';
+}
+export function hoursSetterName(isUTC) {
+  return isUTC ? 'setUTCHours' : 'setHours';
+}
+export function minutesSetterName(isUTC) {
+  return isUTC ? 'setUTCMinutes' : 'setMinutes';
+}
+export function secondsSetterName(isUTC) {
+  return isUTC ? 'setUTCSeconds' : 'setSeconds';
+}
+export function millisecondsSetterName(isUTC) {
+  return isUTC ? 'setUTCMilliseconds' : 'setMilliseconds';
+}

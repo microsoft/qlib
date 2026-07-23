@@ -1,0 +1,1 @@
+{"version":3,"file":"is-equal.js","sourceRoot":"","sources":["../../src/helper/is-equal.ts"],"names":[],"mappings":"AAAA,OAAO,OAAO,MAAM,iBAAiB,CAAC;AAEtC,OAAO,EAAE,OAAO,EAAE,CAAC","sourcesContent":["import isEqual from 'fast-deep-equal';\n\nexport { isEqual };\n"]}

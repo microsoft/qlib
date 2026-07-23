@@ -1,0 +1,26 @@
+fastapi>=0.100.0
+uvicorn>=0.23.0
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+sqlalchemy>=2.0.0
+pymysql>=1.0.0
+python-jose>=3.3.0
+passlib>=1.7.0
+bcrypt>=4.0.0
+pyyaml>=6.0.0
+python-multipart>=0.0.6
+setuptools_scm>=7.0.0
+ruamel.yaml>=0.17.0
+filelock>=3.0.0
+dill>=0.3.0
+redis>=5.0.0
+python-dotenv>=1.0.0
+httpx>=0.25.0
+# qlib will be installed from local source
+mlflow==2.17.2
+pandas>=1.5.0
+numpy>=1.24.4
+scikit-learn>=1.2.0
+tqdm>=4.0.0
+loguru>=0.7.0
+cryptography>=41.0.0

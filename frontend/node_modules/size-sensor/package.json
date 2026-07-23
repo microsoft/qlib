@@ -1,0 +1,65 @@
+{
+  "name": "size-sensor",
+  "version": "1.0.2",
+  "description": "DOM element size sensor which will callback when size changed.",
+  "main": "lib/index.js",
+  "types": "index.d.ts",
+  "scripts": {
+    "debug": "cross-env NODE_ENV=babel cross-env DEBUG_MODE=1 jest",
+    "test": "cross-env NODE_ENV=babel jest",
+    "build:umd": "rimraf ./dist && cross-env NODE_ENV=rollup rollup -c",
+    "build:lib": "rimraf ./lib && cross-env NODE_ENV=babel babel src -d lib",
+    "build": "npm run build:umd && npm run build:lib && limit-size"
+  },
+  "limit-size": [
+    {
+      "limit": "1 KB",
+      "path": "dist/size-sensor.min.js",
+      "gzip": true
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hustcc/size-sensor.git"
+  },
+  "keywords": [
+    "resize",
+    "size",
+    "sensor",
+    "size-detector",
+    "element"
+  ],
+  "devDependencies": {
+    "@babel/cli": "^7.6.0",
+    "@babel/core": "^7.6.0",
+    "@babel/preset-env": "^7.6.0",
+    "babel-jest": "^24.9.0",
+    "babel-plugin-version": "^0.2.1",
+    "cross-env": "^5.1.3",
+    "jest": "^24.9.0",
+    "jest-electron": "^0.1.6",
+    "limit-size": "^0.1.2",
+    "rimraf": "^2.6.2",
+    "rollup": "^1.21.4",
+    "rollup-plugin-babel": "^4.3.3",
+    "rollup-plugin-node-resolve": "^5.2.0",
+    "rollup-plugin-uglify": "^6.0.3"
+  },
+  "jest": {
+    "runner": "jest-electron/runner",
+    "testEnvironment": "jest-electron/environment",
+    "collectCoverage": true,
+    "collectCoverageFrom": [
+      "src/**/*.{js,jsx}",
+      "!**/node_modules/**",
+      "!**/vendor/**"
+    ],
+    "testRegex": "/__tests__/.*\\.spec\\.jsx?$"
+  },
+  "author": "hustcc",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/hustcc/size-sensor/issues"
+  },
+  "homepage": "https://git.hust.cc/size-sensor"
+}

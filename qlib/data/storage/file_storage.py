@@ -45,20 +45,32 @@ class FileStorageMixin:
         _v = "_support_freq"
         if hasattr(self, _v):
             return getattr(self, _v)
-        if len(self.provider_uri) == 1 and C.DEFAULT_FREQ in self.provider_uri:
-            freq_l = filter(
-                lambda _freq: not _freq.endswith("_future"),
-                map(lambda x: x.stem, self.dpm.get_data_uri(C.DEFAULT_FREQ).joinpath("calendars").glob("*.txt")),
-            )
+        provider_uri = self.provider_uri
+        # 确保provider_uri是字典格式
+        if isinstance(provider_uri, str):
+            provider_uri = {C.DEFAULT_FREQ: provider_uri}
+        if len(provider_uri) == 1 and C.DEFAULT_FREQ in provider_uri:
+            calendar_dir = self.dpm.get_data_uri(C.DEFAULT_FREQ).joinpath("calendars")
+            if calendar_dir.exists():
+                freq_l = list(filter(
+                    lambda _freq: not _freq.endswith("_future"),
+                    map(lambda x: x.stem, calendar_dir.glob("*.txt")),
+                ))
+                # 如果没有找到频率，使用默认频率
+                if not freq_l:
+                    freq_l = ["day"]
+            else:
+                # 添加默认支持的频率
+                freq_l = ["day"]
         else:
-            freq_l = self.provider_uri.keys()
+            freq_l = list(provider_uri.keys())
         freq_l = [Freq(freq) for freq in freq_l]
         setattr(self, _v, freq_l)
         return freq_l
 
     @property
     def uri(self) -> Path:
-        if self.freq not in self.support_freq:
+        if Freq(self.freq) not in self.support_freq:
             raise ValueError(f"{self.storage_name}: {self.provider_uri} does not contain data for {self.freq}")
         return self.dpm.get_data_uri(self.freq).joinpath(f"{self.storage_name}s", self.file_name)
 
