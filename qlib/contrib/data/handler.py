@@ -98,17 +98,17 @@ class Alpha360vwap(Alpha360):
 class Alpha158(DataHandlerLP):
     def __init__(
         self,
-        instruments="csi500",
-        start_time=None,
-        end_time=None,
-        freq="day",
-        infer_processors=[],
-        learn_processors=_DEFAULT_LEARN_PROCESSORS,
-        fit_start_time=None,
-        fit_end_time=None,
-        process_type=DataHandlerLP.PTYPE_A,
-        filter_pipe=None,
-        inst_processors=None,
+        instruments="csi500",# 默认使用中证500成分股
+        start_time=None,# 开始时间
+        end_time=None,# 结束时间
+        freq="day",# 数据频率，默认为日频
+        infer_processors=[],# 推理阶段的数据处理器
+        learn_processors=_DEFAULT_LEARN_PROCESSORS,# 学习阶段的数据处理器
+        fit_start_time=None,# 拟合开始时间
+        fit_end_time=None,# 拟合结束时间
+        process_type=DataHandlerLP.PTYPE_A,# 处理类型
+        filter_pipe=None,# 过滤管道
+        inst_processors=None,# 实例处理器
         **kwargs,
     ):
         infer_processors = check_transform_proc(infer_processors, fit_start_time, fit_end_time)
@@ -139,16 +139,22 @@ class Alpha158(DataHandlerLP):
 
     def get_feature_config(self):
         conf = {
-            "kbar": {},
+            "kbar": {},# K线特征
             "price": {
-                "windows": [0],
-                "feature": ["OPEN", "HIGH", "LOW", "VWAP"],
+                "windows": [0],# 时间窗口
+                "feature": ["OPEN", "HIGH", "LOW", "VWAP"],# 价格特征
             },
-            "rolling": {},
+            "rolling": {},# 滚动特征
         }
+        # Alpha158DL中的特征可以分为以下几类：
+        # K线特征（kbar）：基于开盘价、收盘价、最高价、最低价计算的特征
+        # 价格特征（price）：原始价格数据
+        # 成交量特征（volume）：成交量数据
+        # 滚动特征（rolling）：基于滚动窗口计算的各种技术指标
         return Alpha158DL.get_feature_config(conf)
 
     def get_label_config(self):
+        # 这个标签表示从T+1到T+2的收盘价变化率，而不是T到T+1的变化率。这是因为在中国股市，T日获取收盘价后，可以在T+1日买入，T+2日卖出。
         return ["Ref($close, -2)/Ref($close, -1) - 1"], ["LABEL0"]
 
 

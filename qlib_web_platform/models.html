@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Qlib Web 平台 - 模型管理</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .sidebar-link.active { background-color: #3b82f6; color: white; }
+    </style>
+    <link rel="preconnect" href="https://rsms.me/">
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+</head>
+<body class="bg-gray-100">
+    <div class="flex h-screen bg-gray-200">
+        <!-- 侧边栏 -->
+        <div class="w-64 bg-gray-800 text-white flex flex-col fixed h-full">
+            <!-- Logo/品牌 -->
+            <div class="h-16 flex items-center justify-center text-xl font-bold border-b border-gray-700">
+                Qlib 平台
+            </div>
+            <!-- 导航链接 -->
+            <nav class="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
+                <a href="dashboard.html" class="sidebar-link flex items-center px-4 py-2 rounded hover:bg-gray-700">
+                    <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+                    仪表盘
+                </a>
+                <a href="strategies.html" class="sidebar-link flex items-center px-4 py-2 rounded hover:bg-gray-700">
+                     <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17.25v-.092M9.75 12.75v-.092m0-4.5v-.092m6 4.684v-.092m0-4.5v-.092m0-4.5v-.092M5.25 17.25v-.092m0-4.5v-.092m6-4.5v-.092m6 4.684v-.092M5.25 12.75v-.092m0-4.5v-.092m6 4.684v-.092m0-4.5v-.092m6-4.5v-.092M3 12a9 9 0 1118 0 9 9 0 01-18 0z"/> </svg>
+                    我的策略
+                </a>
+                 <a href="models.html" class="sidebar-link active flex items-center px-4 py-2 rounded hover:bg-gray-700"> <!-- Mark Model Management as active -->
+                    <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17.109c.637-.207 1.32-.325 2.041-.325 3.182 0 5.75 1.962 5.75 4.375 0 .355-.04.7-.118 1.033M15 11.25a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM21 11.25a8.956 8.956 0 01-8.956 8.956 8.956 8.956 0 01-8.956-8.956A8.956 8.956 0 0112.044 2.3a8.956 8.956 0 018.956 8.956z"/>
+                    </svg>
+                    模型管理
+                </a>
+                <a href="data_management.html" class="sidebar-link flex items-center px-4 py-2 rounded hover:bg-gray-700">
+                    <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4M4 7l8 5m0 0l8-5m-8 5v10"/> </svg>
+                    数据管理
+                </a>
+                <a href="live_trading.html" class="sidebar-link flex items-center px-4 py-2 rounded hover:bg-gray-700">
+                     <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/> </svg>
+                    实盘交易 (IB)
+                </a>
+            </nav>
+             <!-- 用户区/登出 -->
+             <div class="border-t border-gray-700 p-4">
+                  <a href="settings.html" class="sidebar-link flex items-center px-4 py-2 rounded hover:bg-gray-700">
+                     <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/> </svg>
+                     设置
+                 </a>
+                 <a href="login.html" class="sidebar-link flex items-center px-4 py-2 mt-2 text-red-400 rounded hover:bg-gray-700">
+                      <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/> </svg>
+                     登出
+                 </a>
+             </div>
+        </div>
+
+        <!-- 主内容 -->
+        <div class="flex-1 flex flex-col overflow-hidden ml-64">
+            <!-- 头部 -->
+            <header class="bg-white shadow p-4 flex justify-between items-center">
+                <h1 class="text-xl font-semibold text-gray-800">模型管理</h1>
+                 <a href="create_model.html" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
+                    + 新建模型
+                </a>
+            </header>
+
+            <!-- 内容区域 -->
+            <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
+                <div class="container mx-auto">
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <h2 class="text-lg font-semibold text-gray-700 mb-4">模型列表</h2>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">名称</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">类型</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">训练周期</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">训练股票池</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">特征集</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">标签</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">创建时间</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    <!-- Example Row 1 -->
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">A股日线预测模型v1</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">LightGBM</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2018-01-01 - 2022-12-31</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">CSI 300</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 truncate max-w-xs" title="Alpha158">Alpha158</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 truncate max-w-xs" title="Ref($close, -2) / Ref($close, -1) - 1">Ref($close, -2) / Ref($close, -1) - 1</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">已训练</span></td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2024-07-20 10:30:00</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                                            <a href="edit_model.html?id=1" class="text-indigo-600 hover:text-indigo-900">详情/编辑</a>
+                                            <a href="#" class="text-blue-600 hover:text-blue-900">重新训练</a>
+                                            <a href="#" class="text-red-600 hover:text-red-900">删除</a>
+                                        </td>
+                                    </tr>
+                                    <!-- Example Row 2 -->
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">分钟择时模型-LSTM</td>
+                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">LSTM</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2020-01-01 - 2023-06-30</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">CSI 500</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 truncate max-w-xs" title="Vwap, Amount, High-Low">Vwap, Amount, High-Low</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 truncate max-w-xs" title="Ref($close, -60)/Ref($close, -1)-1">Ref($close, -60)/Ref($close, -1)-1</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">训练中...</span></td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2024-07-19 15:00:00</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                                            <a href="edit_model.html?id=2" class="text-indigo-600 hover:text-indigo-900">查看配置</a>
+                                            <a href="#" class="text-gray-500 cursor-not-allowed">训练</a> <!-- Disabled -->
+                                            <a href="#" class="text-red-600 hover:text-red-900">取消训练</a>
+                                        </td>
+                                    </tr>
+                                     <!-- Example Row 3 - Draft -->
+                                     <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">新因子测试模型</td>
+                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">XGBoost</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">---</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">A-Share</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 truncate max-w-xs" title="MyNewFactor, Volume">MyNewFactor, Volume</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 truncate max-w-xs" title="Return(lag=5)">Return(lag=5)</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">草稿</span></td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2024-07-18 09:00:00</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                                            <a href="edit_model.html?id=3" class="text-indigo-600 hover:text-indigo-900">编辑</a>
+                                            <a href="#" class="text-blue-600 hover:text-blue-900">训练</a>
+                                            <a href="#" class="text-red-600 hover:text-red-900">删除</a>
+                                        </td>
+                                    </tr>
+                                    <!-- Add more rows as needed -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+</body>
+</html> 
