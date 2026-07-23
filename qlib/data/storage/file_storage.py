@@ -283,10 +283,55 @@ class FileInstrumentStorage(FileStorageMixin, InstrumentStorage):
 
 
 class FileFeatureStorage(FileStorageMixin, FeatureStorage):
+    _instrument_dir_name_cache = {}
+
     def __init__(self, instrument: str, field: str, freq: str, provider_uri: dict = None, **kwargs):
         super(FileFeatureStorage, self).__init__(instrument, field, freq, **kwargs)
         self._provider_uri = None if provider_uri is None else C.DataPathManager.format_provider_uri(provider_uri)
-        self.file_name = f"{instrument.lower()}/{field.lower()}.{freq.lower()}.bin"
+        self._feature_file_name = f"{field.lower()}.{freq.lower()}.bin"
+        self._instrument_dir_name = None
+        self.file_name = f"{instrument.lower()}/{self._feature_file_name}"
+
+    @classmethod
+    def _get_actual_dir_names(cls, feature_dir: Path) -> List[str]:
+        cache_key = feature_dir.resolve()
+        if cache_key not in cls._instrument_dir_name_cache:
+            cls._instrument_dir_name_cache[cache_key] = [path.name for path in feature_dir.iterdir() if path.is_dir()]
+        return cls._instrument_dir_name_cache[cache_key]
+
+    def _get_instrument_dir_name(self, feature_dir: Path) -> str:
+        if self._instrument_dir_name is not None:
+            return self._instrument_dir_name
+
+        candidates = []
+        for instrument in (self.instrument.lower(), self.instrument, self.instrument.upper()):
+            if instrument not in candidates:
+                candidates.append(instrument)
+
+        instrument_dir_name = candidates[0]
+        if feature_dir.exists():
+            actual_dir_names = self._get_actual_dir_names(feature_dir)
+            actual_dir_name_set = set(actual_dir_names)
+            for candidate in candidates:
+                if candidate in actual_dir_name_set:
+                    instrument_dir_name = candidate
+                    break
+            else:
+                instrument_casefold = self.instrument.casefold()
+                for actual_dir_name in actual_dir_names:
+                    if actual_dir_name.casefold() == instrument_casefold:
+                        instrument_dir_name = actual_dir_name
+                        break
+
+        self._instrument_dir_name = instrument_dir_name
+        return instrument_dir_name
+
+    @property
+    def uri(self) -> Path:
+        if self.freq not in self.support_freq:
+            raise ValueError(f"{self.storage_name}: {self.provider_uri} does not contain data for {self.freq}")
+        feature_dir = self.dpm.get_data_uri(self.freq).joinpath(f"{self.storage_name}s")
+        return feature_dir.joinpath(self._get_instrument_dir_name(feature_dir), self._feature_file_name)
 
     def clear(self):
         with self.uri.open("wb") as _:
