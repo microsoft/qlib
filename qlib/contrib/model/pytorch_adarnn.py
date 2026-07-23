@@ -12,7 +12,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Function
-from qlib.contrib.model.pytorch_utils import count_parameters
+from qlib.contrib.model.pytorch_utils import count_parameters, empty_cache
 from qlib.data.dataset import DatasetH
 from qlib.data.dataset.handler import DataHandlerLP
 from qlib.log import get_module_logger
@@ -81,7 +81,10 @@ class ADARNN(Model):
         self.optimizer = optimizer.lower()
         self.loss = loss
         self.n_splits = n_splits
-        self.device = torch.device("cuda:%d" % GPU if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        if isinstance(GPU, str):
+            self.device = torch.device(GPU)
+        else:
+            self.device = torch.device("cuda:%d" % GPU if torch.cuda.is_available() and GPU >= 0 else "cpu")
         self.seed = seed
 
         self.logger.info(
@@ -298,7 +301,7 @@ class ADARNN(Model):
         torch.save(best_param, save_path)
 
         if self.use_gpu:
-            torch.cuda.empty_cache()
+            empty_cache(self.device)
         return best_score
 
     def predict(self, dataset: DatasetH, segment: Union[Text, slice] = "test"):
@@ -396,7 +399,10 @@ class AdaRNN(nn.Module):
         self.model_type = model_type
         self.trans_loss = trans_loss
         self.len_seq = len_seq
-        self.device = torch.device("cuda:%d" % GPU if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        if isinstance(GPU, str):
+            self.device = torch.device(GPU)
+        else:
+            self.device = torch.device("cuda:%d" % GPU if torch.cuda.is_available() and GPU >= 0 else "cpu")
         in_size = self.n_input
 
         features = nn.ModuleList()
@@ -558,7 +564,10 @@ class TransferLoss:
         """
         self.loss_type = loss_type
         self.input_dim = input_dim
-        self.device = torch.device("cuda:%d" % GPU if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        if isinstance(GPU, str):
+            self.device = torch.device(GPU)
+        else:
+            self.device = torch.device("cuda:%d" % GPU if torch.cuda.is_available() and GPU >= 0 else "cpu")
 
     def compute(self, X, Y):
         """Compute adaptation loss
