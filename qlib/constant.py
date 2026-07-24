@@ -10,6 +10,7 @@ import pandas as pd
 REG_CN = "cn"
 REG_US = "us"
 REG_TW = "tw"
+REG_IN = "in"
 
 # Epsilon for avoiding division by zero.
 EPS = 1e-12
