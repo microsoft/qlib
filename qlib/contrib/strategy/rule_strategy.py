@@ -34,7 +34,7 @@ class TWAPStrategy(BaseStrategy):
         outer_trade_decision : BaseTradeDecision, optional
         """
 
-        super(TWAPStrategy, self).reset(outer_trade_decision=outer_trade_decision, **kwargs)
+        super().reset(outer_trade_decision=outer_trade_decision, **kwargs)
         if outer_trade_decision is not None:
             self.trade_amount_remain = {}
             for order in outer_trade_decision.get_decision():
@@ -142,7 +142,7 @@ class SBBStrategyBase(BaseStrategy):
         ----------
         outer_trade_decision : BaseTradeDecision, optional
         """
-        super(SBBStrategyBase, self).reset(outer_trade_decision=outer_trade_decision, **kwargs)
+        super().reset(outer_trade_decision=outer_trade_decision, **kwargs)
         if outer_trade_decision is not None:
             self.trade_trend = {}
             self.trade_amount = {}
@@ -331,7 +331,7 @@ class SBBStrategyEMA(SBBStrategyBase):
         elif isinstance(instruments, List):
             self.instruments = instruments
         self.freq = freq
-        super(SBBStrategyEMA, self).__init__(
+        super().__init__(
             outer_trade_decision, level_infra, common_infra, trade_exchange=trade_exchange, **kwargs
         )
 
@@ -416,7 +416,7 @@ class ACStrategy(BaseStrategy):
         if isinstance(instruments, str):
             self.instruments = D.instruments(instruments)
         self.freq = freq
-        super(ACStrategy, self).__init__(
+        super().__init__(
             outer_trade_decision, level_infra, common_infra, trade_exchange=trade_exchange, **kwargs
         )
 
@@ -451,7 +451,7 @@ class ACStrategy(BaseStrategy):
         ----------
         outer_trade_decision : BaseTradeDecision, optional
         """
-        super(ACStrategy, self).reset(outer_trade_decision=outer_trade_decision, **kwargs)
+        super().reset(outer_trade_decision=outer_trade_decision, **kwargs)
         if outer_trade_decision is not None:
             self.trade_amount = {}
             # init the trade amount of order and  predicted trade trend

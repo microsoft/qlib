@@ -200,7 +200,7 @@ class GRU(Model):
     def fit(
         self,
         dataset,
-        evals_result=dict(),
+        evals_result={},
         save_path=None,
         reweighter=None,
     ):

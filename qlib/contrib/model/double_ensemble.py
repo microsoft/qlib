@@ -104,7 +104,7 @@ class DEnsembleModel(Model, FeatureInt):
 
     def train_submodel(self, df_train, df_valid, weights, features):
         dtrain, dvalid = self._prepare_data_gbm(df_train, df_valid, weights, features)
-        evals_result = dict()
+        evals_result = {}
 
         callbacks = [lgb.log_evaluation(20), lgb.record_evaluation(evals_result)]
         if self.early_stopping_rounds:

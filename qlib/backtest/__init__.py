@@ -106,8 +106,7 @@ def get_exchange(
             **kwargs,
         )
         return exchange
-    else:
-        return init_instance_by_config(exchange, accept_types=Exchange)
+    return init_instance_by_config(exchange, accept_types=Exchange)
 
 
 def create_account_instance(

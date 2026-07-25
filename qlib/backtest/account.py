@@ -409,8 +409,7 @@ class Account:
             _portfolio_metrics = self.portfolio_metrics.generate_portfolio_metrics_dataframe()
             _positions = self.get_hist_positions()
             return _portfolio_metrics, _positions
-        else:
-            raise ValueError("generate_portfolio_metrics should be True if you want to generate portfolio_metrics")
+        raise ValueError("generate_portfolio_metrics should be True if you want to generate portfolio_metrics")
 
     def get_trade_indicator(self) -> Indicator:
         """get the trade indicator instance, which has pa/pos/ffr info."""

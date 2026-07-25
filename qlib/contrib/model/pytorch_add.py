@@ -363,7 +363,7 @@ class ADD(Model):
     def fit(
         self,
         dataset: DatasetH,
-        evals_result=dict(),
+        evals_result={},
         save_path=None,
     ):
         label_train, label_valid = dataset.prepare(
