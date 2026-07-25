@@ -3,7 +3,7 @@
 """
 All module related class, e.g. :
 - importing a module, class
-- walkiing a module
+- walking a module
 - operations on class or module...
 """
 

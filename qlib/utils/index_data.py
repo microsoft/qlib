@@ -11,15 +11,15 @@ Motivation of index_data
 
 from __future__ import annotations
 
-from typing import Dict, Tuple, Union, Callable, List
+from typing import Dict, Tuple, Callable, List
 import bisect
 
 import numpy as np
 import pandas as pd
 
 
-def concat(data_list: Union[SingleData], axis=0) -> MultiData:
-    """concat all SingleData by index.
+def concat(data_list: List["SingleData"], axis=0) -> "MultiData":
+    """Concat multiple :class:`SingleData` objects by index.
     TODO: now just for SingleData.
 
     Parameters
@@ -54,8 +54,8 @@ def concat(data_list: Union[SingleData], axis=0) -> MultiData:
         raise ValueError(f"axis must be 0 or 1")
 
 
-def sum_by_index(data_list: Union[SingleData], new_index: list, fill_value=0) -> SingleData:
-    """concat all SingleData by new index.
+def sum_by_index(data_list: List["SingleData"], new_index: list, fill_value=0) -> "SingleData":
+    """Sum all ``SingleData`` instances into a new index.
 
     Parameters
     ----------
