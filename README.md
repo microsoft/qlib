@@ -11,7 +11,7 @@
 
 Recent released features
 
-### Search Agent Post-Training with R&D-Agent(Q)
+### <img src="https://xyz-lab.ai/assets/favicon.svg" alt="XYZ AI Lab" width="16"> Search Agent Post-Training with R&D-Agent(Q)
 
 <p align="center">
   <a href="https://xyz-lab.ai/">
@@ -20,7 +20,7 @@ Recent released features
 </p>
 
 Together with [XYZ AI Lab](https://xyz-lab.ai/), we extend the R&D-Agent(Q) method to the search-agent setting and cover the full post-training pipeline end to end.
-In this stack, [AxisAgentic](https://github.com/XYZ-AI-Lab/AxisAgentic) is the harness layer and [axrl](https://github.com/XYZ-AI-Lab/axrl) is the infra layer.
+In this stack, :octocat: [AxisAgentic](https://github.com/XYZ-AI-Lab/AxisAgentic) is the harness layer and :octocat: [axrl](https://github.com/XYZ-AI-Lab/axrl) is the infra layer.
 
 ### Introducing <a href="https://github.com/microsoft/RD-Agent"><img src="docs/_static/img/rdagent_logo.png" alt="RD_Agent" style="height: 2em"></a>: LLM-Based Autonomous Evolving Agents for Industrial Data-Driven R&D
 
@@ -54,7 +54,7 @@ To learn more, please visit the [RD-Agent repository](https://github.com/microso
 
 | Feature | Status |
 | --                      | ------    |
-| Search Agent Post-Training | Together with [XYZ AI Lab](https://xyz-lab.ai/), apply the R&D-Agent(Q) method to search agents with [AxisAgentic](https://github.com/XYZ-AI-Lab/AxisAgentic) as the harness and [axrl](https://github.com/XYZ-AI-Lab/axrl) as the infra |
+| Search Agent Post-Training | Together with [XYZ AI Lab](https://xyz-lab.ai/), apply the R&D-Agent(Q) method to search agents with :octocat: [AxisAgentic](https://github.com/XYZ-AI-Lab/AxisAgentic) as the harness and :octocat: [axrl](https://github.com/XYZ-AI-Lab/axrl) as the infra |
 | [R&D-Agent-Quant](https://arxiv.org/abs/2505.15155) Published | Apply R&D-Agent to Qlib for quant trading | 
 | BPQP for End-to-end learning | 📈Coming soon!([Under review](https://github.com/microsoft/qlib/pull/1863)) |
 | 🔥LLM-driven Auto Quant Factory🔥 | 🚀 Released in [♾️RD-Agent](https://github.com/microsoft/RD-Agent) on Aug 8, 2024 |
