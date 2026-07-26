@@ -35,7 +35,8 @@ dependencies = [
   # But earlier versions of mlflow does not have this problem.
   # But when I switch to 2.*.* version, another error occurs, which is even more strange...
   "mlflow",
-  "filelock>=3.16.0",
+  # filelock 3.30 rejects forks while another thread changes lock descriptor ownership.
+  "filelock>=3.16.0,<3.30",
   "redis",
   "dill",
   "fire",
@@ -51,6 +52,8 @@ dependencies = [
   "matplotlib",
   "jupyter",
   "nbconvert",
+  # fastjsonschema 2.22 uses Python 3.10 type syntax without declaring the requirement.
+  "fastjsonschema<2.22; python_version < '3.10'",
   "pyarrow",
   "pydantic-settings",
   "setuptools-scm",
