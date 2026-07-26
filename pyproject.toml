@@ -51,6 +51,8 @@ dependencies = [
   "matplotlib",
   "jupyter",
   "nbconvert",
+  # fastjsonschema 2.22 uses Python 3.10 type syntax without declaring the requirement.
+  "fastjsonschema<2.22; python_version < '3.10'",
   "pyarrow",
   "pydantic-settings",
   "setuptools-scm",
