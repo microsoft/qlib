@@ -68,19 +68,25 @@ class LGBModel(ModelFT, LightGBMFInt):
             evals_result = {}  # in case of unsafety of Python default values
         ds_l = self._prepare_data(dataset, reweighter)
         ds, names = list(zip(*ds_l))
-        early_stopping_callback = lgb.early_stopping(
-            self.early_stopping_rounds if early_stopping_rounds is None else early_stopping_rounds
+        early_stopping_rounds = (
+            self.early_stopping_rounds
+            if early_stopping_rounds is None
+            else early_stopping_rounds
         )
+        callbacks = []
+        if early_stopping_rounds is not None:
+            callbacks.append(lgb.early_stopping(early_stopping_rounds))
         # NOTE: if you encounter error here. Please upgrade your lightgbm
         verbose_eval_callback = lgb.log_evaluation(period=verbose_eval)
         evals_result_callback = lgb.record_evaluation(evals_result)
+        callbacks.extend([verbose_eval_callback, evals_result_callback])
         self.model = lgb.train(
             self.params,
             ds[0],  # training dataset
             num_boost_round=self.num_boost_round if num_boost_round is None else num_boost_round,
             valid_sets=ds,
             valid_names=names,
-            callbacks=[early_stopping_callback, verbose_eval_callback, evals_result_callback],
+            callbacks=callbacks,
             **kwargs,
         )
         for k in names:
