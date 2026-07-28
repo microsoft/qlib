@@ -1,4 +1,4 @@
-.PHONY: clean deepclean prerequisite dependencies lightgbm rl develop lint docs package test analysis all install dev black pylint flake8 mypy nbqa nbconvert lint build upload docs-gen
+.PHONY: clean deepclean prerequisite dependencies lightgbm rl develop install-lint lint docs package test analysis all install dev black pylint flake8 mypy nbqa nbconvert nbmake build upload docs-gen
 #You can modify it according to your terminal
 SHELL := /bin/bash
 
@@ -85,7 +85,9 @@ rl:
 develop:
 	python -m pip install --no-cache-dir -e .[dev]
 
-lint:
+# FIX: renamed from 'lint' to 'install-lint' to avoid collision with the
+#      lint check-runner target defined in the Lint section below.
+install-lint:
 	python -m pip install --no-cache-dir -e .[lint]
 
 docs:
@@ -185,11 +187,23 @@ nbqa:
 	nbqa black . -l 120 --check --diff
 	nbqa pylint . --disable=C0104,C0114,C0115,C0116,C0301,C0302,C0411,C0413,C1802,R0401,R0801,R0902,R0903,R0911,R0912,R0913,R0914,R0915,R1720,W0105,W0123,W0201,W0511,W0613,W1113,W1514,E0401,E1121,C0103,C0209,R0402,R1705,R1710,R1725,R1735,W0102,W0212,W0221,W0223,W0231,W0237,W0612,W0621,W0622,W0703,W1309,E1102,E1136,W0719,W0104,W0404,C0412,W0611,C0410 --const-rgx='[a-z_][a-z0-9_]{2,30}'
 
-# Check ipynb with nbconvert.(Run after data downloads)
+# Check ipynb with nbconvert. (Run after data downloads)
 # TODO: Add more ipynb files in future
 nbconvert:
 	jupyter nbconvert --to notebook --execute examples/workflow_by_code.ipynb
 
+# Execute workflow_by_code.ipynb via pytest-nbmake. (Resolves issue #1278)
+# Run after data downloads:
+#   python scripts/get_data.py qlib_data --name qlib_data_simple \
+#     --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
+nbmake:
+	@echo "==> Executing workflow_by_code.ipynb via pytest-nbmake …"
+	pytest --nbmake \
+	       --nbmake-timeout=3600 \
+	       examples/workflow_by_code.ipynb \
+	       -v
+
+# FIX: single 'lint' target — runs all check tools in sequence.
 lint: black pylint flake8 mypy nbqa
 
 ########################################################################################
