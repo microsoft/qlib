@@ -94,7 +94,7 @@ class QLibTuner(Tuner):
         self.logger.info("Searching params: {} ".format(params))
 
         # 2. Use subprocess to do the estimator program, this process will wait until subprocess finish
-        sub_fails = subprocess.call("estimator -c {}".format(estimator_path), shell=True)
+        sub_fails = subprocess.call(["estimator", "-c", estimator_path])
         if sub_fails:
             # If this subprocess failed, ignore this evaluation step
             self.logger.info("Estimator experiment failed when using this searching parameters")
@@ -140,13 +140,11 @@ class QLibTuner(Tuner):
 
         # 4. Get the backtest factor which user want to optimize, if user want to maximize the factor, then reverse the result
         res = analysis_df.loc[self.optim_config.report_type].loc[self.optim_config.report_factor]
-        # res = res.values[0] if self.optim_config.optim_type == 'min' else -res.values[0]
-        if self.optim_config == "min":
+        if self.optim_config.optim_type == "min":
             return res.values[0]
-        elif self.optim_config == "max":
+        elif self.optim_config.optim_type == "max":
             return -res.values[0]
         else:
-            # self.optim_config == 'correlation'
             return np.abs(res.values[0] - 1)
 
     def setup_estimator_config(self, params):
