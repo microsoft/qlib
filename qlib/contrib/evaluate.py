@@ -154,7 +154,7 @@ def backtest_daily(
     exchange_kwargs: dict = None,
     pos_type: str = "Position",
 ):
-    """initialize the strategy and executor, then executor the backtest of daily frequency
+    """initialize the strategy and executor, then execute the backtest of daily frequency
 
     Parameters
     ----------

@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-# TODO: this utils covers too much utilities, please seperat it into sub modules
+# TODO: this utils covers too many utilities, please separate it into submodules
 
 from __future__ import division
 from __future__ import print_function
