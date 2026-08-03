@@ -51,6 +51,29 @@ Online Tool
 Updater
 =======
 
+Lightweight Incremental Prediction
+----------------------------------
+
+If you update the local qlib data by yourself and only need predictions for
+newly available dates, you can reuse an existing ``DatasetH`` without running
+the full online serving workflow.
+
+``prepare_incremental_inference_dataset`` configures the handler loading window
+with enough historical warmup rows while keeping the ``test`` segment limited
+to the dates that need new scores. For ``TSDatasetH``, the warmup length is
+inferred from ``step_len - 1`` unless ``hist_ref`` is provided explicitly.
+
+.. code-block:: python
+
+    from qlib.workflow.online.update import prepare_incremental_inference_dataset
+
+    dataset = prepare_incremental_inference_dataset(
+        dataset,
+        start_time="2024-01-03",
+        end_time="2024-01-05",
+    )
+    pred = model.predict(dataset)
+
 .. automodule:: qlib.workflow.online.update
     :members:
     :noindex:
