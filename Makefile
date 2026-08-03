@@ -1,4 +1,4 @@
-.PHONY: clean deepclean prerequisite dependencies lightgbm rl develop lint docs package test analysis all install dev black pylint flake8 mypy nbqa nbconvert lint build upload docs-gen
+.PHONY: clean deepclean prerequisite dependencies lightgbm rl develop lint docs package test analysis all install dev black format pylint flake8 mypy nbqa nbconvert lint build upload docs-gen
 #You can modify it according to your terminal
 SHELL := /bin/bash
 
@@ -117,6 +117,11 @@ dev: prerequisite all
 # Check lint with black.
 black:
 	black . -l 120 --check --diff --exclude qlib/_version.py
+
+# Format code with black (auto-fix).
+format:
+	black . -l 120 --exclude qlib/_version.py
+	nbqa black . -l 120
 
 # Check code folder with pylint.
 # TODO: These problems we will solve in the future. Important among them are: W0221, W0223, W0237, E1102
