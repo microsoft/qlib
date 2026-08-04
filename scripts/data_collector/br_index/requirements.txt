@@ -3,7 +3,7 @@ attrs==21.4.0
 certifi==2022.12.7
 cffi==1.15.0
 charset-normalizer==2.0.12
-cryptography==36.0.1
+cryptography==41.0.3
 fire==0.4.0
 h11==0.13.0
 idna==3.3
