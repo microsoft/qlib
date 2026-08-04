@@ -507,6 +507,31 @@ class DatasetProvider(abc.ABC):
         # TODO: qlib-server support inst_processors
         return DiskDatasetCache._uri(instruments, fields, start_time, end_time, freq, disk_cache, inst_processors)
 
+    def _dataset_uri(
+        self,
+        instruments,
+        fields,
+        start_time=None,
+        end_time=None,
+        freq="day",
+        disk_cache=1,
+        inst_processors=[],
+    ):
+        """Default `_dataset_uri` for dataset providers that have no cache wrapper.
+
+        When no `DatasetCache` is configured the wrapped provider (e.g.
+        `LocalDatasetProvider`) is registered directly as `DatasetD`, so the
+        `features_uri` -> `DatasetD._dataset_uri(...)` call would otherwise
+        raise `AttributeError`. Returning an empty string signals the caller
+        that the client should load the data itself (the same convention
+        `DiskDatasetCache._dataset_uri` already uses for `disk_cache == 0`).
+        Cache subclasses such as `DiskDatasetCache` continue to override this
+        method with a real URI implementation.
+
+        See issue #1843.
+        """
+        return ""
+
     @staticmethod
     def get_instruments_d(instruments, freq):
         """
