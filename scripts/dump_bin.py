@@ -5,7 +5,7 @@ import abc
 import shutil
 import traceback
 from pathlib import Path
-from typing import Iterable, List, Union
+from typing import Iterable, List, Union, Tuple
 from functools import partial
 from concurrent.futures import ThreadPoolExecutor, as_completed, ProcessPoolExecutor
 
@@ -141,13 +141,13 @@ class DumpDataBase:
     def _backup_qlib_dir(self, target_dir: Path):
         shutil.copytree(str(self.qlib_dir.resolve()), str(target_dir.resolve()))
 
-    def _format_datetime(self, datetime_d: [str, pd.Timestamp]):
+    def _format_datetime(self, datetime_d: Union[str, pd.Timestamp]):
         datetime_d = pd.Timestamp(datetime_d)
         return datetime_d.strftime(self.calendar_format)
 
     def _get_date(
-        self, file_or_df: [Path, pd.DataFrame], *, is_begin_end: bool = False, as_set: bool = False
-    ) -> Iterable[pd.Timestamp]:
+        self, file_or_df: Union[Path, pd.DataFrame], *, is_begin_end: bool = False, as_set: bool = False
+    ) -> Iterable[pd.Timestamp] | Tuple[Tuple[pd.Timestamp, pd.Timestamp], Iterable[pd.Timestamp]]:
         if not isinstance(file_or_df, pd.DataFrame):
             df = self._get_source_data(file_or_df)
         else:
@@ -268,7 +268,7 @@ class DumpDataBase:
                 # append; self._mode == self.ALL_MODE or not bin_path.exists()
                 np.hstack([date_index, _df[field]]).astype("<f").tofile(str(bin_path.resolve()))
 
-    def _dump_bin(self, file_or_data: [Path, pd.DataFrame], calendar_list: List[pd.Timestamp]):
+    def _dump_bin(self, file_or_data: Union[Path, pd.DataFrame], calendar_list: List[pd.Timestamp]):
         if not calendar_list:
             logger.warning("calendar_list is empty")
             return

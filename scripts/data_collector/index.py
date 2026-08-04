@@ -1,7 +1,7 @@
 import sys
 import abc
 from pathlib import Path
-from typing import List
+from typing import List, Union
 
 import pandas as pd
 from tqdm import tqdm
@@ -29,7 +29,7 @@ class IndexBase:
     def __init__(
         self,
         index_name: str,
-        qlib_dir: [str, Path] = None,
+        qlib_dir: Union[str, Path] = None,
         freq: str = "day",
         request_retry: int = 5,
         retry_sleep: int = 3,
