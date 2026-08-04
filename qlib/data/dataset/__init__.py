@@ -120,6 +120,44 @@ class DatasetH(Dataset):
         self.segments = segments.copy()
         self.fetch_kwargs = copy(fetch_kwargs)
         super().__init__(**kwargs)
+        self._maybe_warn_fit_leakage()
+
+    def _maybe_warn_fit_leakage(self):
+        """
+        Warn loudly if fit-based processors of the handler may leak non-train data.
+
+        Processors such as `ZScoreNorm`/`MinMaxNorm`/`RobustZScoreNorm` learn statistics on
+        `[fit_start_time, fit_end_time]`. If `fit_end_time` reaches into a non-train segment
+        (e.g. valid/test), the learned statistics leak future information into training.
+        """
+        get_all_processors = getattr(self.handler, "get_all_processors", None)
+        if not callable(get_all_processors):
+            return
+        logger = get_module_logger("DatasetH")
+        for proc in get_all_processors():
+            fit_end_time = getattr(proc, "fit_end_time", None)
+            if fit_end_time is None:
+                continue
+            try:
+                fit_end_time = pd.Timestamp(fit_end_time)
+            except (TypeError, ValueError):
+                continue
+            for seg_name, seg in self.segments.items():
+                if str(seg_name).lower() in ("train", "insample"):
+                    continue
+                if not isinstance(seg, (tuple, list)) or len(seg) != 2 or seg[0] is None:
+                    continue
+                try:
+                    seg_start = pd.Timestamp(seg[0])
+                except (TypeError, ValueError):
+                    continue
+                if fit_end_time >= seg_start:
+                    logger.warning(
+                        f"POTENTIAL DATA LEAKAGE: the `fit_end_time` ({fit_end_time}) of processor "
+                        f"{type(proc).__name__} is not earlier than the start ({seg_start}) of the "
+                        f"non-train segment '{seg_name}'. The statistics learned by the processor "
+                        f"may leak future information into training."
+                    )
 
     def config(self, handler_kwargs: dict = None, **kwargs):
         """

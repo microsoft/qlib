@@ -49,6 +49,7 @@ class Exchange:
         close_cost: float = 0.0025,
         min_cost: float = 5.0,
         impact_cost: float = 0.0,
+        deal_price_fallback: str = "close",
         extra_quote: pd.DataFrame = None,
         quote_cls: Type[BaseQuote] = NumpyQuote,
         **kwargs: Any,
@@ -112,6 +113,16 @@ class Exchange:
                                  distinguish `not set` and `disable trade_unit`
         :param min_cost:         min cost, default 5
         :param impact_cost:     market impact cost rate (a.k.a. slippage). A recommended value is 0.1.
+        :param deal_price_fallback: str, policy when the configured deal price (e.g. $open or $vwap) is
+                                missing (NaN) or nearly zero (<= 1e-8) for a tradable stock.
+                                - "close" (default): silently substitute the close price for the deal price.
+                                  This keeps backward compatibility, but **NOTE** it can be unrealistic:
+                                  e.g. an order configured to deal at open/vwap may be filled at close
+                                  price on days where open/vwap data is missing, which may inflate
+                                  backtest results if such days are systematically special
+                                  (newly listed stocks, data errors, etc.).
+                                - "reject": treat the order as untradable (the order will not be executed),
+                                  which is more conservative and realistic when price data is missing.
         :param extra_quote:     pandas, dataframe consists of
                                     columns: like ['$vwap', '$close', '$volume', '$factor', 'limit_sell', 'limit_buy'].
                                             The limit indicates that the etf is tradable on a specific day.
@@ -162,6 +173,11 @@ class Exchange:
             self.buy_price, self.sell_price = cast(Tuple[str, str], deal_price)
         else:
             raise NotImplementedError(f"This type of input is not supported")
+
+        if deal_price_fallback not in ("close", "reject"):
+            raise ValueError(f"deal_price_fallback must be 'close' or 'reject', got {deal_price_fallback}")
+        self.deal_price_fallback = deal_price_fallback
+        self._deal_price_fallback_count = 0
 
         if isinstance(codes, str):
             codes = D.instruments(codes)
@@ -232,6 +248,17 @@ class Exchange:
             self.trade_w_adj_price = False
         # update limit
         self._update_limit(self.limit_threshold)
+
+        # consistency check between suspension (NaN $close) and zero $volume
+        # suspended days are detected by NaN $close; if the data forward-fills prices on suspended
+        # days, such days will have a non-NaN close with zero volume and be wrongly treated as tradable
+        if "$volume" in self.quote_df.columns:
+            zero_vol_cnt = int(((self.quote_df["$volume"] == 0) & ~self.quote_df["$close"].isna()).sum())
+            if zero_vol_cnt > 0:
+                self.logger.warning(
+                    f"{zero_vol_cnt} stock-days have zero volume but non-NaN close: "
+                    "if your data forward-fills suspended days, they will be treated as tradable."
+                )
 
         # concat extra_quote
         if self.extra_quote is not None:
@@ -423,7 +450,7 @@ class Exchange:
         order: Order,
         trade_account: Account | None = None,
         position: BasePosition | None = None,
-        dealt_order_amount: Dict[str, float] = defaultdict(float),
+        dealt_order_amount: Optional[Dict[str, float]] = None,
     ) -> Tuple[float, float, float]:
         """
         Deal order when the actual transaction
@@ -434,6 +461,8 @@ class Exchange:
         :param dealt_order_amount: the dealt order amount dict with the format of {stock_id: float}
         :return: trade_val, trade_cost, trade_price
         """
+        if dealt_order_amount is None:
+            dealt_order_amount = defaultdict(float)
         # check order first.
         if not self.check_order(order):
             order.deal_amount = 0.0
@@ -508,9 +537,21 @@ class Exchange:
 
         deal_price = self.quote.get_data(stock_id, start_time, end_time, field=pstr, method=method)
         if method is not None and (deal_price is None or np.isnan(deal_price) or deal_price <= 1e-08):
+            self._deal_price_fallback_count += 1
             self.logger.warning(f"(stock_id:{stock_id}, trade_time:{(start_time, end_time)}, {pstr}): {deal_price}!!!")
-            self.logger.warning(f"setting deal_price to close price")
-            deal_price = self.get_close(stock_id, start_time, end_time, method)
+            if self.deal_price_fallback == "close":
+                self.logger.warning(
+                    f"setting deal_price to close price "
+                    f"(deal price fallback triggered {self._deal_price_fallback_count} times in total)"
+                )
+                deal_price = self.get_close(stock_id, start_time, end_time, method)
+            else:
+                # "reject": the order will be treated as untradable (refer to `_calc_trade_info_by_order`)
+                self.logger.warning(
+                    f"rejecting the order due to missing deal price "
+                    f"(deal price fallback triggered {self._deal_price_fallback_count} times in total)"
+                )
+                deal_price = np.nan
         return deal_price
 
     def get_factor(
@@ -874,6 +915,12 @@ class Exchange:
             float,
             self.get_deal_price(order.stock_id, order.start_time, order.end_time, direction=order.direction),
         )
+        if trade_price is None or np.isnan(trade_price):
+            # The deal price is unavailable (e.g. `deal_price_fallback == "reject"`),
+            # so the order is treated as untradable (mimicking the limitation path in `deal_order`)
+            order.deal_amount = 0.0
+            self.logger.debug(f"Order failed due to unavailable deal price: {order}")
+            return np.nan, 0.0, 0.0
         total_trade_val = cast(float, self.get_volume(order.stock_id, order.start_time, order.end_time)) * trade_price
         order.factor = self.get_factor(order.stock_id, order.start_time, order.end_time)
         order.deal_amount = order.amount  # set to full amount and clip it step by step

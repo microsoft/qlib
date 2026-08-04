@@ -157,8 +157,8 @@ class TestAllFlow(TestAutoData):
     @pytest.mark.slow
     def test_0_train(self):
         TestAllFlow.PRED_SCORE, ic_ric, TestAllFlow.RID, uri_path = train(self.URI_PATH)
-        self.assertGreaterEqual(ic_ric["ic"].all(), 0, "train failed")
-        self.assertGreaterEqual(ic_ric["ric"].all(), 0, "train failed")
+        self.assertGreater(ic_ric["ic"].mean(), 0, "train failed")
+        self.assertGreater(ic_ric["ric"].mean(), 0, "train failed")
 
     @pytest.mark.slow
     def test_1_backtest(self):

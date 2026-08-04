@@ -15,6 +15,21 @@ from qlib.data.inst_processor import InstProcessor
 from qlib.data import D
 
 
+def check_fit_range(fit_start_time, fit_end_time):
+    """
+    Validate the fit range of fit-based processors (e.g. `MinMaxNorm`, `ZScoreNorm`, `RobustZScoreNorm`).
+
+    NOTE: correctly setting `fit_start_time` and `fit_end_time` is very important!!!
+    `fit_end_time` **must not** include any information from the test data!!!
+    Otherwise the learned statistics will leak future information into training.
+    """
+    if fit_start_time is not None and fit_end_time is not None:
+        if pd.Timestamp(fit_start_time) > pd.Timestamp(fit_end_time):
+            raise ValueError(
+                f"fit_start_time ({fit_start_time}) must not be later than fit_end_time ({fit_end_time})"
+            )
+
+
 def get_group_columns(df: pd.DataFrame, group: Union[Text, None]):
     """
     get a group of columns from multi-index columns DataFrame
@@ -112,8 +127,8 @@ class DropnaLabel(DropnaProcessor):
 
 
 class DropCol(Processor):
-    def __init__(self, col_list=[]):
-        self.col_list = col_list
+    def __init__(self, col_list=None):
+        self.col_list = [] if col_list is None else col_list
 
     def __call__(self, df):
         if isinstance(df.columns, pd.MultiIndex):
@@ -127,9 +142,9 @@ class DropCol(Processor):
 
 
 class FilterCol(Processor):
-    def __init__(self, fields_group="feature", col_list=[]):
+    def __init__(self, fields_group="feature", col_list=None):
         self.fields_group = fields_group
-        self.col_list = col_list
+        self.col_list = [] if col_list is None else col_list
 
     def __call__(self, df):
         cols = get_group_columns(df, self.fields_group)
@@ -197,6 +212,7 @@ class MinMaxNorm(Processor):
     def __init__(self, fit_start_time, fit_end_time, fields_group=None):
         # NOTE: correctly set the `fit_start_time` and `fit_end_time` is very important !!!
         # `fit_end_time` **must not** include any information from the test data!!!
+        check_fit_range(fit_start_time, fit_end_time)
         self.fit_start_time = fit_start_time
         self.fit_end_time = fit_end_time
         self.fields_group = fields_group
@@ -231,6 +247,7 @@ class ZScoreNorm(Processor):
     def __init__(self, fit_start_time, fit_end_time, fields_group=None):
         # NOTE: correctly set the `fit_start_time` and `fit_end_time` is very important !!!
         # `fit_end_time` **must not** include any information from the test data!!!
+        check_fit_range(fit_start_time, fit_end_time)
         self.fit_start_time = fit_start_time
         self.fit_end_time = fit_end_time
         self.fields_group = fields_group
@@ -273,6 +290,7 @@ class RobustZScoreNorm(Processor):
     def __init__(self, fit_start_time, fit_end_time, fields_group=None, clip_outlier=True):
         # NOTE: correctly set the `fit_start_time` and `fit_end_time` is very important !!!
         # `fit_end_time` **must not** include any information from the test data!!!
+        check_fit_range(fit_start_time, fit_end_time)
         self.fit_start_time = fit_start_time
         self.fit_end_time = fit_end_time
         self.fields_group = fields_group
