@@ -170,7 +170,7 @@ class HIST(Model):
             vy = y - torch.mean(y)
             return torch.sum(vx * vy) / (torch.sqrt(torch.sum(vx**2)) * torch.sqrt(torch.sum(vy**2)))
 
-        if self.metric == ("", "loss"):
+        if self.metric in ("", "loss"):
             return -self.loss_fn(pred[mask], label[mask])
 
         raise ValueError("unknown metric `%s`" % self.metric)
