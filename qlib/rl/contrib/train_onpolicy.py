@@ -262,7 +262,7 @@ if __name__ == "__main__":
     parser.add_argument("--run_backtest", action="store_true", help="Run backtest workflow.")
     args = parser.parse_args()
 
-    with open(args.config_path, "r") as input_stream:
+    with open(args.config_path, "r", encoding="utf-8") as input_stream:
         yaml = YAML(typ="safe", pure=True)
         config = yaml.load(input_stream)
 
