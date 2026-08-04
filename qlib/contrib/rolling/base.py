@@ -191,9 +191,9 @@ class Rolling:
         trainer = TrainerR(experiment_name=self.exp_name)
         trainer([task])
 
-    def get_task_list(self) -> List[dict]:
+    def get_task_list(self, enable_data_handler_cache: Optional[bool] = True) -> List[dict]:
         """return a batch of tasks for rolling."""
-        task = self.basic_task()
+        task = self.basic_task(enable_data_handler_cache)
         task_l = task_generator(
             task, RollingGen(step=self.step, trunc_days=self.horizon + 1)
         )  # the last two days should be truncated to avoid information leakage
@@ -203,8 +203,8 @@ class Rolling:
             t["record"] = ["qlib.workflow.record_temp.SignalRecord"]
         return task_l
 
-    def _train_rolling_tasks(self):
-        task_l = self.get_task_list()
+    def _train_rolling_tasks(self, enable_data_handler_cache: Optional[bool] = True):
+        task_l = self.get_task_list(enable_data_handler_cache)
         self.logger.info("Deleting previous Rolling results")
         try:
             # TODO: mlflow does not support permanently delete experiment
@@ -250,10 +250,10 @@ class Rolling:
             r.generate()
         print(f"Your evaluation results can be found in the experiment named `{self.exp_name}`.")
 
-    def run(self):
+    def run(self, enable_data_handler_cache: Optional[bool] = True):
         # the results will be  save in mlruns.
         # 1) each rolling task is saved in rolling_models
-        self._train_rolling_tasks()
+        self._train_rolling_tasks(enable_data_handler_cache)
         # 2) combined rolling tasks and evaluation results are saved in rolling
         self._ens_rolling()
         self._update_rolling_rec()
