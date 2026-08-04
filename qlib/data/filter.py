@@ -160,7 +160,7 @@ class SeriesDFilter(BaseDFilter):
             the list of tuple (timestamp, timestamp).
         """
         # sort the timestamp_series according to the timestamps
-        timestamp_series.sort_index()
+        timestamp_series = timestamp_series.sort_index()
         timestamp = []
         _lbool = None
         _ltime = None
