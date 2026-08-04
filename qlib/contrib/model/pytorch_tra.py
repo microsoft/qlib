@@ -413,7 +413,9 @@ class TRAModel(Model):
 
         return best_score
 
-    def fit(self, dataset, evals_result=dict()):
+    def fit(self, dataset, evals_result=None):
+        if evals_result is None:
+            evals_result = {}
         assert isinstance(dataset, MTSDatasetH), "TRAModel only supports `qlib.contrib.data.dataset.MTSDatasetH`"
 
         train_set, valid_set, test_set = dataset.prepare(["train", "valid", "test"])
