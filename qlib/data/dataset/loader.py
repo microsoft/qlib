@@ -199,6 +199,44 @@ class QlibDataLoader(DLWParser):
                     self.inst_processors
                 ), f"freq(={self.freq}), inst_processors(={self.inst_processors}) cannot be None/empty"
 
+    def load(self, instruments=None, start_time=None, end_time=None) -> pd.DataFrame:
+        if self.is_group:
+            if instruments is None:
+                warnings.warn("`instruments` is not set, will load all stocks")
+                instruments = "all"
+            elif self.filter_pipe is not None and not isinstance(instruments, (dict, str)):
+                warnings.warn("`filter_pipe` is not None, but it will not be used with `instruments` as list")
+
+            if isinstance(instruments, str):
+                instruments = D.instruments(instruments, filter_pipe=self.filter_pipe)
+            resolved = {}
+            df = pd.concat(
+                {
+                    grp: self.load_group_df(
+                        self._resolve_group_instruments(instruments, gp_name=grp, resolved=resolved),
+                        exprs,
+                        names,
+                        start_time,
+                        end_time,
+                        grp,
+                    )
+                    for grp, (exprs, names) in self.fields.items()
+                },
+                axis=1,
+            )
+            return df
+        return super().load(instruments, start_time, end_time)
+
+    def _resolve_group_instruments(self, instruments, gp_name: str, resolved: dict):
+        if not (isinstance(instruments, dict) and "market" in instruments and instruments.get("filter_pipe")):
+            return instruments
+
+        freq = self.freq[gp_name] if isinstance(self.freq, dict) else self.freq
+        cache_key = repr(freq)
+        if cache_key not in resolved:
+            resolved[cache_key] = D.list_instruments(instruments, freq=freq, as_list=False)
+        return resolved[cache_key]
+
     def load_group_df(
         self,
         instruments,
@@ -213,7 +251,7 @@ class QlibDataLoader(DLWParser):
             instruments = "all"
         if isinstance(instruments, str):
             instruments = D.instruments(instruments, filter_pipe=self.filter_pipe)
-        elif self.filter_pipe is not None:
+        elif self.filter_pipe is not None and not isinstance(instruments, dict):
             warnings.warn("`filter_pipe` is not None, but it will not be used with `instruments` as list")
 
         freq = self.freq[gp_name] if isinstance(self.freq, dict) else self.freq
