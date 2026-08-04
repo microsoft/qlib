@@ -2,10 +2,25 @@
 # Licensed under the MIT License.
 import unittest
 import platform
+import contextlib
+import io
 import mlflow
+import os
 import time
 from pathlib import Path
 import shutil
+import tempfile
+
+from qlib.workflow.expm import _file_uri_to_path
+from qlib.workflow.recorder import MLflowRecorder
+
+
+class DummyClient:
+    def __init__(self):
+        self.logged_text = []
+
+    def log_text(self, run_id, text, fname):
+        self.logged_text.append((run_id, text, fname))
 
 
 class MLflowTest(unittest.TestCase):
@@ -32,6 +47,28 @@ class MLflowTest(unittest.TestCase):
         else:
             self.assertLess(elapsed, 2e-2)
         print(elapsed)
+
+    def test_file_uri_to_path_keeps_absolute_paths(self):
+        self.assertEqual(_file_uri_to_path("file:///tmp/qlib/mlruns"), Path("/tmp/qlib/mlruns"))
+        self.assertEqual(_file_uri_to_path("file:/tmp/qlib/mlruns"), Path("/tmp/qlib/mlruns"))
+
+    def test_log_uncommitted_code_skips_non_git_cwd_quietly(self):
+        recorder = object.__new__(MLflowRecorder)
+        recorder.id = "run-id"
+        recorder.client = DummyClient()
+        stderr = io.StringIO()
+
+        old_cwd = os.getcwd()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            try:
+                os.chdir(tmpdir)
+                with contextlib.redirect_stderr(stderr):
+                    recorder._log_uncommitted_code()
+            finally:
+                os.chdir(old_cwd)
+
+        self.assertEqual(stderr.getvalue(), "")
+        self.assertEqual(recorder.client.logged_text, [])
 
 
 if __name__ == "__main__":

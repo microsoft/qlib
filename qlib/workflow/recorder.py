@@ -366,16 +366,30 @@ class MLflowRecorder(Recorder):
         """
         # TODO: the sub-directories maybe git repos.
         # So it will be better if we can walk the sub-directories and log the uncommitted changes.
+        try:
+            proc = subprocess.run(
+                ["git", "rev-parse", "--is-inside-work-tree"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=True,
+            )
+        except (FileNotFoundError, subprocess.CalledProcessError):
+            logger.debug(f"Skip logging uncommitted code because $CWD({os.getcwd()}) is not a git work tree.")
+            return
+        if proc.stdout.decode().strip() != "true":
+            logger.debug(f"Skip logging uncommitted code because $CWD({os.getcwd()}) is not a git work tree.")
+            return
+
         for cmd, fname in [
-            ("git diff", "code_diff.txt"),
-            ("git status", "code_status.txt"),
-            ("git diff --cached", "code_cached.txt"),
+            (["git", "diff"], "code_diff.txt"),
+            (["git", "status"], "code_status.txt"),
+            (["git", "diff", "--cached"], "code_cached.txt"),
         ]:
             try:
-                out = subprocess.check_output(cmd, shell=True)
-                self.client.log_text(self.id, out.decode(), fname)  # this behaves same as above
-            except subprocess.CalledProcessError:
-                logger.info(f"Fail to log the uncommitted code of $CWD({os.getcwd()}) when run {cmd}.")
+                out = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+                self.client.log_text(self.id, out.stdout.decode(), fname)  # this behaves same as above
+            except (FileNotFoundError, subprocess.CalledProcessError):
+                logger.debug(f"Fail to log the uncommitted code of $CWD({os.getcwd()}) when run {' '.join(cmd)}.")
 
     def end_run(self, status: str = Recorder.STATUS_S):
         assert status in [
