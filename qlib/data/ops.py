@@ -156,11 +156,11 @@ class Sign(NpElemOperator):
 
     def _load_internal(self, instrument, start_index, end_index, *args):
         """
-        To avoid error raised by bool type input, we transform the data into float32.
+        To avoid error raised by bool type input, we transform the data into float64.
         """
         series = self.feature.load(instrument, start_index, end_index, *args)
         # TODO:  More precision types should be configurable
-        series = series.astype(np.float32)
+        series = series.astype(np.float64)
         return getattr(np, self.func)(series)
 
 
