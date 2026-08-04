@@ -142,7 +142,7 @@ class SeriesDFilter(BaseDFilter):
             the series of bool value indicating whether the date satisfies the filter condition and exists in target timestamp.
         """
         fstart, fend = list(filter_series.keys())[0], list(filter_series.keys())[-1]
-        filter_series = filter_series.astype("bool")  # Make sure the filter_series is boolean
+        filter_series = filter_series.fillna(False).astype("bool")  # NaN means missing data, treat as not passing
         timestamp_series[fstart:fend] = timestamp_series[fstart:fend] & filter_series
         return timestamp_series
 
