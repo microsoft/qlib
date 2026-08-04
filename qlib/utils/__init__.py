@@ -520,7 +520,10 @@ def split_pred(pred, number=None, split_date=None):
     """
     if number is None and split_date is None:
         raise ValueError("`number` and `split date` cannot both be None")
-    dates = sorted(pred.index.get_level_values("datetime").unique())
+    # Resolve the "datetime" level positionally so duplicate level names
+    # (which some handler chains produce, see #1909) don't crash this path.
+    _dt_level = pred.index.names.index("datetime")
+    dates = sorted(pred.index.get_level_values(_dt_level).unique())
     dates = list(map(pd.Timestamp, dates))
     if split_date is None:
         date_left_end = dates[number - 1]
