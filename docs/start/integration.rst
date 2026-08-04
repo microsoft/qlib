@@ -39,7 +39,7 @@ The Custom models need to inherit `qlib.model.base.Model <../reference/api.html#
 
         .. code-block:: Python
 
-            def fit(self, dataset: DatasetH, num_boost_round = 1000, **kwargs):
+            def fit(self, dataset: DatasetH, num_boost_round=1000, early_stopping_rounds=50, verbose_eval=20, **kwargs):
 
                 # prepare dataset for lgb training and evaluation
                 df_train, df_valid = dataset.prepare(
@@ -57,6 +57,14 @@ The Custom models need to inherit `qlib.model.base.Model <../reference/api.html#
                 dtrain = lgb.Dataset(x_train.values, label=y_train)
                 dvalid = lgb.Dataset(x_valid.values, label=y_valid)
 
+                # Set up callbacks (required for LightGBM >= 4.0)
+                evals_result = {}
+                callbacks = [
+                    lgb.early_stopping(stopping_rounds=early_stopping_rounds),
+                    lgb.log_evaluation(period=verbose_eval),
+                    lgb.record_evaluation(evals_result),
+                ]
+
                 # fit the model
                 self.model = lgb.train(
                     self.params,
@@ -64,9 +72,7 @@ The Custom models need to inherit `qlib.model.base.Model <../reference/api.html#
                     num_boost_round=num_boost_round,
                     valid_sets=[dtrain, dvalid],
                     valid_names=["train", "valid"],
-                    early_stopping_rounds=early_stopping_rounds,
-                    verbose_eval=verbose_eval,
-                    evals_result=evals_result,
+                    callbacks=callbacks,
                     **kwargs
                 )
 
@@ -94,6 +100,10 @@ The Custom models need to inherit `qlib.model.base.Model <../reference/api.html#
             def finetune(self, dataset: DatasetH, num_boost_round=10, verbose_eval=20):
                 # Based on existing model and finetune by train more rounds
                 dtrain, _ = self._prepare_data(dataset)
+
+                # Use callback for logging (required for LightGBM >= 4.0)
+                callbacks = [lgb.log_evaluation(period=verbose_eval)]
+
                 self.model = lgb.train(
                     self.params,
                     dtrain,
@@ -101,7 +111,7 @@ The Custom models need to inherit `qlib.model.base.Model <../reference/api.html#
                     init_model=self.model,
                     valid_sets=[dtrain],
                     valid_names=["train"],
-                    verbose_eval=verbose_eval,
+                    callbacks=callbacks,
                 )
 
 Configuration File
