@@ -233,7 +233,7 @@ class DSBasedUpdater(RecordUpdater, metaclass=ABCMeta):
             self.logger.info(
                 f"The data in {self.record.info['id']} are latest ({self.last_end}). No need to update to {self.to_date}."
             )
-            return
+            return None
 
         # load dataset
         if dataset is None:
@@ -246,6 +246,7 @@ class DSBasedUpdater(RecordUpdater, metaclass=ABCMeta):
             self.record.save_objects(**{self.fname: updated_data})
         if ret_new:
             return updated_data
+        return None
 
     @abstractmethod
     def get_update_data(self, dataset: Dataset) -> pd.DataFrame:

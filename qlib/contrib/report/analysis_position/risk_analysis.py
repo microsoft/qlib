@@ -137,7 +137,7 @@ def _get_monthly_risk_analysis_figure(report_normal_df: pd.DataFrame) -> Iterabl
     # if report_normal_df is None and report_long_short_df is None:
     #     return []
     if report_normal_df is None:
-        return []
+        return
 
     # if report_normal_df is None:
     #     report_normal_df = pd.DataFrame(index=report_long_short_df.index)
@@ -293,5 +293,6 @@ def risk_analysis_graph(
     )
     if show_notebook:
         ScatterGraph.show_graph_in_notebook(_figure_list)
+        return None
     else:
         return _figure_list

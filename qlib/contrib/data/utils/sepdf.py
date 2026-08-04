@@ -72,6 +72,7 @@ class SepDataFrame:
                 inplace = True
         if not inplace:
             return SepDataFrame(df_dict=df_dict, join=self.join, skip_align=skip_align)
+        return None
 
     def sort_index(self, *args, **kwargs):
         return self.apply_each("sort_index", True, *args, **kwargs)
