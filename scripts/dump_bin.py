@@ -170,6 +170,7 @@ class DumpDataBase:
         df = read_as_df(file_path, low_memory=False)
         if self.date_field_name in df.columns:
             df[self.date_field_name] = pd.to_datetime(df[self.date_field_name])
+            df.dropna(subset=[self.date_field_name], inplace=True)
         # df.drop_duplicates([self.date_field_name], inplace=True)
         return df
 
@@ -240,7 +241,10 @@ class DumpDataBase:
 
     @staticmethod
     def get_datetime_index(df: pd.DataFrame, calendar_list: List[pd.Timestamp]) -> int:
-        return calendar_list.index(df.index.min())
+        min_index = df.index.min()
+        if pd.isnull(min_index):
+            raise ValueError("DataFrame index minimum value is NaT, cannot find in calendar_list")
+        return calendar_list.index(min_index)
 
     def _data_to_bin(self, df: pd.DataFrame, calendar_list: List[pd.Timestamp], features_dir: Path):
         if df.empty:
