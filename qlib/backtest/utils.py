@@ -82,7 +82,15 @@ class TradeCalendarManager:
         - If self.trade_step >= self.self.trade_len, it means the trading is finished
         - If self.trade_step < self.self.trade_len, it means the number of trading step finished is self.trade_step
         """
-        return self.trade_step >= self.trade_len
+        """
+        In /contrib/strategy/signal_strategy.py,
+        it comments
+        "get the number of trading step finished, trade_step can be [0, 1, 2, ..., trade_len - 1]"
+        If set finished == self.trade_step >= self.trade_len it will raise IndexError: index X is out of bounds for axis 0 with size X.
+        I think change self.trade_len = _end_index - _start_index + 1 to self.trade_len = _end_index - _start_index maybe better, but it may
+        result other errors.
+        """
+        return self.trade_step >= self.trade_len - 1
 
     def step(self) -> None:
         if self.finished():
