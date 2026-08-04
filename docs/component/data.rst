@@ -433,7 +433,7 @@ The ``Processor`` module in ``Qlib`` is designed to be learnable and it is respo
 
 - ``DropnaProcessor``: `processor` that drops N/A features.
 - ``DropnaLabel``: `processor` that drops N/A labels.
-- ``TanhProcess``: `processor` that uses `tanh` to process noise data.
+- ``TanhProcess``: `processor` that applies ``tanh(x - 1)`` to denoise values. By default it transforms the ``feature`` column group only (via ``fields_group``), leaving labels unchanged.
 - ``ProcessInf``: `processor` that handles infinity values, it will be replaces by the mean of the column.
 - ``Fillna``: `processor` that handles N/A values, which will fill the N/A value by 0 or other given number.
 - ``MinMaxNorm``: `processor` that applies min-max normalization.
