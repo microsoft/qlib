@@ -44,7 +44,10 @@ dependencies = [
   "tqdm",
   "pymongo",
   "loguru",
-  "lightgbm",
+  # Since version 3.3.0, lightgbm supports the callback-based API
+  # (early_stopping(), log_evaluation(), record_evaluation()).
+  # The deprecated parameter-based API was removed in lightgbm 4.0.
+  "lightgbm>=3.3.0",
   "gym",
   "cvxpy",
   "joblib",
