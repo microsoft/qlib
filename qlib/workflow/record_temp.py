@@ -365,6 +365,20 @@ class PortAnaRecord(ACRecordTemp):
 
         - The return report and detailed positions of the backtest, returned by `qlib/contrib/evaluate.py:backtest`
     - port_analysis.pkl : The risk analysis of your portfolio, returned by `qlib/contrib/evaluate.py:risk_analysis`
+
+    .. note::
+        ``excess_return_without_cost`` and ``excess_return_with_cost`` are computed as a
+        plain arithmetic difference between the portfolio return and the return of the
+        single instrument configured as ``config["backtest"]["benchmark"]``. No adjustment
+        is made for a difference in weighting scheme between the strategy and the benchmark.
+
+        The default configuration pairs an equal-weighted strategy
+        (:class:`~qlib.contrib.strategy.signal_strategy.TopkDropoutStrategy`) with a
+        capitalization-weighted benchmark (``SH000300``). Under that pairing the reported
+        excess return also contains the equal- versus cap-weighting spread of the universe,
+        so it should be read as performance relative to that specific index rather than as
+        the contribution of the signal alone. Choosing a benchmark whose weighting scheme
+        matches the strategy removes that component.
     """
 
     artifact_path = "portfolio_analysis"
