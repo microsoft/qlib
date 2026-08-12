@@ -26,12 +26,12 @@ jobs:
 
     steps:
     - name: Test qlib from source
-      uses: actions/checkout@v4
+      uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       with:
         fetch-depth: 0
 
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # v4.9.1
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -110,7 +110,7 @@ jobs:
 
     - name: Unit tests with Pytest (MacOS)
       if: ${{ matrix.os == 'macos-14' || matrix.os == 'macos-15' }}
-      uses: nick-fields/retry@v2
+      uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
       with:
         timeout_minutes: 60
         max_attempts: 3
@@ -126,7 +126,7 @@ jobs:
 
     - name: Unit tests with Pytest (Ubuntu and Windows)
       if: ${{ matrix.os != 'macos-13' && matrix.os != 'macos-14' && matrix.os != 'macos-15' }}
-      uses: nick-fields/retry@v2
+      uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
       with:
         timeout_minutes: 60
         max_attempts: 3
