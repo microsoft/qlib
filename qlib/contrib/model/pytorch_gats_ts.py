@@ -26,19 +26,20 @@ from ...contrib.model.pytorch_gru import GRUModel
 class DailyBatchSampler(Sampler):
     def __init__(self, data_source):
         self.data_source = data_source
-        # calculate number of samples in each batch
-        self.daily_count = (
-            pd.Series(index=self.data_source.get_index()).groupby("datetime", group_keys=False).size().values
-        )
-        self.daily_index = np.roll(np.cumsum(self.daily_count), 1)  # calculate begin index of each batch
-        self.daily_index[0] = 0
+        index = self.data_source.get_index()
+        positions = pd.Series(np.arange(len(index)), index=index)
+        self.daily_index = [group.values for _, group in positions.groupby(level="datetime", sort=True)]
 
     def __iter__(self):
-        for idx, count in zip(self.daily_index, self.daily_count):
-            yield np.arange(idx, idx + count)
+        yield from self.daily_index
 
     def __len__(self):
-        return len(self.data_source)
+        return len(self.daily_index)
+
+    def get_index(self):
+        """Return the data source index in sampler iteration order."""
+        positions = np.concatenate(self.daily_index)
+        return self.data_source.get_index()[positions]
 
 
 class GATs(Model):
@@ -332,7 +333,7 @@ class GATs(Model):
 
             preds.append(pred)
 
-        return pd.Series(np.concatenate(preds), index=dl_test.get_index())
+        return pd.Series(np.concatenate(preds), index=sampler_test.get_index())
 
 
 class GATModel(nn.Module):
