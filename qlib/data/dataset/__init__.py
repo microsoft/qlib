@@ -478,6 +478,12 @@ class TSDataSampler:
         """
         Get the pandas index of the data, it will be useful in following scenarios
         - Special sampler will be used (e.g. user want to sample day by day)
+
+        NOTE: the level labels are swapped back to (datetime, instrument), but the
+        rows are NOT reordered: they keep the instrument-major order described in
+        "Indices design" above. Samplers that need day-by-day batches should group
+        the row positions by the "datetime" level instead of assuming the rows of
+        each day are contiguous.
         """
         return self.data_index.swaplevel()  # to align the order of multiple index of original data received by __init__
 
