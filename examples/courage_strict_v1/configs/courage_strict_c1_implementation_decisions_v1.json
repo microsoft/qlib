@@ -1,0 +1,186 @@
+{
+  "schema_version": "courage_strict_c1_implementation_decisions_v1",
+  "route_id": "courage_route_strict_v1.0.0",
+  "decision": "PASS_C1_ALL_FALSE_IMPLEMENTATION_DECISIONS",
+  "status": "FROZEN_NOT_EXECUTABLE",
+  "terminal_state": "STOP_AFTER_C1_BEFORE_C2",
+  "evidence_route": {
+    "path": "docs/COURAGE_TECHNICAL_ROUTE_STRICT_20260818.md",
+    "sha256": "ef6534868cd42e554f6dc7903e35459b42ecd21c020cf83e7340ab81938d9a91"
+  },
+  "pre_c1_contract": {
+    "path": "configs/experiments/courage_strict_route_decision_contract_v1.json",
+    "sha256": "5692bcd48b17b0488e2dafd6b544743a10e59326d414053aa01a8101a639a65b"
+  },
+  "human_decision_document": {
+    "path": "docs/COURAGE_STRICT_C1_IMPLEMENTATION_DECISIONS_20260818.md",
+    "sha256": "bfe392bfd401570a5ecbcdbb117a6bfe835b8fe806882195c6cb603687964c37"
+  },
+  "provenance": {
+    "courage_explicit_direction": [
+      "turnover_grouping_before_training",
+      "one_minute_future_return_label",
+      "signal_time_information_only",
+      "T_minus_1_slow_features",
+      "small_logical_feature_set_with_sector_context",
+      "separate_fast_and_slow_encoders",
+      "shared_patchtst_multi_horizon_return_heads",
+      "prediction_separate_from_trading"
+    ],
+    "exact_parameters_are_acot_implementation_decisions": true,
+    "old_experiment_parameters_inherited": false
+  },
+  "population": {
+    "base_scope": "shanghai_shenzhen_a_shares_subject_to_C2_admission",
+    "turnover_field": "turnover_rate_f_percent",
+    "information_lag": "strict_T_minus_1_complete_session",
+    "rolling_complete_sessions": 60,
+    "minimum_valid_observations": 50,
+    "mean": "arithmetic",
+    "inclusive_percent_band": [5.0, 15.0],
+    "membership_refresh": "daily",
+    "minimum_listing_official_sessions": 120,
+    "effective_dated_ST_and_delisting_risk_excluded": true,
+    "additional_amount_hard_filter": false,
+    "off_pool_history_remains_lookback_eligible": true,
+    "current_day_suspension_limit_or_no_trade_changes_membership": false,
+    "current_day_untradability_is_sample_or_head_mask": true
+  },
+  "time_protocol": {
+    "timezone": "Asia/Shanghai",
+    "source_and_warmup": ["2025-04-01", "2026-07-01"],
+    "train": ["2025-07-01", "2026-03-02"],
+    "valid": ["2026-03-02", "2026-04-01"],
+    "development_test": ["2026-04-01", "2026-05-01"],
+    "reserved_confirm_not_authorized": ["2026-05-01", "2026-07-01"],
+    "train_signal_stride": 5,
+    "valid_signal_stride": 5,
+    "development_test_signal_stride": 1,
+    "signal_grid_rule": "canonical_ordered_legal_states_keep_index_mod_stride_zero",
+    "retain_complete_target_group_at_selected_signal": true,
+    "random_symbol_subsampling": false,
+    "random_kfold": false,
+    "split_embargo_official_sessions": 1,
+    "per_horizon_maturity_and_purge": true,
+    "development_test_is_blind_holdout": false
+  },
+  "label": {
+    "estimand": "research_gross_return",
+    "entry": "first_complete_one_minute_vwap_window_starting_at_or_after_signal_time",
+    "exit": "complete_one_minute_vwap_window_H_official_slots_after_entry",
+    "formula": "exit_vwap1 / entry_vwap1 - 1",
+    "horizons_official_minutes": [5, 15, 30, 60, 120, 240, 480],
+    "official_axis_crosses_lunch_and_sessions": true,
+    "costs_in_label": false,
+    "invalid_entry_or_exit_invalidates_only_that_head": true,
+    "one_invalid_head_does_not_drop_other_heads": true,
+    "prediction_is_executable_net_return_or_order": false
+  },
+  "features": {
+    "minute_dynamic_order": [
+      "stock_ret_1",
+      "stock_ret_5",
+      "stock_ret_20",
+      "stock_vwap_bias_20",
+      "stock_realized_vol_20",
+      "stock_high_low_range_20",
+      "stock_volume_ratio_20",
+      "stock_amount_ratio_20",
+      "sector_ret_5_median",
+      "sector_ret_20_median",
+      "sector_positive_breadth_1",
+      "sector_amount_ratio_20_median"
+    ],
+    "slow_numeric_order": [
+      "daily_ret_5",
+      "daily_ma20_bias",
+      "daily_vol_20",
+      "turnover_mean_60",
+      "market_cap_log"
+    ],
+    "slow_categorical": ["effective_dated_industry_id"],
+    "sector_state_universe": "complete_admitted_effective_dated_sector_before_turnover_projection",
+    "wide_market_index_substitutes_sector": false,
+    "buy_amount_level2_tick_or_orderbook_in_v1": false,
+    "slow_feature_lag": "strict_T_minus_1_complete_session",
+    "continuous_scaler_fit_role": "train_only",
+    "continuous_clip_quantiles": [0.001, 0.999],
+    "continuous_center_scale": "median_IQR",
+    "future_fill": false,
+    "explicit_availability_and_missing_masks": true
+  },
+  "model": {
+    "backbone": "shared_PatchTST",
+    "lookback_official_minutes": 1200,
+    "patch_length": 30,
+    "stride": 15,
+    "d_model": 128,
+    "encoder_layers": 3,
+    "attention_heads": 4,
+    "dropout": 0.1,
+    "slow_encoder": "two_layer_MLP_plus_industry_embedding",
+    "fusion": "minute_embedding_plus_slow_embedding",
+    "output_heads": "seven_scalar_future_return_heads",
+    "independent_probability_head": false,
+    "maximum_upside_head": false,
+    "rank_head": false
+  },
+  "supervision": {
+    "target_scaler_fit_role": "train_only_per_horizon",
+    "target_center_scale": "median_IQR",
+    "target_clipping": false,
+    "loss": "Huber_on_standardized_target",
+    "huber_delta": 1.0,
+    "active_horizon_weighting": "equal",
+    "head_normalization": "independent_global_numerator_denominator",
+    "checkpoint_metric": "valid_equal_head_standardized_Huber",
+    "optimizer_batch_precision_epoch_and_early_stop": "freeze_in_C5_C6_before_execution"
+  },
+  "baselines_and_evaluation": {
+    "mandatory_no_information_baselines": [
+      "zero_prediction",
+      "train_mean",
+      "naive_momentum_or_reversal"
+    ],
+    "reference_only_baselines": ["Ridge"],
+    "reported_metrics": [
+      "raw_MAE",
+      "raw_RMSE",
+      "bias",
+      "Pearson",
+      "Rank_IC",
+      "direction_ACC",
+      "balanced_ACC",
+      "MCC",
+      "top_bottom_spread",
+      "daily_stability"
+    ],
+    "checkpoint_uses_development_test": false,
+    "continue_gate_equal_head_RMSE_skill_gt_zero": true,
+    "continue_gate_minimum_positive_skill_horizons": 4,
+    "ordinary_ACC_or_65_percent_ACC_is_gate": false,
+    "Rank_IC_is_checkpoint_gate": false,
+    "LightGBM_is_required_gate": false
+  },
+  "authorities": {
+    "source_admission_authorized": false,
+    "data_read_authorized": false,
+    "data_materialization_authorized": false,
+    "feature_build_authorized": false,
+    "label_build_authorized": false,
+    "sequence_build_authorized": false,
+    "runtime_profile_authorized": false,
+    "training_authorized": false,
+    "model_selection_authorized": false,
+    "development_test_read_authorized": false,
+    "reserved_confirm_read_authorized": false,
+    "holdout_read_authorized": false,
+    "refit_authorized": false,
+    "strategy_authorized": false,
+    "backtest_authorized": false,
+    "paper_trading_authorized": false,
+    "live_trading_authorized": false,
+    "order_generation_authorized": false,
+    "remote_push_authorized": false
+  }
+}

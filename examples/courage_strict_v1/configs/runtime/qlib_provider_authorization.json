@@ -1,0 +1,38 @@
+{
+  "accepted_source_read_authorized": true,
+  "backtest_authorized": false,
+  "checkpoint_selection_authorized": false,
+  "config": {
+    "path": "examples/courage_strict_v1/configs/runtime/qlib_provider.json",
+    "sha256": "097876edab8d2741252c6e42bf371c59b9a39ff257bb2e8e85c47119a2d47780"
+  },
+  "execution_authorized": true,
+  "feature_expansion_authorized": false,
+  "feature_scaler_fit_authorized": false,
+  "final_test_provider_extension_authorized": false,
+  "final_test_read_authorized": false,
+  "june_read_authorized": false,
+  "live_trading_authorized": false,
+  "lookback_selection_authorized": false,
+  "official_axis_extension_authorized": false,
+  "one_time_authorization": true,
+  "operator_statement": "用户授权在当前Qlib仓库完成courage_strict_v1全部代码、数据构造、训练和评测。",
+  "order_generation_authorized": false,
+  "output_head_expansion_authorized": false,
+  "paper_trading_authorized": false,
+  "prediction_export_authorized": false,
+  "qlib_materialization_authorized": true,
+  "qlib_parity_authorized": true,
+  "refit_authorized": false,
+  "remote_push_authorized": false,
+  "runner": {
+    "path": "qlib/contrib/data/courage_strict_v1/qlib_materializer.py",
+    "sha256": "dd6bca7a185bda38a196ffbc92001f6a3c9f1387c71af2fb98bf8b28dc395d78"
+  },
+  "runtime_profile_authorized": false,
+  "schema_version": "courage_strict_v1_qlib_authorization_v1",
+  "strategy_authorized": false,
+  "target_scaler_fit_authorized": false,
+  "training_authorized": false,
+  "valid_read_authorized": true
+}

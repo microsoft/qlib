@@ -1,0 +1,83 @@
+{
+  "schema_version": "courage_strict_c6_training_config_v1",
+  "route_id": "courage_route_strict_v1.0.0_mainboard_v2",
+  "status": "FROZEN_NOT_AUTHORIZED",
+  "inputs": {
+    "c4_sequence_catalog": {
+      "path": "artifacts/courage_strict_c4_sequence/courage_strict_c4_sequence_v1/sequence-3c1d93f3a4f34e694097ceed/_c4_sequence_catalog.json",
+      "sha256": "f663af9d3d2f91c44a3889bc5fa4c5562bcf836a088a00db61c33587e2a223f2"
+    },
+    "c4_acceptance_report": {
+      "path": "artifacts/courage_strict_c4_acceptance/courage_strict_c4_acceptance_v1/acceptance-f3c4e6b7e5176d437d5f620a/_c4_acceptance_report.json",
+      "sha256": "349bc97606e8d8d30c806a546cf886abfa0a005687433d374ec487a9a49d303d"
+    },
+    "c3_label_manifest": {
+      "path": "artifacts/courage_strict_c3_labels/courage_strict_c3_labels_v2/authorization-58cb3716cb748c89b6f996bd/_c3_label_manifest.json",
+      "sha256": "2ba16743e7103bcf01fba2e5dc84394148a5a551a8dadfca93e147f541d64b1f"
+    },
+    "c5_runtime_profile": {
+      "path": "artifacts/courage_strict_c5_runtime/courage_strict_c5_runtime_v1/runtime-a04d8515708c3c8949ab4539/_c5_runtime_profile.json",
+      "sha256": "8aa9bb171ba8b8a6ca1733b0e4a52104c96cd7ea2a7159d820bc0e843ed47295"
+    }
+  },
+  "runtime": {
+    "world_size": 8,
+    "precision": "BF16",
+    "attention_backend": "math",
+    "microbatch_per_rank": 256,
+    "global_batch": 2048,
+    "workers_per_rank": 8,
+    "prefetch_factor": 4,
+    "lru_capacity": 16
+  },
+  "training": {
+    "optimizer": "AdamW",
+    "learning_rate": 0.0003,
+    "weight_decay": 0.01,
+    "gradient_clip_norm": 1.0,
+    "scheduler": "linear_5_percent_warmup_then_cosine_to_zero",
+    "warmup_fraction": 0.05,
+    "minimum_epochs": 2,
+    "max_epochs": 6,
+    "patience": 2,
+    "min_delta": 0.0001,
+    "checkpoint_metric": "valid_equal_head_standardized_Huber",
+    "huber_delta": 1.0,
+    "target_head_weighting": "equal_active_heads",
+    "sample_weighting": "equal_rows",
+    "sampler": "deterministic_symbol_contiguous_block_shuffle",
+    "sampler_symbol_block_size": 4096,
+    "seed": 20260818
+  },
+  "expected_counts": {
+    "train_rows": 9043104,
+    "valid_rows": 1226880,
+    "train_sessions": 159,
+    "valid_sessions": 21,
+    "horizons": 7
+  },
+  "output_root": "artifacts/courage_strict_c6_training/courage_strict_c6_training_v1",
+  "authority_matrix": {
+    "execution_authorized": false,
+    "accepted_C3_C4_C5_read_authorized": false,
+    "train_role_read_authorized": false,
+    "valid_role_read_authorized": false,
+    "train_only_scaler_fit_authorized": false,
+    "gpu_bf16_training_authorized": false,
+    "persistent_checkpoint_authorized": false,
+    "checkpoint_resume_authorized": false,
+    "valid_checkpoint_selection_authorized": false,
+    "training_manifest_write_authorized": false,
+    "development_test_read_authorized": false,
+    "evaluation_authorized": false,
+    "reserved_confirm_read_authorized": false,
+    "holdout_read_authorized": false,
+    "refit_authorized": false,
+    "strategy_authorized": false,
+    "backtest_authorized": false,
+    "paper_trading_authorized": false,
+    "live_trading_authorized": false,
+    "order_generation_authorized": false,
+    "remote_push_authorized": false
+  }
+}

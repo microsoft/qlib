@@ -1,0 +1,73 @@
+{
+  "schema_version": "courage_strict_c3_membership_config_v1",
+  "route_id": "courage_route_strict_v1.0.0",
+  "status": "FROZEN_NOT_AUTHORIZED",
+  "inputs": {
+    "c1": {"path": "configs/experiments/courage_strict_c1_implementation_decisions_v1.json", "sha256": "baf373d37918b9ef91efd026e25e9f55bb720b8749ce698c4de0c11de651fe45"},
+    "c1_mainboard": {"path": "configs/experiments/courage_strict_c1_mainboard_scope_amendment_v2.json", "sha256": "5ade5ff919483830543003d8fd70d5428916a342a0f77a98ad0219ca75f09100"},
+    "c2_mainboard_report": {"path": "artifacts/courage_strict_c2_mainboard_reacceptance/courage_strict_c2_mainboard_reacceptance_v1/audit-a5ddeaa064f6da967c08a298/_c2_mainboard_reacceptance_report.json", "sha256": "f34cb2eac21b34808d42eefc71cf9e26814564da51cdbf3681823eca3e5423a0"},
+    "mainboard_scope": {"path": "artifacts/courage_strict_c2_mainboard_reacceptance/courage_strict_c2_mainboard_reacceptance_v1/audit-a5ddeaa064f6da967c08a298/mainboard_security_scope.parquet", "sha256": "6a93b99f7008b403e0fff23e581d5e581c2a01234527b26958177fe865b138f9"},
+    "normalized_daily": {"path": "artifacts/courage_strict_c2_daily_r5/courage_strict_c2_daily_r5_v1/authorization-c88e6a380ed7bfe047920902/normalized_daily.parquet", "sha256": "d366e224d5df729f40e51321a29fada995684747ccc04cf4a0a2627ad1ad4155"},
+    "normalized_status": {"path": "artifacts/courage_strict_c2_status_r2/courage_strict_c2_status_r2_v1/authorization-9ebd898ae3456fe495a20e66/effective_dated_status.parquet", "sha256": "66abfa772c89341757dcf4bee17a12e62a03862c327ea86d279405f868e790d9"},
+    "official_axis": {"path": "artifacts/courage_strict_c2_official_minute_axis/courage_strict_c2_r1_v1/authorization-94f402cc85b63090687fd852/official_minute_axis.parquet", "sha256": "582c6d85479cac8219f11ea33f41bd4d66753a7e6de5054467ce6956d9748243"},
+    "full_calendar": {"path": "data/processed/trade_calendar/akshare_sina/20260807T055950097364Z-72f9e5b6.parquet", "sha256": "0d0f223aa93655379ac2cc935e681f9e069eda302f7351e1bb7300f98f9a4a7c"}
+  },
+  "membership_contract": {
+    "scope": "SSE_SZSE_mainboard_only",
+    "turnover_field": "turnover_rate_f_percent",
+    "source_lag": "strict_T_minus_1_complete_session",
+    "rolling_official_sessions": 60,
+    "minimum_valid_observations": 50,
+    "arithmetic_mean_inclusive_band_percent": [5.0, 15.0],
+    "minimum_listing_official_sessions": 120,
+    "T_minus_1_status_fail_closed_excluded": true,
+    "current_day_tradability_changes_membership": false,
+    "daily_refresh": true
+  },
+  "signal_contract": {
+    "train": ["2025-07-01", "2026-03-02"],
+    "valid": ["2026-03-02", "2026-04-01"],
+    "one_official_session_embargo_at_role_end": true,
+    "legal_state": "feature_ready_time_inside_official_trading_clock",
+    "daily_grid": "canonical_legal_state_index_mod_5_equals_0",
+    "selected_states_per_day": 48,
+    "retain_complete_target_group": true
+  },
+  "expected_counts": {
+    "signal_dates": 180,
+    "train_dates": 159,
+    "valid_dates": 21,
+    "membership_rows": 213958,
+    "train_membership_rows": 188398,
+    "valid_membership_rows": 25560,
+    "selected_signal_states": 8640,
+    "samples": 10269984,
+    "train_samples": 9043104,
+    "valid_samples": 1226880
+  },
+  "output_root": "artifacts/courage_strict_c3_membership/courage_strict_c3_membership_v1",
+  "authority_matrix": {
+    "execution_authorized": false,
+    "accepted_C2_read_authorized": false,
+    "turnover_membership_materialization_authorized": false,
+    "signal_grid_materialization_authorized": false,
+    "C3_evidence_write_authorized": false,
+    "minute_bar_record_read_authorized": false,
+    "label_build_authorized": false,
+    "feature_build_authorized": false,
+    "sequence_build_authorized": false,
+    "runtime_profile_authorized": false,
+    "training_authorized": false,
+    "model_selection_authorized": false,
+    "development_test_read_authorized": false,
+    "reserved_confirm_read_authorized": false,
+    "holdout_read_authorized": false,
+    "refit_authorized": false,
+    "strategy_authorized": false,
+    "backtest_authorized": false,
+    "paper_trading_authorized": false,
+    "live_trading_authorized": false,
+    "order_generation_authorized": false,
+    "remote_push_authorized": false
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "schema_version": "courage_strict_c7_data_config_v1",
+  "route_id": "courage_route_strict_v1.0.0_mainboard_v2",
+  "status": "FROZEN_NOT_AUTHORIZED",
+  "inputs": {
+    "c1": {"path": "configs/experiments/courage_strict_c1_implementation_decisions_v1.json", "sha256": "baf373d37918b9ef91efd026e25e9f55bb720b8749ce698c4de0c11de651fe45"},
+    "c1_mainboard": {"path": "configs/experiments/courage_strict_c1_mainboard_scope_amendment_v2.json", "sha256": "5ade5ff919483830543003d8fd70d5428916a342a0f77a98ad0219ca75f09100"},
+    "c6_training_manifest": {"path": "artifacts/courage_strict_c6_training/courage_strict_c6_training_v1/run-f249a2089988381c4f62ddde/_c6_training_manifest.json", "sha256": "ffb5af2ad24329e2d754129a3e9941184fdb068f5e5dc1c9d86763a1400764dc"},
+    "c4_golden_report": {"path": "artifacts/courage_strict_c4_golden/courage_strict_c4_golden_v1/golden-ec9bcd558b596eb5fc99b334/_c4_golden_report.json", "sha256": "b7abb023b5cc4b9222ee8589000d43631ca2f1d88f0f9fbffbe7b353f84e8fc2"},
+    "mainboard_scope": {"path": "artifacts/courage_strict_c2_mainboard_reacceptance/courage_strict_c2_mainboard_reacceptance_v1/audit-a5ddeaa064f6da967c08a298/mainboard_security_scope.parquet", "sha256": "6a93b99f7008b403e0fff23e581d5e581c2a01234527b26958177fe865b138f9"},
+    "calendar": {"path": "data/processed/trade_calendar/akshare_sina/20260807T055950097364Z-72f9e5b6.parquet", "sha256": "0d0f223aa93655379ac2cc935e681f9e069eda302f7351e1bb7300f98f9a4a7c"},
+    "daily_source": {"path": "/data1/lxl/workspace/datasets/.tmp/dataset/xianyu/full_20260724/行情数据(全量至20260724）/stock_daily.parquet", "sha256": "5cbafacb6857b87517b1cd1c56c843fa523b3a3bcff1e6cf67b1b1ed95bda914"},
+    "source_identity_manifest": {"path": "artifacts/courage_strict_c2_input_identity/courage_strict_c2_a_r1_v2/identity-d68ab9dbf05e709d6004/_source_identity_manifest.json", "sha256": "dbd92dbd23ffe02496000484723971bac6e7a24da2d748ae12cd694095af50b8"},
+    "industry_reusable_raw": {"path": "artifacts/data_admission/courage_cninfo_industry_pit_202406_202606_v1/build-bb6115109f2ad6351463/raw_history.parquet", "sha256": "e149a19979edc91fa9b7e8f2f58bc971f93551dc516ce7d80a9dcd81736c63a3"},
+    "industry_prior_raw": {"path": "artifacts/courage_strict_c2_industry_r6/courage_strict_c2_industry_r6_v1/authorization-5c8f882e6b06cee1708ed055/raw_history.parquet", "sha256": "0469a2b1314fecb15dccc27f9e963de6215ace0d69af4eee86416cf19c282124"},
+    "industry_taxonomy": {"path": "artifacts/data_admission/courage_cninfo_industry_pit_202406_202606_v1/build-bb6115109f2ad6351463/taxonomy.parquet", "sha256": "eecfee163891da1aab1622559980d8a69da74ef3b15627e085269ec246933a57"},
+    "accepted_actions": {"path": "artifacts/courage_strict_c2_corporate_action_r4/courage_strict_c2_corporate_action_r4_v1/authorization-fccfbcc726de480c0877b663/accepted_effective_dated_corporate_actions.parquet", "sha256": "c1e29658f577ac5ec52eb9d9f9be327e6c121d23dd7ad8d7fffaf76639e279b4"},
+    "quarantined_actions": {"path": "artifacts/courage_strict_c2_corporate_action_r4/courage_strict_c2_corporate_action_r4_v1/authorization-fccfbcc726de480c0877b663/quarantined_factor_changes.parquet", "sha256": "8e8d74a1fa356ec099a4cf673d591d3c1f2b968679c5242ed3a1275d611a9bfa"},
+    "adjustment_factor_2026": {"path": "data/processed/adjustment_factor/xianyu_bundle/20260723_v2/year=2026/part-00000.parquet", "sha256": "9d99583c36720f00f62e1cf8ab1dcd6fcbf282ce8e6063149c3e5573452edb18"}
+  },
+  "relocated_minute_root": "/data1/lxl/workspace/datasets/.tmp/dataset/xianyu/full_20260724/行情数据(全量至20260724）/stock_1min",
+  "official_axis_contract": {
+    "rule_version": "CN_A_SHARE_AUCTION_SESSIONS_2023_V1",
+    "interpretation": "one_minute_bar_windows_cover_stock_auction_trading_from_09_30_to_11_30_and_13_00_to_15_00_including_the_closing_call_auction",
+    "intervals": [
+      {"name": "morning", "start": "09:30", "end": "11:30", "minutes": 120},
+      {"name": "afternoon", "start": "13:00", "end": "15:00", "minutes": 120}
+    ],
+    "feature_ready_rule": "minute_window_end_plus_one_minute",
+    "halts_or_suspensions_do_not_shorten_the_official_axis": true,
+    "raw_bar_absence_does_not_define_the_schedule": true
+  },
+  "expected_counts": {
+    "mainboard_symbols": 3214,
+    "source_sessions": 263,
+    "source_axis_rows": 63120,
+    "normalized_daily_rows": 835287,
+    "development_test_sessions": 21,
+    "membership_rows": 24736,
+    "signal_states": 4998,
+    "samples": 5887168,
+    "selected_symbols": 1439,
+    "dynamic_rows": 90829680
+  },
+  "resources": {"source_workers": 64, "label_workers": 64, "write_workers": 32},
+  "output_root": "artifacts/courage_strict_c7_data/courage_strict_c7_data_v1",
+  "authority_matrix": {
+    "execution_authorized": false,
+    "accepted_C1_C2_C4_C6_read_authorized": false,
+    "development_test_record_read_authorized": false,
+    "development_test_axis_materialization_authorized": false,
+    "development_test_input_normalization_authorized": false,
+    "development_test_membership_label_materialization_authorized": false,
+    "development_test_feature_sequence_materialization_authorized": false,
+    "fixed_partition_audit_authorized": false,
+    "catalog_aggregation_authorized": false,
+    "idempotent_reuse_verification_authorized": false,
+    "training_authorized": false,
+    "model_selection_authorized": false,
+    "checkpoint_selection_authorized": false,
+    "evaluation_authorized": false,
+    "reserved_confirm_read_authorized": false,
+    "holdout_read_authorized": false,
+    "refit_authorized": false,
+    "strategy_authorized": false,
+    "backtest_authorized": false,
+    "paper_trading_authorized": false,
+    "live_trading_authorized": false,
+    "order_generation_authorized": false,
+    "remote_push_authorized": false
+  }
+}
