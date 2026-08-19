@@ -66,22 +66,27 @@ Qlib 1min bin provider
 - checkpoint 仅按 Valid 七头等权标准化 Huber 选择；
 - ACC、balanced ACC、MCC、Rank IC 属于诊断项，不参与 checkpoint 选择。
 
-## 当前运行状态
+## 已完成训练与 Valid 评测
 
 - 2026-08-19 17:29（Asia/Shanghai）已通过 8×RTX PRO 5000 72GB GPU 可见性检查；
 - BF16 与 checkpoint-resume 有界画像决策：`PASS_V1_CUDA_BF16_RUNTIME_PROFILE`；
 - 画像 batch size 256、峰值显存 4,349,196,800 bytes、单卡约 1,764 samples/s；
-- 正式 8 卡 DDP 训练已从随机初始化启动；Qlib Recorder：
-  `467c3833ee0a448480b3cc634c6c819f`（Experiment 2）；
+- 首个交互式运行在 epoch 3 中途因会话到期被外部终止；无 CUDA、NCCL 或 OOM 故障，
+  已归档且 Recorder `467c3833ee0a448480b3cc634c6c819f` 标记为 `KILLED`，未复用其部分学习状态；
+- 脱离交互会话的正式 8 卡 DDP 运行从随机初始化完成；Qlib Recorder：
+  `448d548c5c0641cd95ff7000cd8c6292`（Experiment 2）；
+- 训练在 epoch 3 后按 early stopping 正常结束，选中 epoch 1，Valid 七头等权标准化 Huber：
+  `0.6272580533`；
+- Valid 全量预测、metrics JSON 和 Markdown 报告均已生成。详见
+  `docs/courage_strict_v1/VALID_TRAINING_REPORT_20260819.md`；
 - 正式启动必须使用 `examples/courage_strict_v1/launch_training.sh`，确保各 rank 优先加载
   项目 `.venv/lib` 中与 SQLite/ICU 匹配的 C++ runtime；
 - 当前全局 batch 为 2,048（256×8），May、June 仍未读取。
 
 ## 尚需完成
 
-1. 等待正式训练完成并写出最佳 checkpoint；
-2. 输出 Valid 指标、逐样本预测和评测报告；
-3. 模型、配置和选择规则冻结后，单独生成并读取 April Development 数据；
-4. May 保持 reserved，June 保持 sealed。
+1. 审阅 Valid 训练结论，并冻结是否推进 April Development replay；
+2. 仅在冻结后，单独生成并读取 April Development 数据；
+3. May 保持 reserved，June 保持 sealed。
 
 代码验收：36 项 `courage_strict_v1` 测试通过，Ruff import/syntax 检查通过。
