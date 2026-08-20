@@ -39,6 +39,19 @@ class TestElementOperator(TestMockData):
         golden = change.to_numpy()
         self.assertIsNone(np.testing.assert_allclose(result, golden))
 
+    def test_unary_negation(self):
+        cases = [
+            ("-$close", "0 - $close"),
+            ("-Std($close, 3)", "0 - Std($close, 3)"),
+        ]
+        for field, equivalent in cases:
+            with self.subTest(field=field):
+                result = ExpressionD.expression(self.instrument, field, self.start_time, self.end_time, self.freq)
+                expected = ExpressionD.expression(
+                    self.instrument, equivalent, self.start_time, self.end_time, self.freq
+                )
+                np.testing.assert_allclose(result.to_numpy(), expected.to_numpy(), equal_nan=True)
+
 
 class TestOperatorDataSetting(TestOperatorData):
     def test_setting(self):
