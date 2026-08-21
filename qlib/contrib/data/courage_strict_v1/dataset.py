@@ -57,26 +57,33 @@ class _Provider:
         if not catalog_path.is_file():
             raise CourageStrictV1DatasetError("provider terminal catalog is absent")
         self.catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
-        if self.catalog.get("decision") != "PASS_V1_QLIB_MATERIALIZATION_AND_PARITY":
+        accepted_decisions = {
+            "PASS_V1_QLIB_MATERIALIZATION_AND_PARITY",
+            "PASS_V1_APRIL_REPLAY_PROVIDER_MATERIALIZATION",
+            "PASS_SOURCE_SEMANTICS_V2_FEATURE_SEQUENCE_MATERIALIZATION",
+        }
+        if self.catalog.get("decision") not in accepted_decisions:
             raise CourageStrictV1DatasetError("provider is not accepted")
         coverage = self.catalog.get("coverage", {})
-        if coverage.get("calendar_rows") != 58_080:
+        expected_rows = int(coverage.get("calendar_rows", 0))
+        expected_instruments = int(coverage.get("instruments", 0))
+        if expected_rows <= LOOKBACK_V1 or expected_instruments <= 0:
             raise CourageStrictV1DatasetError("provider catalog calendar drift")
         calendar_path = self.root / "calendars/1min.txt"
         self.calendar = pd.DatetimeIndex(
             pd.to_datetime(calendar_path.read_text(encoding="utf-8").splitlines())
         )
-        if len(self.calendar) != 58_080 or not self.calendar.is_monotonic_increasing:
+        if (
+            len(self.calendar) != expected_rows
+            or not self.calendar.is_monotonic_increasing
+        ):
             raise CourageStrictV1DatasetError("provider calendar drift")
         lines = (
             (self.root / "instruments/all.txt").read_text(encoding="utf-8").splitlines()
         )
         self.qlib_symbols = tuple(line.split("\t", 1)[0] for line in lines if line)
         self.symbols = tuple(_from_qlib(symbol) for symbol in self.qlib_symbols)
-        if (
-            len(self.symbols) != coverage.get("instruments")
-            or len(self.symbols) != 2162
-        ):
+        if len(self.symbols) != expected_instruments:
             raise CourageStrictV1DatasetError("provider instrument coverage drift")
 
     def path(self, symbol_position: int, field: str) -> Path:
@@ -98,7 +105,11 @@ def _build_references(
     *,
     start: str,
     end: str,
+    signal_stride: int = 5,
+    turnover_band: tuple[float, float] | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
+    if signal_stride not in {1, 5}:
+        raise CourageStrictV1DatasetError("supported signal strides are 1 and 5")
     segment = (provider.calendar >= pd.Timestamp(start)) & (
         provider.calendar < pd.Timestamp(end)
     )
@@ -106,8 +117,18 @@ def _build_references(
     end_parts: list[np.ndarray] = []
     for position in range(len(provider.symbols)):
         member = provider.array(position, "pit_member") > 0.5
+        if turnover_band is not None:
+            lower, upper = map(float, turnover_band)
+            if not 5.0 <= lower < upper <= 15.0:
+                raise CourageStrictV1DatasetError("turnover sub-band is invalid")
+            turnover = provider.array(position, "turnover_mean_60")
+            member &= np.isfinite(turnover) & (turnover >= lower) & (turnover <= upper)
         legal = provider.array(position, "signal_legal") > 0.5
-        stride = provider.array(position, "signal_stride5") > 0.5
+        stride = (
+            provider.array(position, "sample_present") > 0.5
+            if signal_stride == 1
+            else provider.array(position, "signal_stride5") > 0.5
+        )
         indices = np.flatnonzero(segment & member & legal & stride)
         indices = indices[indices >= LOOKBACK_V1 - 1]
         if len(indices):
@@ -116,6 +137,23 @@ def _build_references(
     if not end_parts:
         raise CourageStrictV1DatasetError("segment has no samples")
     return np.concatenate(symbol_parts), np.concatenate(end_parts)
+
+
+def label_maturity_mask_v1(
+    valid: np.ndarray,
+    target_end: np.ndarray,
+    available: np.ndarray,
+    *,
+    cutoff_index: int,
+) -> np.ndarray:
+    """Purge one segment/head by both Label end and availability index."""
+    return (
+        np.asarray(valid, dtype=bool)
+        & np.isfinite(target_end)
+        & np.isfinite(available)
+        & (np.asarray(target_end) < int(cutoff_index))
+        & (np.asarray(available) < int(cutoff_index))
+    )
 
 
 class CourageStrictV1TorchDataset(TorchDataset[dict[str, torch.Tensor]]):
@@ -128,15 +166,26 @@ class CourageStrictV1TorchDataset(TorchDataset[dict[str, torch.Tensor]]):
         start: str,
         end: str,
         cache_capacity: int = 8,
+        signal_stride: int = 5,
+        turnover_band: tuple[float, float] | None = None,
     ) -> None:
         if cache_capacity <= 0:
             raise CourageStrictV1DatasetError("cache capacity must be positive")
         self.provider = _Provider(provider_root)
         self.symbol_positions, self.ends = _build_references(
-            self.provider, start=start, end=end
+            self.provider,
+            start=start,
+            end=end,
+            signal_stride=signal_stride,
+            turnover_band=turnover_band,
         )
         self.start, self.end = start, end
+        self.label_cutoff_index = int(
+            self.provider.calendar.searchsorted(pd.Timestamp(end), side="left")
+        )
         self.cache_capacity = int(cache_capacity)
+        self.signal_stride = int(signal_stride)
+        self.turnover_band = turnover_band
         self._cache: collections.OrderedDict[int, dict[str, np.memmap]] = (
             collections.OrderedDict()
         )
@@ -179,7 +228,12 @@ class CourageStrictV1TorchDataset(TorchDataset[dict[str, torch.Tensor]]):
             fields += [
                 name
                 for horizon in HORIZONS_V1
-                for name in (f"label_return_{horizon}", f"label_valid_{horizon}")
+                for name in (
+                    f"label_return_{horizon}",
+                    f"label_valid_{horizon}",
+                    f"label_target_end_index_{horizon}",
+                    f"label_available_index_{horizon}",
+                )
             ]
             arrays = {
                 field: self.provider.array(symbol_position, field) for field in fields
@@ -230,6 +284,26 @@ class CourageStrictV1TorchDataset(TorchDataset[dict[str, torch.Tensor]]):
         target_mask = np.array(
             [arrays[f"label_valid_{horizon}"][end] > 0.5 for horizon in HORIZONS_V1],
             dtype=bool,
+        )
+        label_end = np.array(
+            [
+                arrays[f"label_target_end_index_{horizon}"][end]
+                for horizon in HORIZONS_V1
+            ],
+            dtype=np.float64,
+        )
+        label_available = np.array(
+            [
+                arrays[f"label_available_index_{horizon}"][end]
+                for horizon in HORIZONS_V1
+            ],
+            dtype=np.float64,
+        )
+        target_mask = label_maturity_mask_v1(
+            target_mask,
+            label_end,
+            label_available,
+            cutoff_index=self.label_cutoff_index,
         )
         if not np.isfinite(targets[target_mask]).all():
             raise CourageStrictV1DatasetError("valid target is not finite")
@@ -321,8 +395,13 @@ def fit_train_scalers(dataset: CourageStrictV1TorchDataset) -> dict[str, Any]:
                 slow_chunks[feature].append(values[usable].astype(np.float64))
         for horizon in HORIZONS_V1:
             values = np.asarray(arrays[f"label_return_{horizon}"][ends])
-            usable = (arrays[f"label_valid_{horizon}"][ends] > 0.5) & np.isfinite(
-                values
+            target_end = arrays[f"label_target_end_index_{horizon}"][ends]
+            available = arrays[f"label_available_index_{horizon}"][ends]
+            usable = label_maturity_mask_v1(
+                (arrays[f"label_valid_{horizon}"][ends] > 0.5) & np.isfinite(values),
+                target_end,
+                available,
+                cutoff_index=dataset.label_cutoff_index,
             )
             if usable.any():
                 target_chunks[horizon].append(values[usable].astype(np.float64))
@@ -418,10 +497,17 @@ class CourageStrictV1Dataset(Dataset):
     """Qlib Dataset facade returning model-ready Torch datasets."""
 
     def __init__(
-        self, *, provider_root: str | Path, segments: dict[str, tuple[str, str]]
+        self,
+        *,
+        provider_root: str | Path,
+        segments: dict[str, tuple[str, str]],
+        signal_strides: dict[str, int] | None = None,
+        turnover_band: tuple[float, float] | None = None,
     ) -> None:
         self.provider_root = Path(provider_root)
         self.segments = dict(segments)
+        self.signal_strides = dict(signal_strides or {})
+        self.turnover_band = turnover_band
         super().__init__()
 
     def prepare(
@@ -439,6 +525,8 @@ class CourageStrictV1Dataset(Dataset):
             start=start,
             end=end,
             cache_capacity=cache_capacity,
+            signal_stride=int(self.signal_strides.get(segment, 5)),
+            turnover_band=self.turnover_band,
         )
         return (
             raw
@@ -453,5 +541,6 @@ __all__ = [
     "CourageStrictV1ScaledDataset",
     "CourageStrictV1TorchDataset",
     "fit_train_scalers",
+    "label_maturity_mask_v1",
     "scaler_sha256",
 ]
