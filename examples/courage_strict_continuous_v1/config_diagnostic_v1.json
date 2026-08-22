@@ -1,0 +1,105 @@
+{
+  "schema_version": "courage_strict_continuous_v1_config_v1",
+  "experiment_id": "courage_strict_continuous_v1_diagnostic_v1",
+  "purpose": "BOUNDED_CONTINUOUS_END_TO_END_DIRECT_RETURN_TRAINING",
+  "roots": {
+    "project_root": "/data1/lxl/workspace/datasets/.tmp/qlib",
+    "provider_root": "data/courage_strict_v1/qlib_provider",
+    "output_root": "artifacts/courage_strict_continuous_v1_diagnostic_v1/run_v1",
+    "p0_manifest": "artifacts/courage_strict_v1_grouped_clocks/replay_repair_v2/_terminal_manifest.json"
+  },
+  "identity": {
+    "provider_catalog_sha256": "f82c5d5a3d6f71ba3ab510d179b685e7952e8dd28397b1f6150ce5bc15a0025a",
+    "p0_manifest_sha256": "7209dc84c7ad6780f9726d0cae844e9f9b7951fb69b274e6ffe4dfbe8139688e",
+    "patchtst_module_sha256": "fce5c8e97229511d4b8f04bca96208e56774dc1048e7fa4c21a2236e4eda3c83"
+  },
+  "origins": {
+    "origin_2026_01": {
+      "train": ["2025-07-01", "2026-01-05"],
+      "valid": ["2026-01-05", "2026-02-02"],
+      "accepted_scaler": "artifacts/courage_strict_v1_grouped_clocks/run_v1/origin_2026_01/train_scalers.json",
+      "accepted_scaler_file_sha256": "e31c7bab3942c1af89f0e0750205d660cd9cc4af99c9f46767cc95a31d5a9b9a"
+    },
+    "origin_2026_02": {
+      "train": ["2025-07-01", "2026-02-02"],
+      "valid": ["2026-02-02", "2026-03-02"],
+      "accepted_scaler": "artifacts/courage_strict_v1_grouped_clocks/run_v1/origin_2026_02/train_scalers.json",
+      "accepted_scaler_file_sha256": "2a3958115824cad606ce6b8c86efe00130ecfd906aabdd44bb4b0c60618caff5"
+    },
+    "origin_2026_03": {
+      "train": ["2025-07-01", "2026-03-02"],
+      "valid": ["2026-03-02", "2026-04-01"],
+      "accepted_scaler": "artifacts/courage_strict_v1_grouped_clocks/run_v1/origin_2026_03/train_scalers.json",
+      "accepted_scaler_file_sha256": "4429ef17458a4e3ff12db413b6850b55394ebbe2ce3d5a5fcb152b728334cfe0"
+    }
+  },
+  "training": {
+    "world_size": 8,
+    "batch_size_per_rank": 128,
+    "global_batch_size": 1024,
+    "workers_per_rank": 8,
+    "precision": "BF16",
+    "epochs": 1,
+    "peak_learning_rate": 0.00015,
+    "warmup_fraction": 0.05,
+    "weight_decay": 0.01,
+    "gradient_clip_norm": 1.0,
+    "huber_delta": 1.0,
+    "seed": 20260821,
+    "validation_interval_steps": 250,
+    "materialized_signal_stride": 5,
+    "effective_strides": {
+      "short_5_15_30_60": 5,
+      "mid_120": 15,
+      "long_240_480": 30
+    }
+  },
+  "diagnostics": {
+    "enabled": true,
+    "scale": "RAW_RETURN_AFTER_INVERSE_TRAIN_SCALER",
+    "train_window_moments": true,
+    "full_fixed_valid_moments": true,
+    "statistics": [
+      "prediction_mean",
+      "prediction_std",
+      "target_mean",
+      "target_std",
+      "bias",
+      "prediction_up_rate",
+      "target_up_rate",
+      "prediction_zero_rate",
+      "target_zero_rate"
+    ]
+  },
+  "model": {
+    "class": "PatchTSTCourageStrictV1",
+    "lookback": 1200,
+    "patch_length": 30,
+    "patch_stride": 15,
+    "d_model": 128,
+    "end_to_end_joint_training": true,
+    "freeze_backbone": false,
+    "grouped_adapters": false,
+    "market_residual_decomposition": false,
+    "probability_head": false
+  },
+  "selection": {
+    "metric": "valid_equal_head_standardized_huber",
+    "mode": "strict_minimum",
+    "tie_break": "earlier_step",
+    "test_metrics_forbidden": true
+  },
+  "authority": {
+    "train_read_authorized": true,
+    "rolling_valid_read_authorized": true,
+    "training_authorized": true,
+    "checkpoint_write_authorized": true,
+    "april_or_may_checkpoint_selection_authorized": false,
+    "june_or_later_read_authorized": false,
+    "refit_authorized": false,
+    "strategy_authorized": false,
+    "backtest_authorized": false,
+    "trading_authorized": false,
+    "remote_push_authorized": false
+  }
+}

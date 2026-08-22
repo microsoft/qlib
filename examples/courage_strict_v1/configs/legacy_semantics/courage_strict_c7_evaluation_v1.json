@@ -1,0 +1,105 @@
+{
+  "schema_version": "courage_strict_c7_evaluation_config_v1",
+  "route_id": "courage_route_strict_v1.0.0_mainboard_v2",
+  "status": "FROZEN_NOT_AUTHORIZED",
+  "inputs": {
+    "c7_data_catalog": {
+      "path": "artifacts/courage_strict_c7_data/courage_strict_c7_data_v1/data-8c9f4e59cb41cee77b3143c1/_c7_data_catalog.json",
+      "sha256": "3a438c689d22bb3ff5006ccb90ef68aca4544c9fd36a59e6431be996ad323ca0"
+    },
+    "c6_training_manifest": {
+      "path": "artifacts/courage_strict_c6_training/courage_strict_c6_training_v1/run-f249a2089988381c4f62ddde/_c6_training_manifest.json",
+      "sha256": "ffb5af2ad24329e2d754129a3e9941184fdb068f5e5dc1c9d86763a1400764dc"
+    },
+    "c5_runtime_profile": {
+      "path": "artifacts/courage_strict_c5_runtime/courage_strict_c5_runtime_v1/runtime-a04d8515708c3c8949ab4539/_c5_runtime_profile.json",
+      "sha256": "8aa9bb171ba8b8a6ca1733b0e4a52104c96cd7ea2a7159d820bc0e843ed47295"
+    },
+    "c4_sequence_catalog": {
+      "path": "artifacts/courage_strict_c4_sequence/courage_strict_c4_sequence_v1/sequence-3c1d93f3a4f34e694097ceed/_c4_sequence_catalog.json",
+      "sha256": "f663af9d3d2f91c44a3889bc5fa4c5562bcf836a088a00db61c33587e2a223f2"
+    },
+    "c3_label_manifest": {
+      "path": "artifacts/courage_strict_c3_labels/courage_strict_c3_labels_v2/authorization-58cb3716cb748c89b6f996bd/_c3_label_manifest.json",
+      "sha256": "2ba16743e7103bcf01fba2e5dc84394148a5a551a8dadfca93e147f541d64b1f"
+    }
+  },
+  "scope": {
+    "security_scope": "SSE_SZSE_MAINBOARD_ONLY",
+    "development_test_interval": ["2026-04-01", "2026-05-01"],
+    "development_test_read_once": true,
+    "reserved_may_june_read": false,
+    "holdout_read": false,
+    "development_test_must_not_select_checkpoint_or_model": true
+  },
+  "runtime": {
+    "world_size": 8,
+    "precision": "BF16",
+    "attention_backend": "math",
+    "microbatch_per_rank": 256,
+    "global_batch": 2048,
+    "workers_per_rank": 8,
+    "prefetch_factor": 4,
+    "lru_capacity": 16
+  },
+  "baselines": {
+    "mandatory_no_information": [
+      "zero",
+      "train_mean",
+      "valid_selected_latest_stock_ret_5_momentum_or_reversal"
+    ],
+    "ridge_reference_only": true,
+    "ridge_alpha": 1000.0,
+    "ridge_feature_contract": "scaled_last_dynamic12+usable12+scaled_slow5+available5+intercept",
+    "ridge_is_continue_gate": false
+  },
+  "metrics": {
+    "primary": ["raw_return_RMSE", "raw_return_MAE", "bias", "Pearson"],
+    "diagnostic": [
+      "Rank_IC",
+      "direction_ACC",
+      "balanced_ACC",
+      "MCC",
+      "top_bottom_target_spread",
+      "daily_RMSE_stability"
+    ],
+    "ordinary_ACC_or_65_percent_ACC_is_gate": false,
+    "rank_IC_is_gate": false
+  },
+  "continue_gate": {
+    "per_horizon_comparator": "lowest_RMSE_among_mandatory_no_information_baselines",
+    "skill_formula": "1-PatchTST_RMSE/comparator_RMSE",
+    "equal_head_mean_skill_strictly_greater_than": 0.0,
+    "minimum_positive_skill_horizons": 4,
+    "horizon_weighting": "equal"
+  },
+  "expected_counts": {
+    "development_test_rows": 5887168,
+    "development_test_sessions": 21,
+    "selected_symbols": 1439,
+    "horizons": [5, 15, 30, 60, 120, 240, 480]
+  },
+  "output_root": "artifacts/courage_strict_c7_evaluation/courage_strict_c7_evaluation_v1",
+  "authority_matrix": {
+    "execution_authorized": false,
+    "accepted_C3_C4_C5_C6_C7_read_authorized": false,
+    "development_test_read_authorized": false,
+    "development_test_evaluation_authorized": false,
+    "training_period_baseline_fit_authorized": false,
+    "prediction_evidence_write_authorized": false,
+    "finite_KPI_report_write_authorized": false,
+    "idempotent_reuse_verification_authorized": false,
+    "training_authorized": false,
+    "model_selection_authorized": false,
+    "checkpoint_selection_authorized": false,
+    "reserved_confirm_read_authorized": false,
+    "holdout_read_authorized": false,
+    "refit_authorized": false,
+    "strategy_authorized": false,
+    "backtest_authorized": false,
+    "paper_trading_authorized": false,
+    "live_trading_authorized": false,
+    "order_generation_authorized": false,
+    "remote_push_authorized": false
+  }
+}

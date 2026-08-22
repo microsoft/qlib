@@ -1,0 +1,87 @@
+{
+  "schema_version": "courage_strict_continuous_diagnostic_contract_v1",
+  "experiment_id": "courage_strict_continuous_v1_diagnostic_v1",
+  "purpose": "REPRODUCE_ORIGINAL_V1_WITH_STEP_LEVEL_DIAGNOSTIC_CLOSURE",
+  "source_experiment_id": "courage_strict_continuous_v1",
+  "source_config": "examples/courage_strict_continuous_v1/config.json",
+  "source_config_sha256": "d2c968f6be20e4d243a027f9d671ab02a47d9d1c3a836374431aaa4f180113d5",
+  "diagnostic_config": "examples/courage_strict_continuous_v1/config_diagnostic_v1.json",
+  "diagnostic_config_sha256": "d2abcfd2fa5d83f536ceb3bfd6db858b18a65e1535c404cc5347c65b5748da0c",
+  "trainer": "qlib/contrib/model/courage_strict_continuous_v1.py",
+  "trainer_sha256": "7ffb87f32ed297a412733107170769eb9dbec4559c9ae05c24b73b310810bd01",
+  "runner": "examples/courage_strict_continuous_v1/run_diagnostic_v1.py",
+  "runner_sha256": "e33ddf5730e07b1ede8907391950bdce6a0c4c2a0aedf45555108197f264cfed",
+  "scope": {
+    "origin": "origin_2026_01",
+    "train": ["2025-07-01", "2026-01-05"],
+    "valid": ["2026-01-05", "2026-02-02"],
+    "provider": "data/courage_strict_v1/qlib_provider",
+    "pit_population": "ORIGINAL_ACCEPTED_5_TO_15_PERCENT",
+    "loss": "HUBER",
+    "seed": 20260821,
+    "world_size": 8,
+    "global_batch_size": 1024,
+    "validation_interval_steps": 250,
+    "april_or_later_read": false
+  },
+  "only_changes_from_source": [
+    "versioned_experiment_id_and_output_root",
+    "raw_return_train_window_prediction_moments_every_validation",
+    "raw_return_full_fixed_valid_prediction_moments_every_validation"
+  ],
+  "required_step_outputs": [
+    "per_horizon_train_huber",
+    "per_horizon_valid_huber",
+    "prediction_mean",
+    "prediction_std",
+    "target_mean",
+    "target_std",
+    "bias",
+    "prediction_up_rate",
+    "target_up_rate",
+    "prediction_zero_rate",
+    "target_zero_rate"
+  ],
+  "post_training_closure": {
+    "baselines": [
+      "zero",
+      "train_mean",
+      "train_median",
+      "stock_ret_5_momentum",
+      "stock_ret_5_reversal",
+      "ridge_terminal"
+    ],
+    "gate": {
+      "skill": "1-model_rmse/best_preregistered_baseline_rmse",
+      "mean_skill_strictly_positive": true,
+      "minimum_positive_horizons": 4
+    },
+    "selected_checkpoint_outputs": [
+      "daily_ic_bacc_mcc",
+      "date_minute_industry_turnover_groups",
+      "train_valid_feature_missing_median_iqr",
+      "target_prediction_quantiles_and_up_rate"
+    ]
+  },
+  "sanity_evidence_policy": {
+    "label_recomputation": "REUSE_EXISTING_105_OF_105_BIT_EXACT_SAME_PROVIDER",
+    "small_sample_overfit": "REUSE_EXISTING_PASS_SAME_MODEL_MASK_SCALER_OPTIMIZER",
+    "shuffled_label": "REUSE_EXISTING_10_SEED_NO_REPEATABLE_LEAKAGE_SAME_PIPELINE"
+  },
+  "outputs": {
+    "artifact_root": "artifacts/courage_strict_continuous_v1_diagnostic_v1/run_v1/origin_2026_01",
+    "documentation_root": "docs/courage_strict_continuous_v1_diagnostic_v1"
+  },
+  "authority": {
+    "training": true,
+    "checkpoint_write": true,
+    "valid_evaluation": true,
+    "checkpoint_promotion_to_source_v1": false,
+    "april_or_later_read": false,
+    "refit": false,
+    "strategy": false,
+    "backtest": false,
+    "trading": false,
+    "remote_push": false
+  }
+}
