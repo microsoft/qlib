@@ -1,0 +1,22 @@
+{
+  "april_or_later_read": false,
+  "baseline_manifest_sha256": "203d7d64e9358f6053749799e73f889ac66e2e49c5ce3864220a2cb5e1cec814",
+  "best_checkpoint_grouped_dimensions": [
+    "date",
+    "industry_id",
+    "minute_slot",
+    "turnover_band"
+  ],
+  "best_checkpoint_grouped_metric_rows": 1477,
+  "best_checkpoint_grouped_metrics_sha256": "215af16ebf33a49f2a3c1aacdf30c1e0c182c1996d7eaf0568c74971ebe8f560",
+  "best_step": 2250,
+  "checkpoint_promoted": false,
+  "decision": "FAIL_BASELINE_GATE",
+  "loss_curve_sha256": "8c548dbb7766b6f8b3dcdb79352a07f8a210738f388b2458fb2df7675ac7898d",
+  "per_head_train_valid_curve_sha256": "acab938d48835348490fa215e7a5cbd571c2446f635cef35faf1878d1b36a819",
+  "prediction_diagnostic_curve_sha256": "0cfc94cc5189be704a20a0319e0b65a1f475e369b73c156f68ff1ce2320982cd",
+  "report_sha256": "91c85434169219be71de9d7e224cde67b92260b98bcdadc1c2e8ef17a955e783",
+  "schema_version": "courage_strict_continuous_diagnostic_report_manifest_v1",
+  "train_valid_curve_sha256": "3c848e0aa51da65f07f2b108ef13ad898fc4c34d4f7cee1e6fe31e51a95e53e2",
+  "training_manifest_sha256": "80326f504d226733ec2776ab26710f162062f18c32cbd6751aeb2dfa2b680746"
+}

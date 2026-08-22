@@ -121,6 +121,31 @@ def load_config(path: str | Path) -> ContinuousConfig:
         raise CourageStrictContinuousError("unsupported loss function")
     if training != expected:
         raise CourageStrictContinuousError("training parameter drift")
+    diagnostic_experiment = (
+        raw.get("experiment_id") == "courage_strict_continuous_v1_diagnostic_v1"
+    )
+    expected_diagnostics = {
+        "enabled": True,
+        "scale": "RAW_RETURN_AFTER_INVERSE_TRAIN_SCALER",
+        "train_window_moments": True,
+        "full_fixed_valid_moments": True,
+        "statistics": [
+            "prediction_mean",
+            "prediction_std",
+            "target_mean",
+            "target_std",
+            "bias",
+            "prediction_up_rate",
+            "target_up_rate",
+            "prediction_zero_rate",
+            "target_zero_rate",
+        ],
+    }
+    if diagnostic_experiment:
+        if raw.get("diagnostics") != expected_diagnostics:
+            raise CourageStrictContinuousError("diagnostic logging contract drift")
+    elif "diagnostics" in raw:
+        raise CourageStrictContinuousError("diagnostics require a versioned experiment")
     model = raw.get("model", {})
     if not (
         model.get("end_to_end_joint_training") is True
@@ -130,9 +155,7 @@ def load_config(path: str | Path) -> ContinuousConfig:
         and model.get("probability_head") is False
     ):
         raise CourageStrictContinuousError("model boundary drift")
-    expected_selection_metric = (
-        f"valid_equal_head_standardized_{loss_function.lower()}"
-    )
+    expected_selection_metric = f"valid_equal_head_standardized_{loss_function.lower()}"
     if raw.get("selection", {}).get("metric") != expected_selection_metric:
         raise CourageStrictContinuousError("selection metric/loss drift")
     authority = raw.get("authority", {})
@@ -407,9 +430,7 @@ def _pointwise_loss(
             prediction.float(), target.float(), delta=1.0, reduction="none"
         )
     if name == "MSE":
-        return functional.mse_loss(
-            prediction.float(), target.float(), reduction="none"
-        )
+        return functional.mse_loss(prediction.float(), target.float(), reduction="none")
     raise CourageStrictContinuousError(f"unsupported loss function: {loss_function}")
 
 
@@ -430,6 +451,108 @@ def _reduce_metrics(
     )
 
 
+_MOMENT_COLUMNS = (
+    "rows",
+    "prediction_sum",
+    "prediction_square_sum",
+    "target_sum",
+    "target_square_sum",
+    "error_sum",
+    "prediction_up_rows",
+    "target_up_rows",
+    "prediction_zero_rows",
+    "target_zero_rows",
+)
+
+
+def _target_scaler_tensors(
+    scalers: dict[str, Any], *, device: torch.device
+) -> tuple[torch.Tensor, torch.Tensor]:
+    medians = torch.tensor(
+        [scalers["targets"][str(horizon)]["median"] for horizon in HORIZONS_V1],
+        dtype=torch.float64,
+        device=device,
+    )
+    iqrs = torch.tensor(
+        [scalers["targets"][str(horizon)]["iqr"] for horizon in HORIZONS_V1],
+        dtype=torch.float64,
+        device=device,
+    )
+    if (
+        not torch.isfinite(medians).all()
+        or not torch.isfinite(iqrs).all()
+        or (iqrs <= 0).any()
+    ):
+        raise CourageStrictContinuousError("invalid target scaler for diagnostics")
+    return medians, iqrs
+
+
+def _raw_moment_totals(
+    prediction: torch.Tensor,
+    target: torch.Tensor,
+    mask: torch.Tensor,
+    *,
+    target_medians: torch.Tensor,
+    target_iqrs: torch.Tensor,
+) -> torch.Tensor:
+    active = mask.bool()
+    raw_prediction = prediction.double() * target_iqrs + target_medians
+    raw_target = target.double() * target_iqrs + target_medians
+    weights = active.double()
+    return torch.stack(
+        (
+            weights.sum(dim=0),
+            (raw_prediction * weights).sum(dim=0),
+            (raw_prediction.square() * weights).sum(dim=0),
+            (raw_target * weights).sum(dim=0),
+            (raw_target.square() * weights).sum(dim=0),
+            ((raw_prediction - raw_target) * weights).sum(dim=0),
+            ((raw_prediction > 0) & active).sum(dim=0).double(),
+            ((raw_target > 0) & active).sum(dim=0).double(),
+            ((raw_prediction == 0) & active).sum(dim=0).double(),
+            ((raw_target == 0) & active).sum(dim=0).double(),
+        ),
+        dim=1,
+    )
+
+
+def _moment_summary(totals: torch.Tensor) -> dict[str, dict[str, float | int]]:
+    values = totals.detach().cpu().numpy().astype(np.float64, copy=False)
+    if values.shape != (len(HORIZONS_V1), len(_MOMENT_COLUMNS)):
+        raise CourageStrictContinuousError("diagnostic moment shape drift")
+    result: dict[str, dict[str, float | int]] = {}
+    for head, horizon in enumerate(HORIZONS_V1):
+        row = dict(zip(_MOMENT_COLUMNS, values[head], strict=True))
+        count = int(row["rows"])
+        if count <= 0:
+            raise CourageStrictContinuousError("diagnostic moment contains empty head")
+        prediction_mean = row["prediction_sum"] / count
+        target_mean = row["target_sum"] / count
+        prediction_variance = max(
+            row["prediction_square_sum"] / count - prediction_mean**2, 0.0
+        )
+        target_variance = max(row["target_square_sum"] / count - target_mean**2, 0.0)
+        result[str(horizon)] = {
+            "rows": count,
+            "prediction_mean": float(prediction_mean),
+            "prediction_std": float(math.sqrt(prediction_variance)),
+            "target_mean": float(target_mean),
+            "target_std": float(math.sqrt(target_variance)),
+            "bias": float(row["error_sum"] / count),
+            "prediction_up_rate": float(row["prediction_up_rows"] / count),
+            "target_up_rate": float(row["target_up_rows"] / count),
+            "prediction_zero_rate": float(row["prediction_zero_rows"] / count),
+            "target_zero_rate": float(row["target_zero_rows"] / count),
+        }
+    return result
+
+
+def _reduce_moment_summary(totals: torch.Tensor) -> dict[str, dict[str, float | int]]:
+    reduced = totals.clone()
+    dist.all_reduce(reduced)
+    return _moment_summary(reduced)
+
+
 @torch.no_grad()
 def evaluate_valid(
     model: torch.nn.Module,
@@ -437,11 +560,24 @@ def evaluate_valid(
     *,
     device: torch.device,
     loss_function: str = "HUBER",
-) -> tuple[list[float], float, list[int]]:
+    target_scalers: tuple[torch.Tensor, torch.Tensor] | None = None,
+) -> (
+    tuple[list[float], float, list[int]]
+    | tuple[list[float], float, list[int], dict[str, dict[str, float | int]]]
+):
     was_training = model.training
     model.eval()
     numerator = torch.zeros(len(HORIZONS_V1), dtype=torch.float64, device=device)
     denominator = torch.zeros_like(numerator)
+    moments = (
+        torch.zeros(
+            (len(HORIZONS_V1), len(_MOMENT_COLUMNS)),
+            dtype=torch.float64,
+            device=device,
+        )
+        if target_scalers is not None
+        else None
+    )
     for batch in loader:
         moved = _move(batch, device)
         with torch.autocast("cuda", dtype=torch.bfloat16):
@@ -453,9 +589,20 @@ def evaluate_valid(
         )
         numerator += (errors * moved["target_mask"]).sum(dim=0).double()
         denominator += moved["target_mask"].sum(dim=0).double()
+        if moments is not None and target_scalers is not None:
+            moments += _raw_moment_totals(
+                prediction,
+                moved["targets"],
+                moved["target_mask"],
+                target_medians=target_scalers[0],
+                target_iqrs=target_scalers[1],
+            )
     result = _reduce_metrics(numerator, denominator)
+    diagnostics = _reduce_moment_summary(moments) if moments is not None else None
     if was_training:
         model.train()
+    if diagnostics is not None:
+        return (*result, diagnostics)
     return result
 
 
@@ -717,6 +864,12 @@ def train_origin(
         warmup_fraction=float(training["warmup_fraction"]),
     )
     config_sha = sha256_file(config.config_path)
+    diagnostics_enabled = bool(
+        config.source.get("diagnostics", {}).get("enabled", False)
+    )
+    diagnostic_target_scalers = (
+        _target_scaler_tensors(scalers, device=device) if diagnostics_enabled else None
+    )
     interval = int(training["validation_interval_steps"])
     validation_steps = set(range(interval, total_steps + 1, interval)) | {total_steps}
     history: list[dict[str, Any]] = []
@@ -759,6 +912,15 @@ def train_origin(
     window_started = time.perf_counter()
     window_num = torch.zeros(len(HORIZONS_V1), dtype=torch.float64, device=device)
     window_den = torch.zeros_like(window_num)
+    window_moments = (
+        torch.zeros(
+            (len(HORIZONS_V1), len(_MOMENT_COLUMNS)),
+            dtype=torch.float64,
+            device=device,
+        )
+        if diagnostics_enabled
+        else None
+    )
     window_gradients: list[float] = []
     window_samples_local = 0
     coverage = _reset_coverage()
@@ -807,6 +969,14 @@ def train_origin(
             )
             window_num += (errors * mask).sum(dim=0).double()
             window_den += mask.sum(dim=0).double()
+            if window_moments is not None and diagnostic_target_scalers is not None:
+                window_moments += _raw_moment_totals(
+                    prediction,
+                    moved["targets"],
+                    mask,
+                    target_medians=diagnostic_target_scalers[0],
+                    target_iqrs=diagnostic_target_scalers[1],
+                )
 
         if global_step not in validation_steps:
             continue
@@ -821,6 +991,11 @@ def train_origin(
         window_per_head, window_metric, effective_counts = _reduce_metrics(
             window_num, window_den
         )
+        train_prediction_diagnostics = (
+            _reduce_moment_summary(window_moments)
+            if window_moments is not None
+            else None
+        )
         gradient = _gradient_summary(
             window_gradients,
             rank=rank,
@@ -834,12 +1009,23 @@ def train_origin(
         cumulative_sessions.update(coverage["sessions"])
         samples_seen += int(local_samples.item())
         dist.barrier()
-        valid_per_head, valid_metric, valid_counts = evaluate_valid(
+        valid_result = evaluate_valid(
             model,
             valid_loader,
             device=device,
             loss_function=loss_function,
+            target_scalers=diagnostic_target_scalers,
         )
+        if diagnostics_enabled:
+            (
+                valid_per_head,
+                valid_metric,
+                valid_counts,
+                valid_prediction_diagnostics,
+            ) = valid_result
+        else:
+            valid_per_head, valid_metric, valid_counts = valid_result
+            valid_prediction_diagnostics = None
         dist.barrier()
         if rank == 0:
             if gradient is None or coverage_result is None:
@@ -878,6 +1064,19 @@ def train_origin(
                     local_samples.item() / elapsed.item()
                 ),
             }
+            if diagnostics_enabled:
+                if (
+                    train_prediction_diagnostics is None
+                    or valid_prediction_diagnostics is None
+                ):
+                    raise CourageStrictContinuousError(
+                        "rank-zero prediction diagnostics absent"
+                    )
+                record["diagnostic_scale"] = "RAW_RETURN_AFTER_INVERSE_TRAIN_SCALER"
+                record["train_window_prediction_diagnostics"] = (
+                    train_prediction_diagnostics
+                )
+                record["valid_prediction_diagnostics"] = valid_prediction_diagnostics
             history.append(record)
             payload = _checkpoint_payload(
                 model=model,
@@ -915,6 +1114,8 @@ def train_origin(
             atomic_json(output / "loss_curve.json", history)
         window_num.zero_()
         window_den.zero_()
+        if window_moments is not None:
+            window_moments.zero_()
         window_gradients.clear()
         window_samples_local = 0
         coverage = _reset_coverage()

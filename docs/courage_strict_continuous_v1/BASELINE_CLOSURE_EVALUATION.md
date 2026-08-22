@@ -14,6 +14,41 @@
 - 240m/480m 仍有弱排序信息（AUC `54.180%`/`54.381%`，Rank IC `+0.06176`/`+0.05940`），但绝对收益点预测均输给常数基线；这是“排序信号存在、条件均值校准失败”，不能视为收益回归通过。
 - 最强 RMSE baseline 分布为：5/15/30m Ridge，60/120/240m zero，480m Train mean；继续增加 epoch 或更换网络不能直接解释这一模式。
 
+## 三项 Sanity Check 闭环
+
+基线闭环之后，对同一 `courage_strict_continuous_v1` 数据链路和模型实现执行了三项有界 sanity check。它们用于区分明显的数据/实现错误与真实的泛化失败，不用于重新选择或晋升 checkpoint。
+
+| 检查 | 执行口径 | 结果 | 结论 |
+|---|---|---:|---|
+| 原始 Bar Label 独立复算 | 每个 horizon 时间分层抽取15条，共105条；从不可变分钟 Parquet 以 `amount/volume` 重算 entry/exit VWAP 和收益，再与 provider float32 bin 做 bit-level 比较 | 105/105 bit-exact；最大误差0 | `PASS_LABEL_RECOMPUTATION` |
+| 固定小样本过拟合 | 固定512条七头均成熟样本；dropout=0、weight decay=0；最多3000 steps | 标准化 Huber `0.585392 → 0.00009093`，下降99.984%；七头全部过门 | `PASS_SMALL_SAMPLE_OVERFIT` |
+| Shuffled-label 随机对照 | Train 标签按 horizon 独立置换；保留输入、mask和完整 January Valid | 首轮3 seeds × 7 heads 为19/21过门，480m与15m各有一个孤立越界 | 首轮严格记为 `FAIL_SHUFFLED_LABEL_RANDOM_CONTROL` |
+
+### Shuffled-label 后续复核
+
+由于首轮两个异常没有在同一 horizon 跨 seed 重复，随后预注册并执行了更强的 null-distribution 复核：10个配对 seed；每个 seed 先评估 initialization-only，再训练500-step shuffled-label；两种条件都评估完整 January Valid，并以交易日为单位进行3日 circular moving-block bootstrap（5,000次）。
+
+升级泄漏调查必须同时满足：
+
+1. shuffled 聚合95% CI排除随机值；
+2. shuffled−initialization 配对95% CI同方向排除0；
+3. 至少4/10 seed的单独交易日 block CI同方向排除随机值。
+
+最终没有任何 horizon/metric 同时满足三项条件，判定为 `PASS_NO_REPEATABLE_SHUFFLED_LABEL_LEAKAGE_PATTERN`。原两个异常的关键复核如下：
+
+| 指标 | Shuffled mean [95% CI] | Shuffled−Init [95% CI] | 泄漏升级 |
+|---|---:|---:|---|
+| 480m AUC | `0.50940 [0.49695, 0.52223]` | `0.01166 [-0.00876, 0.03148]` | NO |
+| 480m Rank IC | `0.00857 [-0.00946, 0.02733]` | `0.01027 [-0.02200, 0.04137]` | NO |
+| 15m Rank IC | `-0.00763 [-0.01637, 0.00046]` | `-0.01665 [-0.03160, -0.00215]` | NO |
+
+综合解释：已抽查 Label 的公式与落盘值正确；模型、mask、标准化和优化器具备正常记忆能力；没有发现可重复的 shuffled-label 泄漏模式。因此“明显实现错误或稳定泄漏”从首要原因中降级，但这不改变正式模型 `FAIL_BASELINE_GATE`，下一步仍应聚焦输出收缩、绝对收益条件均值校准和时间状态漂移。
+
+详细证据：
+
+- [三项 Sanity Check 报告](SANITY_CHECK_REPORT.md)
+- [Initialization-only × Shuffled-label Null Distribution](SANITY_NULL_DISTRIBUTION_REPORT.md)
+
 ## 逐 horizon 最强基线
 
 | H | Model RMSE | Best baseline | Baseline RMSE | Skill | ACC | BAcc | MCC | AUC | Rank IC | Pred/Target Std |
@@ -105,10 +140,23 @@
 - `target_prediction_distribution.csv`：Target/Prediction 均值、标准差、分位数和上涨比例；
 - `baseline_predictions.parquet`：同人口 baseline 预测；
 - `ridge_coefficients.json`：Train-only Ridge 系数和拟合人口。
+- `sanity_checks_v1/`：Label逐条复算、小样本过拟合曲线与3-seed shuffled-label结果；
+- `sanity_null_distribution_v1/`：10-seed配对日级指标、bootstrap摘要与最终机器判定。
 
 ## 边界
 
 - Ridge 只使用信号时点的 12 个动态特征、5 个慢特征、缺失指示和时钟变量；不使用 Valid 拟合或调参。
 - Momentum/Reversal 是可观测 `stock_ret_5` 的原值/相反数，缺失时预测 0。
-- 本次只补评测基线；小样本过拟合、源 bar Label 重算和 shuffled-label 属于后续 sanity-check 阶段。
-- 未训练 PatchTST，未读取 2026-02-02 及以后数据，未执行 refit、策略、回测、交易或远端推送。
+- 基线评测本身未重新训练 PatchTST；其后的三项 sanity check 使用独立诊断命名空间，未覆盖或晋升正式 checkpoint。
+- 未重训或改选正式 PatchTST；仅训练不可晋升的 sanity 诊断模型。未读取 2026-02-02 及以后数据，未执行 refit、策略、回测、交易或远端推送。
+
+## 后续 March 漂移诊断闭环（只读）
+
+基线评测完成后，另以冻结 step-2250 checkpoint 及既有 January—March 预测补齐了以下事后诊断：
+
+- March 逐日 prediction/target 均值、标准差、上涨率、BAcc、MCC 与 Rank IC；
+- 按 30 分钟位置桶、PIT 行业和 T-1 换手率档分组；
+- Train→January→February→March 的特征缺失率、median/IQR、PSI 与标签分布漂移；
+- 每期系统抽样 200,000 条序列，扫描完整 1,200 分钟内部历史位置的可用率和连续缺失长度。
+
+结果显示 March 慢特征及绝对收益基准发生明显漂移，而完整 lookback 动态特征平均可用率仍约 90%，不支持“历史窗口因大面积缺失而失效”。详细结果见 [March 漂移诊断闭环](MARCH_DRIFT_DIAGNOSTIC_CLOSURE.md)。该后续诊断读取范围严格早于 2026-04-01；未重训、改选 checkpoint 或读取 April 及以后数据。

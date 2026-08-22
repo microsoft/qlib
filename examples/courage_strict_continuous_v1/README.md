@@ -10,10 +10,12 @@ checkpoints, predictions, and later 10%--15% variants are intentionally absent.
 - training configuration: `config.json`;
 - training entry point: `run.py`;
 - full rolling-Valid evaluator: `evaluate_origin.py`;
-- Train/Valid curve renderer: `plot_curves.py`;
+- Train/Valid curve renderer: `plot_curves.py`（同时强制生成综合曲线和7个horizon独立Train/Valid曲线）；
 - frozen baseline contract: `baseline_closure_contract_v1.json`;
 - baseline closure evaluator: `evaluate_baseline_closure_v1.py`;
 - result: `docs/courage_strict_continuous_v1/BASELINE_CLOSURE_EVALUATION.md`.
+
+训练中的轻量指标按配置的validation step记录。日期、分钟位置、PIT行业和换手率等昂贵分组只在best checkpoint冻结后，由baseline closure evaluator对完整固定Valid执行一次；不允许用分组结果重新选择checkpoint。
 
 ## Model and data path
 

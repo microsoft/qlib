@@ -7,14 +7,14 @@ import numpy as np
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-PATH = (
-    ROOT
-    / "examples/courage_strict_continuous_v1/evaluate_baseline_closure_v1.py"
-)
+PATH = ROOT / "examples/courage_strict_continuous_v1/evaluate_baseline_closure_v1.py"
 SPEC = importlib.util.spec_from_file_location("baseline_closure_v1", PATH)
 assert SPEC is not None and SPEC.loader is not None
 MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
+DIAGNOSTIC_CONTRACT = (
+    ROOT / "examples/courage_strict_continuous_v1/baseline_closure_diagnostic_v1.json"
+)
 
 
 def test_direction_metrics_balanced_case() -> None:
@@ -56,3 +56,10 @@ def test_gate_requires_mean_and_four_horizons() -> None:
     assert MODULE.gate_decision(rows)["decision"] == "PASS_BASELINE_GATE"
     rows[0]["rmse_skill_vs_best_baseline"] = -0.1
     assert MODULE.gate_decision(rows)["decision"] == "FAIL_BASELINE_GATE"
+
+
+def test_diagnostic_contract_binds_versioned_source_experiment() -> None:
+    contract, source = MODULE._validate_contract(DIAGNOSTIC_CONTRACT)
+    assert contract["source_experiment_id"] == source["experiment_id"]
+    assert contract["checkpoint_step"] == 2250
+    assert contract["authority"]["april_or_later_read"] is False

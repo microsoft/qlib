@@ -1,0 +1,56 @@
+{
+  "schema_version": "courage_strict_continuous_sanity_contract_v1",
+  "experiment_id": "courage_strict_continuous_v1_sanity_checks_v1",
+  "source_experiment_id": "courage_strict_continuous_v1",
+  "source_config": "examples/courage_strict_continuous_v1/config.json",
+  "origin": "origin_2026_01",
+  "scope": {
+    "train": ["2025-07-01", "2026-01-05"],
+    "valid": ["2026-01-05", "2026-02-02"],
+    "april_or_later_read": false,
+    "checkpoint_selection": false,
+    "strategy_or_backtest": false
+  },
+  "label_recomputation": {
+    "pairs_per_horizon": 15,
+    "total_pairs": 105,
+    "seed": 20260821,
+    "source": "project-owned immutable raw minute parquet",
+    "formula": "float32((exit_amount/exit_volume)/(entry_amount/entry_volume)-1)",
+    "comparison": "float32_bit_exact",
+    "ransac": false
+  },
+  "small_sample_overfit": {
+    "samples": 512,
+    "seed": 20260821,
+    "dropout": 0.0,
+    "weight_decay": 0.0,
+    "batch_size": 128,
+    "maximum_steps": 3000,
+    "evaluation_interval_steps": 50,
+    "learning_rate": 0.001,
+    "pass_mean_standardized_huber_lte": 0.0001,
+    "pass_each_head_standardized_huber_lte": 0.0005
+  },
+  "shuffled_label": {
+    "seeds": [20260831, 20260832, 20260833],
+    "training_steps": 500,
+    "batch_size": 128,
+    "valid_batch_size": 512,
+    "workers": 8,
+    "learning_rate": 0.00015,
+    "weight_decay": 0.01,
+    "precision": "BF16",
+    "full_fixed_valid": true,
+    "per_seed_random_bounds": {
+      "balanced_accuracy_abs_from_half_lte": 0.02,
+      "auc_abs_from_half_lte": 0.02,
+      "mcc_abs_lte": 0.04,
+      "rank_ic_abs_lte": 0.03
+    }
+  },
+  "outputs": {
+    "artifact_root": "artifacts/courage_strict_continuous_v1/sanity_checks_v1",
+    "documentation": "docs/courage_strict_continuous_v1/SANITY_CHECK_REPORT.md"
+  }
+}

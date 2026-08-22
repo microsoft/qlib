@@ -30,10 +30,10 @@ def render(origin_root: Path, *, doc_output: Path | None = None) -> None:
     suffix = loss_function.lower()
     train_key = f"train_window_equal_head_standardized_{suffix}"
     valid_key = f"valid_equal_head_standardized_{suffix}"
+    train_per_head_key = f"train_window_per_head_standardized_{suffix}"
     valid_per_head_key = f"valid_per_head_standardized_{suffix}"
     if any(
-        item.get("loss_function", "HUBER").upper() != loss_function
-        for item in records
+        item.get("loss_function", "HUBER").upper() != loss_function for item in records
     ):
         raise ValueError("loss function changes inside one curve")
     steps = [item["global_step"] for item in records]
@@ -47,9 +47,7 @@ def render(origin_root: Path, *, doc_output: Path | None = None) -> None:
     # (1590 is not divisible by 50), so label the modal interval rather than
     # the minimum tail interval.
     interval = (
-        collections.Counter(intervals).most_common(1)[0][0]
-        if intervals
-        else steps[0]
+        collections.Counter(intervals).most_common(1)[0][0] if intervals else steps[0]
     )
     axis.plot(
         steps,
@@ -75,10 +73,7 @@ def render(origin_root: Path, *, doc_output: Path | None = None) -> None:
     for horizon in HORIZONS_V1:
         axis.plot(
             steps,
-            [
-                item[valid_per_head_key][str(horizon)]
-                for item in records
-            ],
+            [item[valid_per_head_key][str(horizon)] for item in records],
             label=f"{horizon}m",
         )
     axis.axvline(best["global_step"], color="black", linestyle="--", linewidth=1)
@@ -88,6 +83,38 @@ def render(origin_root: Path, *, doc_output: Path | None = None) -> None:
     axis.legend(ncol=4)
     figure.tight_layout()
     figure.savefig(origin_root / "per_head_valid_loss_curve.png", dpi=180)
+    plt.close(figure)
+
+    figure, axes = plt.subplots(4, 2, figsize=(14, 18), sharex=True)
+    flattened = axes.ravel()
+    for axis, horizon in zip(flattened, HORIZONS_V1, strict=False):
+        key = str(horizon)
+        axis.plot(
+            steps,
+            [item[train_per_head_key][key] for item in records],
+            marker="o",
+            markersize=2,
+            label=f"Train {interval}-step window",
+        )
+        axis.plot(
+            steps,
+            [item[valid_per_head_key][key] for item in records],
+            marker="o",
+            markersize=2,
+            label="Full Valid",
+        )
+        axis.axvline(best["global_step"], color="tab:red", linestyle="--", linewidth=1)
+        axis.set_title(f"{horizon}m")
+        axis.set_ylabel(f"Standardized {loss_function}")
+        axis.grid(alpha=0.25)
+        axis.legend()
+    flattened[-1].set_visible(False)
+    for axis in flattened[-2:]:
+        axis.set_xlabel("Global optimizer step")
+    figure.suptitle("Per-horizon Train-window versus fixed-Valid loss", y=0.995)
+    figure.tight_layout()
+    per_head_train_valid = origin_root / "PER_HEAD_TRAIN_VALID_LOSS_CURVES.png"
+    figure.savefig(per_head_train_valid, dpi=180)
     plt.close(figure)
 
     figure, left = plt.subplots(figsize=(11, 6))
@@ -126,11 +153,11 @@ def render(origin_root: Path, *, doc_output: Path | None = None) -> None:
     plt.close(figure)
     if doc_output is not None:
         doc_output.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(canonical_curve, doc_output / canonical_curve.name)
-        if (
-            doc_output / canonical_curve.name
-        ).read_bytes() != canonical_curve.read_bytes():
-            raise ValueError("documentation curve copy drift")
+        for source in (canonical_curve, per_head_train_valid):
+            destination = doc_output / source.name
+            shutil.copyfile(source, destination)
+            if destination.read_bytes() != source.read_bytes():
+                raise ValueError("documentation curve copy drift")
 
 
 def main() -> None:

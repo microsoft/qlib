@@ -29,6 +29,20 @@
 - Rank IC/Spread 仅为诊断，不参与 checkpoint 选择。
 - 未读取 April、May、June 或更晚数据；未执行 refit、策略、回测、交易或远端推送。
 
+## 训练可观测性闭环
+
+综合Train-window与完整固定Valid曲线：
+
+![Train/Valid loss](TRAIN_VALID_LOSS_CURVE.png)
+
+七个horizon各自的Train-window与完整固定Valid曲线：
+
+![Per-horizon Train/Valid loss](PER_HEAD_TRAIN_VALID_LOSS_CURVES.png)
+
+- 两张图均来自同一份`loss_curve.json`的29个未平滑validation step，并标记step 2250最佳checkpoint。
+- 日期、分钟位置、PIT行业和换手率不在每250 step重复计算；已对冻结最佳checkpoint一次性完成全部四维分组，共1,477行、覆盖7个horizon。
+- 完整分组结果位于[`BEST_CHECKPOINT_GROUPED_METRICS.csv`](BEST_CHECKPOINT_GROUPED_METRICS.csv)，不能用于重新选择checkpoint。
+
 ## 训练执行与 DataLoader 观察
 
 - Train `7,301,712` 行，完整执行 `7,131` steps；Valid `1,034,064` 行。

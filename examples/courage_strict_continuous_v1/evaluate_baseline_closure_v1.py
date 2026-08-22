@@ -29,8 +29,7 @@ from qlib.contrib.model.patchtst_courage_strict_v1 import HORIZONS_V1
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_CONTRACT = (
-    ROOT
-    / "examples/courage_strict_continuous_v1/baseline_closure_contract_v1.json"
+    ROOT / "examples/courage_strict_continuous_v1/baseline_closure_contract_v1.json"
 )
 FEATURES = tuple(DYNAMIC_FEATURES) + tuple(SLOW_FEATURES)
 ESTIMATORS = (
@@ -102,8 +101,7 @@ def _auc(target_up: np.ndarray, score: np.ndarray) -> float:
         return math.nan
     ranks = pd.Series(values).rank(method="average").to_numpy(dtype=np.float64)
     return float(
-        (ranks[truth].sum() - positive * (positive + 1) / 2)
-        / (positive * negative)
+        (ranks[truth].sum() - positive * (positive + 1) / 2) / (positive * negative)
     )
 
 
@@ -134,7 +132,11 @@ def direction_metrics(target: np.ndarray, prediction: np.ndarray) -> dict[str, f
 def metric_row(target: np.ndarray, prediction: np.ndarray) -> dict[str, float]:
     target = np.asarray(target, dtype=np.float64)
     prediction = np.asarray(prediction, dtype=np.float64)
-    if not len(target) or not np.isfinite(target).all() or not np.isfinite(prediction).all():
+    if (
+        not len(target)
+        or not np.isfinite(target).all()
+        or not np.isfinite(prediction).all()
+    ):
         raise BaselineClosureError("metric population contains invalid values")
     error = prediction - target
     centered_target = target - target.mean()
@@ -217,7 +219,6 @@ def _validate_contract(contract_path: Path) -> tuple[dict[str, Any], dict[str, A
     if (
         contract.get("schema_version")
         != "courage_strict_continuous_baseline_closure_contract_v1"
-        or contract.get("source_experiment_id") != "courage_strict_continuous_v1"
         or contract["authority"].get("read_before_exclusive") != "2026-02-02"
         or any(
             contract["authority"].get(key) is not False
@@ -243,12 +244,19 @@ def _validate_contract(contract_path: Path) -> tuple[dict[str, Any], dict[str, A
         path = _resolve(contract, key)
         if not path.is_file() or sha256_file(path) != contract[sha_key]:
             raise BaselineClosureError(f"frozen input drift: {key}")
-    provider_catalog = _resolve(contract, "provider_root") / "_courage_strict_v1_qlib_catalog.json"
+    provider_catalog = (
+        _resolve(contract, "provider_root") / "_courage_strict_v1_qlib_catalog.json"
+    )
     if sha256_file(provider_catalog) != contract["provider_catalog_sha256"]:
         raise BaselineClosureError("provider catalog drift")
     source = json.loads(_resolve(contract, "source_config").read_text(encoding="utf-8"))
+    if contract.get("source_experiment_id") != source.get("experiment_id"):
+        raise BaselineClosureError("source experiment identity drift")
     origin = source["origins"][contract["origin"]]
-    if origin["train"] != contract["segments"]["train"] or origin["valid"] != contract["segments"]["valid"]:
+    if (
+        origin["train"] != contract["segments"]["train"]
+        or origin["valid"] != contract["segments"]["valid"]
+    ):
         raise BaselineClosureError("segment drift")
     return contract, source
 
@@ -280,7 +288,9 @@ def _scaled_design(
     return output
 
 
-def _extract_population(raw: Any, scalers: dict[str, Any], *, fit_ridge: bool, alpha: float) -> dict[str, Any]:
+def _extract_population(
+    raw: Any, scalers: dict[str, Any], *, fit_ridge: bool, alpha: float
+) -> dict[str, Any]:
     rows = len(raw)
     terminal = np.empty((rows, len(FEATURES)), dtype=np.float32)
     usable = np.empty((rows, len(FEATURES)), dtype=bool)
@@ -291,7 +301,9 @@ def _extract_population(raw: Any, scalers: dict[str, Any], *, fit_ridge: bool, a
     industry_id = np.empty(rows, dtype=np.int16)
     turnover = np.full(rows, np.nan, dtype=np.float32)
     design_size = 1 + len(FEATURES) * 2 + 3
-    grams = [np.zeros((design_size, design_size), dtype=np.float64) for _ in HORIZONS_V1]
+    grams = [
+        np.zeros((design_size, design_size), dtype=np.float64) for _ in HORIZONS_V1
+    ]
     crosses = [np.zeros(design_size, dtype=np.float64) for _ in HORIZONS_V1]
     ridge_rows = np.zeros(len(HORIZONS_V1), dtype=np.int64)
     positions = raw.symbol_positions
@@ -314,8 +326,12 @@ def _extract_population(raw: Any, scalers: dict[str, Any], *, fit_ridge: bool, a
             terminal[left:right, DYNAMIC_FEATURES.index("stock_ret_5")],
             0.0,
         )
-        minute_slot[left:right] = np.asarray(arrays["minute_slot"][ends], dtype=np.int16)
-        industry_id[left:right] = np.asarray(arrays["industry_id"][ends], dtype=np.int16)
+        minute_slot[left:right] = np.asarray(
+            arrays["minute_slot"][ends], dtype=np.int16
+        )
+        industry_id[left:right] = np.asarray(
+            arrays["industry_id"][ends], dtype=np.int16
+        )
         turnover_index = len(DYNAMIC_FEATURES) + SLOW_FEATURES.index("turnover_mean_60")
         turnover[left:right] = np.where(
             usable[left:right, turnover_index],
@@ -323,7 +339,9 @@ def _extract_population(raw: Any, scalers: dict[str, Any], *, fit_ridge: bool, a
             np.nan,
         )
         for head, horizon in enumerate(HORIZONS_V1):
-            values = np.asarray(arrays[f"label_return_{horizon}"][ends], dtype=np.float32)
+            values = np.asarray(
+                arrays[f"label_return_{horizon}"][ends], dtype=np.float32
+            )
             active = label_maturity_mask_v1(
                 (arrays[f"label_valid_{horizon}"][ends] > 0.5) & np.isfinite(values),
                 arrays[f"label_target_end_index_{horizon}"][ends],
@@ -334,7 +352,10 @@ def _extract_population(raw: Any, scalers: dict[str, Any], *, fit_ridge: bool, a
             masks[left:right, head] = active
         if fit_ridge:
             design = _scaled_design(
-                terminal[left:right], usable[left:right], minute_slot[left:right], scalers
+                terminal[left:right],
+                usable[left:right],
+                minute_slot[left:right],
+                scalers,
             )
             for head in range(len(HORIZONS_V1)):
                 active = masks[left:right, head]
@@ -382,20 +403,28 @@ def _prediction_map(
     ridge_coefficients: np.ndarray,
     scalers: dict[str, Any],
 ) -> dict[str, np.ndarray]:
-    design = _scaled_design(valid["terminal"], valid["usable"], valid["minute_slot"], scalers)
+    design = _scaled_design(
+        valid["terminal"], valid["usable"], valid["minute_slot"], scalers
+    )
     rows = len(design)
     return {
         "model": model.astype(np.float64),
         "zero": np.zeros((rows, len(HORIZONS_V1)), dtype=np.float64),
         "train_mean": np.broadcast_to(train_mean, (rows, len(HORIZONS_V1))).copy(),
         "train_median": np.broadcast_to(train_median, (rows, len(HORIZONS_V1))).copy(),
-        "momentum_ret5": np.broadcast_to(valid["ret5"][:, None], (rows, len(HORIZONS_V1))).astype(np.float64),
-        "reversal_ret5": np.broadcast_to(-valid["ret5"][:, None], (rows, len(HORIZONS_V1))).astype(np.float64),
+        "momentum_ret5": np.broadcast_to(
+            valid["ret5"][:, None], (rows, len(HORIZONS_V1))
+        ).astype(np.float64),
+        "reversal_ret5": np.broadcast_to(
+            -valid["ret5"][:, None], (rows, len(HORIZONS_V1))
+        ).astype(np.float64),
         "ridge_terminal": design @ ridge_coefficients,
     }
 
 
-def _baseline_metrics(valid: dict[str, Any], predictions: dict[str, np.ndarray]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+def _baseline_metrics(
+    valid: dict[str, Any], predictions: dict[str, np.ndarray]
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     best: dict[str, Any] = {}
     for head, horizon in enumerate(HORIZONS_V1):
@@ -422,7 +451,9 @@ def _baseline_metrics(valid: dict[str, Any], predictions: dict[str, np.ndarray])
                 float(timestamp_ic.mean()) if len(timestamp_ic) else math.nan
             )
             horizon_rows.append(item)
-        baseline_rows = [item for item in horizon_rows if item["estimator"] in BASELINES]
+        baseline_rows = [
+            item for item in horizon_rows if item["estimator"] in BASELINES
+        ]
         winner = min(baseline_rows, key=lambda item: item["rmse"])
         best[str(horizon)] = {
             "estimator": winner["estimator"],
@@ -471,8 +502,14 @@ def _daily_metrics(
                 }
             )
             timestamp_ic = _timestamp_rank_ic(frame)
-            ic_dates = pd.to_datetime(calendar[timestamp_ic.index.to_numpy(dtype=np.int64)]).normalize()
-            daily_ic = pd.Series(timestamp_ic.to_numpy(), index=ic_dates).groupby(level=0).mean()
+            ic_dates = pd.to_datetime(
+                calendar[timestamp_ic.index.to_numpy(dtype=np.int64)]
+            ).normalize()
+            daily_ic = (
+                pd.Series(timestamp_ic.to_numpy(), index=ic_dates)
+                .groupby(level=0)
+                .mean()
+            )
             for date, group in frame.groupby("date", sort=True):
                 item = metric_row(group.target.to_numpy(), group.prediction.to_numpy())
                 baseline_rmse = float(best[str(horizon)]["rmse"])
@@ -483,13 +520,16 @@ def _daily_metrics(
                         "estimator": estimator,
                         "rows": item["rows"],
                         "rmse": item["rmse"],
-                        "rmse_skill_vs_global_best_baseline": 1.0 - item["rmse"] / baseline_rmse,
+                        "rmse_skill_vs_global_best_baseline": 1.0
+                        - item["rmse"] / baseline_rmse,
                         "bias": item["bias"],
                         "accuracy": item["accuracy"],
                         "balanced_accuracy": item["balanced_accuracy"],
                         "mcc": item["mcc"],
                         "auc": item["auc"],
-                        "timestamp_rank_ic_mean": _finite_or_none(daily_ic.get(date, math.nan)),
+                        "timestamp_rank_ic_mean": _finite_or_none(
+                            daily_ic.get(date, math.nan)
+                        ),
                         "target_up_rate": item["target_up_rate"],
                         "prediction_up_rate": item["prediction_up_rate"],
                     }
@@ -593,6 +633,9 @@ def _render_report(
     gate: dict[str, Any],
     daily: pd.DataFrame,
     distributions: pd.DataFrame,
+    *,
+    source_experiment_id: str,
+    checkpoint_step: int,
 ) -> str:
     model = {int(row["horizon"]): row for row in rows if row["estimator"] == "model"}
     target_lookup = {
@@ -601,11 +644,14 @@ def _render_report(
             index=False
         )
     }
-    ratios = [model[horizon]["prediction_std"] / model[horizon]["target_std"] for horizon in HORIZONS_V1]
+    ratios = [
+        model[horizon]["prediction_std"] / model[horizon]["target_std"]
+        for horizon in HORIZONS_V1
+    ]
     lines = [
-        "# Courage Strict Continuous V1 测评基线闭环",
+        f"# {source_experiment_id} 测评基线闭环",
         "",
-        "> 冻结 step-2250 checkpoint 的 Train-only baseline 与完整 January rolling Valid 诊断；不是未见 Test。",
+        f"> 冻结 step-{checkpoint_step} checkpoint 的 Train-only baseline 与完整 January rolling Valid 诊断；不是未见 Test。",
         "",
         "## 结论",
         "",
@@ -627,7 +673,11 @@ def _render_report(
     for horizon in HORIZONS_V1:
         item = model[horizon]
         winner = best[str(horizon)]
-        ratio = item["prediction_std"] / item["target_std"] if item["target_std"] else math.nan
+        ratio = (
+            item["prediction_std"] / item["target_std"]
+            if item["target_std"]
+            else math.nan
+        )
         lines.append(
             f"| {horizon} | {item['rmse']:.8f} | {winner['estimator']} | {winner['rmse']:.8f} | "
             f"{item['rmse_skill_vs_best_baseline']:+.3%} | {item['accuracy']:.3%} | "
@@ -653,8 +703,14 @@ def _render_report(
         model_daily.groupby("horizon", sort=True)
         .agg(
             days=("date", "nunique"),
-            positive_ic_days=("timestamp_rank_ic_mean", lambda value: int((value.fillna(0) > 0).sum())),
-            positive_bacc_days=("balanced_accuracy", lambda value: int((value > 0.5).sum())),
+            positive_ic_days=(
+                "timestamp_rank_ic_mean",
+                lambda value: int((value.fillna(0) > 0).sum()),
+            ),
+            positive_bacc_days=(
+                "balanced_accuracy",
+                lambda value: int((value > 0.5).sum()),
+            ),
             mean_mcc=("mcc", "mean"),
         )
         .reset_index()
@@ -691,7 +747,7 @@ def _render_report(
         "",
         "- Ridge 只使用信号时点的 12 个动态特征、5 个慢特征、缺失指示和时钟变量；不使用 Valid 拟合或调参。",
         "- Momentum/Reversal 是可观测 `stock_ret_5` 的原值/相反数，缺失时预测 0。",
-        "- 本次只补评测基线；小样本过拟合、源 bar Label 重算和 shuffled-label 属于后续 sanity-check 阶段。",
+        "- 同一provider、模型与训练链路的小样本过拟合、源bar Label复算和shuffled-label证据沿用既有独立sanity报告；本次不重复训练这些诊断模型。",
         "- 未训练 PatchTST，未读取 2026-02-02 及以后数据，未执行 refit、策略、回测、交易或远端推送。",
         "",
     ]
@@ -707,7 +763,9 @@ def run(contract_path: Path) -> Path:
     if output.exists():
         raise BaselineClosureError(f"output already exists: {output}")
     output.mkdir(parents=True)
-    scalers = json.loads(_resolve(contract, "train_scalers").read_text(encoding="utf-8"))
+    scalers = json.loads(
+        _resolve(contract, "train_scalers").read_text(encoding="utf-8")
+    )
     dataset = CourageStrictV1Dataset(
         provider_root=_resolve(contract, "provider_root"),
         segments={
@@ -724,21 +782,34 @@ def run(contract_path: Path) -> Path:
         alpha=float(contract["baselines"]["ridge_terminal"]["alpha_on_average_gram"]),
     )
     valid = _extract_population(valid_raw, scalers, fit_ridge=False, alpha=0.0)
-    frozen = pd.read_parquet(_resolve(contract, "valid_predictions")).sort_values("row_index", kind="stable")
+    frozen = pd.read_parquet(_resolve(contract, "valid_predictions")).sort_values(
+        "row_index", kind="stable"
+    )
     if (
         len(frozen) != len(valid_raw)
-        or not np.array_equal(frozen.row_index.to_numpy(dtype=np.int64), np.arange(len(valid_raw)))
-        or not np.array_equal(frozen.symbol_position.to_numpy(dtype=np.int32), valid["symbol_position"])
-        or not np.array_equal(frozen.calendar_index.to_numpy(dtype=np.int32), valid["calendar_index"])
+        or not np.array_equal(
+            frozen.row_index.to_numpy(dtype=np.int64), np.arange(len(valid_raw))
+        )
+        or not np.array_equal(
+            frozen.symbol_position.to_numpy(dtype=np.int32), valid["symbol_position"]
+        )
+        or not np.array_equal(
+            frozen.calendar_index.to_numpy(dtype=np.int32), valid["calendar_index"]
+        )
     ):
         raise BaselineClosureError("frozen Valid key drift")
     model = np.column_stack(
-        [frozen[f"prediction_{horizon}"].to_numpy(dtype=np.float64) for horizon in HORIZONS_V1]
+        [
+            frozen[f"prediction_{horizon}"].to_numpy(dtype=np.float64)
+            for horizon in HORIZONS_V1
+        ]
     )
     for head, horizon in enumerate(HORIZONS_V1):
         observed_target = frozen[f"target_{horizon}"].to_numpy(dtype=np.float32)
         observed_mask = frozen[f"valid_{horizon}"].to_numpy(dtype=bool)
-        if not np.array_equal(observed_mask, valid["masks"][:, head]) or not np.array_equal(
+        if not np.array_equal(
+            observed_mask, valid["masks"][:, head]
+        ) or not np.array_equal(
             observed_target[observed_mask], valid["targets"][observed_mask, head]
         ):
             raise BaselineClosureError(f"frozen Valid target drift: {horizon}")
@@ -763,23 +834,33 @@ def run(contract_path: Path) -> Path:
     gate = gate_decision(rows)
     daily = _daily_metrics(valid, predictions, valid_raw.provider.calendar, best)
     grouped = _grouped_model_metrics(valid, model, valid_raw.provider.calendar)
-    feature_distribution, target_distribution = _distribution_tables(train, valid, predictions)
+    feature_distribution, target_distribution = _distribution_tables(
+        train, valid, predictions
+    )
     pd.DataFrame(rows).to_csv(output / "baseline_metrics.csv", index=False)
     daily.to_csv(output / "daily_metrics.csv", index=False)
     grouped.to_csv(output / "grouped_model_metrics.csv", index=False)
     feature_distribution.to_csv(output / "feature_distribution.csv", index=False)
-    target_distribution.to_csv(output / "target_prediction_distribution.csv", index=False)
+    target_distribution.to_csv(
+        output / "target_prediction_distribution.csv", index=False
+    )
     baseline_frame = frozen[["row_index", "calendar_index", "symbol_position"]].copy()
     for estimator in BASELINES:
         for head, horizon in enumerate(HORIZONS_V1):
-            baseline_frame[f"{estimator}_{horizon}"] = predictions[estimator][:, head].astype(np.float32)
-    baseline_frame.to_parquet(output / "baseline_predictions.parquet", index=False, compression="zstd")
+            baseline_frame[f"{estimator}_{horizon}"] = predictions[estimator][
+                :, head
+            ].astype(np.float32)
+    baseline_frame.to_parquet(
+        output / "baseline_predictions.parquet", index=False, compression="zstd"
+    )
     coefficient_payload = {
         "feature_order": ["intercept"]
         + list(FEATURES)
         + [f"{feature}__missing" for feature in FEATURES]
         + ["minute_sin", "minute_cos", "afternoon_session"],
-        "alpha_on_average_gram": float(contract["baselines"]["ridge_terminal"]["alpha_on_average_gram"]),
+        "alpha_on_average_gram": float(
+            contract["baselines"]["ridge_terminal"]["alpha_on_average_gram"]
+        ),
         "fit_rows_by_horizon": dict(
             zip(map(str, HORIZONS_V1), map(int, train["ridge_rows"]), strict=True)
         ),
@@ -787,18 +868,33 @@ def run(contract_path: Path) -> Path:
             str(horizon): train["ridge_coefficients"][:, head].tolist()
             for head, horizon in enumerate(HORIZONS_V1)
         },
-        "train_mean_by_horizon": dict(zip(map(str, HORIZONS_V1), train_mean.tolist(), strict=True)),
-        "train_median_by_horizon": dict(zip(map(str, HORIZONS_V1), train_median.tolist(), strict=True)),
+        "train_mean_by_horizon": dict(
+            zip(map(str, HORIZONS_V1), train_mean.tolist(), strict=True)
+        ),
+        "train_median_by_horizon": dict(
+            zip(map(str, HORIZONS_V1), train_median.tolist(), strict=True)
+        ),
     }
     atomic_json(output / "ridge_coefficients.json", coefficient_payload)
-    report = _render_report(rows, best, gate, daily, target_distribution)
+    report = _render_report(
+        rows,
+        best,
+        gate,
+        daily,
+        target_distribution,
+        source_experiment_id=contract["source_experiment_id"],
+        checkpoint_step=int(contract.get("checkpoint_step", 2250)),
+    )
     (output / "BASELINE_CLOSURE_EVALUATION.md").write_text(report, encoding="utf-8")
     report_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.write_text(report, encoding="utf-8")
     outputs = {}
     for path in sorted(output.iterdir()):
         if path.is_file() and path.name != "_manifest.json":
-            outputs[path.name] = {"bytes": path.stat().st_size, "sha256": sha256_file(path)}
+            outputs[path.name] = {
+                "bytes": path.stat().st_size,
+                "sha256": sha256_file(path),
+            }
     manifest = {
         "schema_version": "courage_strict_continuous_baseline_closure_manifest_v1",
         "decision": gate["decision"],
