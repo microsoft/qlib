@@ -8,6 +8,7 @@ Scripts for data collection
 - fund: get fund data from *http://fund.eastmoney.com*
 - cn_index: get *CN index* from *http://www.csindex.com.cn*, *CSI300*/*CSI100*
 - us_index: get *US index* from *https://en.wikipedia.org/wiki*, *SP500*/*NASDAQ100*/*DJIA*/*SP400*
+- xquik: get daily numeric X market-attention features from the *Xquik REST API*
 - contrib: scripts for some auxiliary functions
 
 
