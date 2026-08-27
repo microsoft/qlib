@@ -189,6 +189,7 @@ pip install -r requirements.txt
       * `region`: region, value from ["CN", "US"], default "CN"
       * `interval`: interval, default "1d"(Currently only supports 1d data)
       * `exists_skip`: exists skip, by default False
+      * `delete_old`: delete existing Qlib data directories before extracting a downloaded base dataset, by default True. Set `--delete_old False` to skip directory deletion; archive extraction can still overwrite existing files. This option only applies when local Qlib data is missing or incomplete and a base dataset is downloaded.
 
 ## Using qlib data
 
