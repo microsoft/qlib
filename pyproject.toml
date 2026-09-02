@@ -49,8 +49,6 @@ dependencies = [
   "lightgbm",
   "gym",
   "cvxpy",
-  # OSQP 1.x can crash while importing its native extension on Windows/Python 3.8.
-  "osqp<1; sys_platform == 'win32' and python_version < '3.9'",
   "joblib",
   "matplotlib",
   "jupyter",
