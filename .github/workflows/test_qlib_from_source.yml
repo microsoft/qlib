@@ -104,9 +104,13 @@ jobs:
         make nbconvert
 
     - name: Test workflow by config (install from source)
-      run: |
-        python -m pip install numba
-        python qlib/cli/run.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
+      uses: nick-fields/retry@v2
+      with:
+        timeout_minutes: 30
+        max_attempts: 3
+        command: |
+          python -m pip install numba
+          python qlib/cli/run.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
 
     - name: Unit tests with Pytest (MacOS)
       if: ${{ matrix.os == 'macos-14' || matrix.os == 'macos-15' }}

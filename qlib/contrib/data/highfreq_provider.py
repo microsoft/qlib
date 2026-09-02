@@ -1,6 +1,7 @@
 import os
 import time
 import datetime
+from pathlib import Path
 from typing import Optional
 
 import qlib
@@ -29,6 +30,7 @@ class HighFreqProvider:
         label_conf: Optional[dict] = None,
         backtest_conf: dict = None,
         freq: str = "1min",
+        artifact_root: Optional[str] = None,
         **kwargs,
     ) -> None:
         self.start_time = start_time
@@ -44,6 +46,17 @@ class HighFreqProvider:
         self.qlib_conf = qlib_conf
         self.logger = get_module_logger("HighFreqProvider")
         self.freq = freq
+        self.artifact_root = Path(artifact_root or Path.cwd()).expanduser().resolve()
+
+    def _resolve_artifact_path(self, path) -> Path:
+        """Resolve an artifact path without allowing it to escape artifact_root."""
+        path = Path(path).expanduser()
+        target = path.resolve() if path.is_absolute() else (self.artifact_root / path).resolve()
+        try:
+            target.relative_to(self.artifact_root)
+        except ValueError as exc:
+            raise ValueError(f"Artifact path {str(path)!r} escapes artifact_root {str(self.artifact_root)!r}") from exc
+        return target
 
     def get_pre_datasets(self):
         """Generate the training, validation and test datasets for prediction
@@ -52,15 +65,15 @@ class HighFreqProvider:
             Tuple[BaseDataset, BaseDataset, BaseDataset]: The training and test datasets
         """
 
-        dict_feature_path = self.feature_conf["path"]
-        train_feature_path = dict_feature_path[:-4] + "_train.pkl"
-        valid_feature_path = dict_feature_path[:-4] + "_valid.pkl"
-        test_feature_path = dict_feature_path[:-4] + "_test.pkl"
+        dict_feature_path = self._resolve_artifact_path(self.feature_conf["path"])
+        train_feature_path = dict_feature_path.with_name(dict_feature_path.stem + "_train.pkl")
+        valid_feature_path = dict_feature_path.with_name(dict_feature_path.stem + "_valid.pkl")
+        test_feature_path = dict_feature_path.with_name(dict_feature_path.stem + "_test.pkl")
 
-        dict_label_path = self.label_conf["path"]
-        train_label_path = dict_label_path[:-4] + "_train.pkl"
-        valid_label_path = dict_label_path[:-4] + "_valid.pkl"
-        test_label_path = dict_label_path[:-4] + "_test.pkl"
+        dict_label_path = self._resolve_artifact_path(self.label_conf["path"])
+        train_label_path = dict_label_path.with_name(dict_label_path.stem + "_train.pkl")
+        valid_label_path = dict_label_path.with_name(dict_label_path.stem + "_valid.pkl")
+        test_label_path = dict_label_path.with_name(dict_label_path.stem + "_test.pkl")
 
         if (
             not os.path.isfile(train_feature_path)
@@ -96,7 +109,7 @@ class HighFreqProvider:
             "test": test_label_path,
         }
 
-        return feature, label
+        return {key: str(value) for key, value in feature.items()}, {key: str(value) for key, value in label.items()}
 
     def get_backtest(self, **kwargs) -> None:
         self._gen_data(self.backtest_conf)
@@ -122,8 +135,9 @@ class HighFreqProvider:
         get_calendar_day(freq=self.freq)
 
     def _gen_dataframe(self, config, datasets=["train", "valid", "test"]):
+        config = dict(config)
         try:
-            path = config.pop("path")
+            path = self._resolve_artifact_path(config.pop("path"))
         except KeyError as e:
             raise ValueError("Must specify the path to save the dataset.") from e
         if os.path.isfile(path):
@@ -131,7 +145,7 @@ class HighFreqProvider:
             self.logger.info(f"[{__name__}]Dataset exists, load from disk.")
 
             # res = dataset.prepare(['train', 'valid', 'test'])
-            with open(path, "rb") as f:
+            with path.open("rb") as f:
                 data = pkl.load(f)
             if isinstance(data, dict):
                 res = [data[i] for i in datasets]
@@ -139,8 +153,7 @@ class HighFreqProvider:
                 res = data.prepare(datasets)
             self.logger.info(f"[{__name__}]Data loaded, time cost: {time.time() - start:.2f}")
         else:
-            if not os.path.exists(os.path.dirname(path)):
-                os.makedirs(os.path.dirname(path))
+            path.parent.mkdir(parents=True, exist_ok=True)
             self.logger.info(f"[{__name__}]Generating dataset")
             start_time = time.time()
             self._prepare_calender_cache()
@@ -151,21 +164,22 @@ class HighFreqProvider:
                 "valid": validset,
                 "test": testset,
             }
-            with open(path, "wb") as f:
+            with path.open("wb") as f:
                 pkl.dump(data, f)
-            with open(path[:-4] + "train.pkl", "wb") as f:
+            with path.with_name(path.stem + "train.pkl").open("wb") as f:
                 pkl.dump(trainset, f)
-            with open(path[:-4] + "valid.pkl", "wb") as f:
+            with path.with_name(path.stem + "valid.pkl").open("wb") as f:
                 pkl.dump(validset, f)
-            with open(path[:-4] + "test.pkl", "wb") as f:
+            with path.with_name(path.stem + "test.pkl").open("wb") as f:
                 pkl.dump(testset, f)
             res = [data[i] for i in datasets]
             self.logger.info(f"[{__name__}]Data generated, time cost: {(time.time() - start_time):.2f}")
         return res
 
     def _gen_data(self, config, datasets=["train", "valid", "test"]):
+        config = dict(config)
         try:
-            path = config.pop("path")
+            path = self._resolve_artifact_path(config.pop("path"))
         except KeyError as e:
             raise ValueError("Must specify the path to save the dataset.") from e
         if os.path.isfile(path):
@@ -173,7 +187,7 @@ class HighFreqProvider:
             self.logger.info(f"[{__name__}]Dataset exists, load from disk.")
 
             # res = dataset.prepare(['train', 'valid', 'test'])
-            with open(path, "rb") as f:
+            with path.open("rb") as f:
                 data = pkl.load(f)
             if isinstance(data, dict):
                 res = [data[i] for i in datasets]
@@ -181,8 +195,7 @@ class HighFreqProvider:
                 res = data.prepare(datasets)
             self.logger.info(f"[{__name__}]Data loaded, time cost: {time.time() - start:.2f}")
         else:
-            if not os.path.exists(os.path.dirname(path)):
-                os.makedirs(os.path.dirname(path))
+            path.parent.mkdir(parents=True, exist_ok=True)
             self.logger.info(f"[{__name__}]Generating dataset")
             start_time = time.time()
             self._prepare_calender_cache()
@@ -194,21 +207,21 @@ class HighFreqProvider:
         return res
 
     def _gen_dataset(self, config):
+        config = dict(config)
         try:
-            path = config.pop("path")
+            path = self._resolve_artifact_path(config.pop("path"))
         except KeyError as e:
             raise ValueError("Must specify the path to save the dataset.") from e
         if os.path.isfile(path):
             start = time.time()
             self.logger.info(f"[{__name__}]Dataset exists, load from disk.")
 
-            with open(path, "rb") as f:
+            with path.open("rb") as f:
                 dataset = pkl.load(f)
             self.logger.info(f"[{__name__}]Data loaded, time cost: {time.time() - start:.2f}")
         else:
             start = time.time()
-            if not os.path.exists(os.path.dirname(path)):
-                os.makedirs(os.path.dirname(path))
+            path.parent.mkdir(parents=True, exist_ok=True)
             self.logger.info(f"[{__name__}]Generating dataset")
             self._prepare_calender_cache()
             dataset = init_instance_by_config(config)
@@ -220,32 +233,34 @@ class HighFreqProvider:
         return dataset
 
     def _gen_day_dataset(self, config, conf_type):
+        config = dict(config)
         try:
-            path = config.pop("path")
+            path = self._resolve_artifact_path(config.pop("path"))
         except KeyError as e:
             raise ValueError("Must specify the path to save the dataset.") from e
 
-        if os.path.isfile(path + "tmp_dataset.pkl"):
+        tmp_dataset_path = path / "tmp_dataset.pkl"
+        if tmp_dataset_path.is_file():
             start = time.time()
             self.logger.info(f"[{__name__}]Dataset exists, load from disk.")
         else:
             start = time.time()
-            if not os.path.exists(os.path.dirname(path)):
-                os.makedirs(os.path.dirname(path))
+            path.mkdir(parents=True, exist_ok=True)
             self.logger.info(f"[{__name__}]Generating dataset")
             self._prepare_calender_cache()
             dataset = init_instance_by_config(config)
             self.logger.info(f"[{__name__}]Dataset init, time cost: {time.time() - start:.2f}")
             dataset.config(dump_all=False, recursive=True)
-            dataset.to_pickle(path + "tmp_dataset.pkl")
+            dataset.to_pickle(tmp_dataset_path)
 
-        with open(path + "tmp_dataset.pkl", "rb") as f:
+        with tmp_dataset_path.open("rb") as f:
             new_dataset = pkl.load(f)
 
         time_list = D.calendar(start_time=self.start_time, end_time=self.end_time, freq=self.freq)[::240]
 
         def generate_dataset(times):
-            if os.path.isfile(path + times.strftime("%Y-%m-%d") + ".pkl"):
+            output_path = path / f"{times:%Y-%m-%d}.pkl"
+            if output_path.is_file():
                 print("exist " + times.strftime("%Y-%m-%d"))
                 return
             self._init_qlib(self.qlib_conf)
@@ -256,31 +271,32 @@ class HighFreqProvider:
             else:
                 new_dataset.handler.setup_data(init_type=DataHandlerLP.IT_LS)
             new_dataset.config(dump_all=True, recursive=True)
-            new_dataset.to_pickle(path + times.strftime("%Y-%m-%d") + ".pkl")
+            new_dataset.to_pickle(output_path)
 
         Parallel(n_jobs=8)(delayed(generate_dataset)(times) for times in time_list)
 
     def _gen_stock_dataset(self, config, conf_type):
+        config = dict(config)
         try:
-            path = config.pop("path")
+            path = self._resolve_artifact_path(config.pop("path"))
         except KeyError as e:
             raise ValueError("Must specify the path to save the dataset.") from e
 
-        if os.path.isfile(path + "tmp_dataset.pkl"):
+        tmp_dataset_path = path / "tmp_dataset.pkl"
+        if tmp_dataset_path.is_file():
             start = time.time()
             self.logger.info(f"[{__name__}]Dataset exists, load from disk.")
         else:
             start = time.time()
-            if not os.path.exists(os.path.dirname(path)):
-                os.makedirs(os.path.dirname(path))
+            path.mkdir(parents=True, exist_ok=True)
             self.logger.info(f"[{__name__}]Generating dataset")
             self._prepare_calender_cache()
             dataset = init_instance_by_config(config)
             self.logger.info(f"[{__name__}]Dataset init, time cost: {time.time() - start:.2f}")
             dataset.config(dump_all=False, recursive=True)
-            dataset.to_pickle(path + "tmp_dataset.pkl")
+            dataset.to_pickle(tmp_dataset_path)
 
-        with open(path + "tmp_dataset.pkl", "rb") as f:
+        with tmp_dataset_path.open("rb") as f:
             new_dataset = pkl.load(f)
 
         instruments = D.instruments(market="all")
@@ -289,7 +305,8 @@ class HighFreqProvider:
         )
 
         def generate_dataset(stock):
-            if os.path.isfile(path + stock + ".pkl"):
+            output_path = path / f"{stock}.pkl"
+            if output_path.is_file():
                 print("exist " + stock)
                 return
             self._init_qlib(self.qlib_conf)
@@ -299,6 +316,6 @@ class HighFreqProvider:
             else:
                 new_dataset.handler.setup_data(init_type=DataHandlerLP.IT_LS)
             new_dataset.config(dump_all=True, recursive=True)
-            new_dataset.to_pickle(path + stock + ".pkl")
+            new_dataset.to_pickle(output_path)
 
         Parallel(n_jobs=32)(delayed(generate_dataset)(stock) for stock in stock_list)

@@ -49,13 +49,43 @@ SAFE_PICKLE_CLASSES: Set[Tuple[str, str]] = {
     ("qlib.data.dataset.handler", "DataHandler"),
     ("qlib.data.dataset.handler", "DataHandlerLP"),
     ("qlib.data.dataset.loader", "StaticDataLoader"),
+    # NumPy reconstruction primitives. Keep this list explicit: trusting the
+    # whole numpy namespace would also expose functions such as numpy.load.
+    ("numpy", "ndarray"),
+    ("numpy", "dtype"),
+    ("numpy", "scalar"),
+    ("numpy.core.multiarray", "_reconstruct"),
+    ("numpy.core.multiarray", "scalar"),
+    ("numpy._core.multiarray", "_reconstruct"),
+    ("numpy._core.multiarray", "scalar"),
+    # Pandas reconstruction primitives used by Series/DataFrame pickles.
+    # These entries are deliberately exact. I/O helpers such as
+    # pandas.read_pickle must never be added here.
+    ("pandas.core.series", "Series"),
+    ("pandas.core.frame", "DataFrame"),
+    ("pandas.core.internals.managers", "BlockManager"),
+    ("pandas.core.internals.managers", "SingleBlockManager"),
+    ("pandas.core.internals.blocks", "new_block"),
+    ("pandas._libs.internals", "_unpickle_block"),
+    ("pandas.core.indexes.base", "_new_Index"),
+    ("pandas.core.indexes.base", "Index"),
+    ("pandas.core.indexes.range", "RangeIndex"),
+    ("pandas.core.indexes.multi", "MultiIndex"),
+    ("pandas.core.indexes.datetimes", "_new_DatetimeIndex"),
+    ("pandas.core.indexes.datetimes", "DatetimeIndex"),
+    ("pandas.core.indexes.timedeltas", "TimedeltaIndex"),
+    ("pandas.core.indexes.period", "PeriodIndex"),
+    ("pandas._libs.tslibs.timestamps", "_unpickle_timestamp"),
+    ("pandas._libs.tslibs.timestamps", "Timestamp"),
+    ("pandas._libs.tslibs.timedeltas", "Timedelta"),
+    ("pandas._libs.tslibs.period", "Period"),
+    ("pandas._libs.arrays", "__pyx_unpickle_NDArrayBacked"),
+    ("pandas.core.arrays.datetimes", "DatetimeArray"),
+    ("pandas.core.arrays.timedeltas", "TimedeltaArray"),
+    ("pandas.core.arrays.period", "PeriodArray"),
+    ("pandas.core.arrays.categorical", "Categorical"),
+    ("pandas.core.dtypes.dtypes", "CategoricalDtype"),
 }
-
-
-TRUSTED_MODULE_PREFIXES = (
-    "pandas",
-    "numpy",
-)
 
 
 class RestrictedUnpickler(pickle.Unpickler):
@@ -82,10 +112,6 @@ class RestrictedUnpickler(pickle.Unpickler):
         Raises:
             pickle.UnpicklingError: If the class is not in the whitelist
         """
-        if module.startswith(TRUSTED_MODULE_PREFIXES):
-            return super().find_class(module, name)
-
-        # 2. explicit whitelist (qlib internal)
         if (module, name) in SAFE_PICKLE_CLASSES:
             return super().find_class(module, name)
 

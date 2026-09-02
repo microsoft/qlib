@@ -7,6 +7,7 @@ from typing import Optional
 import mlflow
 import shutil
 import pickle
+import warnings
 import tempfile
 import subprocess
 import platform
@@ -16,6 +17,7 @@ from datetime import datetime
 from qlib.utils.serial import Serializable
 from qlib.utils.exceptions import LoadObjectError
 from qlib.utils.paral import AsyncCaller
+from qlib.utils.pickle_utils import RestrictedUnpickler
 
 from ..log import TimeInspector, get_module_logger
 from mlflow.store.artifact.azure_blob_artifact_repo import AzureBlobArtifactRepository
@@ -23,6 +25,10 @@ from mlflow.store.artifact.azure_blob_artifact_repo import AzureBlobArtifactRepo
 logger = get_module_logger("workflow")
 # mlflow limits the length of log_param to 500, but this caused errors when using qrun, so we extended the mlflow limit.
 mlflow.utils.validation.MAX_PARAM_VAL_LENGTH = 1000
+
+
+class UnsafeArtifactWarning(UserWarning):
+    """Warning emitted when an artifact is loaded with unrestricted pickle."""
 
 
 class Recorder:
@@ -87,7 +93,7 @@ class Recorder:
         """
         raise NotImplementedError(f"Please implement the `save_objects` method.")
 
-    def load_object(self, name):
+    def load_object(self, name, *, trusted=False):
         """
         Load objects such as prediction file or model checkpoints.
 
@@ -410,14 +416,17 @@ class MLflowRecorder(Recorder):
                 self.client.log_artifact(self.id, temp_dir / name, artifact_path)
             shutil.rmtree(temp_dir)
 
-    def load_object(self, name, unpickler=pickle.Unpickler):
+    def load_object(self, name, unpickler=None, *, trusted=False):
         """
         Load object such as prediction file or model checkpoint in mlflow.
 
         Args:
             name (str): the object name
 
-            unpickler: Supporting using custom unpickler
+            unpickler: Optional custom unpickler. Custom unpicklers are trusted
+                code and may execute arbitrary code while loading an artifact.
+            trusted (bool): Use Python's unrestricted pickle loader. This must
+                only be enabled for artifacts from a trusted source.
 
         Raises:
             LoadObjectError: if raise some exceptions when load the object
@@ -427,11 +436,31 @@ class MLflowRecorder(Recorder):
         """
         assert self.uri is not None, "Please start the experiment and recorder first before using recorder directly."
 
+        if trusted and unpickler is not None:
+            raise ValueError("`trusted` and `unpickler` cannot be used together")
+
         path = None
         try:
             path = self.client.download_artifacts(self.id, name)
             with Path(path).open("rb") as f:
-                data = unpickler(f).load()
+                if trusted:
+                    warnings.warn(
+                        "Loading a trusted pickle artifact may execute arbitrary code. "
+                        "Only use trusted=True when the artifact source and storage are trusted.",
+                        UnsafeArtifactWarning,
+                        stacklevel=2,
+                    )
+                    loader = pickle.Unpickler(f)
+                elif unpickler is not None:
+                    warnings.warn(
+                        "A custom artifact unpickler may execute arbitrary code.",
+                        UnsafeArtifactWarning,
+                        stacklevel=2,
+                    )
+                    loader = unpickler(f)
+                else:
+                    loader = RestrictedUnpickler(f)
+                data = loader.load()
             return data
         except Exception as e:
             raise LoadObjectError(str(e)) from e
