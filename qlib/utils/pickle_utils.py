@@ -49,7 +49,6 @@ SAFE_PICKLE_CLASSES: Set[Tuple[str, str]] = {
     ("qlib.data.dataset.handler", "DataHandler"),
     ("qlib.data.dataset.handler", "DataHandlerLP"),
     ("qlib.data.dataset.loader", "StaticDataLoader"),
-
     # NumPy reconstruction primitives. Keep this list explicit: trusting the
     # whole numpy namespace would also expose functions such as numpy.load.
     ("numpy", "ndarray"),
@@ -59,7 +58,6 @@ SAFE_PICKLE_CLASSES: Set[Tuple[str, str]] = {
     ("numpy.core.multiarray", "scalar"),
     ("numpy._core.multiarray", "_reconstruct"),
     ("numpy._core.multiarray", "scalar"),
-
     # Pandas reconstruction primitives used by Series/DataFrame pickles.
     # These entries are deliberately exact. I/O helpers such as
     # pandas.read_pickle must never be added here.

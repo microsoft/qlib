@@ -55,9 +55,7 @@ class HighFreqProvider:
         try:
             target.relative_to(self.artifact_root)
         except ValueError as exc:
-            raise ValueError(
-                f"Artifact path {str(path)!r} escapes artifact_root {str(self.artifact_root)!r}"
-            ) from exc
+            raise ValueError(f"Artifact path {str(path)!r} escapes artifact_root {str(self.artifact_root)!r}") from exc
         return target
 
     def get_pre_datasets(self):

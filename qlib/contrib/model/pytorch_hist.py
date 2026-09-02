@@ -25,7 +25,6 @@ from ...data.dataset.handler import DataHandlerLP
 from ...contrib.model.pytorch_lstm import LSTMModel
 from ...contrib.model.pytorch_gru import GRUModel
 
-
 UNKNOWN_STOCK_INDEX = 733
 
 
