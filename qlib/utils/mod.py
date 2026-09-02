@@ -22,20 +22,18 @@ from urllib.parse import urlparse
 from qlib.typehint import InstConf
 from qlib.utils.pickle_utils import restricted_pickle_load
 
-
-_TRUSTED_MODULE_ROOTS: Tuple[Path, ...] = ()
+_TRUSTED_MODULE_ROOTS: List[Path] = []
 
 
 def set_trusted_module_roots(roots: Optional[Sequence[Union[str, Path]]]) -> None:
     """Set process-wide trusted roots for configuration-driven file modules."""
-    global _TRUSTED_MODULE_ROOTS
     resolved_roots = []
     for root in roots or ():
         resolved_root = Path(root).resolve(strict=True)
         if not resolved_root.is_dir():
             raise ValueError(f"Trusted module root {str(resolved_root)!r} must be a directory")
         resolved_roots.append(resolved_root)
-    _TRUSTED_MODULE_ROOTS = tuple(resolved_roots)
+    _TRUSTED_MODULE_ROOTS[:] = resolved_roots
 
 
 def get_module_by_module_path(
