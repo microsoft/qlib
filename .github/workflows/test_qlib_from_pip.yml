@@ -25,6 +25,11 @@ jobs:
         # Also, python 3.7 is no longer supported from macos-14, and will be phased out from macos-13 in the near future.
         # All things considered, we have removed python 3.7.
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        exclude:
+          # The released package eagerly imports OSQP, whose Windows/Python 3.8
+          # native extension crashes during module initialization.
+          - os: windows-latest
+            python-version: "3.8"
 
     steps:
     - name: Test qlib from pip
