@@ -101,6 +101,8 @@ package = [
 test = [
   "yahooquery",
   "baostock",
+  # lxml 6.1.3 does not currently publish wheels for every CI platform.
+  "lxml<6.1.3",
 ]
 analysis = [
   # Plotly 7 removed figure_factory.create_distplot, which Qlib still uses.
