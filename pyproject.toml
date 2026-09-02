@@ -37,7 +37,9 @@ dependencies = [
   # MLflow 3.13 disables the file-store backend used by Qlib by default.
   # Remove this cap after Qlib migrates its default tracking backend.
   "mlflow<3.13",
-  "filelock>=3.16.0",
+  # filelock 3.32 rejects forks while another thread changes descriptor
+  # ownership, which conflicts with Qlib's multiprocessing data queues.
+  "filelock>=3.16.0,<3.32",
   "redis",
   "dill",
   "fire",
