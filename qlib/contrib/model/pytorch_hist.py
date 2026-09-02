@@ -6,8 +6,10 @@ from __future__ import division
 from __future__ import print_function
 
 import os
+import json
 import numpy as np
 import pandas as pd
+from pathlib import Path
 from typing import Text, Union
 import urllib.request
 import copy
@@ -22,6 +24,36 @@ from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
 from ...contrib.model.pytorch_lstm import LSTMModel
 from ...contrib.model.pytorch_gru import GRUModel
+
+
+UNKNOWN_STOCK_INDEX = 733
+
+
+def _load_stock_index(path, upper_bound=None):
+    """Load and validate HIST's non-executable stock-index metadata."""
+    path = Path(path)
+    if path.suffix.lower() != ".json":
+        raise ValueError(
+            "HIST stock_index must be a JSON file. Object .npy files are no longer "
+            "supported because loading them requires unsafe pickle deserialization."
+        )
+
+    with path.open("r", encoding="utf-8") as fp:
+        stock_index = json.load(fp)
+
+    if not isinstance(stock_index, dict):
+        raise ValueError("HIST stock_index must be a JSON object")
+
+    validated = {}
+    for instrument, index in stock_index.items():
+        if not isinstance(instrument, str):
+            raise ValueError("HIST stock_index keys must be strings")
+        if isinstance(index, bool) or not isinstance(index, int):
+            raise ValueError(f"Invalid stock index for {instrument!r}: expected an integer")
+        if index < 0 or (upper_bound is not None and index >= upper_bound):
+            raise ValueError(f"Stock index out of range for {instrument!r}: {index}")
+        validated[instrument] = index
+    return validated
 
 
 class HIST(Model):
@@ -188,11 +220,11 @@ class HIST(Model):
         return daily_index, daily_count
 
     def train_epoch(self, x_train, y_train, stock_index):
-        stock2concept_matrix = np.load(self.stock2concept)
+        stock2concept_matrix = np.load(self.stock2concept, allow_pickle=False)
         x_train_values = x_train.values
         y_train_values = np.squeeze(y_train.values)
         stock_index = stock_index.values
-        stock_index[np.isnan(stock_index)] = 733
+        stock_index[np.isnan(stock_index)] = UNKNOWN_STOCK_INDEX
         self.HIST_model.train()
 
         # organize the train data into daily batches
@@ -213,11 +245,11 @@ class HIST(Model):
 
     def test_epoch(self, data_x, data_y, stock_index):
         # prepare training data
-        stock2concept_matrix = np.load(self.stock2concept)
+        stock2concept_matrix = np.load(self.stock2concept, allow_pickle=False)
         x_values = data_x.values
         y_values = np.squeeze(data_y.values)
         stock_index = stock_index.values
-        stock_index[np.isnan(stock_index)] = 733
+        stock_index[np.isnan(stock_index)] = UNKNOWN_STOCK_INDEX
         self.HIST_model.eval()
 
         scores = []
@@ -259,10 +291,15 @@ class HIST(Model):
             url = "https://github.com/SunsetWolf/qlib_dataset/releases/download/v0/qlib_csi300_stock2concept.npy"
             urllib.request.urlretrieve(url, self.stock2concept)
 
-        stock_index = np.load(self.stock_index, allow_pickle=True).item()
-        df_train["stock_index"] = 733
+        stock2concept_matrix = np.load(self.stock2concept, allow_pickle=False)
+        if stock2concept_matrix.ndim != 2 or stock2concept_matrix.dtype.hasobject:
+            raise ValueError("HIST stock2concept must be a two-dimensional numeric array")
+        stock_index = _load_stock_index(self.stock_index, upper_bound=len(stock2concept_matrix))
+        if UNKNOWN_STOCK_INDEX >= len(stock2concept_matrix):
+            raise ValueError("HIST unknown stock index is outside the stock2concept matrix")
+        df_train["stock_index"] = UNKNOWN_STOCK_INDEX
         df_train["stock_index"] = df_train.index.get_level_values("instrument").map(stock_index)
-        df_valid["stock_index"] = 733
+        df_valid["stock_index"] = UNKNOWN_STOCK_INDEX
         df_valid["stock_index"] = df_valid.index.get_level_values("instrument").map(stock_index)
 
         x_train, y_train, stock_index_train = df_train["feature"], df_train["label"], df_train["stock_index"]
@@ -331,13 +368,17 @@ class HIST(Model):
         if not self.fitted:
             raise ValueError("model is not fitted yet!")
 
-        stock2concept_matrix = np.load(self.stock2concept)
-        stock_index = np.load(self.stock_index, allow_pickle=True).item()
+        stock2concept_matrix = np.load(self.stock2concept, allow_pickle=False)
+        if stock2concept_matrix.ndim != 2 or stock2concept_matrix.dtype.hasobject:
+            raise ValueError("HIST stock2concept must be a two-dimensional numeric array")
+        stock_index = _load_stock_index(self.stock_index, upper_bound=len(stock2concept_matrix))
+        if UNKNOWN_STOCK_INDEX >= len(stock2concept_matrix):
+            raise ValueError("HIST unknown stock index is outside the stock2concept matrix")
         df_test = dataset.prepare(segment, col_set="feature", data_key=DataHandlerLP.DK_I)
-        df_test["stock_index"] = 733
+        df_test["stock_index"] = UNKNOWN_STOCK_INDEX
         df_test["stock_index"] = df_test.index.get_level_values("instrument").map(stock_index)
         stock_index_test = df_test["stock_index"].values
-        stock_index_test[np.isnan(stock_index_test)] = 733
+        stock_index_test[np.isnan(stock_index_test)] = UNKNOWN_STOCK_INDEX
         stock_index_test = stock_index_test.astype("int")
         df_test = df_test.drop(["stock_index"], axis=1)
         index = df_test.index

@@ -59,7 +59,7 @@ task:
             base_model: LSTM
             model_path: "benchmarks/LSTM/model_lstm_csi300.pkl"
             stock2concept: "benchmarks/HIST/qlib_csi300_stock2concept.npy"
-            stock_index: "benchmarks/HIST/qlib_csi300_stock_index.npy"
+            stock_index: "benchmarks/HIST/qlib_csi300_stock_index.json"
             GPU: 0
     dataset:
         class: DatasetH
