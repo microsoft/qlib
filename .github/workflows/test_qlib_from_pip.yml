@@ -13,6 +13,9 @@ on:
 jobs:
   build:
     timeout-minutes: 120
+    env:
+      # Released Qlib versions use MLflow's legacy file-store backend.
+      MLFLOW_ALLOW_FILE_STORE: "true"
 
     runs-on: ${{ matrix.os }}
     strategy:

@@ -34,9 +34,9 @@ dependencies = [
   # I encoutered an Error that the set_uri does not work when downloading artifacts in mlflow 3.1.1;
   # But earlier versions of mlflow does not have this problem.
   # But when I switch to 2.*.* version, another error occurs, which is even more strange...
-  # MLflow 3.15 disables the file-store backend used by Qlib by default.
+  # MLflow 3.13 disables the file-store backend used by Qlib by default.
   # Remove this cap after Qlib migrates its default tracking backend.
-  "mlflow<3.15",
+  "mlflow<3.13",
   "filelock>=3.16.0",
   "redis",
   "dill",
@@ -49,6 +49,8 @@ dependencies = [
   "lightgbm",
   "gym",
   "cvxpy",
+  # OSQP 1.x can crash while importing its native extension on Windows/Python 3.8.
+  "osqp<1; sys_platform == 'win32' and python_version < '3.9'",
   "joblib",
   "matplotlib",
   "jupyter",
