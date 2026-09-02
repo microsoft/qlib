@@ -3,6 +3,7 @@ qlib_init:
         day: "~/.qlib/qlib_data/cn_data"
         1min: "~/.qlib/qlib_data/cn_data_1min"
     region: cn
+    trusted_module_roots: [.]
     dataset_cache: null
     maxtasksperchild: 1
 market: &market csi300

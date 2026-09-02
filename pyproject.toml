@@ -34,8 +34,12 @@ dependencies = [
   # I encoutered an Error that the set_uri does not work when downloading artifacts in mlflow 3.1.1;
   # But earlier versions of mlflow does not have this problem.
   # But when I switch to 2.*.* version, another error occurs, which is even more strange...
-  "mlflow",
-  "filelock>=3.16.0",
+  # MLflow 3.13 disables the file-store backend used by Qlib by default.
+  # Remove this cap after Qlib migrates its default tracking backend.
+  "mlflow<3.13",
+  # filelock 3.30 rejects forks while another thread changes descriptor
+  # ownership, which conflicts with Qlib's multiprocessing data queues.
+  "filelock>=3.16.0,<3.30",
   "redis",
   "dill",
   "fire",
@@ -97,9 +101,12 @@ package = [
 test = [
   "yahooquery",
   "baostock",
+  # lxml 6.1.3 does not currently publish wheels for every CI platform.
+  "lxml<6.1.3",
 ]
 analysis = [
-  "plotly",
+  # Plotly 7 removed figure_factory.create_distplot, which Qlib still uses.
+  "plotly<7",
   "statsmodels",
 ]
 client = [

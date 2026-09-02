@@ -30,6 +30,9 @@ from qlib.contrib.data.dataset import MTSDatasetH
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 
+MODEL_TYPES = {}
+
+
 class TRAModel(Model):
     """
     TRA Model
@@ -137,7 +140,13 @@ class TRAModel(Model):
     def _init_model(self):
         self.logger.info("init TRAModel...")
 
-        self.model = eval(self.model_type)(**self.model_config).to(device)
+        try:
+            model_class = MODEL_TYPES[self.model_type]
+        except KeyError as exc:
+            raise ValueError(
+                f"Unsupported model_type {self.model_type!r}; expected one of {sorted(MODEL_TYPES)}"
+            ) from exc
+        self.model = model_class(**self.model_config).to(device)
         print(self.model)
 
         self.tra = TRA(self.model.output_size, **self.tra_config).to(device)
@@ -644,6 +653,9 @@ class Transformer(nn.Module):
         out = self.encoder(x)
 
         return out[-1]
+
+
+MODEL_TYPES.update({"RNN": RNN, "Transformer": Transformer})
 
 
 class TRA(nn.Module):
