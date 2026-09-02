@@ -8,6 +8,7 @@ All module related class, e.g. :
 """
 
 import contextlib
+import hashlib
 import importlib
 import os
 from pathlib import Path
@@ -15,14 +16,31 @@ import pkgutil
 import re
 import sys
 from types import ModuleType
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 from urllib.parse import urlparse
 
 from qlib.typehint import InstConf
 from qlib.utils.pickle_utils import restricted_pickle_load
 
 
-def get_module_by_module_path(module_path: Union[str, ModuleType]):
+_TRUSTED_MODULE_ROOTS: Tuple[Path, ...] = ()
+
+
+def set_trusted_module_roots(roots: Optional[Sequence[Union[str, Path]]]) -> None:
+    """Set process-wide trusted roots for configuration-driven file modules."""
+    global _TRUSTED_MODULE_ROOTS
+    resolved_roots = []
+    for root in roots or ():
+        resolved_root = Path(root).resolve(strict=True)
+        if not resolved_root.is_dir():
+            raise ValueError(f"Trusted module root {str(resolved_root)!r} must be a directory")
+        resolved_roots.append(resolved_root)
+    _TRUSTED_MODULE_ROOTS = tuple(resolved_roots)
+
+
+def get_module_by_module_path(
+    module_path: Union[str, ModuleType], allowed_module_roots: Optional[Sequence[Union[str, Path]]] = None
+):
     """Load module path
 
     :param module_path:
@@ -36,11 +54,43 @@ def get_module_by_module_path(module_path: Union[str, ModuleType]):
         module = module_path
     else:
         if module_path.endswith(".py"):
-            module_name = re.sub("^[^a-zA-Z_]+", "", re.sub("[^0-9a-zA-Z_]", "", module_path[:-3].replace("/", "_")))
-            module_spec = importlib.util.spec_from_file_location(module_name, module_path)
+            if allowed_module_roots is None:
+                allowed_module_roots = _TRUSTED_MODULE_ROOTS
+            if not allowed_module_roots:
+                raise PermissionError(
+                    "Loading Python modules from file paths is disabled by default. "
+                    "Pass allowed_module_roots containing a trusted directory to enable it."
+                )
+            module_file = Path(module_path).resolve(strict=True)
+            allowed = False
+            for root in allowed_module_roots:
+                root = Path(root).resolve(strict=True)
+                if not root.is_dir():
+                    raise ValueError(f"Allowed module root {str(root)!r} must be a directory")
+                try:
+                    module_file.relative_to(root)
+                    allowed = True
+                    break
+                except ValueError:
+                    continue
+            if not allowed:
+                raise PermissionError(f"Module path {str(module_file)!r} is outside the allowed module roots")
+            if not module_file.is_file() or module_file.suffix.lower() != ".py":
+                raise ValueError(f"Module path {str(module_file)!r} must be a Python source file")
+
+            readable_name = re.sub("^[^a-zA-Z_]+", "", re.sub("[^0-9a-zA-Z_]", "", module_file.stem))
+            path_digest = hashlib.sha256(str(module_file).encode()).hexdigest()[:12]
+            module_name = f"_qlib_file_module_{readable_name}_{path_digest}"
+            module_spec = importlib.util.spec_from_file_location(module_name, module_file)
+            if module_spec is None or module_spec.loader is None:
+                raise ImportError(f"Unable to create a module spec for {str(module_file)!r}")
             module = importlib.util.module_from_spec(module_spec)
             sys.modules[module_name] = module
-            module_spec.loader.exec_module(module)
+            try:
+                module_spec.loader.exec_module(module)
+            except Exception:
+                sys.modules.pop(module_name, None)
+                raise
         else:
             module = importlib.import_module(module_path)
     return module
@@ -64,7 +114,11 @@ def split_module_path(module_path: str) -> Tuple[str, str]:
     return m_path, cls
 
 
-def get_callable_kwargs(config: InstConf, default_module: Union[str, ModuleType] = None) -> (type, dict):
+def get_callable_kwargs(
+    config: InstConf,
+    default_module: Union[str, ModuleType] = None,
+    allowed_module_roots: Optional[Sequence[Union[str, Path]]] = None,
+) -> (type, dict):
     """
     extract class/func and kwargs from config info
 
@@ -97,7 +151,7 @@ def get_callable_kwargs(config: InstConf, default_module: Union[str, ModuleType]
             m_path, cls = split_module_path(config[key])
             if m_path == "":
                 m_path = config.get("module_path", default_module)
-            module = get_module_by_module_path(m_path)
+            module = get_module_by_module_path(m_path, allowed_module_roots=allowed_module_roots)
 
             # 2) get callable
             _callable = getattr(module, cls)  # may raise AttributeError
@@ -107,7 +161,9 @@ def get_callable_kwargs(config: InstConf, default_module: Union[str, ModuleType]
     elif isinstance(config, str):
         # a.b.c.ClassName
         m_path, cls = split_module_path(config)
-        module = get_module_by_module_path(default_module if m_path == "" else m_path)
+        module = get_module_by_module_path(
+            default_module if m_path == "" else m_path, allowed_module_roots=allowed_module_roots
+        )
 
         _callable = getattr(module, cls)
         kwargs = {}
@@ -124,6 +180,7 @@ def init_instance_by_config(
     default_module=None,
     accept_types: Union[type, Tuple[type]] = (),
     try_kwargs: Dict = {},
+    allowed_module_roots: Optional[Sequence[Union[str, Path]]] = None,
     **kwargs,
 ) -> Any:
     """
@@ -173,7 +230,9 @@ def init_instance_by_config(
             with config.open("rb") as f:
                 return restricted_pickle_load(f)
 
-    klass, cls_kwargs = get_callable_kwargs(config, default_module=default_module)
+    klass, cls_kwargs = get_callable_kwargs(
+        config, default_module=default_module, allowed_module_roots=allowed_module_roots
+    )
 
     try:
         return klass(**cls_kwargs, **try_kwargs, **kwargs)

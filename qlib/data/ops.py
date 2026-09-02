@@ -1625,7 +1625,7 @@ class OpsWrapper:
     def reset(self):
         self._ops = {}
 
-    def register(self, ops_list: List[Union[Type[ExpressionOps], dict]]):
+    def register(self, ops_list: List[Union[Type[ExpressionOps], dict]], allowed_module_roots=None):
         """register operator
 
         Parameters
@@ -1645,7 +1645,7 @@ class OpsWrapper:
         """
         for _operator in ops_list:
             if isinstance(_operator, dict):
-                _ops_class, _ = get_callable_kwargs(_operator)
+                _ops_class, _ = get_callable_kwargs(_operator, allowed_module_roots=allowed_module_roots)
             else:
                 _ops_class = _operator
 
@@ -1677,5 +1677,5 @@ def register_all_ops(C):
     Operators.register(OpsList + [P, PRef])
 
     if getattr(C, "custom_ops", None) is not None:
-        Operators.register(C.custom_ops)
+        Operators.register(C.custom_ops, allowed_module_roots=getattr(C, "trusted_module_roots", None))
         logger.debug("register custom operator {}".format(C.custom_ops))

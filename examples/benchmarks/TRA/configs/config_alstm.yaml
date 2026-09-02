@@ -1,6 +1,7 @@
 qlib_init:
   provider_uri: "~/.qlib/qlib_data/cn_data"
   region: cn
+  trusted_module_roots: [.]
 
 data_loader_config: &data_loader_config
   class: StaticDataLoader

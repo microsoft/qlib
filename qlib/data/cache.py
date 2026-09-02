@@ -25,7 +25,6 @@ from ..utils import (
     hash_args,
     get_redis_connection,
     read_bin,
-    parse_field,
     remove_fields_space,
     normalize_cache_fields,
     normalize_cache_instruments,
@@ -34,7 +33,7 @@ from ..utils.pickle_utils import restricted_pickle_load
 
 from ..log import get_module_logger
 from .base import Feature
-from .ops import Operators  # pylint: disable=W0611  # noqa: F401
+from .expression_parser import parse_expression
 
 
 class QlibCacheException(RuntimeError):
@@ -540,7 +539,7 @@ class DiskExpressionCache(ExpressionCache):
             field = remove_fields_space(field)
             # cache unavailable, generate the cache
             _instrument_dir.mkdir(parents=True, exist_ok=True)
-            if not isinstance(eval(parse_field(field)), Feature):
+            if not isinstance(parse_expression(field), Feature):
                 # When the expression is not a raw feature
                 # generate expression cache if the feature is not a Feature
                 # instance
