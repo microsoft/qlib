@@ -415,7 +415,9 @@ class EnhancedIndexingStrategy(WeightStrategyBase):
     ):
         # Import lazily so unrelated strategies do not load CVXPY's native
         # solver extensions during module discovery or test collection.
-        from qlib.contrib.strategy.optimizer.enhanced_indexing import EnhancedIndexingOptimizer
+        from qlib.contrib.strategy.optimizer.enhanced_indexing import (  # pylint: disable=C0415
+            EnhancedIndexingOptimizer,
+        )
 
         super().__init__(**kwargs)
 
