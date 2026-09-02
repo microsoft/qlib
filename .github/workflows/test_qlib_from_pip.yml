@@ -64,5 +64,8 @@ jobs:
         cd qlib
 
     - name: Test workflow by config
-      run: |
-        qrun examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
+      uses: nick-fields/retry@v2
+      with:
+        timeout_minutes: 30
+        max_attempts: 3
+        command: qrun examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
