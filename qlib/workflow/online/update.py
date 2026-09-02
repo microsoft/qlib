@@ -52,7 +52,7 @@ class RMDLoader:
         if segments is None:
             segments = {"test": (start_time, end_time)}
         if unprepared_dataset is None:
-            dataset: DatasetH = self.rec.load_object("dataset")
+            dataset: DatasetH = self.rec.load_object("dataset", trusted=True)
         else:
             dataset = unprepared_dataset
         dataset.config(handler_kwargs={"start_time": start_time, "end_time": end_time}, segments=segments)
@@ -60,7 +60,7 @@ class RMDLoader:
         return dataset
 
     def get_model(self) -> Model:
-        return self.rec.load_object("params.pkl")
+        return self.rec.load_object("params.pkl", trusted=True)
 
 
 class RecordUpdater(metaclass=ABCMeta):
@@ -190,7 +190,9 @@ class DSBasedUpdater(RecordUpdater, metaclass=ABCMeta):
         """
         # automatically getting the historical dependency if not specified
         if self.hist_ref is None:
-            dataset: DatasetH = self.record.load_object("dataset") if unprepared_dataset is None else unprepared_dataset
+            dataset: DatasetH = (
+                self.record.load_object("dataset", trusted=True) if unprepared_dataset is None else unprepared_dataset
+            )
             # Special treatment of historical dependencies
             if isinstance(dataset, TSDatasetH):
                 hist_ref = dataset.step_len - 1
