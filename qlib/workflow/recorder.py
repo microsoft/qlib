@@ -366,16 +366,39 @@ class MLflowRecorder(Recorder):
         """
         # TODO: the sub-directories maybe git repos.
         # So it will be better if we can walk the sub-directories and log the uncommitted changes.
-        for cmd, fname in [
-            ("git diff", "code_diff.txt"),
-            ("git status", "code_status.txt"),
-            ("git diff --cached", "code_cached.txt"),
+        # Skip silently when CWD is not a git work tree: this is an optional reproducibility
+        # hook, not a precondition, and a non-git CWD (containers, CI sandboxes, /tmp) is a
+        # legitimate setup — not an error worth three failing subprocess calls per R.start().
+        # A bare repository also exits 0 but prints "false", so the probe checks the output,
+        # not just the exit code.
+        try:
+            probe = subprocess.run(
+                ["git", "rev-parse", "--is-inside-work-tree"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=True,
+            )
+        except (subprocess.CalledProcessError, OSError):
+            logger.debug(f"Skip logging uncommitted code: $CWD({os.getcwd()}) is not a git work tree.")
+            return
+        if probe.stdout.strip() != b"true":
+            logger.debug(f"Skip logging uncommitted code: $CWD({os.getcwd()}) is not a git work tree.")
+            return
+        for cmd_args, fname in [
+            (["git", "diff"], "code_diff.txt"),
+            (["git", "status"], "code_status.txt"),
+            (["git", "diff", "--cached"], "code_cached.txt"),
         ]:
             try:
-                out = subprocess.check_output(cmd, shell=True)
-                self.client.log_text(self.id, out.decode(), fname)  # this behaves same as above
+                out = subprocess.run(
+                    cmd_args,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    check=True,
+                )
+                self.client.log_text(self.id, out.stdout.decode(), fname)  # this behaves same as above
             except subprocess.CalledProcessError:
-                logger.info(f"Fail to log the uncommitted code of $CWD({os.getcwd()}) when run {cmd}.")
+                logger.info(f"Fail to log the uncommitted code of $CWD({os.getcwd()}) when run {' '.join(cmd_args)}.")
 
     def end_run(self, status: str = Recorder.STATUS_S):
         assert status in [
