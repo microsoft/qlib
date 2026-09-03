@@ -3,6 +3,7 @@
 import contextlib
 import io
 import os
+import subprocess
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -40,6 +41,21 @@ class LogUncommittedCodeTest(unittest.TestCase):
             self.assertNotIn("usage:", err_buf.getvalue())
             self.assertNotIn("fatal:", err_buf.getvalue().lower())
             mock_logger.info.assert_not_called()  # skip is DEBUG-level, not INFO
+
+    def test_bare_repo_is_silent(self):
+        """In a bare repository the probe exits 0 but prints 'false' — must skip too."""
+        rec = self._make_recorder()
+        bare = Path(self._tmp.name) / "bare.git"
+        subprocess.run(["git", "init", "--bare", str(bare)], check=True, capture_output=True)
+        with contextlib.chdir(bare):
+            err_buf = io.StringIO()
+            with mock.patch("qlib.workflow.recorder.logger") as mock_logger:
+                with contextlib.redirect_stderr(err_buf):
+                    rec._log_uncommitted_code()
+            self.assertNotIn("usage:", err_buf.getvalue())
+            self.assertNotIn("fatal:", err_buf.getvalue().lower())
+            mock_logger.info.assert_not_called()
+            rec.client.log_text.assert_not_called()  # no artifact from a bare repo
 
     def test_git_cwd_still_logs(self):
         """In a real git work tree the three diff artifacts are still produced."""
