@@ -369,14 +369,19 @@ class MLflowRecorder(Recorder):
         # Skip silently when CWD is not a git work tree: this is an optional reproducibility
         # hook, not a precondition, and a non-git CWD (containers, CI sandboxes, /tmp) is a
         # legitimate setup — not an error worth three failing subprocess calls per R.start().
+        # A bare repository also exits 0 but prints "false", so the probe checks the output,
+        # not just the exit code.
         try:
-            subprocess.run(
+            probe = subprocess.run(
                 ["git", "rev-parse", "--is-inside-work-tree"],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 check=True,
             )
         except (subprocess.CalledProcessError, OSError):
+            logger.debug(f"Skip logging uncommitted code: $CWD({os.getcwd()}) is not a git work tree.")
+            return
+        if probe.stdout.strip() != b"true":
             logger.debug(f"Skip logging uncommitted code: $CWD({os.getcwd()}) is not a git work tree.")
             return
         for cmd_args, fname in [
