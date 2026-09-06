@@ -478,6 +478,11 @@ class TSDataSampler:
         """
         Get the pandas index of the data, it will be useful in following scenarios
         - Special sampler will be used (e.g. user want to sample day by day)
+
+        Note: this swaps the level order of the labels only (to
+        <datetime, instrument>); the underlying rows remain physically sorted
+        <instrument, datetime>. Callers that assume rows of one datetime are
+        contiguous will get wrong results (see microsoft/qlib#2319).
         """
         return self.data_index.swaplevel()  # to align the order of multiple index of original data received by __init__
 

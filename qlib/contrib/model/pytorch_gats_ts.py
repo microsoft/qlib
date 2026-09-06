@@ -26,19 +26,20 @@ from ...contrib.model.pytorch_gru import GRUModel
 class DailyBatchSampler(Sampler):
     def __init__(self, data_source):
         self.data_source = data_source
-        # calculate number of samples in each batch
-        self.daily_count = (
-            pd.Series(index=self.data_source.get_index()).groupby("datetime", group_keys=False).size().values
-        )
-        self.daily_index = np.roll(np.cumsum(self.daily_count), 1)  # calculate begin index of each batch
-        self.daily_index[0] = 0
+        # TSDataSampler rows are physically instrument-major (<instrument, datetime>).
+        # get_index() swaps the LABEL order only — the rows of one trading day are
+        # NOT contiguous in row space. Collect each day's actual row positions
+        # instead of slicing contiguous ranges (see microsoft/qlib#2319).
+        index = self.data_source.get_index()
+        positions = pd.Series(np.arange(len(index)), index=index)
+        self.daily_batches = [group.to_numpy() for _, group in positions.groupby(level=0, sort=True)]
 
     def __iter__(self):
-        for idx, count in zip(self.daily_index, self.daily_count):
-            yield np.arange(idx, idx + count)
+        for batch in self.daily_batches:
+            yield batch
 
     def __len__(self):
-        return len(self.data_source)
+        return len(self.daily_batches)
 
 
 class GATs(Model):
