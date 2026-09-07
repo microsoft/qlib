@@ -16,13 +16,16 @@ from qlib.contrib.model.pytorch_gats_ts import DailyBatchSampler
 
 
 class _FakeDataSource:
-    """Minimal stand-in exposing get_index() only (no torch/qlib data needed)."""
+    """Mirror of TSDataSampler.get_index(): stores rows instrument-major
+    (<instrument, datetime>) and returns the SWAPPED label view
+    (<datetime, instrument>) without reordering the rows.
+    """
 
-    def __init__(self, index: pd.MultiIndex):
-        self._index = index
+    def __init__(self, data_index: pd.MultiIndex):
+        self._data_index = data_index
 
     def get_index(self) -> pd.MultiIndex:
-        return self._index
+        return self._data_index.swaplevel()
 
 
 def _instrument_major_index(instruments, dates) -> pd.MultiIndex:

@@ -33,6 +33,10 @@ class DailyBatchSampler(Sampler):
         index = self.data_source.get_index()
         positions = pd.Series(np.arange(len(index)), index=index)
         self.daily_batches = [group.to_numpy() for _, group in positions.groupby(level=0, sort=True)]
+        # physical row numbers in iteration (day-major) order; consumers that
+        # produce one value per batch row can re-align with the original
+        # instrument-major layout via `get_index()[index_order]`
+        self.index_order = np.concatenate(self.daily_batches) if self.daily_batches else np.array([], dtype=int)
 
     def __iter__(self):
         for batch in self.daily_batches:
@@ -333,7 +337,7 @@ class GATs(Model):
 
             preds.append(pred)
 
-        return pd.Series(np.concatenate(preds), index=dl_test.get_index())
+        return pd.Series(np.concatenate(preds), index=dl_test.get_index()[sampler_test.index_order])
 
 
 class GATModel(nn.Module):
