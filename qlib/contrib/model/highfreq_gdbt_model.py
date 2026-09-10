@@ -10,6 +10,7 @@ from ...model.base import ModelFT
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
 from ...model.interpret.base import LightGBMFInt
+from .gbdt import _parse_callbacks
 
 
 class HFLGBModel(ModelFT, LightGBMFInt):
@@ -120,23 +121,30 @@ class HFLGBModel(ModelFT, LightGBMFInt):
         early_stopping_rounds=50,
         verbose_eval=20,
         evals_result=None,
+        **kwargs,
     ):
         if evals_result is None:
-            evals_result = dict()
+            evals_result = {}
         dtrain, dvalid = self._prepare_data(dataset)
-        early_stopping_callback = lgb.early_stopping(early_stopping_rounds)
-        verbose_eval_callback = lgb.log_evaluation(period=verbose_eval)
-        evals_result_callback = lgb.record_evaluation(evals_result)
+        callbacks = _parse_callbacks(
+            callbacks=kwargs.pop("callbacks", None),
+            early_stopping_rounds=early_stopping_rounds,
+            verbose_eval=verbose_eval,
+            evals_result=evals_result,
+        )
         self.model = lgb.train(
             self.params,
             dtrain,
             num_boost_round=num_boost_round,
             valid_sets=[dtrain, dvalid],
             valid_names=["train", "valid"],
-            callbacks=[early_stopping_callback, verbose_eval_callback, evals_result_callback],
+            callbacks=callbacks,
+            **kwargs,
         )
-        evals_result["train"] = list(evals_result["train"].values())[0]
-        evals_result["valid"] = list(evals_result["valid"].values())[0]
+        if "train" in evals_result and evals_result["train"]:
+            evals_result["train"] = list(evals_result["train"].values())[0]
+        if "valid" in evals_result and evals_result["valid"]:
+            evals_result["valid"] = list(evals_result["valid"].values())[0]
 
     def predict(self, dataset):
         if self.model is None:
@@ -144,7 +152,7 @@ class HFLGBModel(ModelFT, LightGBMFInt):
         x_test = dataset.prepare("test", col_set="feature", data_key=DataHandlerLP.DK_I)
         return pd.Series(self.model.predict(x_test.values), index=x_test.index)
 
-    def finetune(self, dataset: DatasetH, num_boost_round=10, verbose_eval=20):
+    def finetune(self, dataset: DatasetH, num_boost_round=10, verbose_eval=20, **kwargs):
         """
         finetune model
 
@@ -159,7 +167,10 @@ class HFLGBModel(ModelFT, LightGBMFInt):
         """
         # Based on existing model and finetune by train more rounds
         dtrain, _ = self._prepare_data(dataset)
-        verbose_eval_callback = lgb.log_evaluation(period=verbose_eval)
+        callbacks = _parse_callbacks(
+            callbacks=kwargs.pop("callbacks", None),
+            verbose_eval=verbose_eval,
+        )
         self.model = lgb.train(
             self.params,
             dtrain,
@@ -167,5 +178,6 @@ class HFLGBModel(ModelFT, LightGBMFInt):
             init_model=self.model,
             valid_sets=[dtrain],
             valid_names=["train"],
-            callbacks=[verbose_eval_callback],
+            callbacks=callbacks,
+            **kwargs,
         )

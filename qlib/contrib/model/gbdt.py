@@ -1,16 +1,41 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+from typing import List, Optional, Text, Tuple, Union
 import numpy as np
 import pandas as pd
 import lightgbm as lgb
-from typing import List, Text, Tuple, Union
+from qlib.workflow import R
 from ...model.base import ModelFT
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
 from ...model.interpret.base import LightGBMFInt
 from ...data.dataset.weight import Reweighter
-from qlib.workflow import R
+
+
+def _parse_callbacks(
+    callbacks: Optional[list] = None,
+    early_stopping_rounds: Optional[int] = None,
+    verbose_eval: Union[int, bool, None] = 20,
+    evals_result: Optional[dict] = None,
+) -> list:
+    """Helper function to parse and construct LightGBM callbacks."""
+    cb_list = []
+    if early_stopping_rounds:
+        cb_list.append(lgb.early_stopping(early_stopping_rounds))
+    if verbose_eval:
+        period = (
+            verbose_eval
+            if isinstance(verbose_eval, int) and not isinstance(verbose_eval, bool)
+            else (1 if verbose_eval else 0)
+        )
+        if period > 0:
+            cb_list.append(lgb.log_evaluation(period=period))
+    if evals_result is not None:
+        cb_list.append(lgb.record_evaluation(evals_result))
+    if callbacks:
+        cb_list.extend(callbacks)
+    return cb_list
 
 
 class LGBModel(ModelFT, LightGBMFInt):
@@ -68,23 +93,26 @@ class LGBModel(ModelFT, LightGBMFInt):
             evals_result = {}  # in case of unsafety of Python default values
         ds_l = self._prepare_data(dataset, reweighter)
         ds, names = list(zip(*ds_l))
-        early_stopping_callback = lgb.early_stopping(
-            self.early_stopping_rounds if early_stopping_rounds is None else early_stopping_rounds
+
+        es_rounds = self.early_stopping_rounds if early_stopping_rounds is None else early_stopping_rounds
+        callbacks = _parse_callbacks(
+            callbacks=kwargs.pop("callbacks", None),
+            early_stopping_rounds=es_rounds,
+            verbose_eval=verbose_eval,
+            evals_result=evals_result,
         )
-        # NOTE: if you encounter error here. Please upgrade your lightgbm
-        verbose_eval_callback = lgb.log_evaluation(period=verbose_eval)
-        evals_result_callback = lgb.record_evaluation(evals_result)
+
         self.model = lgb.train(
             self.params,
             ds[0],  # training dataset
             num_boost_round=self.num_boost_round if num_boost_round is None else num_boost_round,
             valid_sets=ds,
             valid_names=names,
-            callbacks=[early_stopping_callback, verbose_eval_callback, evals_result_callback],
+            callbacks=callbacks,
             **kwargs,
         )
         for k in names:
-            for key, val in evals_result[k].items():
+            for key, val in evals_result.get(k, {}).items():
                 name = f"{key}.{k}"
                 for epoch, m in enumerate(val):
                     R.log_metrics(**{name.replace("@", "_"): m}, step=epoch)
@@ -95,7 +123,7 @@ class LGBModel(ModelFT, LightGBMFInt):
         x_test = dataset.prepare(segment, col_set="feature", data_key=DataHandlerLP.DK_I)
         return pd.Series(self.model.predict(x_test.values), index=x_test.index)
 
-    def finetune(self, dataset: DatasetH, num_boost_round=10, verbose_eval=20, reweighter=None):
+    def finetune(self, dataset: DatasetH, num_boost_round=10, verbose_eval=20, reweighter=None, **kwargs):
         """
         finetune model
 
@@ -114,7 +142,10 @@ class LGBModel(ModelFT, LightGBMFInt):
 
         if dtrain.construct().num_data() == 0:
             raise ValueError("Empty data from dataset, please check your dataset config.")
-        verbose_eval_callback = lgb.log_evaluation(period=verbose_eval)
+        callbacks = _parse_callbacks(
+            callbacks=kwargs.pop("callbacks", None),
+            verbose_eval=verbose_eval,
+        )
         self.model = lgb.train(
             self.params,
             dtrain,
@@ -122,5 +153,6 @@ class LGBModel(ModelFT, LightGBMFInt):
             init_model=self.model,
             valid_sets=[dtrain],
             valid_names=["train"],
-            callbacks=[verbose_eval_callback],
+            callbacks=callbacks,
+            **kwargs,
         )

@@ -39,7 +39,15 @@ The Custom models need to inherit `qlib.model.base.Model <../reference/api.html#
 
         .. code-block:: Python
 
-            def fit(self, dataset: DatasetH, num_boost_round = 1000, **kwargs):
+            def fit(
+                self,
+                dataset: DatasetH,
+                num_boost_round=1000,
+                early_stopping_rounds=50,
+                verbose_eval=20,
+                evals_result=dict(),
+                **kwargs
+            ):
 
                 # prepare dataset for lgb training and evaluation
                 df_train, df_valid = dataset.prepare(
@@ -58,15 +66,16 @@ The Custom models need to inherit `qlib.model.base.Model <../reference/api.html#
                 dvalid = lgb.Dataset(x_valid.values, label=y_valid)
 
                 # fit the model
+                early_stopping_callback = lgb.early_stopping(early_stopping_rounds)
+                verbose_eval_callback = lgb.log_evaluation(period=verbose_eval)
+                evals_result_callback = lgb.record_evaluation(evals_result)
                 self.model = lgb.train(
                     self.params,
                     dtrain,
                     num_boost_round=num_boost_round,
                     valid_sets=[dtrain, dvalid],
                     valid_names=["train", "valid"],
-                    early_stopping_rounds=early_stopping_rounds,
-                    verbose_eval=verbose_eval,
-                    evals_result=evals_result,
+                    callbacks=[early_stopping_callback, verbose_eval_callback, evals_result_callback],
                     **kwargs
                 )
 
@@ -94,6 +103,7 @@ The Custom models need to inherit `qlib.model.base.Model <../reference/api.html#
             def finetune(self, dataset: DatasetH, num_boost_round=10, verbose_eval=20):
                 # Based on existing model and finetune by train more rounds
                 dtrain, _ = self._prepare_data(dataset)
+                verbose_eval_callback = lgb.log_evaluation(period=verbose_eval)
                 self.model = lgb.train(
                     self.params,
                     dtrain,
@@ -101,7 +111,7 @@ The Custom models need to inherit `qlib.model.base.Model <../reference/api.html#
                     init_model=self.model,
                     valid_sets=[dtrain],
                     valid_names=["train"],
-                    verbose_eval=verbose_eval,
+                    callbacks=[verbose_eval_callback],
                 )
 
 Configuration File
