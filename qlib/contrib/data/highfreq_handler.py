@@ -153,7 +153,7 @@ class HighFreqGeneralHandler(DataHandlerLP):
             if shift == 0:
                 template_norm = f"{{0}}/DayLast(Ref({{1}}, {self.day_length * 2}))"
             else:
-                template_norm = f"Ref({{0}}, " + str(shift) + f")/DayLast(Ref({{1}}, {self.day_length}))"
+                template_norm = "Ref({{0}}, " + str(shift) + f")/DayLast(Ref({{1}}, {self.day_length}))"
 
             template_fillnan = "FFillNan({0})"
             # calculate -> ffill -> remove paused

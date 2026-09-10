@@ -158,7 +158,7 @@ class Rolling:
         if self.horizon is None:
             # TODO:
             # - get horizon automatically from the expression!!!!
-            raise NotImplementedError(f"This type of input is not supported")
+            raise NotImplementedError("This type of input is not supported")
         else:
             if enable_handler_cache and self.h_path is not None:
                 self.logger.info("Fail to override the horizon due to data handler cache")

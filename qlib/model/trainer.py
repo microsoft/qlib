@@ -150,7 +150,7 @@ class Trainer:
         Returns:
             list: a list of models
         """
-        raise NotImplementedError(f"Please implement the `train` method.")
+        raise NotImplementedError("Please implement the `train` method.")
 
     def end_train(self, models: list, *args, **kwargs) -> list:
         """
@@ -203,7 +203,7 @@ class Trainer:
         NotImplementedError:
             If the worker is not supported
         """
-        raise NotImplementedError(f"Please implement the `worker` method")
+        raise NotImplementedError("Please implement the `worker` method")
 
 
 class TrainerR(Trainer):

@@ -297,7 +297,7 @@ class DataHandler(DataHandlerABC):
             try:
                 selector = slice(*selector)
             except ValueError:
-                get_module_logger("DataHandlerLP").info(f"Fail to converting to query to slice. It will used directly")
+                get_module_logger("DataHandlerLP").info("Fail to converting to query to slice. It will used directly")
 
         if isinstance(data_storage, pd.DataFrame):
             data_df = data_storage
@@ -600,7 +600,7 @@ class DataHandlerLP(DataHandler):
             # based on `infer_df` and append the processor
             _learn_df = _infer_df
         else:
-            raise NotImplementedError(f"This type of input is not supported")
+            raise NotImplementedError("This type of input is not supported")
         if not self._is_proc_readonly(self.learn_processors):  # avoid modifying the original  data
             _learn_df = _learn_df.copy()
         # 2) process
@@ -658,7 +658,7 @@ class DataHandlerLP(DataHandler):
             elif init_type == DataHandlerLP.IT_FIT_SEQ:
                 self.fit_process_data()
             else:
-                raise NotImplementedError(f"This type of input is not supported")
+                raise NotImplementedError("This type of input is not supported")
 
         # TODO: Be able to cache handler data. Save the memory for data processing
 

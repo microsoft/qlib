@@ -410,7 +410,7 @@ class Indicator:
                 method=None,
             )
         else:
-            raise NotImplementedError(f"This type of input is not supported")
+            raise NotImplementedError("This type of input is not supported")
 
         # if there is no stock data during the time period
         if price_s is None:
@@ -421,7 +421,7 @@ class Indicator:
         elif isinstance(price_s, idd.SingleData):
             pass
         else:
-            raise NotImplementedError(f"This type of input is not supported")
+            raise NotImplementedError("This type of input is not supported")
 
         # NOTE: there are some zeros in the trading price. These cases are known meaningless
         # for aligning the previous logic, remove it.
@@ -445,7 +445,7 @@ class Indicator:
         elif agg == "twap":
             volume_s = idd.SingleData(1, price_s.index)
         else:
-            raise NotImplementedError(f"This type of input is not supported")
+            raise NotImplementedError("This type of input is not supported")
 
         assert isinstance(volume_s, idd.SingleData)
         base_volume = volume_s.sum()

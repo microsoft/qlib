@@ -32,7 +32,7 @@ class CombFeaAna(FeaAnalyser):
 
     def __init__(self, dataset: pd.DataFrame, *fea_ana_cls):
         if len(fea_ana_cls) <= 1:
-            raise NotImplementedError(f"This type of input is not supported")
+            raise NotImplementedError("This type of input is not supported")
         self._fea_ana_l = [fcls(dataset) for fcls in fea_ana_cls]
         super().__init__(dataset=dataset)
 

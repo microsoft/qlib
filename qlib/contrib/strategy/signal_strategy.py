@@ -210,7 +210,7 @@ class TopkDropoutStrategy(BaseSignalStrategy):
             except ValueError:
                 today = candi
         else:
-            raise NotImplementedError(f"This type of input is not supported")
+            raise NotImplementedError("This type of input is not supported")
         # combine(new stocks + last stocks),  we will drop stocks from this list
         # In case of dropping higher score stock and buying lower score stock.
         comb = pred_score.reindex(last.union(pd.Index(today))).sort_values(ascending=False).index
@@ -225,7 +225,7 @@ class TopkDropoutStrategy(BaseSignalStrategy):
             except ValueError:  # No enough candidates
                 sell = candi
         else:
-            raise NotImplementedError(f"This type of input is not supported")
+            raise NotImplementedError("This type of input is not supported")
 
         # Get the stock list we really want to buy
         buy = today[: len(sell) + self.topk - len(last)]

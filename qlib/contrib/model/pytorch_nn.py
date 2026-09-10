@@ -439,7 +439,7 @@ class Net(nn.Module):
             elif act == "SiLU":
                 activation = nn.SiLU()
             else:
-                raise NotImplementedError(f"This type of input is not supported")
+                raise NotImplementedError("This type of input is not supported")
             bn = nn.BatchNorm1d(hidden_units)
             seq = nn.Sequential(fc, bn, activation)
             dnn_layers.append(seq)

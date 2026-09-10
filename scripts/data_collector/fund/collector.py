@@ -89,7 +89,7 @@ class FundCollector(BaseCollector):
         try:
             dt = pd.Timestamp(dt, tz=timezone).timestamp()
             dt = pd.Timestamp(dt, tz=tzlocal(), unit="s")
-        except ValueError as e:
+        except ValueError:
             pass
         return dt
 

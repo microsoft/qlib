@@ -76,7 +76,7 @@ class RecordTemp:
         Return
         ------
         """
-        raise NotImplementedError(f"Please implement the `generate` method.")
+        raise NotImplementedError("Please implement the `generate` method.")
 
     def load(self, name: str, parents: bool = True):
         """
@@ -242,7 +242,7 @@ class ACRecordTemp(RecordTemp):
         Run the concrete generating task, return the dictionary of the generated results.
         The caller method will save the results to the recorder.
         """
-        raise NotImplementedError(f"Please implement the `_generate` method")
+        raise NotImplementedError("Please implement the `_generate` method")
 
 
 class HFSignalRecord(SignalRecord):
@@ -318,7 +318,7 @@ class SigAnaRecord(ACRecordTemp):
         if label is None:
             label = self.load("label.pkl")
         if label is None or not isinstance(label, pd.DataFrame) or label.empty:
-            logger.warning(f"Empty label.")
+            logger.warning("Empty label.")
             return
         ic, ric = calc_ic(pred.iloc[:, 0], label.iloc[:, self.label_col])
         metrics = {

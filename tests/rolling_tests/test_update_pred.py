@@ -2,10 +2,7 @@ import copy
 import unittest
 import pytest
 
-import fire
 import pandas as pd
-
-import qlib
 from qlib.data import D
 from qlib.model.trainer import task_train
 from qlib.tests import TestAutoData
@@ -46,8 +43,6 @@ class TestRolling(TestAutoData):
         }
 
         rec = task_train(task, exp_name)
-
-        pred = rec.load_object("pred.pkl")
 
         online_tool = OnlineToolR(exp_name)
         online_tool.reset_online_tag(rec)  # set to online model
@@ -108,8 +103,6 @@ class TestRolling(TestAutoData):
         }
 
         rec = task_train(task, exp_name)
-
-        pred = rec.load_object("pred.pkl")
 
         online_tool = OnlineToolR(exp_name)
         online_tool.reset_online_tag(rec)  # set to online model

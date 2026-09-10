@@ -245,11 +245,11 @@ class PitNormalize(BaseNormalize):
 class Run(BaseRun):
     @property
     def collector_class_name(self) -> str:
-        return f"PitCollector"
+        return "PitCollector"
 
     @property
     def normalize_class_name(self) -> str:
-        return f"PitNormalize"
+        return "PitNormalize"
 
     @property
     def default_base_dir(self) -> [Path, str]:

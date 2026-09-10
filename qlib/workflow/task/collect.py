@@ -47,7 +47,7 @@ class Collector(Serializable):
 
             ...
         """
-        raise NotImplementedError(f"Please implement the `collect` method.")
+        raise NotImplementedError("Please implement the `collect` method.")
 
     @staticmethod
     def process_collect(collected_dict, process_list=[], *args, **kwargs) -> dict:

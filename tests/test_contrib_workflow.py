@@ -66,11 +66,11 @@ class TestAllFlow(TestAutoData):
 
     @pytest.mark.slow
     def test_0_multiseg(self):
-        uri_path = train_multiseg(self.URI_PATH)
+        train_multiseg(self.URI_PATH)
 
     @pytest.mark.slow
     def test_1_mse(self):
-        uri_path = train_mse(self.URI_PATH)
+        train_mse(self.URI_PATH)
 
 
 def suite():

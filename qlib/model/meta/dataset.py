@@ -63,7 +63,7 @@ class MetaTaskDataset(Serializable, metaclass=abc.ABCMeta):
         elif isinstance(segments, str):
             return self._prepare_seg(segments)
         else:
-            raise NotImplementedError(f"This type of input is not supported")
+            raise NotImplementedError("This type of input is not supported")
 
     @abc.abstractmethod
     def _prepare_seg(self, segment: Text):

@@ -163,7 +163,7 @@ class EarlyStopping(Callback):
         # Only check after the first epoch.
         if self.wait >= self.patience and trainer.current_iter > 0:
             trainer.should_stop = True
-            _logger.info(f"On iteration %d: early stopping", trainer.current_iter + 1)
+            _logger.info("On iteration %d: early stopping", trainer.current_iter + 1)
             if self.restore_best_weights and self.best_weights is not None:
                 _logger.info("Restoring model weights from the end of the best iteration: %d", self.best_iter + 1)
                 vessel.load_state_dict(self.best_weights)

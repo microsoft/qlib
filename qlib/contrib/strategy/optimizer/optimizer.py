@@ -50,13 +50,13 @@ class PortfolioOptimizer(BaseOptimizer):
         assert method in [self.OPT_GMV, self.OPT_MVO, self.OPT_RP, self.OPT_INV], f"method `{method}` is not supported"
         self.method = method
 
-        assert lamb >= 0, f"risk aversion parameter `lamb` should be positive"
+        assert lamb >= 0, "risk aversion parameter `lamb` should be positive"
         self.lamb = lamb
 
-        assert delta >= 0, f"turnover limit `delta` should be positive"
+        assert delta >= 0, "turnover limit `delta` should be positive"
         self.delta = delta
 
-        assert alpha >= 0, f"l2 norm regularizer `alpha` should be positive"
+        assert alpha >= 0, "l2 norm regularizer `alpha` should be positive"
         self.alpha = alpha
 
         self.tol = tol

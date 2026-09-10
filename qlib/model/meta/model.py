@@ -44,7 +44,7 @@ class MetaTaskModel(MetaModel):
         The MetaTaskModel is expected to get prepared MetaTask from meta_dataset.
         And then it will learn knowledge from the meta tasks
         """
-        raise NotImplementedError(f"Please implement the `fit` method")
+        raise NotImplementedError("Please implement the `fit` method")
 
     def inference(self, meta_dataset: MetaTaskDataset) -> List[dict]:
         """
@@ -58,7 +58,7 @@ class MetaTaskModel(MetaModel):
             A list of modified task definitions.
 
         """
-        raise NotImplementedError(f"Please implement the `inference` method")
+        raise NotImplementedError("Please implement the `inference` method")
 
 
 class MetaGuideModel(MetaModel):

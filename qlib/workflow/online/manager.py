@@ -342,7 +342,7 @@ class OnlineManager(Serializable):
 
         # FIXME: get logging level firstly and restore it here
         set_global_logger_level(logging.DEBUG)
-        self.logger.info(f"Finished preparing signals")
+        self.logger.info("Finished preparing signals")
         self.status = self.STATUS_ONLINE
         return self.get_signals()
 

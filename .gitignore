@@ -15,6 +15,7 @@ dist/
 *.csv
 
 .env
+.venv/
 .vim
 .nvimrc
 .vscode

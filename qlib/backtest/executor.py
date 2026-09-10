@@ -584,7 +584,7 @@ class SimulatorExecutor(BaseExecutor):
             # It equals to parallel trading after sorting the order by direction
             order_it = sorted(orders, key=lambda order: -order.direction)
         else:
-            raise NotImplementedError(f"This type of input is not supported")
+            raise NotImplementedError("This type of input is not supported")
         return order_it
 
     def _collect_data(self, trade_decision: BaseTradeDecision, level: int = 0) -> Tuple[List[object], dict]:

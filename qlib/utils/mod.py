@@ -112,7 +112,7 @@ def get_callable_kwargs(config: InstConf, default_module: Union[str, ModuleType]
         _callable = getattr(module, cls)
         kwargs = {}
     else:
-        raise NotImplementedError(f"This type of input is not supported")
+        raise NotImplementedError("This type of input is not supported")
     return _callable, kwargs
 
 

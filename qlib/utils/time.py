@@ -124,7 +124,7 @@ class Freq:
         elif isinstance(freq, Freq):
             self.count, self.base = freq.count, freq.base
         else:
-            raise NotImplementedError(f"This type of input is not supported")
+            raise NotImplementedError("This type of input is not supported")
 
     def __eq__(self, freq):
         freq = Freq(freq)

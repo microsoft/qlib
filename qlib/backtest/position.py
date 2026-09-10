@@ -52,7 +52,7 @@ class BasePosition:
         bool:
             if is the stock in the position
         """
-        raise NotImplementedError(f"Please implement the `check_stock` method")
+        raise NotImplementedError("Please implement the `check_stock` method")
 
     def update_order(self, order: Order, trade_val: float, cost: float, trade_price: float) -> None:
         """
@@ -67,7 +67,7 @@ class BasePosition:
         trade_price : float
             the trade price of the dealing results
         """
-        raise NotImplementedError(f"Please implement the `update_order` method")
+        raise NotImplementedError("Please implement the `update_order` method")
 
     def update_stock_price(self, stock_id: str, price: float) -> None:
         """
@@ -81,7 +81,7 @@ class BasePosition:
         price : float
             the price to be updated
         """
-        raise NotImplementedError(f"Please implement the `update stock price` method")
+        raise NotImplementedError("Please implement the `update stock price` method")
 
     def calculate_stock_value(self) -> float:
         """
@@ -92,16 +92,16 @@ class BasePosition:
         float:
             the value(money) of all the stock
         """
-        raise NotImplementedError(f"Please implement the `calculate_stock_value` method")
+        raise NotImplementedError("Please implement the `calculate_stock_value` method")
 
     def calculate_value(self) -> float:
-        raise NotImplementedError(f"Please implement the `calculate_value` method")
+        raise NotImplementedError("Please implement the `calculate_value` method")
 
     def get_stock_list(self) -> List[str]:
         """
         Get the list of stocks in the position.
         """
-        raise NotImplementedError(f"Please implement the `get_stock_list` method")
+        raise NotImplementedError("Please implement the `get_stock_list` method")
 
     def get_stock_price(self, code: str) -> float:
         """
@@ -112,7 +112,7 @@ class BasePosition:
         code :
             the code of the stock
         """
-        raise NotImplementedError(f"Please implement the `get_stock_price` method")
+        raise NotImplementedError("Please implement the `get_stock_price` method")
 
     def get_stock_amount(self, code: str) -> float:
         """
@@ -128,7 +128,7 @@ class BasePosition:
         float:
             the amount of the stock
         """
-        raise NotImplementedError(f"Please implement the `get_stock_amount` method")
+        raise NotImplementedError("Please implement the `get_stock_amount` method")
 
     def get_cash(self, include_settle: bool = False) -> float:
         """
@@ -143,7 +143,7 @@ class BasePosition:
         float:
             the available(tradable) cash in position
         """
-        raise NotImplementedError(f"Please implement the `get_cash` method")
+        raise NotImplementedError("Please implement the `get_cash` method")
 
     def get_stock_amount_dict(self) -> dict:
         """
@@ -154,7 +154,7 @@ class BasePosition:
         Dict:
             {stock_id : amount of stock}
         """
-        raise NotImplementedError(f"Please implement the `get_stock_amount_dict` method")
+        raise NotImplementedError("Please implement the `get_stock_amount_dict` method")
 
     def get_stock_weight_dict(self, only_stock: bool = False) -> dict:
         """
@@ -173,7 +173,7 @@ class BasePosition:
         Dict:
             {stock_id : value weight of stock in the position}
         """
-        raise NotImplementedError(f"Please implement the `get_stock_weight_dict` method")
+        raise NotImplementedError("Please implement the `get_stock_weight_dict` method")
 
     def add_count_all(self, bar: str) -> None:
         """
@@ -184,7 +184,7 @@ class BasePosition:
         bar :
             The level to be updated
         """
-        raise NotImplementedError(f"Please implement the `add_count_all` method")
+        raise NotImplementedError("Please implement the `add_count_all` method")
 
     def update_weight_all(self) -> None:
         """
@@ -193,7 +193,7 @@ class BasePosition:
         # TODO: this function is a little weird. The weight data in the position is in a wrong state after dealing order
         # and before updating weight.
         """
-        raise NotImplementedError(f"Please implement the `add_count_all` method")
+        raise NotImplementedError("Please implement the `add_count_all` method")
 
     ST_CASH = "cash"
     ST_NO = "None"  # String is more typehint friendly than None
@@ -213,13 +213,13 @@ class BasePosition:
             - None: not settlement mechanism
             - TODO: other assets will be supported in the future.
         """
-        raise NotImplementedError(f"Please implement the `settle_conf` method")
+        raise NotImplementedError("Please implement the `settle_conf` method")
 
     def settle_commit(self) -> None:
         """
         settlement commit
         """
-        raise NotImplementedError(f"Please implement the `settle_commit` method")
+        raise NotImplementedError("Please implement the `settle_commit` method")
 
     def __str__(self) -> str:
         return self.__dict__.__str__()
@@ -379,7 +379,7 @@ class Position(BasePosition):
         elif self._settle_type == self.ST_NO:
             self.position["cash"] += new_cash
         else:
-            raise NotImplementedError(f"This type of input is not supported")
+            raise NotImplementedError("This type of input is not supported")
 
     def _del_stock(self, stock_id: str) -> None:
         del self.position[stock_id]
@@ -496,7 +496,7 @@ class Position(BasePosition):
                 self.position["cash"] += self.position["cash_delay"]
                 del self.position["cash_delay"]
             else:
-                raise NotImplementedError(f"This type of input is not supported")
+                raise NotImplementedError("This type of input is not supported")
             self._settle_type = self.ST_NO
 
 
@@ -531,10 +531,10 @@ class InfPosition(BasePosition):
         return np.inf
 
     def calculate_value(self) -> float:
-        raise NotImplementedError(f"InfPosition doesn't support calculating value")
+        raise NotImplementedError("InfPosition doesn't support calculating value")
 
     def get_stock_list(self) -> List[str]:
-        raise NotImplementedError(f"InfPosition doesn't support stock list position")
+        raise NotImplementedError("InfPosition doesn't support stock list position")
 
     def get_stock_price(self, code: str) -> float:
         """the price of the inf position is meaningless"""
@@ -547,16 +547,16 @@ class InfPosition(BasePosition):
         return np.inf
 
     def get_stock_amount_dict(self) -> dict:
-        raise NotImplementedError(f"InfPosition doesn't support get_stock_amount_dict")
+        raise NotImplementedError("InfPosition doesn't support get_stock_amount_dict")
 
     def get_stock_weight_dict(self, only_stock: bool = False) -> dict:
-        raise NotImplementedError(f"InfPosition doesn't support get_stock_weight_dict")
+        raise NotImplementedError("InfPosition doesn't support get_stock_weight_dict")
 
     def add_count_all(self, bar: str) -> None:
-        raise NotImplementedError(f"InfPosition doesn't support add_count_all")
+        raise NotImplementedError("InfPosition doesn't support add_count_all")
 
     def update_weight_all(self) -> None:
-        raise NotImplementedError(f"InfPosition doesn't support update_weight_all")
+        raise NotImplementedError("InfPosition doesn't support update_weight_all")
 
     def settle_start(self, settle_type: str) -> None:
         pass

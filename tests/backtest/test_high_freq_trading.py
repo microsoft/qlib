@@ -1,8 +1,5 @@
-from typing import List, Tuple, Union
-from qlib.backtest.position import Position
 from qlib.backtest import collect_data, format_decisions
-from qlib.backtest.decision import BaseTradeDecision, TradeRangeByTime
-import qlib
+from qlib.backtest.decision import TradeRangeByTime
 from qlib.tests import TestAutoData
 import unittest
 import pandas as pd
@@ -120,10 +117,10 @@ class TestHFBacktest(TestAutoData):
         decisions = list(
             collect_data(executor=executor_config, strategy=strategy_config, **backtest_config, return_value=ret_val)
         )
-        report, indicator = ret_val["report"], ret_val["indicator"]
+        indicator = ret_val["indicator"]
         # NOTE: please refer to the docs of format_decisions
         # NOTE: `"track_data": True,`  is very NECESSARY for collecting the decision!!!!!
-        f_dec = format_decisions(decisions)
+        format_decisions(decisions)
         print(indicator["1day"][0])
 
 

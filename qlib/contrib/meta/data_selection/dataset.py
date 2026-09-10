@@ -226,7 +226,7 @@ class MetaTaskDS(MetaTask):
             # It will fillna(0.0) at the end.
             pass
         else:
-            raise NotImplementedError(f"This type of input is not supported")
+            raise NotImplementedError("This type of input is not supported")
         meta_info_norm = meta_info_norm.fillna(0.0)  # always fill zero in case of NaN
         return meta_info_norm
 
@@ -395,7 +395,7 @@ class MetaDatasetDS(MetaTaskDataset):
                 get_module_logger("MetaDatasetDS").info(f"The first test meta task: {test_tasks[0]}")
                 return test_tasks
             else:
-                raise NotImplementedError(f"This type of input is not supported")
+                raise NotImplementedError("This type of input is not supported")
         elif isinstance(self.segments, str):
             train_tasks = []
             test_tasks = []
@@ -411,6 +411,6 @@ class MetaDatasetDS(MetaTaskDataset):
                 return train_tasks
             elif segment == "test":
                 return test_tasks
-            raise NotImplementedError(f"This type of input is not supported")
+            raise NotImplementedError("This type of input is not supported")
         else:
-            raise NotImplementedError(f"This type of input is not supported")
+            raise NotImplementedError("This type of input is not supported")

@@ -61,7 +61,7 @@ def test_exit_on_crash_finite():
     def _exit_finite():
         dataset = DummyDataset(100)
 
-        with DataQueue(dataset, producer_num_workers=4) as data_queue:
+        with DataQueue(dataset, producer_num_workers=4):
             time.sleep(3)
             raise ValueError
 
@@ -75,7 +75,7 @@ def test_exit_on_crash_finite():
 def test_exit_on_crash_infinite():
     def _exit_infinite():
         dataset = DummyDataset(100)
-        with DataQueue(dataset, repeat=-1, queue_maxsize=100) as data_queue:
+        with DataQueue(dataset, repeat=-1, queue_maxsize=100):
             time.sleep(3)
             raise ValueError
 

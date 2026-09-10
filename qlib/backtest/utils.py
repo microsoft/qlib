@@ -86,7 +86,7 @@ class TradeCalendarManager:
 
     def step(self) -> None:
         if self.finished():
-            raise RuntimeError(f"The calendar is finished, please reset it if you want to call it!")
+            raise RuntimeError("The calendar is finished, please reset it if you want to call it!")
         self.trade_step += 1
 
     def get_freq(self) -> str:

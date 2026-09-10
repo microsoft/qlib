@@ -47,7 +47,7 @@ class LinearModel(Model):
         assert estimator in [self.OLS, self.NNLS, self.RIDGE, self.LASSO], f"unsupported estimator `{estimator}`"
         self.estimator = estimator
 
-        assert alpha == 0 or estimator in [self.RIDGE, self.LASSO], f"alpha is only supported in `ridge`&`lasso`"
+        assert alpha == 0 or estimator in [self.RIDGE, self.LASSO], "alpha is only supported in `ridge`&`lasso`"
         self.alpha = alpha
 
         self.fit_intercept = fit_intercept

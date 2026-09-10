@@ -1,5 +1,4 @@
 import unittest
-import time
 import numpy as np
 from qlib.data import D
 from qlib.tests import TestAutoData

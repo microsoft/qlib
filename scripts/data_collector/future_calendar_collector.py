@@ -64,7 +64,7 @@ class CollectorFutureCalendar:
         -------
 
         """
-        raise NotImplementedError(f"Please implement the `collector` method")
+        raise NotImplementedError("Please implement the `collector` method")
 
 
 class CollectorFutureCalendarCN(CollectorFutureCalendar):

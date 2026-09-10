@@ -1,10 +1,8 @@
 from ...utils.serial import Serializable
 from typing import Callable, Union, List, Tuple, Dict, Text, Optional
 from ...utils import init_instance_by_config, np_ffill, time_to_slc_point
-from ...log import get_module_logger
 from .handler import DataHandler, DataHandlerLP
 from copy import copy, deepcopy
-from inspect import getfullargspec
 import pandas as pd
 import numpy as np
 import bisect
@@ -591,7 +589,7 @@ class TSDataSampler:
             # NOTE: This relies on the idx_df columns sorted in `__init__`
             j = bisect.bisect_left(self.idx_df.columns, inst)
         else:
-            raise NotImplementedError(f"This type of input is not supported")
+            raise NotImplementedError("This type of input is not supported")
         return i, j
 
     def __getitem__(self, idx: Union[int, Tuple[object, str], List[int]]):

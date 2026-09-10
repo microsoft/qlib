@@ -116,7 +116,7 @@ dev: prerequisite all
 
 # Check lint with black.
 black:
-	black . -l 120 --check --diff --exclude qlib/_version.py
+	black . -l 120 --check --diff --exclude "/(\.venv|qlib/_version\.py)"
 
 # Check code folder with pylint.
 # TODO: These problems we will solve in the future. Important among them are: W0221, W0223, W0237, E1102
@@ -138,7 +138,6 @@ black:
 # 	W0622: redefined-builtin
 # 	FIXME: specify exception type
 # 	W0703: broad-except
-# 	W1309: f-string-without-interpolation
 # 	E1102: not-callable
 # 	E1136: unsubscriptable-object
 # 	W4904: deprecated-class
@@ -148,15 +147,13 @@ black:
 # We use sys.setrecursionlimit(2000) to make the recursion depth larger to ensure that pylint works properly (the default recursion depth is 1000).
 # References for parameters: https://github.com/PyCQA/pylint/issues/4577#issuecomment-1000245962
 pylint:
-	pylint --disable=C0104,C0114,C0115,C0116,C0301,C0302,C0411,C0413,C1802,R0401,R0801,R0902,R0903,R0911,R0912,R0913,R0914,R0915,R0917,R1720,W0105,W0123,W0201,W0511,W0613,W1113,W1514,W4904,E0401,E1121,C0103,C0209,R0402,R1705,R1710,R1725,R1730,R1735,W0102,W0212,W0221,W0223,W0231,W0237,W0612,W0621,W0622,W0703,W1309,E1102,E1136 --const-rgx='[a-z_][a-z0-9_]{2,30}' qlib --init-hook="import astroid; astroid.context.InferenceContext.max_inferred = 500; import sys; sys.setrecursionlimit(2000)"
-	pylint --disable=C0104,C0114,C0115,C0116,C0301,C0302,C0411,C0413,C1802,R0401,R0801,R0902,R0903,R0911,R0912,R0913,R0914,R0915,R0917,R1720,W0105,W0123,W0201,W0511,W0613,W1113,W1514,E0401,E1121,E1123,C0103,C0209,R0402,R1705,R1710,R1725,R1735,W0102,W0212,W0221,W0223,W0231,W0237,W0246,W0612,W0621,W0622,W0703,W1309,E1102,E1136 --const-rgx='[a-z_][a-z0-9_]{2,30}' scripts --init-hook="import astroid; astroid.context.InferenceContext.max_inferred = 500; import sys; sys.setrecursionlimit(2000)"
+	pylint --disable=C0104,C0114,C0115,C0116,C0301,C0302,C0411,C0413,C1802,R0401,R0801,R0902,R0903,R0911,R0912,R0913,R0914,R0915,R0917,R1720,W0105,W0123,W0201,W0511,W0613,W1113,W1514,W4904,E0401,E1121,C0103,C0209,R0402,R1705,R1710,R1725,R1730,R1735,W0102,W0212,W0221,W0223,W0231,W0237,W0612,W0621,W0622,W0703,E1102,E1136 --const-rgx='[a-z_][a-z0-9_]{2,30}' qlib --init-hook="import astroid; astroid.context.InferenceContext.max_inferred = 500; import sys; sys.setrecursionlimit(2000)"
+	pylint --disable=C0104,C0114,C0115,C0116,C0301,C0302,C0411,C0413,C1802,R0401,R0801,R0902,R0903,R0911,R0912,R0913,R0914,R0915,R0917,R1720,W0105,W0123,W0201,W0511,W0613,W1113,W1514,E0401,E1121,E1123,C0103,C0209,R0402,R1705,R1710,R1725,R1735,W0102,W0212,W0221,W0223,W0231,W0237,W0246,W0612,W0621,W0622,W0703,E1102,E1136 --const-rgx='[a-z_][a-z0-9_]{2,30}' scripts --init-hook="import astroid; astroid.context.InferenceContext.max_inferred = 500; import sys; sys.setrecursionlimit(2000)"
 
 # Check code with flake8.
 # The following flake8 error codes were ignored:
 # E501 line too long
 # 	Description: We have used black to limit the length of each line to 120.
-# F541 f-string is missing placeholders
-# 	Description: The same thing is done when using pylint for detection.
 # E266 too many leading '#' for block comment
 # 	Description: To make the code more readable, a lot of "#" is used.
 #         This error code appears centrally in:
@@ -172,7 +169,7 @@ pylint:
 # E203 whitespace before ':'
 # 	Description: If there is whitespace before ":", it cannot pass the black check.
 flake8:
-	flake8 --ignore=E501,F541,E266,E402,W503,E731,E203 --per-file-ignores="__init__.py:F401,F403" qlib
+	flake8 --ignore=E501,E266,E402,W503,E731,E203 --per-file-ignores="__init__.py:F401,F403" qlib
 
 # Check code with mypy.
 # https://github.com/python/mypy/issues/10600
