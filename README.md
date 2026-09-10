@@ -216,7 +216,7 @@ Also, users can install the latest dev version ``Qlib`` by the source code accor
 
 Here is an example to download the latest data (replace the repository in the URL with either source above).
 ```bash
-wget https://github.com/chenditc/investment_data/releases/latest/download/qlib_bin.tar.gz
+wget https://github.com/xu-duqing/investment_data/releases/latest/download/qlib_bin.tar.gz
 mkdir -p ~/.qlib/qlib_data/cn_data
 tar -zxvf qlib_bin.tar.gz -C ~/.qlib/qlib_data/cn_data --strip-components=1
 rm -f qlib_bin.tar.gz
