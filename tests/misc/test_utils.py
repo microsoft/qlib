@@ -1,5 +1,6 @@
 from typing import List
 from unittest.case import TestCase
+from unittest.mock import patch
 import unittest
 import pandas as pd
 import numpy as np
@@ -10,6 +11,7 @@ from qlib.log import TimeInspector
 from qlib.constant import REG_CN, REG_US, REG_TW
 from qlib.utils.time import cal_sam_minute as cal_sam_minute_new, get_min_cal, CN_TIME, US_TIME, TW_TIME
 from qlib.utils.data import guess_horizon
+from qlib.utils.resam import get_higher_eq_freq_feature
 
 REG_MAP = {REG_CN: CN_TIME, REG_US: US_TIME, REG_TW: TW_TIME}
 
@@ -130,6 +132,34 @@ class DataUtils(TestCase):
         label = ["Ref($close, -1) / Ref($close, -1) - 1"]
         result = guess_horizon(label)
         assert result == 1
+
+
+class TestGetHigherEqFreqFeature(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        init()
+
+    def test_minute_freq_falls_back_to_day_when_no_minute_data(self):
+        """
+        When the requested freq (e.g. 30min) and the 1min fallback both lack data
+        (e.g. a benchmark that only has daily data), get_higher_eq_freq_feature should
+        fall back to "day" instead of letting the raw ValueError from the storage layer
+        propagate. Regression test for https://github.com/microsoft/qlib/issues/1854
+        """
+        day_result = pd.DataFrame({"f": [1.0]})
+
+        def fake_features(instruments, fields, start_time, end_time, freq, disk_cache=1):
+            if freq in ("30min", "1min"):
+                raise ValueError(f"can't find a freq from [] that can resample to {freq}!")
+            if freq == "day":
+                return day_result
+            raise AssertionError(f"unexpected freq {freq}")
+
+        with patch("qlib.data.data.D.features", side_effect=fake_features):
+            result, freq = get_higher_eq_freq_feature(["SH000300"], ["$close"], freq="30min")
+
+        self.assertEqual(freq, "day")
+        pd.testing.assert_frame_equal(result, day_result)
 
 
 if __name__ == "__main__":
