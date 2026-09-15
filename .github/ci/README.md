@@ -53,6 +53,15 @@ run the unchanged `pip check`. No package metadata is rewritten and no checks
 or matrix entries are skipped. The PyPI workflow does not install the RL
 extras and is unaffected.
 
+These same source-build jobs also set `GRPC_PYTHON_BUILD_SYSTEM_ZLIB=1` to use
+the macOS SDK's zlib. In grpcio 1.70.0 (selected on Python 3.8), the bundled
+`third_party/zlib/zutil.h` defines `fdopen(fd,mode)` as `NULL` when
+`TARGET_OS_MAC` is defined. With the Xcode 16.4 SDK this corrupts the subsequent
+`fdopen` declaration in `_stdio.h`, causing compilation to fail on macOS 15.
+grpcio's supported system-zlib option removes the bundled zlib C sources from
+the build and links `-lz` instead. It stays scoped to the existing macOS ARM64
+Python 3.8/3.9 source-build workaround; other environments remain unchanged.
+
 Remove this workaround only after validating both the internal wheel tags and
 native imports on the affected ARM64 runners; a cross-platform resolver check
 alone does not inspect the internal `WHEEL` metadata.

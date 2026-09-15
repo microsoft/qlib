@@ -47,6 +47,8 @@ jobs:
       run: |
         echo "PIP_NO_BINARY=grpcio" >> "$GITHUB_ENV"
         echo "GRPC_PYTHON_BUILD_EXT_COMPILER_JOBS=2" >> "$GITHUB_ENV"
+        # grpcio 1.70's bundled zlib conflicts with the Xcode 16.4 SDK's fdopen.
+        echo "GRPC_PYTHON_BUILD_SYSTEM_ZLIB=1" >> "$GITHUB_ENV"
 
     - name: Set up Python tools
       run: |

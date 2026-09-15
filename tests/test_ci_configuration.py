@@ -131,6 +131,7 @@ class TestCIConfiguration(unittest.TestCase):
                 self.assertEqual(configure["shell"], "bash")
                 self.assertIn('echo "PIP_NO_BINARY=grpcio" >> "$GITHUB_ENV"', configure["run"])
                 self.assertIn('echo "GRPC_PYTHON_BUILD_EXT_COMPILER_JOBS=2" >> "$GITHUB_ENV"', configure["run"])
+                self.assertIn('echo "GRPC_PYTHON_BUILD_SYSTEM_ZLIB=1" >> "$GITHUB_ENV"', configure["run"])
                 self.assertIn("from grpc._cython import cygrpc", native["run"])
                 self.assertLess(steps.index(configure), steps.index(install))
                 self.assertLess(steps.index(install), steps.index(native))
@@ -142,6 +143,7 @@ class TestCIConfiguration(unittest.TestCase):
                 self.assertNotIn("PIP_NO_BINARY", self.workflows[name]["jobs"]["build"].get("env", {}))
                 for step in steps:
                     self.assertNotIn("PIP_NO_BINARY", step.get("env", {}))
+                    self.assertNotIn("GRPC_PYTHON_BUILD_SYSTEM_ZLIB", step.get("env", {}))
 
     def test_download_retries_are_bounded_and_noninteractive(self):
         for name, workflow in self.workflows.items():
