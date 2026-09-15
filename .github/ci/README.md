@@ -34,6 +34,29 @@ test native solver imports rather than excluding Windows/Python 3.8.
 opt-in. The upper bound also protects source installs outside CI. Migrating
 Qlib's tracking backend is a separate change.
 
+## grpcio wheels on older macOS ARM64 Python
+
+The source jobs install TensorBoard through the RL extras, which brings in
+grpcio. The published Python 3.8 grpcio 1.70.0 and Python 3.9 grpcio 1.80.0
+macOS wheels have `universal2` filenames and binaries with both architectures,
+but their internal `WHEEL` metadata declares only `x86_64`. Pip accepts the
+filename during installation, then `pip check` rejects the internal tag on
+ARM64. grpcio 1.78.0 has the same problem, so an arbitrary downgrade is not a
+reliable fix.
+
+Only the source and slow-source jobs on macOS ARM64 with Python 3.8/3.9 set
+`PIP_NO_BINARY=grpcio` before `make dev`. This makes pip build the resolved
+version from source with metadata for the local platform. The setting persists
+for subsequent pip installs, and `GRPC_PYTHON_BUILD_EXT_COMPILER_JOBS=2` bounds
+compilation parallelism. The workflows then import `grpc._cython.cygrpc` and
+run the unchanged `pip check`. No package metadata is rewritten and no checks
+or matrix entries are skipped. The PyPI workflow does not install the RL
+extras and is unaffected.
+
+Remove this workaround only after validating both the internal wheel tags and
+native imports on the affected ARM64 runners; a cross-platform resolver check
+alone does not inspect the internal `WHEEL` metadata.
+
 ## Network and workflow retries
 
 Dataset commands have at most three attempts, with a 15-minute timeout per

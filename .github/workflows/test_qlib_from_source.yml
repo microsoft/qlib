@@ -39,6 +39,15 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
+    # The cp38/cp39 universal2 wheels contain x86_64-only WHEEL tags.
+    # Build locally so the binary and metadata both match this runner.
+    - name: Configure grpcio source builds on older macOS ARM64 Python
+      if: ${{ runner.os == 'macOS' && runner.arch == 'ARM64' && (matrix.python-version == '3.8' || matrix.python-version == '3.9') }}
+      shell: bash
+      run: |
+        echo "PIP_NO_BINARY=grpcio" >> "$GITHUB_ENV"
+        echo "GRPC_PYTHON_BUILD_EXT_COMPILER_JOBS=2" >> "$GITHUB_ENV"
+
     - name: Update pip to the latest version
       run: |
         python -m pip install --upgrade pip
@@ -61,6 +70,10 @@ jobs:
     - name: Set up Python tools
       run: |
         make dev
+
+    - name: Verify grpcio native extension on older macOS ARM64 Python
+      if: ${{ runner.os == 'macOS' && runner.arch == 'ARM64' && (matrix.python-version == '3.8' || matrix.python-version == '3.9') }}
+      run: python -c "import grpc; from grpc._cython import cygrpc; print('grpcio', grpc.__version__, cygrpc.__file__)"
 
     - name: Verify dependency consistency
       run: python -m pip check

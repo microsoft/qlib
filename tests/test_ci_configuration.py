@@ -114,6 +114,35 @@ class TestCIConfiguration(unittest.TestCase):
                     self.assertNotIn("continue-on-error", step)
                     self.assertNotIn("continue_on_error", step.get("with", {}))
 
+    def test_grpcio_source_build_is_scoped_and_precedes_installation(self):
+        condition = (
+            "${{ runner.os == 'macOS' && runner.arch == 'ARM64' && "
+            "(matrix.python-version == '3.8' || matrix.python-version == '3.9') }}"
+        )
+        for name in ("test_qlib_from_source.yml", "test_qlib_from_source_slow.yml"):
+            with self.subTest(workflow=name):
+                steps = self.workflows[name]["jobs"]["build"]["steps"]
+                configure = next(step for step in steps if step["name"].startswith("Configure grpcio source builds"))
+                install = next(step for step in steps if step["name"] == "Set up Python tools")
+                native = next(step for step in steps if step["name"].startswith("Verify grpcio native extension"))
+                check = next(step for step in steps if step["name"] == "Verify dependency consistency")
+                self.assertEqual(configure["if"], condition)
+                self.assertEqual(native["if"], condition)
+                self.assertEqual(configure["shell"], "bash")
+                self.assertIn('echo "PIP_NO_BINARY=grpcio" >> "$GITHUB_ENV"', configure["run"])
+                self.assertIn('echo "GRPC_PYTHON_BUILD_EXT_COMPILER_JOBS=2" >> "$GITHUB_ENV"', configure["run"])
+                self.assertIn("from grpc._cython import cygrpc", native["run"])
+                self.assertLess(steps.index(configure), steps.index(install))
+                self.assertLess(steps.index(install), steps.index(native))
+                self.assertLess(steps.index(native), steps.index(check))
+                for step in steps:
+                    if "pip install" in step.get("run", ""):
+                        self.assertLess(steps.index(configure), steps.index(step))
+                # Later installs must not restore the broken binary wheel.
+                self.assertNotIn("PIP_NO_BINARY", self.workflows[name]["jobs"]["build"].get("env", {}))
+                for step in steps:
+                    self.assertNotIn("PIP_NO_BINARY", step.get("env", {}))
+
     def test_download_retries_are_bounded_and_noninteractive(self):
         for name, workflow in self.workflows.items():
             downloads = [
