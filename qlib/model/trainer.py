@@ -100,7 +100,9 @@ def end_task_train(rec: Recorder, experiment_name: str) -> Recorder:
         Recorder: the model recorder
     """
     with R.start(experiment_name=experiment_name, recorder_id=rec.info["id"], resume=True):
-        task_config = R.load_object("task")
+        # Resuming a training task executes its model/configuration code; its
+        # recorder must be trusted, including any serialized reweighter.
+        task_config = R.load_object("task", trusted=True)
         _exe_task(task_config)
     return rec
 

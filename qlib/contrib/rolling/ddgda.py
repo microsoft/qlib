@@ -333,7 +333,8 @@ class DDGDA(Rolling):
         # 1) get meta model
         exp = R.get_exp(experiment_name=self.meta_exp_name)
         rec = exp.list_recorders(rtype=exp.RT_L)[0]
-        meta_model: MetaModelDS = rec.load_object("model")
+        # The meta-model is executable training state from our experiment.
+        meta_model: MetaModelDS = rec.load_object("model", trusted=True)
 
         # 2)
         # we are transfer to knowledge of meta model to final forecasting tasks.

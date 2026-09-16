@@ -93,7 +93,8 @@ class InternalData:
         ic_l = []
         for _, rec in tqdm(recorders.items(), desc="calc"):
             pred = rec.load_object("pred.pkl")
-            task = rec.load_object("task")
+            # Training configurations may contain executable reweighters.
+            task = rec.load_object("task", trusted=True)
             data_key = task["dataset"]["kwargs"]["segments"]["train"]
             key_l.append(data_key)
             ic_l.append(delayed(self._calc_perf)(pred.iloc[:, 0], label_df.iloc[:, 0]))

@@ -134,7 +134,7 @@ class RollingStrategy(OnlineStrategy):
         """
 
         def rec_key(recorder):
-            task_config = recorder.load_object("task")
+            task_config = recorder.load_object("task", trusted=True)
             model_key = task_config["model"]["class"]
             rolling_key = task_config["dataset"]["kwargs"]["segments"]["test"]
             return model_key, rolling_key
@@ -184,7 +184,8 @@ class RollingStrategy(OnlineStrategy):
         )
         res = []
         for rec in latest_records:
-            task = rec.load_object("task")
+            # These configurations will be executed by the next training run.
+            task = rec.load_object("task", trusted=True)
             res.extend(self.rg.gen_following_tasks(task, calendar_latest))
         return res
 
@@ -200,9 +201,11 @@ class RollingStrategy(OnlineStrategy):
         """
         if len(rec_list) == 0:
             return rec_list, None
-        max_test = max(rec.load_object("task")["dataset"]["kwargs"]["segments"]["test"] for rec in rec_list)
+        max_test = max(
+            rec.load_object("task", trusted=True)["dataset"]["kwargs"]["segments"]["test"] for rec in rec_list
+        )
         latest_rec = []
         for rec in rec_list:
-            if rec.load_object("task")["dataset"]["kwargs"]["segments"]["test"] == max_test:
+            if rec.load_object("task", trusted=True)["dataset"]["kwargs"]["segments"]["test"] == max_test:
                 latest_rec.append(rec)
         return latest_rec, max_test

@@ -58,6 +58,9 @@ SAFE_PICKLE_CLASSES: Set[Tuple[str, str]] = {
     ("numpy.core.multiarray", "scalar"),
     ("numpy._core.multiarray", "_reconstruct"),
     ("numpy._core.multiarray", "scalar"),
+    # Protocol 5 uses _frombuffer instead of _reconstruct for numeric arrays.
+    ("numpy.core.numeric", "_frombuffer"),
+    ("numpy._core.numeric", "_frombuffer"),
     # Pandas reconstruction primitives used by Series/DataFrame pickles.
     # These entries are deliberately exact. I/O helpers such as
     # pandas.read_pickle must never be added here.
@@ -85,6 +88,46 @@ SAFE_PICKLE_CLASSES: Set[Tuple[str, str]] = {
     ("pandas.core.arrays.period", "PeriodArray"),
     ("pandas.core.arrays.categorical", "Categorical"),
     ("pandas.core.dtypes.dtypes", "CategoricalDtype"),
+    ("pandas.core.dtypes.dtypes", "DatetimeTZDtype"),
+    ("pandas._libs.tslibs.nattype", "__nat_unpickle"),
+    ("pandas._libs.missing", "NA"),
+    # DatetimeIndex/PeriodIndex retain their frequency and timezone metadata.
+    ("pandas._libs.tslibs.offsets", "Day"),
+    ("pandas._libs.tslibs.offsets", "BusinessDay"),
+    ("pandas._libs.tslibs.offsets", "Week"),
+    ("pandas._libs.tslibs.offsets", "MonthBegin"),
+    ("pandas._libs.tslibs.offsets", "MonthEnd"),
+    ("pandas._libs.tslibs.offsets", "BusinessMonthBegin"),
+    ("pandas._libs.tslibs.offsets", "BusinessMonthEnd"),
+    ("pandas._libs.tslibs.offsets", "QuarterBegin"),
+    ("pandas._libs.tslibs.offsets", "QuarterEnd"),
+    ("pandas._libs.tslibs.offsets", "YearBegin"),
+    ("pandas._libs.tslibs.offsets", "YearEnd"),
+    ("pandas._libs.tslibs.offsets", "Hour"),
+    ("pandas._libs.tslibs.offsets", "Minute"),
+    ("pandas._libs.tslibs.offsets", "Second"),
+    ("pandas._libs.tslibs.offsets", "Milli"),
+    ("pandas._libs.tslibs.offsets", "Micro"),
+    ("pandas._libs.tslibs.offsets", "Nano"),
+    ("pytz", "_UTC"),
+    ("pytz", "_p"),
+    # Nullable arrays serialize their masks and dtype objects as well as data.
+    ("pandas.core.arrays.integer", "IntegerArray"),
+    ("pandas.core.arrays.integer", "Int8Dtype"),
+    ("pandas.core.arrays.integer", "Int16Dtype"),
+    ("pandas.core.arrays.integer", "Int32Dtype"),
+    ("pandas.core.arrays.integer", "Int64Dtype"),
+    ("pandas.core.arrays.integer", "UInt8Dtype"),
+    ("pandas.core.arrays.integer", "UInt16Dtype"),
+    ("pandas.core.arrays.integer", "UInt32Dtype"),
+    ("pandas.core.arrays.integer", "UInt64Dtype"),
+    ("pandas.core.arrays.floating", "FloatingArray"),
+    ("pandas.core.arrays.floating", "Float32Dtype"),
+    ("pandas.core.arrays.floating", "Float64Dtype"),
+    ("pandas.core.arrays.boolean", "BooleanArray"),
+    ("pandas.core.arrays.boolean", "BooleanDtype"),
+    ("pandas.core.arrays.string_", "StringArray"),
+    ("pandas.core.arrays.string_", "StringDtype"),
 }
 
 
