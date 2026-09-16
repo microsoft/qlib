@@ -109,6 +109,8 @@ verify its SHA against the upstream repository and update the version comment.
 The offline policy checks reject mutable action references. Dependabot checks
 GitHub Actions weekly and groups their version updates; its seven-day cooldown
 filters newly published versions, rather than setting the interval between PRs.
+Its explicit `ci` commit prefix and dependency scope keep generated PR titles
+aligned with the repository's conventional-commit title checks.
 
 Node 22 satisfies commitlint's Node >=22.12 requirement. The root `package.json`
 and `package-lock.json` pin the title tooling and its transitive dependencies;
