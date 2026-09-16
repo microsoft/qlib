@@ -4,6 +4,7 @@ from types import SimpleNamespace
 from unittest.mock import Mock
 
 import pandas as pd
+import numpy as np
 import pytest
 
 from qlib.utils.exceptions import LoadObjectError
@@ -88,6 +89,35 @@ def test_recorder_facade_forwards_explicit_trust(trusted):
     facade.get_exp = Mock(return_value=experiment)
     facade.load_object("model.pkl", trusted=trusted)
     recorder.load_object.assert_called_once_with("model.pkl", trusted=trusted)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        pd.Series([1, 2], index=pd.period_range("2024-01", periods=2, freq="M")),
+        pd.Series([1, 2], index=pd.IntervalIndex.from_breaks([0, 1, 2])),
+        pd.Series([0.0, 1.0, 0.0], dtype=pd.SparseDtype("float64", 0)),
+        np.ma.array([1, 2, 3], mask=[False, True, False]),
+    ],
+)
+def test_real_mlflow_store_roundtrips_data_artifacts(tmp_path, value):
+    from mlflow.tracking import MlflowClient
+
+    uri = (tmp_path / "mlruns").as_uri()
+    client = MlflowClient(tracking_uri=uri)
+    experiment_id = client.create_experiment("typed-data")
+    run = client.create_run(experiment_id, tags={"mlflow.runName": "roundtrip"})
+    writer = MLflowRecorder(experiment_id, uri, mlflow_run=run)
+    writer.save_objects(**{"data.pkl": value})
+    # A new recorder/client must download and deserialize the stored artifact.
+    reader = MLflowRecorder(experiment_id, uri, mlflow_run=client.get_run(run.info.run_id))
+    actual = reader.load_object("data.pkl")
+    if isinstance(value, pd.Series):
+        pd.testing.assert_series_equal(actual, value)
+    else:
+        np.testing.assert_array_equal(actual.data, value.data)
+        np.testing.assert_array_equal(actual.mask, value.mask)
+    client.set_terminated(run.info.run_id)
 
 
 def test_end_task_train_loads_trusted_reweighter(tmp_path, monkeypatch):

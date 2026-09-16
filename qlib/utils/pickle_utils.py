@@ -61,6 +61,8 @@ SAFE_PICKLE_CLASSES: Set[Tuple[str, str]] = {
     # Protocol 5 uses _frombuffer instead of _reconstruct for numeric arrays.
     ("numpy.core.numeric", "_frombuffer"),
     ("numpy._core.numeric", "_frombuffer"),
+    ("numpy.ma.core", "_mareconstruct"),
+    ("numpy.ma", "MaskedArray"),
     # Pandas reconstruction primitives used by Series/DataFrame pickles.
     # These entries are deliberately exact. I/O helpers such as
     # pandas.read_pickle must never be added here.
@@ -78,6 +80,8 @@ SAFE_PICKLE_CLASSES: Set[Tuple[str, str]] = {
     ("pandas.core.indexes.datetimes", "DatetimeIndex"),
     ("pandas.core.indexes.timedeltas", "TimedeltaIndex"),
     ("pandas.core.indexes.period", "PeriodIndex"),
+    ("pandas.core.indexes.interval", "_new_IntervalIndex"),
+    ("pandas.core.indexes.interval", "IntervalIndex"),
     ("pandas._libs.tslibs.timestamps", "_unpickle_timestamp"),
     ("pandas._libs.tslibs.timestamps", "Timestamp"),
     ("pandas._libs.tslibs.timedeltas", "Timedelta"),
@@ -88,6 +92,14 @@ SAFE_PICKLE_CLASSES: Set[Tuple[str, str]] = {
     ("pandas.core.arrays.period", "PeriodArray"),
     ("pandas.core.arrays.categorical", "Categorical"),
     ("pandas.core.dtypes.dtypes", "CategoricalDtype"),
+    ("pandas.core.dtypes.dtypes", "PeriodDtype"),
+    ("pandas.core.dtypes.dtypes", "IntervalDtype"),
+    ("pandas.core.dtypes.dtypes", "SparseDtype"),
+    ("pandas.core.arrays.interval", "IntervalArray"),
+    ("pandas._libs.interval", "__pyx_unpickle_IntervalMixin"),
+    ("pandas.core.arrays.sparse.array", "SparseArray"),
+    ("pandas._libs.sparse", "IntIndex"),
+    ("pandas._libs.sparse", "BlockIndex"),
     ("pandas.core.dtypes.dtypes", "DatetimeTZDtype"),
     ("pandas._libs.tslibs.nattype", "__nat_unpickle"),
     ("pandas._libs.missing", "NA"),

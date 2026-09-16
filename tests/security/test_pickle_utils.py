@@ -154,3 +154,34 @@ def test_restricted_unpickler_blocks_two_stage_read_pickle(tmp_path, protocol):
     payload = pickle.dumps(_SecondStagePayload(second_stage), protocol=protocol)
     with pytest.raises(pickle.UnpicklingError, match="pandas.*read_pickle"):
         restricted_pickle_loads(payload)
+
+
+@pytest.mark.parametrize("protocol", [4, 5])
+@pytest.mark.parametrize(
+    "value",
+    [
+        pd.Series([1, 2], index=pd.period_range("2024-01", periods=2, freq="M")),
+        pd.Series(pd.period_range("2024-01", periods=2, freq="M")),
+        pd.Series([1, 2], index=pd.IntervalIndex.from_breaks([0, 1, 2])),
+        pd.Series(pd.arrays.IntervalArray.from_breaks([0, 1, 2])),
+        pd.Series([0.0, 1.0, 0.0], dtype=pd.SparseDtype("float64", 0)),
+    ],
+)
+def test_restricted_unpickler_preserves_extended_pandas_types(value, protocol):
+    actual = restricted_pickle_loads(pickle.dumps(value, protocol=protocol))
+    pd.testing.assert_series_equal(actual, value)
+
+
+@pytest.mark.parametrize("protocol", [4, 5])
+def test_restricted_unpickler_preserves_masked_array(protocol):
+    value = np.ma.array([1, 2, 3], mask=[False, True, False])
+    actual = restricted_pickle_loads(pickle.dumps(value, protocol=protocol))
+    np.testing.assert_array_equal(actual.data, value.data)
+    np.testing.assert_array_equal(actual.mask, value.mask)
+
+
+@pytest.mark.parametrize("protocol", [4, 5])
+def test_masked_array_cannot_hide_executable_objects(protocol):
+    value = np.ma.array([_MaliciousPayload()], dtype=object, mask=[True])
+    with pytest.raises(pickle.UnpicklingError, match="Forbidden class"):
+        restricted_pickle_loads(pickle.dumps(value, protocol=protocol))
