@@ -1,0 +1,129 @@
+{
+  "schema_version": "courage_strict_c4_sequence_config_v1",
+  "route_id": "courage_route_strict_v1.0.0_mainboard_v2",
+  "status": "FROZEN_NOT_AUTHORIZED",
+  "inputs": {
+    "c3_final_report": {
+      "path": "artifacts/courage_strict_c3_acceptance/courage_strict_c3_final_acceptance_v1/acceptance-eec495f1b50d6e534e455b47/_c3_final_acceptance_report.json",
+      "sha256": "41c326ee04feb68d775aa518aa0494edf4b5933c6b6055a7602a63ecfa9eefba"
+    },
+    "c3_label_manifest": {
+      "path": "artifacts/courage_strict_c3_labels/courage_strict_c3_labels_v2/authorization-58cb3716cb748c89b6f996bd/_c3_label_manifest.json",
+      "sha256": "2ba16743e7103bcf01fba2e5dc84394148a5a551a8dadfca93e147f541d64b1f"
+    },
+    "c4_golden_report": {
+      "path": "artifacts/courage_strict_c4_golden/courage_strict_c4_golden_v1/golden-ec9bcd558b596eb5fc99b334/_c4_golden_report.json",
+      "sha256": "b7abb023b5cc4b9222ee8589000d43631ca2f1d88f0f9fbffbe7b353f84e8fc2"
+    },
+    "mainboard_scope": {
+      "path": "artifacts/courage_strict_c2_mainboard_reacceptance/courage_strict_c2_mainboard_reacceptance_v1/audit-a5ddeaa064f6da967c08a298/mainboard_security_scope.parquet",
+      "sha256": "6a93b99f7008b403e0fff23e581d5e581c2a01234527b26958177fe865b138f9"
+    },
+    "source_identity_manifest": {
+      "path": "artifacts/courage_strict_c2_input_identity/courage_strict_c2_a_r1_v2/identity-d68ab9dbf05e709d6004/_source_identity_manifest.json",
+      "sha256": "dbd92dbd23ffe02496000484723971bac6e7a24da2d748ae12cd694095af50b8"
+    },
+    "official_axis": {
+      "path": "artifacts/courage_strict_c2_official_minute_axis/courage_strict_c2_r1_v1/authorization-94f402cc85b63090687fd852/official_minute_axis.parquet",
+      "sha256": "582c6d85479cac8219f11ea33f41bd4d66753a7e6de5054467ce6956d9748243"
+    },
+    "normalized_status": {
+      "path": "artifacts/courage_strict_c2_status_r2/courage_strict_c2_status_r2_v1/authorization-9ebd898ae3456fe495a20e66/effective_dated_status.parquet",
+      "sha256": "66abfa772c89341757dcf4bee17a12e62a03862c327ea86d279405f868e790d9"
+    },
+    "daily_industry": {
+      "path": "artifacts/courage_strict_c2_industry_r6/courage_strict_c2_industry_r6_v1/authorization-5c8f882e6b06cee1708ed055/daily_industry.parquet",
+      "sha256": "2bebfc8dd4a981998e96b18c56854f30168ec01da626bc86b2cb6e15336307d1"
+    },
+    "normalized_daily": {
+      "path": "artifacts/courage_strict_c2_daily_r5/courage_strict_c2_daily_r5_v1/authorization-c88e6a380ed7bfe047920902/normalized_daily.parquet",
+      "sha256": "d366e224d5df729f40e51321a29fada995684747ccc04cf4a0a2627ad1ad4155"
+    },
+    "accepted_actions": {
+      "path": "artifacts/courage_strict_c2_corporate_action_r4/courage_strict_c2_corporate_action_r4_v1/authorization-fccfbcc726de480c0877b663/accepted_effective_dated_corporate_actions.parquet",
+      "sha256": "c1e29658f577ac5ec52eb9d9f9be327e6c121d23dd7ad8d7fffaf76639e279b4"
+    },
+    "quarantined_actions": {
+      "path": "artifacts/courage_strict_c2_corporate_action_r4/courage_strict_c2_corporate_action_r4_v1/authorization-fccfbcc726de480c0877b663/quarantined_factor_changes.parquet",
+      "sha256": "8e8d74a1fa356ec099a4cf673d591d3c1f2b968679c5242ed3a1275d611a9bfa"
+    },
+    "membership": {
+      "path": "artifacts/courage_strict_c3_membership/courage_strict_c3_membership_v1/authorization-6be073c9cb021e384c58988b/membership.parquet",
+      "sha256": "df859c27f08f698d85592f3232f26b3b7b82789390c589e4a10fafb1dd26fca7"
+    }
+  },
+  "source_interval": {
+    "start": "2025-04-01",
+    "end": "2026-04-01"
+  },
+  "signal_interval": {
+    "start": "2025-07-01",
+    "end": "2026-04-01"
+  },
+  "feature_contract": {
+    "dynamic_order": [
+      "stock_ret_1",
+      "stock_ret_5",
+      "stock_ret_20",
+      "stock_vwap_bias_20",
+      "stock_realized_vol_20",
+      "stock_high_low_range_20",
+      "stock_volume_ratio_20",
+      "stock_amount_ratio_20",
+      "sector_ret_5_median",
+      "sector_ret_20_median",
+      "sector_positive_breadth_1",
+      "sector_amount_ratio_20_median"
+    ],
+    "slow_order": [
+      "daily_ret_5",
+      "daily_ma20_bias",
+      "daily_vol_20",
+      "turnover_mean_60",
+      "market_cap_log"
+    ],
+    "lookback_official_minutes": 1200,
+    "industry_embedding": "effective_dated_sector_level2_code_or_UNKNOWN"
+  },
+  "sector_gate": {
+    "universe": "complete_active_admitted_SSE_SZSE_mainboard_before_turnover_projection",
+    "minimum_coverage": 0.8,
+    "minimum_valid_count": 3
+  },
+  "expected_counts": {
+    "mainboard_symbols": 3214,
+    "selected_symbols": 2162,
+    "membership_rows": 213958,
+    "sample_rows": 10269984,
+    "source_sessions": 242,
+    "source_axis_rows": 58080,
+    "dynamic_rows": 125568960
+  },
+  "resources": {
+    "source_workers": 64,
+    "write_workers": 32
+  },
+  "output_root": "artifacts/courage_strict_c4_sequence/courage_strict_c4_sequence_v1",
+  "authority_matrix": {
+    "execution_authorized": false,
+    "accepted_C2_C3_read_authorized": false,
+    "full_feature_materialization_authorized": false,
+    "sequence_build_authorized": false,
+    "fixed_partition_audit_authorized": false,
+    "catalog_aggregation_authorized": false,
+    "idempotent_reuse_verification_authorized": false,
+    "runtime_profile_authorized": false,
+    "training_authorized": false,
+    "model_selection_authorized": false,
+    "development_test_read_authorized": false,
+    "reserved_confirm_read_authorized": false,
+    "holdout_read_authorized": false,
+    "refit_authorized": false,
+    "strategy_authorized": false,
+    "backtest_authorized": false,
+    "paper_trading_authorized": false,
+    "live_trading_authorized": false,
+    "order_generation_authorized": false,
+    "remote_push_authorized": false
+  }
+}

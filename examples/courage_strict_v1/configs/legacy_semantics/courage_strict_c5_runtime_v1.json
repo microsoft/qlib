@@ -1,0 +1,68 @@
+{
+  "schema_version": "courage_strict_c5_runtime_config_v1",
+  "route_id": "courage_route_strict_v1.0.0_mainboard_v2",
+  "status": "FROZEN_NOT_AUTHORIZED",
+  "inputs": {
+    "c4_acceptance_report": {
+      "path": "artifacts/courage_strict_c4_acceptance/courage_strict_c4_acceptance_v1/acceptance-f3c4e6b7e5176d437d5f620a/_c4_acceptance_report.json",
+      "sha256": "349bc97606e8d8d30c806a546cf886abfa0a005687433d374ec487a9a49d303d"
+    },
+    "c4_sequence_catalog": {
+      "path": "artifacts/courage_strict_c4_sequence/courage_strict_c4_sequence_v1/sequence-3c1d93f3a4f34e694097ceed/_c4_sequence_catalog.json",
+      "sha256": "f663af9d3d2f91c44a3889bc5fa4c5562bcf836a088a00db61c33587e2a223f2"
+    },
+    "c3_label_manifest": {
+      "path": "artifacts/courage_strict_c3_labels/courage_strict_c3_labels_v2/authorization-58cb3716cb748c89b6f996bd/_c3_label_manifest.json",
+      "sha256": "2ba16743e7103bcf01fba2e5dc84394148a5a551a8dadfca93e147f541d64b1f"
+    }
+  },
+  "runtime": {
+    "world_size": 8,
+    "precision": "BF16",
+    "attention_backend": "math",
+    "microbatch_candidates": [256, 128, 64],
+    "loader_worker_candidates": [8, 16, 32],
+    "selection_workers": 8,
+    "prefetch_factor": 4,
+    "lru_capacity": 16,
+    "sample_rows": 262144,
+    "warmup_steps": 5,
+    "measured_steps": 20,
+    "loader_warmup_steps": 5,
+    "loader_measured_steps": 20,
+    "maximum_reserved_fraction": 0.85,
+    "loader_throughput_tie_fraction": 0.02,
+    "seed": 20260818,
+    "optimizer": "AdamW",
+    "runtime_learning_rate": 0.001,
+    "runtime_weight_decay": 0.01,
+    "runtime_scaler": "identity_only_not_reusable_for_C6"
+  },
+  "output_root": "artifacts/courage_strict_c5_runtime/courage_strict_c5_runtime_v1",
+  "scratch_root": "artifacts/.scratch/courage_strict_c5_runtime_v1",
+  "authority_matrix": {
+    "execution_authorized": false,
+    "accepted_C3_C4_read_authorized": false,
+    "runtime_profile_authorized": false,
+    "gpu_bf16_authorized": false,
+    "multiworker_dataloader_authorized": false,
+    "ephemeral_optimizer_steps_authorized": false,
+    "temporary_checkpoint_resume_authorized": false,
+    "runtime_report_write_authorized": false,
+    "feature_or_target_scaler_fit_authorized": false,
+    "persistent_model_checkpoint_authorized": false,
+    "training_authorized": false,
+    "model_selection_authorized": false,
+    "prediction_export_authorized": false,
+    "development_test_read_authorized": false,
+    "reserved_confirm_read_authorized": false,
+    "holdout_read_authorized": false,
+    "refit_authorized": false,
+    "strategy_authorized": false,
+    "backtest_authorized": false,
+    "paper_trading_authorized": false,
+    "live_trading_authorized": false,
+    "order_generation_authorized": false,
+    "remote_push_authorized": false
+  }
+}

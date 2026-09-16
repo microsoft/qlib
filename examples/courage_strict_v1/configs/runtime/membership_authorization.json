@@ -1,0 +1,40 @@
+{
+  "authorities": {
+    "C3_evidence_write_authorized": true,
+    "accepted_C2_read_authorized": true,
+    "backtest_authorized": false,
+    "development_test_read_authorized": false,
+    "execution_authorized": true,
+    "feature_build_authorized": false,
+    "holdout_read_authorized": false,
+    "label_build_authorized": false,
+    "live_trading_authorized": false,
+    "minute_bar_record_read_authorized": false,
+    "model_selection_authorized": false,
+    "order_generation_authorized": false,
+    "paper_trading_authorized": false,
+    "refit_authorized": false,
+    "remote_push_authorized": false,
+    "reserved_confirm_read_authorized": false,
+    "runtime_profile_authorized": false,
+    "sequence_build_authorized": false,
+    "signal_grid_materialization_authorized": true,
+    "strategy_authorized": false,
+    "training_authorized": false,
+    "turnover_membership_materialization_authorized": true
+  },
+  "authorization_scope": "V1_Qlib_fresh_T_minus_1_membership_and_signal_grid",
+  "config": {
+    "path": "examples/courage_strict_v1/configs/runtime/membership.json",
+    "sha256": "685883cff8b1713adff4ba7c7754c21a244ec25d72eaf24ca88b624d6c380d16"
+  },
+  "consumed_when_manifest_written": true,
+  "one_time_authorization": true,
+  "operator_statement": "用户授权在当前Qlib仓库完成courage_strict_v1全部代码、数据构造、训练和评测。",
+  "operator_statement_sha256": "ec8170aef85971d5159ef98f158547cbab0a973c9cb552bf9b934d7bfd57988c",
+  "runner": {
+    "path": "qlib/contrib/data/courage_strict_v1/minute_courage_strict_c3_membership_v1.py",
+    "sha256": "5565f1787fc19a4742215e4bad6d8001a73412babe517deab9fbaa05db65ffbe"
+  },
+  "schema_version": "courage_strict_c3_membership_authorization_v1"
+}

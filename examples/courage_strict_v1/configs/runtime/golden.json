@@ -1,0 +1,136 @@
+{
+  "audit": {
+    "prefix_endpoints": 16,
+    "prefix_symbols": 16
+  },
+  "authority_matrix": {
+    "accepted_C2_C3_read_authorized": false,
+    "backtest_authorized": false,
+    "development_test_read_authorized": false,
+    "execution_authorized": false,
+    "full_feature_materialization_authorized": false,
+    "golden_evidence_write_authorized": false,
+    "golden_feature_computation_authorized": false,
+    "golden_source_record_read_authorized": false,
+    "holdout_read_authorized": false,
+    "live_trading_authorized": false,
+    "model_selection_authorized": false,
+    "order_generation_authorized": false,
+    "paper_trading_authorized": false,
+    "refit_authorized": false,
+    "remote_push_authorized": false,
+    "reserved_confirm_read_authorized": false,
+    "runtime_profile_authorized": false,
+    "sequence_build_authorized": false,
+    "strategy_authorized": false,
+    "training_authorized": false
+  },
+  "expected_counts": {
+    "golden_axis_rows": 4800,
+    "golden_sessions": 20,
+    "mainboard_symbols": 3214,
+    "source_axis_rows": 14400,
+    "source_sessions": 60
+  },
+  "feature_contract": {
+    "dynamic_order": [
+      "stock_ret_1",
+      "stock_ret_5",
+      "stock_ret_20",
+      "stock_vwap_bias_20",
+      "stock_realized_vol_20",
+      "stock_high_low_range_20",
+      "stock_volume_ratio_20",
+      "stock_amount_ratio_20",
+      "sector_ret_5_median",
+      "sector_ret_20_median",
+      "sector_positive_breadth_1",
+      "sector_amount_ratio_20_median"
+    ],
+    "explicit_available_and_data_missing_masks": true,
+    "future_fill": false,
+    "industry_embedding": "effective_dated_sector_level2_code_or_UNKNOWN",
+    "quarantined_action_dynamic_blackout_official_minutes": 1200,
+    "rolling_windows_cross_accepted_or_quarantined_action": false,
+    "rolling_windows_cross_lunch_and_sessions": true,
+    "same_day_suspension_or_one_price_limit_lock": "all_stock_dynamic_sources_missing",
+    "slow_order": [
+      "daily_ret_5",
+      "daily_ma20_bias",
+      "daily_vol_20",
+      "turnover_mean_60",
+      "market_cap_log"
+    ],
+    "slow_source_lag": "strict_T_minus_1_complete_session",
+    "stock_return_price": "raw_close_on_official_axis"
+  },
+  "golden_month": "2025-06-01",
+  "inputs": {
+    "accepted_actions": {
+      "path": "/data1/lxl/workspace/datasets/.tmp/qlib/data/courage_strict_v1/source/accepted_actions/accepted_effective_dated_corporate_actions.parquet",
+      "sha256": "c1e29658f577ac5ec52eb9d9f9be327e6c121d23dd7ad8d7fffaf76639e279b4"
+    },
+    "c1": {
+      "path": "/data1/lxl/workspace/datasets/.tmp/qlib/examples/courage_strict_v1/configs/courage_strict_c1_implementation_decisions_v1.json",
+      "sha256": "baf373d37918b9ef91efd026e25e9f55bb720b8749ce698c4de0c11de651fe45"
+    },
+    "c1_mainboard": {
+      "path": "/data1/lxl/workspace/datasets/.tmp/qlib/examples/courage_strict_v1/configs/courage_strict_c1_mainboard_scope_amendment_v2.json",
+      "sha256": "5ade5ff919483830543003d8fd70d5428916a342a0f77a98ad0219ca75f09100"
+    },
+    "c3_final_report": {
+      "path": "/data1/lxl/workspace/datasets/.tmp/qlib/examples/courage_strict_v1/configs/runtime/c3_acceptance.json",
+      "sha256": "be37f9d262878d20e7120a17005ec174585402c8542d12cdf57f0c74f5503cf3"
+    },
+    "daily_industry": {
+      "path": "/data1/lxl/workspace/datasets/.tmp/qlib/data/courage_strict_v1/source/daily_industry/daily_industry.parquet",
+      "sha256": "2bebfc8dd4a981998e96b18c56854f30168ec01da626bc86b2cb6e15336307d1"
+    },
+    "mainboard_scope": {
+      "path": "/data1/lxl/workspace/datasets/.tmp/qlib/data/courage_strict_v1/source/mainboard_scope/mainboard_security_scope.parquet",
+      "sha256": "6a93b99f7008b403e0fff23e581d5e581c2a01234527b26958177fe865b138f9"
+    },
+    "membership": {
+      "path": "/data1/lxl/workspace/datasets/.tmp/qlib/artifacts/courage_strict_v1/stages/membership/authorization-160edba4da4838fc346a5e80/membership.parquet",
+      "sha256": "df859c27f08f698d85592f3232f26b3b7b82789390c589e4a10fafb1dd26fca7"
+    },
+    "normalized_daily": {
+      "path": "/data1/lxl/workspace/datasets/.tmp/qlib/data/courage_strict_v1/source/normalized_daily/normalized_daily.parquet",
+      "sha256": "d366e224d5df729f40e51321a29fada995684747ccc04cf4a0a2627ad1ad4155"
+    },
+    "normalized_status": {
+      "path": "/data1/lxl/workspace/datasets/.tmp/qlib/data/courage_strict_v1/source/normalized_status/effective_dated_status.parquet",
+      "sha256": "66abfa772c89341757dcf4bee17a12e62a03862c327ea86d279405f868e790d9"
+    },
+    "official_axis": {
+      "path": "/data1/lxl/workspace/datasets/.tmp/qlib/data/courage_strict_v1/source/official_axis/official_minute_axis.parquet",
+      "sha256": "582c6d85479cac8219f11ea33f41bd4d66753a7e6de5054467ce6956d9748243"
+    },
+    "quarantined_actions": {
+      "path": "/data1/lxl/workspace/datasets/.tmp/qlib/data/courage_strict_v1/source/quarantined_actions/quarantined_factor_changes.parquet",
+      "sha256": "8e8d74a1fa356ec099a4cf673d591d3c1f2b968679c5242ed3a1275d611a9bfa"
+    },
+    "source_identity_manifest": {
+      "path": "/data1/lxl/workspace/datasets/.tmp/qlib/data/courage_strict_v1/source/source_identity_manifest/_source_identity_manifest.json",
+      "sha256": "87bd5d642496ec08cffaeedb8545cb50cca40d7e26f8acac680f752403fe6763"
+    }
+  },
+  "output_root": "/data1/lxl/workspace/datasets/.tmp/qlib/artifacts/courage_strict_v1/stages/golden",
+  "resources": {
+    "workers": 64
+  },
+  "route_id": "courage_strict_v1",
+  "schema_version": "courage_strict_c4_golden_config_v1",
+  "sector_gate": {
+    "aggregation": "median_except_positive_breadth_fraction",
+    "industry": "effective_dated_sector_level2_code",
+    "minimum_coverage": 0.8,
+    "minimum_valid_count": 3,
+    "universe": "complete_active_admitted_SSE_SZSE_mainboard_before_turnover_projection"
+  },
+  "source_interval": [
+    "2025-04-01",
+    "2025-07-01"
+  ],
+  "status": "FROZEN_NOT_AUTHORIZED"
+}

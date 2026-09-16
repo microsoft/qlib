@@ -1,0 +1,24 @@
+{
+  "minute_source": {
+    "identity_path": "data/courage_strict_v1/source/source_identity_manifest/_source_identity_manifest.json",
+    "identity_sha256": "87bd5d642496ec08cffaeedb8545cb50cca40d7e26f8acac680f752403fe6763",
+    "root": "data/courage_strict_v1/source/minute_snapshot/stock_1min"
+  },
+  "output_root": "data/courage_strict_v1/qlib_provider",
+  "run_id": "courage_strict_v1",
+  "schema_version": "courage_strict_v1_qlib_config_v1",
+  "status": "FROZEN_FOR_EXECUTION",
+  "stores": {
+    "features": {
+      "catalog_path": "artifacts/courage_strict_v1/stages/features/sequence-4ccbebe2edc87b6dbb0bdba3/_c4_sequence_catalog.json",
+      "catalog_sha256": "8cc45e7d370faf8349baa2a9bda419daec2f6e8b007d0abb43e0d8d79aee4513",
+      "root": "artifacts/courage_strict_v1/stages/features/sequence-4ccbebe2edc87b6dbb0bdba3"
+    },
+    "labels": {
+      "catalog_path": "artifacts/courage_strict_v1/stages/labels/authorization-b52bc1621b7456424e14673d/_c3_label_manifest.json",
+      "catalog_sha256": "2653b06ebacb8297204e56707e937c5729d7ee756eae8b0a151c17980cb6c669",
+      "root": "artifacts/courage_strict_v1/stages/labels/authorization-b52bc1621b7456424e14673d"
+    }
+  },
+  "workers": 96
+}

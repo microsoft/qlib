@@ -1,0 +1,17 @@
+{
+  "decision": "PASS_C3_COMPLETE",
+  "development_replay_read": false,
+  "historical_learned_state_read": false,
+  "june_read": false,
+  "label_manifest": {
+    "path": "/data1/lxl/workspace/datasets/.tmp/qlib/artifacts/courage_strict_v1/stages/labels/authorization-b52bc1621b7456424e14673d/_c3_label_manifest.json",
+    "sha256": "2653b06ebacb8297204e56707e937c5729d7ee756eae8b0a151c17980cb6c669"
+  },
+  "may_read": false,
+  "membership_manifest": {
+    "path": "/data1/lxl/workspace/datasets/.tmp/qlib/artifacts/courage_strict_v1/stages/membership/authorization-160edba4da4838fc346a5e80/_c3_membership_manifest.json",
+    "sha256": "f096c1bf599776850a7377fc18ea71f850a521e98571e20c680ccd0dea065888"
+  },
+  "route_id": "courage_strict_v1",
+  "schema_version": "courage_strict_v1_qlib_c3_acceptance_v1"
+}

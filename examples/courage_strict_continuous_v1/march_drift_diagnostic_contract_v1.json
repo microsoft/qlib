@@ -1,0 +1,70 @@
+{
+  "schema_version": "courage_strict_continuous_march_drift_contract_v1",
+  "source_experiment_id": "courage_strict_continuous_v1",
+  "checkpoint": "artifacts/courage_strict_continuous_v1/run_v1/origin_2026_01/best.pt",
+  "checkpoint_sha256": "f5dc0ea3b2414ca869ae5fbf2a37d78c4b372311c90613abaf4503d3041186da",
+  "provider_root": "data/courage_strict_v1/qlib_provider",
+  "provider_catalog": "data/courage_strict_v1/qlib_provider/_courage_strict_v1_qlib_catalog.json",
+  "provider_catalog_sha256": "f82c5d5a3d6f71ba3ab510d179b685e7952e8dd28397b1f6150ce5bc15a0025a",
+  "train_scalers": "artifacts/courage_strict_v1_grouped_clocks/run_v1/origin_2026_01/train_scalers.json",
+  "train_scalers_sha256": "e31c7bab3942c1af89f0e0750205d660cd9cc4af99c9f46767cc95a31d5a9b9a",
+  "january_predictions": "artifacts/courage_strict_continuous_v1/run_v1/origin_2026_01/valid_evaluation/valid_predictions_and_targets.parquet",
+  "january_predictions_sha256": "36e38dcc03f8d280a381d471038670fca8ac16b545659c871eecda2e9686727f",
+  "february_predictions": "artifacts/courage_strict_continuous_v1/run_v1/origin_2026_01/frozen_temporal_transfer/origin_2026_02/predictions_and_targets.parquet",
+  "february_predictions_sha256": "c0047881736d7870810002ec34df23cf6a790d4da5579b2b5d204370b021c923",
+  "march_predictions": "artifacts/courage_strict_continuous_v1/run_v1/origin_2026_01/frozen_temporal_transfer/origin_2026_03/predictions_and_targets.parquet",
+  "march_predictions_sha256": "5b5f9413c47b7720216001a3e2d4b8d9f19440159817481d06037f09518b33b5",
+  "evaluator": "examples/courage_strict_continuous_v1/evaluate_march_drift_closure_v1.py",
+  "evaluator_sha256": "72264cef0e2eea42a49c1ec81097cad2bced45ac33000a586332562ea2332674",
+  "segments": {
+    "train": [
+      "2025-07-01",
+      "2026-01-05"
+    ],
+    "january": [
+      "2026-01-05",
+      "2026-02-02"
+    ],
+    "february": [
+      "2026-02-02",
+      "2026-03-02"
+    ],
+    "march": [
+      "2026-03-02",
+      "2026-04-01"
+    ]
+  },
+  "scope": {
+    "read_before_exclusive": "2026-04-01",
+    "april_or_later_read": false
+  },
+  "lookback": {
+    "systematic_samples_per_split": 200000,
+    "age_bins_minutes": [
+      [0, 29],
+      [30, 119],
+      [120, 239],
+      [240, 479],
+      [480, 959],
+      [960, 1199]
+    ]
+  },
+  "grouping": {
+    "minimum_rows_per_horizon_group": 500
+  },
+  "outputs": {
+    "artifact_root": "artifacts/courage_strict_continuous_v1/march_drift_closure_v1",
+    "documentation": "docs/courage_strict_continuous_v1/MARCH_DRIFT_DIAGNOSTIC_CLOSURE.md"
+  },
+  "authority": {
+    "read_existing_pre_april_data": true,
+    "train_model": false,
+    "select_or_promote_checkpoint": false,
+    "read_april_or_later": false,
+    "refit": false,
+    "strategy": false,
+    "backtest": false,
+    "trading": false,
+    "remote_push": false
+  }
+}

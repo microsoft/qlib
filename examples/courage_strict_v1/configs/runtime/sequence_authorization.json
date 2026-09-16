@@ -1,0 +1,44 @@
+{
+  "authorities": {
+    "accepted_C2_C3_read_authorized": true,
+    "backtest_authorized": false,
+    "catalog_aggregation_authorized": true,
+    "development_test_read_authorized": false,
+    "execution_authorized": true,
+    "fixed_partition_audit_authorized": true,
+    "full_feature_materialization_authorized": true,
+    "holdout_read_authorized": false,
+    "idempotent_reuse_verification_authorized": true,
+    "live_trading_authorized": false,
+    "model_selection_authorized": false,
+    "order_generation_authorized": false,
+    "paper_trading_authorized": false,
+    "refit_authorized": false,
+    "remote_push_authorized": false,
+    "reserved_confirm_read_authorized": false,
+    "runtime_profile_authorized": false,
+    "sequence_build_authorized": true,
+    "strategy_authorized": false,
+    "training_authorized": false
+  },
+  "authorization_scope": "V1_Qlib_fresh_full_feature_materialization",
+  "config": {
+    "path": "examples/courage_strict_v1/configs/runtime/sequence.json",
+    "sha256": "5131e9f53dff15927aa40440aea452ede51cae8d3fa1f415ad1fffffcf03ee7d"
+  },
+  "consumed_when_catalog_written": true,
+  "one_time_authorization": true,
+  "operator_statement": "用户授权在当前Qlib仓库完成courage_strict_v1全部代码、数据构造、训练和评测。",
+  "operator_statement_sha256": "ec8170aef85971d5159ef98f158547cbab0a973c9cb552bf9b934d7bfd57988c",
+  "runners": {
+    "feature_kernel": {
+      "path": "qlib/contrib/data/courage_strict_v1/minute_courage_strict_c4_features_v1.py",
+      "sha256": "d82d44f2cfa271445d3f2a85de8732d2d03b36474bc124d0c98df12fc7abfd38"
+    },
+    "sequence": {
+      "path": "qlib/contrib/data/courage_strict_v1/minute_courage_strict_c4_sequence_v1.py",
+      "sha256": "02d94774e40b7087dcdec7fc6782ed1fc5ddda7789154d2cba5029ff5c356f78"
+    }
+  },
+  "schema_version": "courage_strict_c4_sequence_authorization_v1"
+}

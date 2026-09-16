@@ -1,0 +1,56 @@
+{
+  "schema_version": "courage_strict_continuous_baseline_closure_contract_v1",
+  "experiment_id": "courage_strict_continuous_v1_baseline_closure_v1",
+  "source_experiment_id": "courage_strict_continuous_v1",
+  "origin": "origin_2026_01",
+  "project_root": "/data1/lxl/workspace/datasets/.tmp/qlib",
+  "provider_root": "data/courage_strict_v1/qlib_provider",
+  "source_config": "examples/courage_strict_continuous_v1/config.json",
+  "source_config_sha256": "d2c968f6be20e4d243a027f9d671ab02a47d9d1c3a836374431aaa4f180113d5",
+  "checkpoint": "artifacts/courage_strict_continuous_v1/run_v1/origin_2026_01/best.pt",
+  "checkpoint_sha256": "f5dc0ea3b2414ca869ae5fbf2a37d78c4b372311c90613abaf4503d3041186da",
+  "valid_predictions": "artifacts/courage_strict_continuous_v1/run_v1/origin_2026_01/valid_evaluation/valid_predictions_and_targets.parquet",
+  "valid_predictions_sha256": "36e38dcc03f8d280a381d471038670fca8ac16b545659c871eecda2e9686727f",
+  "train_scalers": "artifacts/courage_strict_v1_grouped_clocks/run_v1/origin_2026_01/train_scalers.json",
+  "train_scalers_sha256": "e31c7bab3942c1af89f0e0750205d660cd9cc4af99c9f46767cc95a31d5a9b9a",
+  "provider_catalog_sha256": "f82c5d5a3d6f71ba3ab510d179b685e7952e8dd28397b1f6150ce5bc15a0025a",
+  "segments": {
+    "train": ["2025-07-01", "2026-01-05"],
+    "valid": ["2026-01-05", "2026-02-02"]
+  },
+  "baselines": {
+    "zero": "constant_zero",
+    "train_mean": "per_horizon_train_target_mean",
+    "train_median": "per_horizon_accepted_train_target_median",
+    "momentum_ret5": "signal_time_raw_stock_ret_5_or_zero_if_unavailable",
+    "reversal_ret5": "negative_signal_time_raw_stock_ret_5_or_zero_if_unavailable",
+    "ridge_terminal": {
+      "alpha_on_average_gram": 0.001,
+      "intercept_penalized": false,
+      "numeric_features": "12_dynamic_plus_5_slow_at_signal_time_scaled_by_accepted_train_scaler",
+      "missing_indicators": true,
+      "clock_features": ["minute_sin", "minute_cos", "afternoon_session"],
+      "fit": "exact_train_only_normal_equations_per_horizon"
+    }
+  },
+  "gate": {
+    "skill": "1-model_rmse/best_preregistered_baseline_rmse",
+    "mean_skill_strictly_positive": true,
+    "minimum_positive_horizons": 4
+  },
+  "outputs": {
+    "artifact_root": "artifacts/courage_strict_continuous_v1/baseline_closure_v1",
+    "documentation": "docs/courage_strict_continuous_v1/BASELINE_CLOSURE_EVALUATION.md"
+  },
+  "authority": {
+    "read_before_exclusive": "2026-02-02",
+    "patchtst_retraining": false,
+    "checkpoint_selection_change": false,
+    "april_or_later_read": false,
+    "refit": false,
+    "strategy": false,
+    "backtest": false,
+    "trading": false,
+    "remote_push": false
+  }
+}

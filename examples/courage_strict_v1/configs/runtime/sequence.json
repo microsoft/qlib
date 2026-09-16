@@ -1,0 +1,129 @@
+{
+  "authority_matrix": {
+    "accepted_C2_C3_read_authorized": false,
+    "backtest_authorized": false,
+    "catalog_aggregation_authorized": false,
+    "development_test_read_authorized": false,
+    "execution_authorized": false,
+    "fixed_partition_audit_authorized": false,
+    "full_feature_materialization_authorized": false,
+    "holdout_read_authorized": false,
+    "idempotent_reuse_verification_authorized": false,
+    "live_trading_authorized": false,
+    "model_selection_authorized": false,
+    "order_generation_authorized": false,
+    "paper_trading_authorized": false,
+    "refit_authorized": false,
+    "remote_push_authorized": false,
+    "reserved_confirm_read_authorized": false,
+    "runtime_profile_authorized": false,
+    "sequence_build_authorized": false,
+    "strategy_authorized": false,
+    "training_authorized": false
+  },
+  "expected_counts": {
+    "dynamic_rows": 125568960,
+    "mainboard_symbols": 3214,
+    "membership_rows": 213958,
+    "sample_rows": 10269984,
+    "selected_symbols": 2162,
+    "source_axis_rows": 58080,
+    "source_sessions": 242
+  },
+  "feature_contract": {
+    "dynamic_order": [
+      "stock_ret_1",
+      "stock_ret_5",
+      "stock_ret_20",
+      "stock_vwap_bias_20",
+      "stock_realized_vol_20",
+      "stock_high_low_range_20",
+      "stock_volume_ratio_20",
+      "stock_amount_ratio_20",
+      "sector_ret_5_median",
+      "sector_ret_20_median",
+      "sector_positive_breadth_1",
+      "sector_amount_ratio_20_median"
+    ],
+    "industry_embedding": "effective_dated_sector_level2_code_or_UNKNOWN",
+    "lookback_official_minutes": 1200,
+    "slow_order": [
+      "daily_ret_5",
+      "daily_ma20_bias",
+      "daily_vol_20",
+      "turnover_mean_60",
+      "market_cap_log"
+    ]
+  },
+  "inputs": {
+    "accepted_actions": {
+      "path": "/data1/lxl/workspace/datasets/.tmp/qlib/data/courage_strict_v1/source/accepted_actions/accepted_effective_dated_corporate_actions.parquet",
+      "sha256": "c1e29658f577ac5ec52eb9d9f9be327e6c121d23dd7ad8d7fffaf76639e279b4"
+    },
+    "c3_final_report": {
+      "path": "/data1/lxl/workspace/datasets/.tmp/qlib/examples/courage_strict_v1/configs/runtime/c3_acceptance.json",
+      "sha256": "be37f9d262878d20e7120a17005ec174585402c8542d12cdf57f0c74f5503cf3"
+    },
+    "c3_label_manifest": {
+      "path": "/data1/lxl/workspace/datasets/.tmp/qlib/artifacts/courage_strict_v1/stages/labels/authorization-b52bc1621b7456424e14673d/_c3_label_manifest.json",
+      "sha256": "2653b06ebacb8297204e56707e937c5729d7ee756eae8b0a151c17980cb6c669"
+    },
+    "c4_golden_report": {
+      "path": "/data1/lxl/workspace/datasets/.tmp/qlib/artifacts/courage_strict_v1/stages/golden/golden-fb9a71590f343d6d897ef7f6/_c4_golden_report.json",
+      "sha256": "a3357027d6207a75f0b3e26bd9c2a73e7a1583a9587754cfd04f8393b168f347"
+    },
+    "daily_industry": {
+      "path": "/data1/lxl/workspace/datasets/.tmp/qlib/data/courage_strict_v1/source/daily_industry/daily_industry.parquet",
+      "sha256": "2bebfc8dd4a981998e96b18c56854f30168ec01da626bc86b2cb6e15336307d1"
+    },
+    "mainboard_scope": {
+      "path": "/data1/lxl/workspace/datasets/.tmp/qlib/data/courage_strict_v1/source/mainboard_scope/mainboard_security_scope.parquet",
+      "sha256": "6a93b99f7008b403e0fff23e581d5e581c2a01234527b26958177fe865b138f9"
+    },
+    "membership": {
+      "path": "/data1/lxl/workspace/datasets/.tmp/qlib/artifacts/courage_strict_v1/stages/membership/authorization-160edba4da4838fc346a5e80/membership.parquet",
+      "sha256": "df859c27f08f698d85592f3232f26b3b7b82789390c589e4a10fafb1dd26fca7"
+    },
+    "normalized_daily": {
+      "path": "/data1/lxl/workspace/datasets/.tmp/qlib/data/courage_strict_v1/source/normalized_daily/normalized_daily.parquet",
+      "sha256": "d366e224d5df729f40e51321a29fada995684747ccc04cf4a0a2627ad1ad4155"
+    },
+    "normalized_status": {
+      "path": "/data1/lxl/workspace/datasets/.tmp/qlib/data/courage_strict_v1/source/normalized_status/effective_dated_status.parquet",
+      "sha256": "66abfa772c89341757dcf4bee17a12e62a03862c327ea86d279405f868e790d9"
+    },
+    "official_axis": {
+      "path": "/data1/lxl/workspace/datasets/.tmp/qlib/data/courage_strict_v1/source/official_axis/official_minute_axis.parquet",
+      "sha256": "582c6d85479cac8219f11ea33f41bd4d66753a7e6de5054467ce6956d9748243"
+    },
+    "quarantined_actions": {
+      "path": "/data1/lxl/workspace/datasets/.tmp/qlib/data/courage_strict_v1/source/quarantined_actions/quarantined_factor_changes.parquet",
+      "sha256": "8e8d74a1fa356ec099a4cf673d591d3c1f2b968679c5242ed3a1275d611a9bfa"
+    },
+    "source_identity_manifest": {
+      "path": "/data1/lxl/workspace/datasets/.tmp/qlib/data/courage_strict_v1/source/source_identity_manifest/_source_identity_manifest.json",
+      "sha256": "87bd5d642496ec08cffaeedb8545cb50cca40d7e26f8acac680f752403fe6763"
+    }
+  },
+  "output_root": "/data1/lxl/workspace/datasets/.tmp/qlib/artifacts/courage_strict_v1/stages/features",
+  "resources": {
+    "source_workers": 64,
+    "write_workers": 32
+  },
+  "route_id": "courage_strict_v1",
+  "schema_version": "courage_strict_c4_sequence_config_v1",
+  "sector_gate": {
+    "minimum_coverage": 0.8,
+    "minimum_valid_count": 3,
+    "universe": "complete_active_admitted_SSE_SZSE_mainboard_before_turnover_projection"
+  },
+  "signal_interval": {
+    "end": "2026-04-01",
+    "start": "2025-07-01"
+  },
+  "source_interval": {
+    "end": "2026-04-01",
+    "start": "2025-04-01"
+  },
+  "status": "FROZEN_NOT_AUTHORIZED"
+}

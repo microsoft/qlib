@@ -1,5 +1,8 @@
 # https://github.com/github/gitignore/blob/master/Python.gitignore
 __pycache__/
+.venv/
+data/courage_strict_v1/
+artifacts/courage_strict_v1/
 
 *.pyc
 *.pyd

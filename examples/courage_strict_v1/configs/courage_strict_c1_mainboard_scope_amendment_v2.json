@@ -1,0 +1,52 @@
+{
+  "schema_version": "courage_strict_c1_mainboard_scope_amendment_v2",
+  "route_id": "courage_route_strict_v1.0.0",
+  "decision": "PASS_C1_V2_MAINBOARD_SCOPE",
+  "status": "FROZEN_NOT_EXECUTABLE",
+  "terminal_state": "STOP_BEFORE_C2_MAINBOARD_REACCEPTANCE",
+  "parent_c1": {
+    "path": "configs/experiments/courage_strict_c1_implementation_decisions_v1.json",
+    "sha256": "baf373d37918b9ef91efd026e25e9f55bb720b8749ce698c4de0c11de651fe45"
+  },
+  "human_decision": {
+    "path": "docs/COURAGE_STRICT_C1_MAINBOARD_SCOPE_AMENDMENT_20260818.md",
+    "sha256": "03dc4a79af6a8c235e148710d70c5a4c23a7518aa1f0bcd1096cad7009ae52b2"
+  },
+  "superseded_parent_field": {
+    "json_pointer": "/population/base_scope",
+    "old_value": "shanghai_shenzhen_a_shares_subject_to_C2_admission"
+  },
+  "replacement_population_scope": {
+    "name": "SSE_and_SZSE_main_board_A_shares_subject_to_C2_admission",
+    "exchange_in": [
+      "SSE",
+      "SZSE"
+    ],
+    "market_equals": "主板",
+    "SSE_STAR_included": false,
+    "SZSE_ChiNext_included": false,
+    "BSE_included": false,
+    "all_other_C1_v1_decisions_inherited_unchanged": true
+  },
+  "authorities": {
+    "source_admission_authorized": false,
+    "data_read_authorized": false,
+    "data_materialization_authorized": false,
+    "feature_build_authorized": false,
+    "label_build_authorized": false,
+    "sequence_build_authorized": false,
+    "runtime_profile_authorized": false,
+    "training_authorized": false,
+    "model_selection_authorized": false,
+    "development_test_read_authorized": false,
+    "reserved_confirm_read_authorized": false,
+    "holdout_read_authorized": false,
+    "refit_authorized": false,
+    "strategy_authorized": false,
+    "backtest_authorized": false,
+    "paper_trading_authorized": false,
+    "live_trading_authorized": false,
+    "order_generation_authorized": false,
+    "remote_push_authorized": false
+  }
+}

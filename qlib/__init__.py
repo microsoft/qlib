@@ -2,12 +2,19 @@
 # Licensed under the MIT License.
 from pathlib import Path
 
-from setuptools_scm import get_version
-
 try:
     from ._version import version as __version__
 except ImportError:
-    __version__ = get_version(root="..", relative_to=__file__)
+    try:
+        from setuptools_scm import get_version
+
+        __version__ = get_version(root="..", relative_to=__file__)
+    except (ImportError, LookupError):
+        # Source checkouts used in isolated/offline research environments do not
+        # necessarily carry the build-only setuptools-scm dependency.  The
+        # package remains usable; release wheels still obtain their generated
+        # version through ``qlib._version``.
+        __version__ = "0+unknown"
 __version__bak = __version__  # This version is backup for QlibConfig.reset_qlib_version
 import logging
 import os

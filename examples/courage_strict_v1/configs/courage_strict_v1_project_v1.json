@@ -1,0 +1,86 @@
+{
+  "schema_version": "courage_strict_v1_project_config_v1",
+  "run_id": "courage_strict_v1",
+  "status": "IMPLEMENTATION_IN_PROGRESS_NOT_TERMINAL",
+  "identity": {
+    "framework": "Qlib",
+    "qlib_upstream_commit": "79633dd9506ea689e5400dea0197717b5b3d74b7",
+    "historical_checkpoint_reuse": false,
+    "historical_scaler_reuse": false,
+    "historical_prediction_reuse": false
+  },
+  "evidence": {
+    "strict_route": {
+      "path": "docs/courage_strict_v1/evidence/COURAGE_TECHNICAL_ROUTE_STRICT_20260818.md",
+      "sha256": "ef6534868cd42e554f6dc7903e35459b42ecd21c020cf83e7340ab81938d9a91"
+    },
+    "c1_document": {
+      "path": "docs/courage_strict_v1/evidence/COURAGE_STRICT_C1_IMPLEMENTATION_DECISIONS_20260818.md",
+      "sha256": "bfe392bfd401570a5ecbcdbb117a6bfe835b8fe806882195c6cb603687964c37"
+    },
+    "c1_contract": {
+      "path": "examples/courage_strict_v1/configs/courage_strict_c1_implementation_decisions_v1.json",
+      "sha256": "baf373d37918b9ef91efd026e25e9f55bb720b8749ce698c4de0c11de651fe45"
+    },
+    "mainboard_amendment": {
+      "path": "examples/courage_strict_v1/configs/courage_strict_c1_mainboard_scope_amendment_v2.json",
+      "sha256": "5ade5ff919483830543003d8fd70d5428916a342a0f77a98ad0219ca75f09100"
+    }
+  },
+  "roots": {
+    "source_dataset": "/data1/lxl/workspace/datasets/.tmp/dataset",
+    "xianyu_source": "/data1/lxl/workspace/datasets/.tmp/dataset/xianyu",
+    "project_root": "/data1/lxl/workspace/datasets/.tmp/qlib",
+    "source_facts": "/data1/lxl/workspace/datasets/.tmp/qlib/data/courage_strict_v1/source",
+    "output_provider": "/data1/lxl/workspace/datasets/.tmp/qlib/data/courage_strict_v1/qlib_provider",
+    "output_artifacts": "/data1/lxl/workspace/datasets/.tmp/qlib/artifacts/courage_strict_v1",
+    "virtual_environment": "/data1/lxl/workspace/datasets/.tmp/qlib/.venv"
+  },
+  "time_protocol": {
+    "timezone": "Asia/Shanghai",
+    "source_and_warmup": ["2025-04-01", "2026-05-01"],
+    "train": ["2025-07-01", "2026-03-02"],
+    "valid": ["2026-03-02", "2026-04-01"],
+    "development_replay": ["2026-04-01", "2026-05-01"],
+    "may_read": false,
+    "june_read": false
+  },
+  "model_contract": {
+    "lookback_official_minutes": 1200,
+    "patch_length": 30,
+    "stride": 15,
+    "d_model": 128,
+    "encoder_layers": 3,
+    "attention_heads": 4,
+    "dropout": 0.1,
+    "horizons": [5, 15, 30, 60, 120, 240, 480],
+    "loss": "equal_active_head_standardized_Huber",
+    "huber_delta": 1.0,
+    "checkpoint_metric": "valid_equal_head_standardized_Huber"
+  },
+  "authority": {
+    "project_implementation_authorized": true,
+    "source_fact_import_authorized": true,
+    "source_read_authorized": true,
+    "pit_construction_authorized": true,
+    "label_construction_authorized": true,
+    "feature_construction_authorized": true,
+    "qlib_materialization_authorized": true,
+    "golden_parity_authorized": true,
+    "runtime_profile_authorized": true,
+    "new_checkpoint_write_authorized": true,
+    "training_from_scratch_authorized": true,
+    "valid_selection_authorized": true,
+    "development_replay_authorized": true,
+    "may_read_authorized": false,
+    "june_read_authorized": false,
+    "old_checkpoint_read_authorized": false,
+    "old_scaler_read_authorized": false,
+    "old_prediction_read_authorized": false,
+    "refit_authorized": false,
+    "strategy_authorized": false,
+    "backtest_authorized": false,
+    "trading_authorized": false,
+    "remote_push_authorized": false
+  }
+}

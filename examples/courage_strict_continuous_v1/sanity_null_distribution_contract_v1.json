@@ -1,0 +1,46 @@
+{
+  "schema_version": "courage_strict_sanity_null_distribution_contract_v1",
+  "experiment_id": "courage_strict_continuous_v1_sanity_null_distribution_v1",
+  "source_config": "examples/courage_strict_continuous_v1/config.json",
+  "origin": "origin_2026_01",
+  "seeds": [20260831, 20260832, 20260833, 20260834, 20260835, 20260836, 20260837, 20260838, 20260839, 20260840],
+  "conditions": ["INITIALIZATION_ONLY", "SHUFFLED_LABEL_500_STEPS"],
+  "shuffled_training": {
+    "steps": 500,
+    "batch_size": 128,
+    "valid_batch_size": 512,
+    "workers": 8,
+    "learning_rate": 0.00015,
+    "weight_decay": 0.01,
+    "precision": "BF16"
+  },
+  "bootstrap": {
+    "unit": "trading_day",
+    "method": "circular_moving_block",
+    "block_length_days": 3,
+    "replications": 5000,
+    "confidence_level": 0.95,
+    "seed": 20260841
+  },
+  "escalation_rule": {
+    "minimum_same_direction_seed_cis": 4,
+    "requires_shuffled_aggregate_ci_excludes_null": true,
+    "requires_paired_shuffled_minus_initialization_ci_excludes_zero_same_direction": true,
+    "metrics": {
+      "balanced_accuracy": 0.5,
+      "auc": 0.5,
+      "mcc": 0.0,
+      "rank_ic": 0.0
+    }
+  },
+  "boundaries": {
+    "full_fixed_january_valid": true,
+    "april_or_later_read": false,
+    "checkpoint_promotion": false,
+    "strategy_or_backtest": false
+  },
+  "outputs": {
+    "artifact_root": "artifacts/courage_strict_continuous_v1/sanity_null_distribution_v1",
+    "documentation": "docs/courage_strict_continuous_v1/SANITY_NULL_DISTRIBUTION_REPORT.md"
+  }
+}
