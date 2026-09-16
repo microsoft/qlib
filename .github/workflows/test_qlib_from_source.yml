@@ -13,10 +13,14 @@ on:
 jobs:
   build:
     timeout-minutes: 180
+    env:
+      MLFLOW_ALLOW_FILE_STORE: "true"
+      PIP_CONSTRAINT: ${{ github.workspace }}/.github/ci/constraints.txt
     # we may retry for 3 times for `Unit tests with Pytest`
 
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [windows-latest, ubuntu-24.04, ubuntu-22.04, macos-14, macos-15]
         # In github action, using python 3.7, pip install will not match the latest version of the package.
@@ -26,12 +30,12 @@ jobs:
 
     steps:
     - name: Test qlib from source
-      uses: actions/checkout@v4
+      uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       with:
         fetch-depth: 0
 
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -39,24 +43,40 @@ jobs:
       run: |
         python -m pip install --upgrade pip
 
-    - name: Installing pytorch for macos
-      if: ${{ matrix.os == 'macos-14' || matrix.os == 'macos-15' }}
-      run: |
-        python -m pip install torch torchvision torchaudio
-
     - name: Installing pytorch for ubuntu
       if: ${{ matrix.os == 'ubuntu-24.04' || matrix.os == 'ubuntu-22.04' }}
       run: |
-        python -m pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cpu
-
-    - name: Installing pytorch for windows
-      if: ${{ matrix.os == 'windows-latest' }}
-      run: |
-        python -m pip install torch torchvision torchaudio
+        python -m pip install torch --extra-index-url https://download.pytorch.org/whl/cpu
 
     - name: Set up Python tools
+      env:
+        # RL tests are Linux-only; only ubuntu-22.04 builds the docs below.
+        CI_EXTRAS: dev,test,analysis,lint${{ runner.os == 'Linux' && ',rl' || '' }}${{ matrix.os == 'ubuntu-22.04' && ',docs' || '' }}
       run: |
-        make dev
+        make ci-install
+
+    # Importing Qlib's model registry also loads LightGBM and its OpenMP runtime.
+    - name: Install Lightgbm for MacOS
+      if: ${{ matrix.os == 'macos-14' || matrix.os == 'macos-15' }}
+      run: |
+        brew update
+        brew install libomp || brew reinstall libomp
+        python -m pip install --no-binary=:all: lightgbm
+        python -c "import lightgbm; print('LightGBM', lightgbm.__version__, 'native import passed')"
+
+    - name: Verify neural network test dependencies
+      run: python -c "import torch; from qlib.contrib.model import pytorch_classes; from qlib.contrib.model.pytorch_general_nn import GeneralPTNN; from qlib.data.dataset import DatasetH, TSDatasetH; assert pytorch_classes; print('PyTorch', torch.__version__, 'model imports passed')"
+
+    - name: Verify non-Linux dependency footprint
+      if: ${{ runner.os != 'Linux' }}
+      run: python -c "from importlib.metadata import distributions; unexpected = {'tianshou', 'tensorboard', 'grpcio'} & {d.metadata['Name'].lower() for d in distributions()}; assert not unexpected, unexpected"
+
+    - name: Verify dependency consistency
+      run: python -m pip check
+
+    - name: Verify native solvers on Windows Python 3.8
+      if: ${{ matrix.os == 'windows-latest' && matrix.python-version == '3.8' }}
+      run: python -c "import cvxpy, osqp; print('CVXPY', cvxpy.__version__, 'OSQP', osqp.__version__)"
 
     - name: Lint with Black
       run: |
@@ -80,41 +100,41 @@ jobs:
       run: |
         make mypy
     
-    # Due to issues that cannot be automatically fixed when running `nbqa black . -l 120 --check --diff` on Jupyter notebooks,
-    # we reverted to a version of `black` earlier than 26.1.0 before performing the checks.
     - name: Check Qlib ipynb with nbqa
       run: |
-        python -m pip install "black<26.1"
         make nbqa
 
     - name: Test data downloads
-      run: |
-        python scripts/get_data.py qlib_data --name qlib_data_simple --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
-        python scripts/get_data.py download_data --file_name rl_data.zip --target_dir tests/.data/rl
-
-    - name: Install Lightgbm for MacOS
-      if: ${{ matrix.os == 'macos-14' || matrix.os == 'macos-15' }}
-      run: |
-        brew update
-        brew install libomp || brew reinstall libomp
-        python -m pip install --no-binary=:all: lightgbm
+      uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4
+      with:
+        timeout_minutes: 15
+        max_attempts: 3
+        retry_wait_seconds: 10
+        shell: bash
+        command: |
+          set -euo pipefail
+          python scripts/get_data.py qlib_data --name qlib_data_simple --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn --delete_old False
+          python scripts/get_data.py download_data --file_name rl_data.zip --target_dir tests/.data/rl --delete_old False
 
     - name: Check Qlib ipynb with nbconvert
       run: |
         make nbconvert
 
     - name: Test workflow by config (install from source)
-      uses: nick-fields/retry@v2
+      uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4
       with:
         timeout_minutes: 30
         max_attempts: 3
+        shell: bash
         command: |
+          set -euo pipefail
           python -m pip install numba
+          python -m pip check
           python qlib/cli/run.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
 
     - name: Unit tests with Pytest (MacOS)
       if: ${{ matrix.os == 'macos-14' || matrix.os == 'macos-15' }}
-      uses: nick-fields/retry@v2
+      uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4
       with:
         timeout_minutes: 60
         max_attempts: 3
@@ -130,10 +150,14 @@ jobs:
 
     - name: Unit tests with Pytest (Ubuntu and Windows)
       if: ${{ matrix.os != 'macos-13' && matrix.os != 'macos-14' && matrix.os != 'macos-15' }}
-      uses: nick-fields/retry@v2
+      uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4
       with:
         timeout_minutes: 60
         max_attempts: 3
         command: |
           cd tests
           python -m pytest . -m "not slow" --durations=0
+
+    - name: Report installed dependencies
+      if: always()
+      run: python -m pip freeze

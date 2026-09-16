@@ -31,14 +31,9 @@ dependencies = [
   # Since version 2.1.0, pandas has deprecated the method parameter of the fillna method. 
   # qlib has updated the fillna method in PR 1987 and limited the minimum version of pandas.
   "pandas>=1.1",
-  # I encoutered an Error that the set_uri does not work when downloading artifacts in mlflow 3.1.1;
-  # But earlier versions of mlflow does not have this problem.
-  # But when I switch to 2.*.* version, another error occurs, which is even more strange...
-  # MLflow 3.13 disables the file-store backend used by Qlib by default.
-  # Remove this cap after Qlib migrates its default tracking backend.
+  # Qlib's filesystem tracking backend is disabled by default in MLflow 3.13.
   "mlflow<3.13",
-  # filelock 3.30 rejects forks while another thread changes descriptor
-  # ownership, which conflicts with Qlib's multiprocessing data queues.
+  # filelock 3.30 rejects forks while another thread changes lock descriptor ownership.
   "filelock>=3.16.0,<3.30",
   "redis",
   "dill",
@@ -51,10 +46,14 @@ dependencies = [
   "lightgbm",
   "gym",
   "cvxpy",
+  # Use the Windows/Python 3.8 wheel verified in PR #2308, including on fresh installs.
+  "osqp==1.0.5; sys_platform == 'win32' and python_version == '3.8'",
   "joblib",
   "matplotlib",
   "jupyter",
   "nbconvert",
+  # fastjsonschema 2.22 uses Python 3.10 type syntax without declaring the requirement.
+  "fastjsonschema<2.22; python_version < '3.10'",
   "pyarrow",
   "pydantic-settings",
   "setuptools-scm",
@@ -64,6 +63,7 @@ dependencies = [
 dev = [
   "pytest",
   "statsmodels",
+  "tomli; python_version < '3.11'",
 ]
 # On macos-13 system, when using python version greater than or equal to 3.10,
 # pytorch can't fully support Numpy version above 2.0, so, when you want to install torch,
@@ -75,7 +75,8 @@ rl = [
 ]
 
 lint = [
-  "black",
+  # Keep Python and notebook formatting on the same version family.
+  "black<26.1",
   "pylint",
   "mypy<1.5.0",
   "flake8",
@@ -101,11 +102,11 @@ package = [
 test = [
   "yahooquery",
   "baostock",
-  # lxml 6.1.3 does not currently publish wheels for every CI platform.
+  # Avoid source builds requiring external libxml2 headers on Windows.
   "lxml<6.1.3",
 ]
 analysis = [
-  # Plotly 7 removed figure_factory.create_distplot, which Qlib still uses.
+  # Qlib still imports figure_factory.create_distplot, removed in Plotly 7.
   "plotly<7",
   "statsmodels",
 ]
