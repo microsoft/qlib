@@ -64,7 +64,10 @@ Linux retains the RL extra and the same RL tests. The PyPI workflow is unchanged
 
 Explicit imports of PyTorch, Qlib's PyTorch model registry, GeneralPTNN, and
 both dataset classes prevent missing dependencies from silently bypassing
-neural-network tests. A non-Linux footprint check rejects accidental
+neural-network tests. On macOS, prepare LightGBM and its `libomp` runtime before
+these checks: importing the model package also eagerly imports LightGBM. The
+preparation step verifies the LightGBM native import before checking the model
+registry. A non-Linux footprint check rejects accidental
 reintroduction of tianshou/TensorBoard/grpcio, followed by the unchanged
 `pip check`. If a future test genuinely needs these dependencies on macOS,
 update this policy and validate native wheel metadata/imports rather than

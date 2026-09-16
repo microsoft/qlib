@@ -147,6 +147,33 @@ class TestCIConfiguration(unittest.TestCase):
                 self.assertNotIn("GRPC_PYTHON_BUILD", str(steps))
                 self.assertNotIn("PIP_NO_BINARY", str(steps))
 
+    def test_macos_lightgbm_runtime_precedes_model_imports(self):
+        for name, workflow in self.workflows.items():
+            with self.subTest(workflow=name):
+                steps = workflow["jobs"]["build"]["steps"]
+                preparation = [step for step in steps if step["name"] == "Install Lightgbm for MacOS"]
+                self.assertEqual(len(preparation), 1)
+                preparation = preparation[0]
+                self.assertEqual(preparation["if"], "${{ matrix.os == 'macos-14' || matrix.os == 'macos-15' }}")
+                self.assertIn("brew install libomp", preparation["run"])
+                consumers = []
+                for step in steps:
+                    command = step.get("run", "") + step.get("with", {}).get("command", "")
+                    if any(
+                        marker in command
+                        for marker in (
+                            "from qlib.contrib.model",
+                            "make nbconvert",
+                            "python -m pytest",
+                            "qrun ",
+                            "python qlib/cli/run.py",
+                        )
+                    ):
+                        consumers.append(step)
+                self.assertTrue(consumers)
+                for step in consumers:
+                    self.assertLess(steps.index(preparation), steps.index(step), step["name"])
+
     def test_source_test_runtime_retains_torch_and_numerical_bounds(self):
         requirements = {
             req.name: req

@@ -55,6 +55,15 @@ jobs:
       run: |
         make ci-install
 
+    # Importing Qlib's model registry also loads LightGBM and its OpenMP runtime.
+    - name: Install Lightgbm for MacOS
+      if: ${{ matrix.os == 'macos-14' || matrix.os == 'macos-15' }}
+      run: |
+        brew update
+        brew install libomp || brew reinstall libomp
+        python -m pip install --no-binary=:all: lightgbm
+        python -c "import lightgbm; print('LightGBM', lightgbm.__version__, 'native import passed')"
+
     - name: Verify neural network test dependencies
       run: python -c "import torch; from qlib.contrib.model import pytorch_classes; from qlib.contrib.model.pytorch_general_nn import GeneralPTNN; from qlib.data.dataset import DatasetH, TSDatasetH; assert pytorch_classes; print('PyTorch', torch.__version__, 'model imports passed')"
 
@@ -106,13 +115,6 @@ jobs:
           set -euo pipefail
           python scripts/get_data.py qlib_data --name qlib_data_simple --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn --delete_old False
           python scripts/get_data.py download_data --file_name rl_data.zip --target_dir tests/.data/rl --delete_old False
-
-    - name: Install Lightgbm for MacOS
-      if: ${{ matrix.os == 'macos-14' || matrix.os == 'macos-15' }}
-      run: |
-        brew update
-        brew install libomp || brew reinstall libomp
-        python -m pip install --no-binary=:all: lightgbm
 
     - name: Check Qlib ipynb with nbconvert
       run: |
