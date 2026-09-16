@@ -44,7 +44,7 @@ dependencies = [
   "pymongo",
   "loguru",
   "lightgbm",
-  "gym",
+  "gymnasium",
   "cvxpy",
   # Use the Windows/Python 3.8 wheel verified in PR #2308, including on fresh installs.
   "osqp==1.0.5; sys_platform == 'win32' and python_version == '3.8'",
