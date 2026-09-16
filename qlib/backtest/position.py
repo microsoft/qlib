@@ -354,7 +354,7 @@ class Position(BasePosition):
         if stock_id not in self.position:
             raise KeyError("{} not in current position".format(stock_id))
         else:
-            if np.isclose(self.position[stock_id]["amount"], trade_amount):
+            if np.isclose(self.position[stock_id]["amount"], trade_amount) or self.position[stock_id]["amount"] <= trade_amount:
                 # Selling all the stocks
                 # we use np.isclose instead of abs(<the final amount>) <= 1e-5  because `np.isclose` consider both
                 # relative amount and absolute amount
