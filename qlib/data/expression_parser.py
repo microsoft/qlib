@@ -98,7 +98,7 @@ def _evaluate(node):
             raise ExpressionSyntaxError("Expanded keyword arguments are not allowed")
 
         try:
-            operation = getattr(Operators, node.func.attr)
+            operation = Operators.get_operator(node.func.attr)
         except AttributeError as exc:
             raise ExpressionSyntaxError(f"Unknown Qlib operator: {node.func.attr}") from exc
 

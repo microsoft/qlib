@@ -25,15 +25,21 @@ from qlib.utils.pickle_utils import restricted_pickle_load
 _TRUSTED_MODULE_ROOTS: List[Path] = []
 
 
-def set_trusted_module_roots(roots: Optional[Sequence[Union[str, Path]]]) -> None:
-    """Set process-wide trusted roots for configuration-driven file modules."""
+def _resolve_module_roots(roots: Optional[Sequence[Union[str, Path]]]) -> List[Path]:
+    if isinstance(roots, (str, Path)):
+        raise TypeError("Module roots must be a sequence of directories, not a single path")
     resolved_roots = []
     for root in roots or ():
-        resolved_root = Path(root).resolve(strict=True)
+        resolved_root = Path(root).expanduser().resolve(strict=True)
         if not resolved_root.is_dir():
             raise ValueError(f"Trusted module root {str(resolved_root)!r} must be a directory")
         resolved_roots.append(resolved_root)
-    _TRUSTED_MODULE_ROOTS[:] = resolved_roots
+    return resolved_roots
+
+
+def set_trusted_module_roots(roots: Optional[Sequence[Union[str, Path]]]) -> None:
+    """Set process-wide trusted roots for configuration-driven file modules."""
+    _TRUSTED_MODULE_ROOTS[:] = _resolve_module_roots(roots)
 
 
 def get_module_by_module_path(
@@ -42,6 +48,9 @@ def get_module_by_module_path(
     """Load module path
 
     :param module_path:
+    :param allowed_module_roots: Trusted directories for ``.py`` files. ``None``
+        uses Qlib's configured roots; an empty sequence disables file imports.
+        Package imports remain available and configurations must be trusted.
     :return:
     :raises: ModuleNotFoundError
     """
@@ -54,17 +63,16 @@ def get_module_by_module_path(
         if module_path.endswith(".py"):
             if allowed_module_roots is None:
                 allowed_module_roots = _TRUSTED_MODULE_ROOTS
+            else:
+                allowed_module_roots = _resolve_module_roots(allowed_module_roots)
             if not allowed_module_roots:
                 raise PermissionError(
                     "Loading Python modules from file paths is disabled by default. "
                     "Pass allowed_module_roots containing a trusted directory to enable it."
                 )
-            module_file = Path(module_path).resolve(strict=True)
+            module_file = Path(module_path).expanduser().resolve(strict=True)
             allowed = False
             for root in allowed_module_roots:
-                root = Path(root).resolve(strict=True)
-                if not root.is_dir():
-                    raise ValueError(f"Allowed module root {str(root)!r} must be a directory")
                 try:
                     module_file.relative_to(root)
                     allowed = True
@@ -130,6 +138,9 @@ def get_callable_kwargs(
         It should be a python module to load the class type
         This function will load class from the config['module_path'] first.
         If config['module_path'] doesn't exists, it will load the class from default_module.
+
+    allowed_module_roots : sequence of paths, optional
+        Trusted directories for file modules; defaults to Qlib's configured roots.
 
     Returns
     -------
@@ -202,6 +213,9 @@ def init_instance_by_config(
     try_kwargs: Dict
         Try to pass in kwargs in `try_kwargs` when initialized the instance
         If error occurred, it will fail back to initialization without try_kwargs.
+
+    allowed_module_roots : sequence of paths, optional
+        Trusted directories for file modules; an empty sequence disables file imports.
 
     Returns
     -------
