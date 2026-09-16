@@ -114,36 +114,58 @@ class TestCIConfiguration(unittest.TestCase):
                     self.assertNotIn("continue-on-error", step)
                     self.assertNotIn("continue_on_error", step.get("with", {}))
 
-    def test_grpcio_source_build_is_scoped_and_precedes_installation(self):
-        condition = (
-            "${{ runner.os == 'macOS' && runner.arch == 'ARM64' && "
-            "(matrix.python-version == '3.8' || matrix.python-version == '3.9') }}"
-        )
+    def test_source_dependency_profiles_match_workflow_responsibilities(self):
         for name in ("test_qlib_from_source.yml", "test_qlib_from_source_slow.yml"):
             with self.subTest(workflow=name):
                 steps = self.workflows[name]["jobs"]["build"]["steps"]
-                configure = next(step for step in steps if step["name"].startswith("Configure grpcio source builds"))
                 install = next(step for step in steps if step["name"] == "Set up Python tools")
-                native = next(step for step in steps if step["name"].startswith("Verify grpcio native extension"))
+                profile = "dev,test,analysis"
+                if name == "test_qlib_from_source.yml":
+                    profile += ",lint"
+                profile += "${{ runner.os == 'Linux' && ',rl' || '' }}"
+                if name == "test_qlib_from_source.yml":
+                    profile += "${{ matrix.os == 'ubuntu-22.04' && ',docs' || '' }}"
+                    docs = next(step for step in steps if step["name"] == "Make html with sphinx")
+                    self.assertEqual(docs["if"], "${{ matrix.os == 'ubuntu-22.04' }}")
+                self.assertEqual(install["env"]["CI_EXTRAS"], profile)
+                self.assertEqual(install["run"].strip(), "make ci-install")
+                self.assertNotIn("package", profile)
+                native = next(step for step in steps if step["name"] == "Verify neural network test dependencies")
+                self.assertNotIn("if", native)
+                self.assertIn("import torch", native["run"])
+                self.assertIn("import GeneralPTNN", native["run"])
+                self.assertIn("import DatasetH, TSDatasetH", native["run"])
+                self.assertIn("assert pytorch_classes", native["run"])
+                footprint = next(step for step in steps if step["name"] == "Verify non-Linux dependency footprint")
+                self.assertEqual(footprint["if"], "${{ runner.os != 'Linux' }}")
+                self.assertIn("{'tianshou', 'tensorboard', 'grpcio'}", footprint["run"])
+                self.assertIn("assert not unexpected", footprint["run"])
                 check = next(step for step in steps if step["name"] == "Verify dependency consistency")
-                self.assertEqual(configure["if"], condition)
-                self.assertEqual(native["if"], condition)
-                self.assertEqual(configure["shell"], "bash")
-                self.assertIn('echo "PIP_NO_BINARY=grpcio" >> "$GITHUB_ENV"', configure["run"])
-                self.assertIn('echo "GRPC_PYTHON_BUILD_EXT_COMPILER_JOBS=2" >> "$GITHUB_ENV"', configure["run"])
-                self.assertIn('echo "GRPC_PYTHON_BUILD_SYSTEM_ZLIB=1" >> "$GITHUB_ENV"', configure["run"])
-                self.assertIn("from grpc._cython import cygrpc", native["run"])
-                self.assertLess(steps.index(configure), steps.index(install))
                 self.assertLess(steps.index(install), steps.index(native))
                 self.assertLess(steps.index(native), steps.index(check))
-                for step in steps:
-                    if "pip install" in step.get("run", ""):
-                        self.assertLess(steps.index(configure), steps.index(step))
-                # Later installs must not restore the broken binary wheel.
-                self.assertNotIn("PIP_NO_BINARY", self.workflows[name]["jobs"]["build"].get("env", {}))
-                for step in steps:
-                    self.assertNotIn("PIP_NO_BINARY", step.get("env", {}))
-                    self.assertNotIn("GRPC_PYTHON_BUILD_SYSTEM_ZLIB", step.get("env", {}))
+                self.assertLess(steps.index(footprint), steps.index(check))
+                self.assertNotIn("GRPC_PYTHON_BUILD", str(steps))
+                self.assertNotIn("PIP_NO_BINARY", str(steps))
+
+    def test_source_test_runtime_retains_torch_and_numerical_bounds(self):
+        requirements = {
+            req.name: req
+            for line in (ROOT / ".github/ci/test-requirements.txt").read_text(encoding="utf-8").splitlines()
+            if line.strip() and not line.startswith("#")
+            for req in [Requirement(line)]
+        }
+        self.assertEqual(set(requirements), {"torch", "numpy", "scipy"})
+        extras = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"][
+            "optional-dependencies"
+        ]
+        previous = {req.name: req for req in map(Requirement, extras["rl"] + extras["docs"])}
+        for name, req in requirements.items():
+            self.assertEqual(req.specifier, previous[name].specifier)
+            self.assertIsNone(req.marker)
+        makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
+        self.assertIn("dev: prerequisite all", makefile)
+        self.assertIn("ci-install: prerequisite", makefile)
+        self.assertIn('-r .github/ci/test-requirements.txt -e ".[$(CI_EXTRAS)]"', makefile)
 
     def test_download_retries_are_bounded_and_noninteractive(self):
         for name, workflow in self.workflows.items():

@@ -2,7 +2,7 @@
 
 The three Python workflows share `constraints.txt` via a job-level, absolute
 `PIP_CONSTRAINT` path. It applies to every pip invocation, including installs
-inside `make dev`, later notebook/tool installs, and the released `pyqlib`
+inside `make ci-install`, later notebook/tool installs, and the released `pyqlib`
 package. A bound in this checkout's `pyproject.toml` alone does not constrain a
 package installed from PyPI. Keep the compatibility bounds in both files in
 sync; `tests/test_ci_configuration.py` checks this.
@@ -34,37 +34,42 @@ test native solver imports rather than excluding Windows/Python 3.8.
 opt-in. The upper bound also protects source installs outside CI. Migrating
 Qlib's tracking backend is a separate change.
 
-## grpcio wheels on older macOS ARM64 Python
+## Install only each test job's dependencies
 
-The source jobs install TensorBoard through the RL extras, which brings in
-grpcio. The published Python 3.8 grpcio 1.70.0 and Python 3.9 grpcio 1.80.0
-macOS wheels have `universal2` filenames and binaries with both architectures,
-but their internal `WHEEL` metadata declares only `x86_64`. Pip accepts the
-filename during installation, then `pip check` rejects the internal tag on
-ARM64. grpcio 1.78.0 has the same problem, so an arbitrary downgrade is not a
-reliable fix.
+CI calls `make ci-install` with an explicit `CI_EXTRAS` profile. The existing
+`make dev` target still installs the complete developer environment.
 
-Only the source and slow-source jobs on macOS ARM64 with Python 3.8/3.9 set
-`PIP_NO_BINARY=grpcio` before `make dev`. This makes pip build the resolved
-version from source with metadata for the local platform. The setting persists
-for subsequent pip installs, and `GRPC_PYTHON_BUILD_EXT_COMPILER_JOBS=2` bounds
-compilation parallelism. The workflows then import `grpc._cython.cygrpc` and
-run the unchanged `pip check`. No package metadata is rewritten and no checks
-or matrix entries are skipped. The PyPI workflow does not install the RL
-extras and is unaffected.
+| Source job | Extras |
+| --- | --- |
+| Regular, Windows/macOS | `dev,test,analysis,lint` |
+| Regular, Ubuntu 24.04 | `dev,test,analysis,lint,rl` |
+| Regular, Ubuntu 22.04 | `dev,test,analysis,lint,rl,docs` |
+| Slow, Windows/macOS | `dev,test,analysis` |
+| Slow, Linux | `dev,test,analysis,rl` |
 
-These same source-build jobs also set `GRPC_PYTHON_BUILD_SYSTEM_ZLIB=1` to use
-the macOS SDK's zlib. In grpcio 1.70.0 (selected on Python 3.8), the bundled
-`third_party/zlib/zutil.h` defines `fdopen(fd,mode)` as `NULL` when
-`TARGET_OS_MAC` is defined. With the Xcode 16.4 SDK this corrupts the subsequent
-`fdopen` declaration in `_stdio.h`, causing compilation to fail on macOS 15.
-grpcio's supported system-zlib option removes the bundled zlib C sources from
-the build and links `-lz` instead. It stays scoped to the existing macOS ARM64
-Python 3.8/3.9 source-build workaround; other environments remain unchanged.
+All source jobs additionally install `test-requirements.txt`: PyTorch is
+required for the neural-network tests even without the RL extra. NumPy/SciPy
+retain the compatibility bounds previously inherited from the RL/docs extras.
+Ubuntu jobs select CPU PyTorch wheels. torchvision/torchaudio are not used by
+the test suite and are no longer installed explicitly. No test job needs the
+package-building extra; docs dependencies are installed only where `docs-gen`
+runs. Lint checks stay in the existing regular source matrix.
 
-Remove this workaround only after validating both the internal wheel tags and
-native imports on the affected ARM64 runners; a cross-platform resolver check
-alone does not inspect the internal `WHEEL` metadata.
+`tests/conftest.py` already excludes RL tests on non-Linux platforms. Installing
+RL extras there used to pull in `tianshou -> tensorboard -> grpcio`, requiring
+expensive source builds to work around incorrect macOS wheel metadata and an
+Xcode 16.4 bundled-zlib build failure. Those jobs no longer install this unused
+dependency chain, so the grpcio source-build workaround has been removed.
+Linux retains the RL extra and the same RL tests. The PyPI workflow is unchanged.
+
+Explicit imports of PyTorch, Qlib's PyTorch model registry, GeneralPTNN, and
+both dataset classes prevent missing dependencies from silently bypassing
+neural-network tests. A non-Linux footprint check rejects accidental
+reintroduction of tianshou/TensorBoard/grpcio, followed by the unchanged
+`pip check`. If a future test genuinely needs these dependencies on macOS,
+update this policy and validate native wheel metadata/imports rather than
+disabling the checks. This change does not reduce the matrix, alter test
+selection, add caches, or reduce test data sizes.
 
 ## Network and workflow retries
 
