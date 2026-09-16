@@ -137,3 +137,20 @@ def test_restricted_unpickler_rejects_payload_inside_dataframe(protocol):
     value = pd.DataFrame({"payload": [_MaliciousPayload()]})
     with pytest.raises(pickle.UnpicklingError, match="Forbidden class"):
         restricted_pickle_loads(pickle.dumps(value, protocol=protocol))
+
+
+class _SecondStagePayload:
+    def __init__(self, path):
+        self.path = str(path)
+
+    def __reduce__(self):
+        return pd.read_pickle, (self.path,)
+
+
+@pytest.mark.parametrize("protocol", [4, 5])
+def test_restricted_unpickler_blocks_two_stage_read_pickle(tmp_path, protocol):
+    second_stage = tmp_path / "second.pkl"
+    second_stage.write_bytes(pickle.dumps(_MaliciousPayload(), protocol=protocol))
+    payload = pickle.dumps(_SecondStagePayload(second_stage), protocol=protocol)
+    with pytest.raises(pickle.UnpicklingError, match="pandas.*read_pickle"):
+        restricted_pickle_loads(payload)

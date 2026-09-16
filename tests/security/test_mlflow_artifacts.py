@@ -66,6 +66,30 @@ def test_mlflow_artifact_requires_explicit_trust_for_arbitrary_pickle(tmp_path):
         assert _recorder(path).load_object("payload.pkl", trusted=True) == 42
 
 
+def test_custom_artifact_unpickler_requires_explicit_selection_and_warns(tmp_path):
+    path = tmp_path / "payload.pkl"
+    path.write_bytes(pickle.dumps(_MaliciousPayload()))
+    with pytest.warns(UnsafeArtifactWarning, match="custom artifact unpickler"):
+        assert _recorder(path).load_object("payload.pkl", unpickler=pickle.Unpickler) == 42
+
+
+def test_artifact_loader_rejects_ambiguous_trust_options(tmp_path):
+    with pytest.raises(ValueError, match="cannot be used together"):
+        _recorder(tmp_path / "unused.pkl").load_object("unused.pkl", unpickler=pickle.Unpickler, trusted=True)
+
+
+@pytest.mark.parametrize("trusted", [False, True])
+def test_recorder_facade_forwards_explicit_trust(trusted):
+    from qlib.workflow import QlibRecorder
+
+    recorder = Mock()
+    experiment = SimpleNamespace(get_recorder=Mock(return_value=recorder))
+    facade = object.__new__(QlibRecorder)
+    facade.get_exp = Mock(return_value=experiment)
+    facade.load_object("model.pkl", trusted=trusted)
+    recorder.load_object.assert_called_once_with("model.pkl", trusted=trusted)
+
+
 def test_end_task_train_loads_trusted_reweighter(tmp_path, monkeypatch):
     pytest.importorskip("torch")
     from qlib.contrib.meta.data_selection.model import TimeReweighter

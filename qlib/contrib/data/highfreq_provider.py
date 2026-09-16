@@ -17,6 +17,12 @@ from joblib import Parallel, delayed
 
 
 class HighFreqProvider:
+    """Generate and reuse datasets within ``artifact_root`` (the current directory by default).
+
+    Relative paths are resolved against this root. Cached datasets are Python
+    pickles, so the root and its contents must be controlled by trusted users.
+    """
+
     def __init__(
         self,
         start_time: str,
@@ -66,14 +72,20 @@ class HighFreqProvider:
         """
 
         dict_feature_path = self._resolve_artifact_path(self.feature_conf["path"])
-        train_feature_path = dict_feature_path.with_name(dict_feature_path.stem + "_train.pkl")
-        valid_feature_path = dict_feature_path.with_name(dict_feature_path.stem + "_valid.pkl")
-        test_feature_path = dict_feature_path.with_name(dict_feature_path.stem + "_test.pkl")
+        train_feature_path = self._resolve_artifact_path(
+            dict_feature_path.with_name(dict_feature_path.stem + "_train.pkl")
+        )
+        valid_feature_path = self._resolve_artifact_path(
+            dict_feature_path.with_name(dict_feature_path.stem + "_valid.pkl")
+        )
+        test_feature_path = self._resolve_artifact_path(
+            dict_feature_path.with_name(dict_feature_path.stem + "_test.pkl")
+        )
 
         dict_label_path = self._resolve_artifact_path(self.label_conf["path"])
-        train_label_path = dict_label_path.with_name(dict_label_path.stem + "_train.pkl")
-        valid_label_path = dict_label_path.with_name(dict_label_path.stem + "_valid.pkl")
-        test_label_path = dict_label_path.with_name(dict_label_path.stem + "_test.pkl")
+        train_label_path = self._resolve_artifact_path(dict_label_path.with_name(dict_label_path.stem + "_train.pkl"))
+        valid_label_path = self._resolve_artifact_path(dict_label_path.with_name(dict_label_path.stem + "_valid.pkl"))
+        test_label_path = self._resolve_artifact_path(dict_label_path.with_name(dict_label_path.stem + "_test.pkl"))
 
         if (
             not os.path.isfile(train_feature_path)
@@ -153,6 +165,10 @@ class HighFreqProvider:
                 res = data.prepare(datasets)
             self.logger.info(f"[{__name__}]Data loaded, time cost: {time.time() - start:.2f}")
         else:
+            split_paths = [
+                self._resolve_artifact_path(path.with_name(path.stem + split + ".pkl"))
+                for split in ("train", "valid", "test")
+            ]
             path.parent.mkdir(parents=True, exist_ok=True)
             self.logger.info(f"[{__name__}]Generating dataset")
             start_time = time.time()
@@ -166,12 +182,9 @@ class HighFreqProvider:
             }
             with path.open("wb") as f:
                 pkl.dump(data, f)
-            with path.with_name(path.stem + "train.pkl").open("wb") as f:
-                pkl.dump(trainset, f)
-            with path.with_name(path.stem + "valid.pkl").open("wb") as f:
-                pkl.dump(validset, f)
-            with path.with_name(path.stem + "test.pkl").open("wb") as f:
-                pkl.dump(testset, f)
+            for split_path, split_data in zip(split_paths, (trainset, validset, testset)):
+                with split_path.open("wb") as f:
+                    pkl.dump(split_data, f)
             res = [data[i] for i in datasets]
             self.logger.info(f"[{__name__}]Data generated, time cost: {(time.time() - start_time):.2f}")
         return res
@@ -239,7 +252,7 @@ class HighFreqProvider:
         except KeyError as e:
             raise ValueError("Must specify the path to save the dataset.") from e
 
-        tmp_dataset_path = path / "tmp_dataset.pkl"
+        tmp_dataset_path = self._resolve_artifact_path(path / "tmp_dataset.pkl")
         if tmp_dataset_path.is_file():
             start = time.time()
             self.logger.info(f"[{__name__}]Dataset exists, load from disk.")
@@ -259,7 +272,7 @@ class HighFreqProvider:
         time_list = D.calendar(start_time=self.start_time, end_time=self.end_time, freq=self.freq)[::240]
 
         def generate_dataset(times):
-            output_path = path / f"{times:%Y-%m-%d}.pkl"
+            output_path = self._resolve_artifact_path(path / f"{times:%Y-%m-%d}.pkl")
             if output_path.is_file():
                 print("exist " + times.strftime("%Y-%m-%d"))
                 return
@@ -282,7 +295,7 @@ class HighFreqProvider:
         except KeyError as e:
             raise ValueError("Must specify the path to save the dataset.") from e
 
-        tmp_dataset_path = path / "tmp_dataset.pkl"
+        tmp_dataset_path = self._resolve_artifact_path(path / "tmp_dataset.pkl")
         if tmp_dataset_path.is_file():
             start = time.time()
             self.logger.info(f"[{__name__}]Dataset exists, load from disk.")
@@ -305,7 +318,7 @@ class HighFreqProvider:
         )
 
         def generate_dataset(stock):
-            output_path = path / f"{stock}.pkl"
+            output_path = self._resolve_artifact_path(path / f"{stock}.pkl")
             if output_path.is_file():
                 print("exist " + stock)
                 return
