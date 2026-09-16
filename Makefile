@@ -1,4 +1,4 @@
-.PHONY: clean deepclean prerequisite dependencies lightgbm rl develop lint docs package test analysis all install dev black pylint flake8 mypy nbqa nbconvert lint build upload docs-gen
+.PHONY: clean deepclean prerequisite dependencies lightgbm rl develop lint docs package test analysis all install dev ci-install black pylint flake8 mypy nbqa nbconvert lint build upload docs-gen
 #You can modify it according to your terminal
 SHELL := /bin/bash
 
@@ -11,6 +11,10 @@ PUBLIC_DIR := $(shell [ "$$READTHEDOCS" = "True" ] && echo "$$READTHEDOCS_OUTPUT
 
 SO_DIR := qlib/data/_libs
 SO_FILES := $(wildcard $(SO_DIR)/*.so)
+
+# CI selects optional dependencies by platform and workflow. Keep `make dev`
+# unchanged for contributors who want the complete development environment.
+CI_EXTRAS ?= dev,test,analysis
 
 ifeq ($(OS),Windows_NT)
     IS_WINDOWS = true
@@ -109,6 +113,9 @@ all:
 install: prerequisite dependencies
 
 dev: prerequisite all
+
+ci-install: prerequisite
+	python -m pip install --no-cache-dir -r .github/ci/test-requirements.txt -e ".[$(CI_EXTRAS)]"
 
 ########################################################################################
 # Lint and pre-commit

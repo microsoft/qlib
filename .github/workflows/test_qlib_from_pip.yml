@@ -13,9 +13,13 @@ on:
 jobs:
   build:
     timeout-minutes: 120
+    env:
+      MLFLOW_ALLOW_FILE_STORE: "true"
+      PIP_CONSTRAINT: ${{ github.workspace }}/.github/ci/constraints.txt
 
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [windows-latest, ubuntu-24.04, ubuntu-22.04, macos-14, macos-15]
         # In github action, using python 3.7, pip install will not match the latest version of the package.
@@ -25,12 +29,12 @@ jobs:
 
     steps:
     - name: Test qlib from pip
-      uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       with:
         fetch-depth: 0
 
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # v4.9.1
+      uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -42,6 +46,13 @@ jobs:
       run: |
         python -m pip install pyqlib
 
+    - name: Verify dependency consistency
+      run: python -m pip check
+
+    - name: Verify native solvers on Windows Python 3.8
+      if: ${{ matrix.os == 'windows-latest' && matrix.python-version == '3.8' }}
+      run: python -c "import cvxpy, osqp; print('CVXPY', cvxpy.__version__, 'OSQP', osqp.__version__)"
+
     - name: Install Lightgbm for MacOS
       if: ${{ matrix.os == 'macos-14' || matrix.os == 'macos-15' }}
       run: |
@@ -50,11 +61,29 @@ jobs:
         python -m pip install --no-binary=:all: lightgbm
 
     - name: Downloads dependencies data
-      run: |
-        cd ..
-        python -m qlib.cli.data qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn
-        cd qlib
+      uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4
+      with:
+        timeout_minutes: 15
+        max_attempts: 3
+        retry_wait_seconds: 10
+        shell: bash
+        command: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          python -m qlib.cli.data qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn --delete_old False
 
     - name: Test workflow by config
-      run: |
-        qrun examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
+      uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4
+      with:
+        timeout_minutes: 30
+        max_attempts: 3
+        shell: bash
+        command: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          python -c "import os, pathlib, qlib; print('Testing installed Qlib:', qlib.__file__); assert pathlib.Path(os.environ['GITHUB_WORKSPACE']).resolve() not in pathlib.Path(qlib.__file__).resolve().parents"
+          qrun "$GITHUB_WORKSPACE/examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml"
+
+    - name: Report installed dependencies
+      if: always()
+      run: python -m pip freeze

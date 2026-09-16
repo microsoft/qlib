@@ -45,6 +45,7 @@ tags
 .pytest_cache/
 .mypy_cache/
 .vscode/
+node_modules/
 
 *.swp
 

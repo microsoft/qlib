@@ -18,18 +18,18 @@ jobs:
     steps:
       # This step is necessary because the lint title uses the .commitlintrc.js file in the project root directory.
       - name: Checkout Repository
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
-          node-version: '16'
+          node-version: '22'
 
       - name: Install commitlint
-        run: npm install --save-dev @commitlint/{config-conventional,cli}
+        run: npm ci --ignore-scripts --no-audit --no-fund
 
       - name: Validate PR Title with commitlint
         env:
           BODY: ${{ github.event.pull_request.title }}
         run: |
-          echo "$BODY" | npx commitlint --config .commitlintrc.js
+          printf '%s\n' "$BODY" | npx --no-install commitlint --config .commitlintrc.js
