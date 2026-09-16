@@ -239,6 +239,28 @@ class TestCIConfiguration(unittest.TestCase):
                 self.assertEqual(steps[-1]["name"], "Report installed dependencies")
                 self.assertEqual(steps[-1]["if"], "always()")
 
+    def test_dependabot_action_updates_use_ci_commit_prefix(self):
+        config = yaml.safe_load((ROOT / ".github/dependabot.yml").read_text(encoding="utf-8"))
+        updates = [entry for entry in config["updates"] if entry["package-ecosystem"] == "github-actions"]
+        self.assertTrue(updates)
+        for entry in updates:
+            with self.subTest(directory=entry["directory"]):
+                self.assertEqual(entry["commit-message"], {"prefix": "ci", "include": "scope"})
+
+    def test_remote_actions_use_full_commit_shas(self):
+        paths = sorted((ROOT / ".github/workflows").glob("*.yml"))
+        paths += sorted((ROOT / ".github/workflows").glob("*.yaml"))
+        self.assertTrue(paths)
+        for path in paths:
+            workflow = yaml.safe_load(path.read_text(encoding="utf-8"))
+            for job in workflow["jobs"].values():
+                for entry in [job] + job.get("steps", []):
+                    reference = entry.get("uses", "")
+                    if not reference or reference.startswith("./"):
+                        continue
+                    with self.subTest(workflow=path.name, action=reference):
+                        self.assertRegex(reference, r"^[\w.-]+/[\w./-]+@[0-9a-f]{40}$")
+
     def test_title_lint_uses_a_lockfile_and_no_dynamic_download(self):
         workflow = yaml.safe_load((ROOT / ".github/workflows/lint_title.yml").read_text(encoding="utf-8"))
         steps = workflow["jobs"]["lint-title"]["steps"]

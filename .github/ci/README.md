@@ -103,6 +103,15 @@ Checkout, Python setup, Node setup, and retry actions use Node 24-based releases
 (`checkout@v6`, `setup-python@v6`, `setup-node@v6`, `retry@v4`). The action
 runtime is separate from the Python and Node versions installed for tests.
 
+Remote action references are pinned to full commit SHAs with version comments,
+including the download and workflow retry steps. When updating an action,
+verify its SHA against the upstream repository and update the version comment.
+The offline policy checks reject mutable action references. Dependabot checks
+GitHub Actions weekly and groups their version updates; its seven-day cooldown
+filters newly published versions, rather than setting the interval between PRs.
+Its explicit `ci` commit prefix and dependency scope keep generated PR titles
+aligned with the repository's conventional-commit title checks.
+
 Node 22 satisfies commitlint's Node >=22.12 requirement. The root `package.json`
 and `package-lock.json` pin the title tooling and its transitive dependencies;
 CI uses `npm ci --ignore-scripts` and `npx --no-install`.

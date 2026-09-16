@@ -29,12 +29,12 @@ jobs:
 
     steps:
     - name: Test qlib from pip
-      uses: actions/checkout@v6
+      uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       with:
         fetch-depth: 0
 
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -61,7 +61,7 @@ jobs:
         python -m pip install --no-binary=:all: lightgbm
 
     - name: Downloads dependencies data
-      uses: nick-fields/retry@v4
+      uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4
       with:
         timeout_minutes: 15
         max_attempts: 3
@@ -73,7 +73,7 @@ jobs:
           python -m qlib.cli.data qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn --delete_old False
 
     - name: Test workflow by config
-      uses: nick-fields/retry@v4
+      uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4
       with:
         timeout_minutes: 30
         max_attempts: 3

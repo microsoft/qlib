@@ -30,12 +30,12 @@ jobs:
 
     steps:
     - name: Test qlib from source slow
-      uses: actions/checkout@v6
+      uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       with:
         fetch-depth: 0
 
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -75,7 +75,7 @@ jobs:
       run: python -c "import cvxpy, osqp; print('CVXPY', cvxpy.__version__, 'OSQP', osqp.__version__)"
 
     - name: Downloads dependencies data
-      uses: nick-fields/retry@v4
+      uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4
       with:
         timeout_minutes: 15
         max_attempts: 3
@@ -84,7 +84,7 @@ jobs:
         command: python scripts/get_data.py qlib_data --name qlib_data_simple --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn --delete_old False
 
     - name: Unit tests with Pytest
-      uses: nick-fields/retry@v4
+      uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4
       with:
         timeout_minutes: 240
         max_attempts: 3

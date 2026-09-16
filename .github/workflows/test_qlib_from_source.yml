@@ -30,12 +30,12 @@ jobs:
 
     steps:
     - name: Test qlib from source
-      uses: actions/checkout@v6
+      uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       with:
         fetch-depth: 0
 
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -105,7 +105,7 @@ jobs:
         make nbqa
 
     - name: Test data downloads
-      uses: nick-fields/retry@v4
+      uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4
       with:
         timeout_minutes: 15
         max_attempts: 3
@@ -121,7 +121,7 @@ jobs:
         make nbconvert
 
     - name: Test workflow by config (install from source)
-      uses: nick-fields/retry@v4
+      uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4
       with:
         timeout_minutes: 30
         max_attempts: 3
@@ -134,7 +134,7 @@ jobs:
 
     - name: Unit tests with Pytest (MacOS)
       if: ${{ matrix.os == 'macos-14' || matrix.os == 'macos-15' }}
-      uses: nick-fields/retry@v4
+      uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4
       with:
         timeout_minutes: 60
         max_attempts: 3
@@ -150,7 +150,7 @@ jobs:
 
     - name: Unit tests with Pytest (Ubuntu and Windows)
       if: ${{ matrix.os != 'macos-13' && matrix.os != 'macos-14' && matrix.os != 'macos-15' }}
-      uses: nick-fields/retry@v4
+      uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4
       with:
         timeout_minutes: 60
         max_attempts: 3
