@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from qlib.utils.pickle_utils import RestrictedUnpickler, restricted_pickle_loads
+from qlib.utils.pickle_utils import RestrictedUnpickler, get_safe_classes, restricted_pickle_loads
 
 
 class _MaliciousPayload:
@@ -28,6 +28,20 @@ class _MaliciousPayload:
 def test_restricted_unpickler_rejects_dangerous_globals(module, name):
     with pytest.raises(pickle.UnpicklingError):
         RestrictedUnpickler(io.BytesIO()).find_class(module, name)
+
+
+@pytest.mark.parametrize(
+    ("module", "name"),
+    [
+        ("numpy.ma", "MaskedArray"),
+        ("numpy.ma.core", "MaskedArray"),
+        ("pandas.core.dtypes.dtypes", "SparseDtype"),
+        ("pandas.core.arrays.sparse.dtype", "SparseDtype"),
+    ],
+)
+def test_restricted_unpickler_retains_versioned_data_class_paths(module, name):
+    # Keep both paths even when the installed version only emits one of them.
+    assert (module, name) in get_safe_classes()
 
 
 def test_restricted_unpickler_rejects_reduce_payload():

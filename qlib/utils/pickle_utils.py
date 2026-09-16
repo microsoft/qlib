@@ -62,6 +62,8 @@ SAFE_PICKLE_CLASSES: Set[Tuple[str, str]] = {
     ("numpy.core.numeric", "_frombuffer"),
     ("numpy._core.numeric", "_frombuffer"),
     ("numpy.ma.core", "_mareconstruct"),
+    # NumPy 1.x and 2.x pickle this class under different module paths.
+    ("numpy.ma.core", "MaskedArray"),
     ("numpy.ma", "MaskedArray"),
     # Pandas reconstruction primitives used by Series/DataFrame pickles.
     # These entries are deliberately exact. I/O helpers such as
@@ -95,6 +97,7 @@ SAFE_PICKLE_CLASSES: Set[Tuple[str, str]] = {
     ("pandas.core.dtypes.dtypes", "PeriodDtype"),
     ("pandas.core.dtypes.dtypes", "IntervalDtype"),
     ("pandas.core.dtypes.dtypes", "SparseDtype"),
+    ("pandas.core.arrays.sparse.dtype", "SparseDtype"),
     ("pandas.core.arrays.interval", "IntervalArray"),
     ("pandas._libs.interval", "__pyx_unpickle_IntervalMixin"),
     ("pandas.core.arrays.sparse.array", "SparseArray"),
