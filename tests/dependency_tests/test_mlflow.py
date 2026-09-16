@@ -22,10 +22,13 @@ class MLflowTest(unittest.TestCase):
 
         This implementation is based on the assumption creating a client is fast
         """
-        start = time.time()
+        # Measure repeated client construction, not one-time store creation,
+        # plugin discovery, or the file-store deprecation warning machinery.
+        mlflow.tracking.MlflowClient(tracking_uri=str(self.TMP_PATH))
+        start = time.perf_counter()
         for i in range(10):
             _ = mlflow.tracking.MlflowClient(tracking_uri=str(self.TMP_PATH))
-        end = time.time()
+        end = time.perf_counter()
         elapsed = end - start
         if platform.system() == "Linux":
             # This is a regression guard, not a microbenchmark. Shared CI

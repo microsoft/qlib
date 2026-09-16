@@ -1,0 +1,19 @@
+# Shared by source and PyPI jobs through an absolute PIP_CONSTRAINT path.
+# This is a compatibility baseline, not a complete lock of every dependency.
+# Keep runtime bounds aligned with pyproject.toml; see README.md in this folder.
+
+# Qlib still uses MLflow's filesystem tracking backend.
+mlflow<3.13
+# New fork-safety checks race with the threaded DataQueue producer.
+filelock>=3.16.0,<3.30
+# 2.22 uses Python 3.10 union syntax on older interpreters.
+fastjsonschema<2.22; python_version < "3.10"
+# Qlib imports figure_factory.create_distplot, removed in Plotly 7.
+plotly<7
+# 6.1.3 falls back to a source build on Windows without libxml2 headers.
+lxml<6.1.3
+# This exact Windows/Python 3.8 wheel passed the full matrix in PR #2308.
+# Both 1.1.3 and a subsequent downgrade to 0.6.7.post3 crashed on import.
+osqp==1.0.5; sys_platform == "win32" and python_version == "3.8"
+# Use the same formatter for Python files and notebooks.
+black<26.1

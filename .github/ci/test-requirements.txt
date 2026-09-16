@@ -1,0 +1,7 @@
+# Runtime required by both source test workflows, including non-Linux jobs
+# which do not run tests/rl. Do not rely on the RL extra to bring in PyTorch.
+torch
+# Preserve the numerical dependency bounds previously inherited from the RL
+# and docs extras while changing which optional tools are installed.
+numpy<2.0.0
+scipy<=1.15.3
