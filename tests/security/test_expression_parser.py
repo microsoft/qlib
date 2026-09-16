@@ -98,6 +98,35 @@ def test_registered_custom_operator_is_supported():
     assert isinstance(parse_expression("CustomRef($close, 1)"), CustomRef)
 
 
+@pytest.mark.parametrize(
+    "source, equivalent",
+    [
+        ("Mean($close, 2 + 3)", "Mean($close, 5)"),
+        ("Ref($close, 2 * 3)", "Ref($close, 6)"),
+        ("$close / (1 + 0.01)", "$close / 1.01"),
+        ("$close + 10 ** -6", "$close + 0.000001"),
+        ("Ref($close, (60 // 5) % 5)", "Ref($close, 2)"),
+    ],
+)
+def test_numeric_parameter_arithmetic_preserves_expression(source, equivalent):
+    assert str(parse_expression(source)) == str(parse_expression(equivalent))
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "Ref($close, 'x' * 1000000000)",
+        "Ref($close, [1] * 1000000000)",
+        "Ref($close, 2 ** 1000000000)",
+        "Ref($close, (2 ** 4095) * (2 ** 4095))",
+        "$close + (-1) ** 0.5",
+    ],
+)
+def test_constant_arithmetic_rejects_expansion_and_oversized_results(source):
+    with pytest.raises(ExpressionSyntaxError):
+        parse_expression(source)
+
+
 def test_benchmark_feature_expressions_remain_supported():
     from qlib.contrib.data.loader import Alpha158DL, Alpha360DL
 

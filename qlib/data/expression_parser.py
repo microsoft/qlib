@@ -45,6 +45,26 @@ def _unsupported(node):
     raise ExpressionSyntaxError(f"Unsupported syntax in Qlib expression: {type(node).__name__}")
 
 
+def _constant_arithmetic(node, operation, left, right):
+    """Evaluate numeric parameters without enabling string/list expansion."""
+    for value in (left, right):
+        if type(value) not in (int, float):
+            raise ExpressionSyntaxError("Constant arithmetic requires real numbers")
+        if isinstance(value, int) and value.bit_length() > 4096:
+            raise ExpressionSyntaxError("Constant arithmetic exceeds the integer size limit")
+    if isinstance(node.op, ast.Pow) and abs(right) > 4096:
+        raise ExpressionSyntaxError("Constant exponent exceeds the size limit")
+    if isinstance(node.op, ast.Pow) and isinstance(left, int) and isinstance(right, int) and right > 0:
+        if left.bit_length() * right > 4096:
+            raise ExpressionSyntaxError("Constant arithmetic exceeds the integer size limit")
+    result = operation(left, right)
+    if isinstance(result, int) and result.bit_length() > 4096:
+        raise ExpressionSyntaxError("Constant arithmetic exceeds the integer size limit")
+    if type(result) not in (int, float):
+        raise ExpressionSyntaxError("Constant arithmetic must produce a real number")
+    return result
+
+
 def _evaluate(node):
     if isinstance(node, ast.Constant):
         return node.value
@@ -62,7 +82,7 @@ def _evaluate(node):
         left = _evaluate(node.left)
         right = _evaluate(node.right)
         if not isinstance(left, Expression) and not isinstance(right, Expression):
-            raise ExpressionSyntaxError("Constant-only arithmetic is not supported in Qlib expressions")
+            return _constant_arithmetic(node, operation, left, right)
         return operation(left, right)
 
     if isinstance(node, ast.UnaryOp):

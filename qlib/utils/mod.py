@@ -42,6 +42,18 @@ def set_trusted_module_roots(roots: Optional[Sequence[Union[str, Path]]]) -> Non
     _TRUSTED_MODULE_ROOTS[:] = _resolve_module_roots(roots)
 
 
+def _register_legacy_module_alias(module, module_path, module_file):
+    """Keep trusted old model pickles loadable after their module is imported."""
+    for path in (module_path, str(module_file)):
+        legacy_name = re.sub("^[^a-zA-Z_]+", "", re.sub("[^0-9a-zA-Z_]", "", path[:-3].replace("/", "_")))
+        previous = sys.modules.get(legacy_name)
+        previous_file = getattr(previous, "__file__", None)
+        if legacy_name and (
+            previous is None or (previous_file is not None and Path(previous_file).resolve() == module_file)
+        ):
+            sys.modules[legacy_name] = module
+
+
 def get_module_by_module_path(
     module_path: Union[str, ModuleType], allowed_module_roots: Optional[Sequence[Union[str, Path]]] = None
 ):
@@ -97,6 +109,7 @@ def get_module_by_module_path(
             except Exception:
                 sys.modules.pop(module_name, None)
                 raise
+            _register_legacy_module_alias(module, module_path, module_file)
         else:
             module = importlib.import_module(module_path)
     return module
