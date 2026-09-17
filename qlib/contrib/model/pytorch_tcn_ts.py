@@ -294,4 +294,4 @@ class TCNModel(nn.Module):
     def forward(self, x):
         output = self.tcn(x)
         output = self.linear(output[:, :, -1])
-        return output.squeeze()
+        return output.squeeze(-1)
