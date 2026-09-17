@@ -101,6 +101,10 @@ class Recorder:
         ----------
         name : str
             name of the file to be loaded.
+        trusted : bool
+            Whether to allow unrestricted pickle loading. Defaults to False.
+            Implementations must not silently retry restricted loads with an
+            unrestricted loader. Only enable this for trusted sources and storage.
 
         Returns
         -------
@@ -436,6 +440,8 @@ class MLflowRecorder(Recorder):
         """
         assert self.uri is not None, "Please start the experiment and recorder first before using recorder directly."
 
+        if not isinstance(trusted, bool):
+            raise TypeError("`trusted` must be a bool")
         if trusted and unpickler is not None:
             raise ValueError("`trusted` and `unpickler` cannot be used together")
 
@@ -462,6 +468,15 @@ class MLflowRecorder(Recorder):
                     loader = RestrictedUnpickler(f)
                 data = loader.load()
             return data
+        except pickle.UnpicklingError as e:
+            if not trusted and unpickler is None:
+                raise LoadObjectError(
+                    f"Restricted loading of artifact {name!r} failed: {e}. "
+                    "Use a supported data representation, or explicitly set trusted=True "
+                    "(trusted_artifacts=True on a workflow) only when both the artifact "
+                    "source and storage are trusted. Unrestricted pickle may execute arbitrary code."
+                ) from e
+            raise LoadObjectError(str(e)) from e
         except Exception as e:
             raise LoadObjectError(str(e)) from e
         finally:

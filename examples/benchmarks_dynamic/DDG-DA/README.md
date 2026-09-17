@@ -14,15 +14,46 @@ The data in the paper are private. So we conduct experiments on Qlib's public da
 Though the dataset is different, the conclusion remains the same. By applying `DDG-DA`, users can see rising trends at the test phase both in the proxy models' ICs and the performances of the forecasting models.
 
 # Run the Code
-Users can try `DDG-DA` by running the following command:
+After verifying that the recorder artifacts and local working files are your own
+and cannot be replaced by untrusted writers (see below), run from this directory:
 ```bash
-    python workflow.py run
+    python workflow.py --trusted_artifacts=True run
 ```
 
 The default forecasting models are `Linear`. Users can choose other forecasting models by changing the `forecast_model` parameter when `DDG-DA` initializes. For example, users can try `LightGBM` forecasting models by running the following command:
 ```bash
-    python workflow.py --conf_path=../workflow_config_lightgbm_Alpha158.yaml run
+    python workflow.py --trusted_artifacts=True --conf_path=../baseline/workflow_config_lightgbm_Alpha158.yaml run
 ```
+
+## Recorder artifacts and local working files
+
+`workflow.py` exposes the `DDGDA` workflow through the `DDGDABench` Fire entry
+point. Its `trusted_artifacts` option defaults to `False`. Set it explicitly only
+for artifacts from a verified writer in an access-controlled MLflow artifact
+store: unrestricted pickle loading can execute code. Creating a run yourself is
+not enough if someone else can overwrite its files.
+
+The option covers recorder-backed executable meta-model/task loading, including
+`InternalData.setup`; prediction and label artifact loads remain restricted.
+Lower-level callers can also pass `trusted_artifacts=True` to `MetaDatasetDS` or
+`InternalData.setup`. A refused load is not a reason to retry automatically with
+trust enabled. See the [recorder migration guide](https://qlib.readthedocs.io/en/latest/component/recorder.html#artifact-trust-migration)
+for data compatibility and migration details.
+
+This example also saves and reuses **local pickle files in `working_dir`**, which
+the benchmark sets to this directory. These existing local loaders are separate
+from recorder loading: `trusted_artifacts=False` does not make them safe, and
+`trusted_artifacts=True` does not authenticate their contents. Use only working
+files you independently trust and protect the directory from untrusted writes.
+Do not copy unknown cached handlers, meta-information or models into it.
+Existing local `restricted_pickle_load` calls remain restricted: unsupported
+cached objects can still be refused even with `trusted_artifacts=True`. The flag
+is not a fix for every local cache reload, and refusals must not trigger an unsafe
+retry. Workflow YAML also selects executable Python components; only use trusted
+configurations.
+
+The Makefile's `clean` target deletes local pickle files and `mlruns`; preserve any
+results you need before using it.
 
 # Results
 The results of related methods in Qlib's public dataset can be found [here](../)

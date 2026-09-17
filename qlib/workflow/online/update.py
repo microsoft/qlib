@@ -23,8 +23,12 @@ class RMDLoader:
     Recorder Model Dataset Loader
     """
 
-    def __init__(self, rec: Recorder):
+    trusted_artifacts = False
+
+    def __init__(self, rec: Recorder, *, trusted_artifacts: bool = False):
+        """Only enable ``trusted_artifacts`` for trusted model/dataset storage."""
         self.rec = rec
+        self.trusted_artifacts = trusted_artifacts
 
     def get_dataset(
         self, start_time, end_time, segments=None, unprepared_dataset: Optional[DatasetH] = None
@@ -52,7 +56,7 @@ class RMDLoader:
         if segments is None:
             segments = {"test": (start_time, end_time)}
         if unprepared_dataset is None:
-            dataset: DatasetH = self.rec.load_object("dataset", trusted=True)
+            dataset: DatasetH = self.rec.load_object("dataset", trusted=self.trusted_artifacts)
         else:
             dataset = unprepared_dataset
         dataset.config(handler_kwargs={"start_time": start_time, "end_time": end_time}, segments=segments)
@@ -60,7 +64,7 @@ class RMDLoader:
         return dataset
 
     def get_model(self) -> Model:
-        return self.rec.load_object("params.pkl", trusted=True)
+        return self.rec.load_object("params.pkl", trusted=self.trusted_artifacts)
 
 
 class RecordUpdater(metaclass=ABCMeta):
@@ -101,6 +105,8 @@ class DSBasedUpdater(RecordUpdater, metaclass=ABCMeta):
                        SZ300676   -0.001321
     """
 
+    trusted_artifacts = False
+
     def __init__(
         self,
         record: Recorder,
@@ -110,6 +116,8 @@ class DSBasedUpdater(RecordUpdater, metaclass=ABCMeta):
         freq="day",
         fname="pred.pkl",
         loader_cls: type = RMDLoader,
+        *,
+        trusted_artifacts: bool = False,
     ):
         """
         Init PredUpdater.
@@ -144,6 +152,10 @@ class DSBasedUpdater(RecordUpdater, metaclass=ABCMeta):
 
             loader_cls : type
                 the class to load the model and dataset
+            trusted_artifacts : bool
+                Allow unrestricted loading of model/dataset artifacts from a
+                trusted source and store. Predictions and labels remain restricted.
+                A custom loader must accept this keyword when it is enabled.
 
         """
         # TODO: automate this hist_ref in the future.
@@ -153,7 +165,11 @@ class DSBasedUpdater(RecordUpdater, metaclass=ABCMeta):
         self.hist_ref = hist_ref
         self.freq = freq
         self.fname = fname
-        self.rmdl = loader_cls(rec=record)
+        self.trusted_artifacts = trusted_artifacts
+        if trusted_artifacts is False:
+            self.rmdl = loader_cls(rec=record)
+        else:
+            self.rmdl = loader_cls(rec=record, trusted_artifacts=trusted_artifacts)
 
         latest_date = D.calendar(freq=freq)[-1]
         if to_date is None:
@@ -191,7 +207,9 @@ class DSBasedUpdater(RecordUpdater, metaclass=ABCMeta):
         # automatically getting the historical dependency if not specified
         if self.hist_ref is None:
             dataset: DatasetH = (
-                self.record.load_object("dataset", trusted=True) if unprepared_dataset is None else unprepared_dataset
+                self.record.load_object("dataset", trusted=self.trusted_artifacts)
+                if unprepared_dataset is None
+                else unprepared_dataset
             )
             # Special treatment of historical dependencies
             if isinstance(dataset, TSDatasetH):

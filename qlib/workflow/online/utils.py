@@ -89,15 +89,20 @@ class OnlineToolR(OnlineTool):
     The implementation of OnlineTool based on (R)ecorder.
     """
 
-    def __init__(self, default_exp_name: str = None):
+    trusted_artifacts = False
+
+    def __init__(self, default_exp_name: str = None, *, trusted_artifacts: bool = False):
         """
         Init OnlineToolR.
 
         Args:
             default_exp_name (str): the default experiment name.
+            trusted_artifacts (bool): explicitly allow model/dataset pickle loading
+                from trusted sources and storage when updating predictions.
         """
         super().__init__()
         self.default_exp_name = default_exp_name
+        self.trusted_artifacts = trusted_artifacts
 
     def set_online_tag(self, tag, recorder: Union[Recorder, List]):
         """
@@ -168,7 +173,9 @@ class OnlineToolR(OnlineTool):
         online_models = self.online_models(exp_name=exp_name)
         for rec in online_models:
             try:
-                updater = PredUpdater(rec, to_date=to_date, from_date=from_date)
+                updater = PredUpdater(
+                    rec, to_date=to_date, from_date=from_date, trusted_artifacts=self.trusted_artifacts
+                )
             except LoadObjectError as e:
                 # skip the recorder without pred
                 self.logger.warn(f"An exception `{str(e)}` happened when load `pred.pkl`, skip it.")

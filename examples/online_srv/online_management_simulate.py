@@ -35,6 +35,8 @@ class OnlineSimulationExample:
         end_time="2018-10-31",
         tasks=None,
         trainer="TrainerR",
+        *,
+        trusted_artifacts=False,
     ):
         """
         Init OnlineManagerExample.
@@ -50,6 +52,7 @@ class OnlineSimulationExample:
             start_time (str, optional): the start time of simulating. Defaults to "2018-09-10".
             end_time (str, optional): the end time of simulating. Defaults to "2018-10-31".
             tasks (dict or list[dict]): a set of the task config waiting for rolling and training
+            trusted_artifacts (bool): allow executable recorder artifacts from a trusted writer and store.
         """
         if tasks is None:
             tasks = [CSI100_RECORD_XGBOOST_TASK_CONFIG_ONLINE, CSI100_RECORD_LGB_TASK_CONFIG_ONLINE]
@@ -73,7 +76,12 @@ class OnlineSimulationExample:
             # TODO: support all the trainers: TrainerR, TrainerRM, DelayTrainerR
             raise NotImplementedError(f"This type of input is not supported")
         self.rolling_online_manager = OnlineManager(
-            RollingStrategy(exp_name, task_template=tasks, rolling_gen=self.rolling_gen),
+            RollingStrategy(
+                exp_name,
+                task_template=tasks,
+                rolling_gen=self.rolling_gen,
+                trusted_artifacts=trusted_artifacts,
+            ),
             trainer=self.trainer,
             begin_time=self.start_time,
         )
@@ -133,5 +141,6 @@ class OnlineSimulationExample:
 
 if __name__ == "__main__":
     ## to run all workflow automatically with your own parameters, use the command below
-    # python online_management_simulate.py main --experiment_name="your_exp_name" --rolling_step=60
+    # Only opt in for your own artifacts in an access-controlled store. main resets the experiment.
+    # python online_management_simulate.py --trusted_artifacts=True --exp_name="your_exp_name" --rolling_step=60 main
     fire.Fire(OnlineSimulationExample)

@@ -540,7 +540,10 @@ class QlibRecorder:
         Set ``trusted=True`` only for pickle artifacts whose source and storage
         are trusted. Unrestricted pickle loading may execute arbitrary code.
         """
-        return self.get_exp().get_recorder(start=True).load_object(name, trusted=trusted)
+        recorder = self.get_exp().get_recorder(start=True)
+        if trusted is False:
+            return recorder.load_object(name)
+        return recorder.load_object(name, trusted=trusted)
 
     def log_params(self, **kwargs):
         """

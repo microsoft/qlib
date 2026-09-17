@@ -76,6 +76,8 @@ class DDGDA(Rolling):
     - `rm -r mlruns`
     """
 
+    trusted_artifacts = False
+
     def __init__(
         self,
         sim_task_model: UTIL_MODEL_TYPE = "gbdt",
@@ -87,6 +89,7 @@ class DDGDA(Rolling):
         segments: Union[float, str] = 0.62,
         hist_step_n: int = 30,
         working_dir: Optional[Union[str, Path]] = None,
+        trusted_artifacts: bool = False,
         **kwargs,
     ):
         """
@@ -109,10 +112,14 @@ class DDGDA(Rolling):
                 The ratio of training data in the meta task dataset
             if segments is a string:
                 it will try its best to put its data in training and ensure that the date `segments` is in the test set
+        trusted_artifacts : bool
+            Explicitly allow executable task/meta-model objects from trusted
+            MLflow sources and storage. Defaults to False.
         """
         # NOTE:
         # the horizon must match the meaning in the base task template
         self.meta_exp_name = "DDG-DA"
+        self.trusted_artifacts = trusted_artifacts
         self.sim_task_model: UTIL_MODEL_TYPE = sim_task_model  # The model to capture the distribution of data.
         self.alpha = alpha
         self.meta_1st_train_end = meta_1st_train_end
@@ -246,7 +253,7 @@ class DDGDA(Rolling):
         exp_name_sim = f"data_sim_s{self.step}"
 
         internal_data = InternalData(sim_task, self.step, exp_name=exp_name_sim)
-        internal_data.setup(trainer=TrainerR)
+        internal_data.setup(trainer=TrainerR, trusted_artifacts=self.trusted_artifacts)
 
         with self._internal_data_path.open("wb") as f:
             pickle.dump(internal_data, f)
@@ -333,8 +340,7 @@ class DDGDA(Rolling):
         # 1) get meta model
         exp = R.get_exp(experiment_name=self.meta_exp_name)
         rec = exp.list_recorders(rtype=exp.RT_L)[0]
-        # The meta-model is executable training state from our experiment.
-        meta_model: MetaModelDS = rec.load_object("model", trusted=True)
+        meta_model: MetaModelDS = rec.load_object("model", trusted=self.trusted_artifacts)
 
         # 2)
         # we are transfer to knowledge of meta model to final forecasting tasks.

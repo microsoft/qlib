@@ -27,12 +27,14 @@ class RollingOnlineExample:
         self,
         provider_uri="~/.qlib/qlib_data/cn_data",
         region="cn",
-        trainer=DelayTrainerRM(),  # you can choose from TrainerR, TrainerRM, DelayTrainerR, DelayTrainerRM
+        trainer=None,  # defaults to DelayTrainerRM; a supplied trainer keeps its own trust policy
         task_url="mongodb://10.0.0.4:27017/",  # not necessary when using TrainerR or DelayTrainerR
         task_db_name="rolling_db",  # not necessary when using TrainerR or DelayTrainerR
         rolling_step=550,
         tasks=None,
         add_tasks=None,
+        *,
+        trusted_artifacts=False,
     ):
         if add_tasks is None:
             add_tasks = [CSI100_RECORD_LGB_TASK_CONFIG_ROLLING]
@@ -46,6 +48,7 @@ class RollingOnlineExample:
         self.tasks = tasks
         self.add_tasks = add_tasks
         self.rolling_step = rolling_step
+        self.trusted_artifacts = trusted_artifacts
         strategies = []
         for task in tasks:
             name_id = task["model"]["class"]  # NOTE: Assumption: The model class can specify only one strategy
@@ -54,9 +57,10 @@ class RollingOnlineExample:
                     name_id,
                     task,
                     RollingGen(step=rolling_step, rtype=RollingGen.ROLL_SD),
+                    trusted_artifacts=self.trusted_artifacts,
                 )
             )
-        self.trainer = trainer
+        self.trainer = DelayTrainerRM(trusted_artifacts=trusted_artifacts) if trainer is None else trainer
         self.rolling_online_manager = OnlineManager(strategies, trainer=self.trainer)
 
     _ROLLING_MANAGER_PATH = (
@@ -119,6 +123,7 @@ class RollingOnlineExample:
                     name_id,
                     task,
                     RollingGen(step=self.rolling_step, rtype=RollingGen.ROLL_SD),
+                    trusted_artifacts=self.trusted_artifacts,
                 )
             )
         self.rolling_online_manager.add_strategy(strategies=strategies)
@@ -134,11 +139,16 @@ class RollingOnlineExample:
 
 if __name__ == "__main__":
     ####### to train the first version's models, use the command below
-    # python rolling_online_management.py first_run
+    # Only opt in for artifacts whose writer and store you trust. first_run resets the experiments.
+    # python rolling_online_management.py --trusted_artifacts=True first_run
 
     ####### to update the models and predictions after the trading time, use the command below
+    # The saved manager is a separately trusted local pickle and retains its original trust settings.
     # python rolling_online_management.py routine
 
+    ####### to give newly added strategies the same explicit consent
+    # python rolling_online_management.py --trusted_artifacts=True add_strategy
+
     ####### to define your own parameters, use `--`
-    # python rolling_online_management.py first_run --exp_name='your_exp_name' --rolling_step=40
+    # python rolling_online_management.py --trusted_artifacts=True --rolling_step=40 first_run
     fire.Fire(RollingOnlineExample)

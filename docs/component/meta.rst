@@ -66,3 +66,13 @@ which adapts to the market dynamics.
 4. Apply guide information to the forecasting models to improve their performances.
 
 The `above example <https://github.com/microsoft/qlib/tree/main/examples/benchmarks_dynamic/DDG-DA>`_ can be found in ``examples/benchmarks_dynamic/DDG-DA/workflow.py``.
+
+The recorder-backed parts of DDG-DA use restricted loading by default. To reload
+executable meta-models or tasks from a trusted writer and access-controlled store,
+configure ``DDGDA(..., trusted_artifacts=True)`` at the workflow entry point.
+Lower-level callers can configure ``MetaDatasetDS`` or ``InternalData.setup`` with
+the same option. Prediction and label artifact reads remain restricted.
+The existing local pickle files in ``working_dir`` must be trusted independently;
+this option does not change those loaders or relax their existing restrictions.
+See :ref:`artifact_trust_migration`
+and the example README for CLI commands.
