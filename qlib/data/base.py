@@ -29,6 +29,11 @@ class Expression(abc.ABC):
     def __repr__(self):
         return str(self)
 
+    def __neg__(self):
+        from .ops import Sub  # pylint: disable=C0415
+
+        return Sub(0, self)
+
     def __gt__(self, other):
         from .ops import Gt  # pylint: disable=C0415
 
