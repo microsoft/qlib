@@ -41,3 +41,20 @@ See the [recorder migration guide](https://qlib.readthedocs.io/en/latest/compone
 for the separate policy on model/dataset artifacts. The JSON mapping change does
 not make pre-existing local model checkpoints or other pickle loaders safe; those
 inputs still require independent trust.
+
+## Full workflow regression
+
+From the repository root, with the test and model dependencies installed:
+
+```bash
+python -m pytest tests/model/test_hist_workflow.py -m slow -q
+```
+
+This offline CPU regression runs real Alpha360/DatasetH preparation, one HIST
+training epoch, signal analysis and a six-day TopkDropout backtest in an isolated
+MLflow store. It checks 48 prediction/label rows, actual optimizer updates,
+finite reports and trading activity. Saved model/dataset objects are refused by
+default; explicitly trusted reloads reproduce predictions exactly, including in
+a fresh Python process. Metadata and concept fixtures are local JSON and numeric
+NumPy files, with no downloads. This is functional integration coverage, not a
+paper-scale model-quality benchmark.

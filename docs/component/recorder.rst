@@ -163,9 +163,12 @@ option so callers do not need to patch internal ``load_object`` calls:
   the worker completing delayed tasks. ``end_task_train`` also accepts the option
   directly. A direct ``end_train(..., trusted_artifacts=True)`` call can override
   the constructor setting for that call.
-* ``DDGDA`` for recorder-backed meta-model loading and its ``InternalData.setup``
-  calls. For lower-level use, set ``trusted_artifacts`` on ``MetaDatasetDS`` or
-  pass it to ``InternalData.setup`` explicitly.
+* ``DDGDA`` for recorder-backed meta-model loading, its ``InternalData.setup``
+  calls, and its local handler/internal-data pickle cache reads. Verify both the
+  MLflow store and local cache directories before opting in, including an
+  explicitly supplied ``h_path``. For lower-level use, set ``trusted_artifacts``
+  on ``MetaDatasetDS`` or pass it to ``InternalData.setup`` explicitly; these
+  lower-level options authorize only recorder task reads.
 
 For example, after verifying the artifacts and store used by this workflow:
 
@@ -205,17 +208,25 @@ remain restricted even when consent is enabled. See :ref:`online_serving` and th
 
 .. warning::
 
-    This is a recorder-artifact policy, not an all-Qlib sandbox. Existing local
-    pickle APIs, serialized ``OnlineManager`` files, handler caches, task stores
-    and DDG-DA ``working_dir`` files have their own trust requirements. Setting
+    This is a scoped artifact policy, not an all-Qlib sandbox. Except for DDG-DA's
+    explicitly covered handler/internal-data caches, existing local pickle APIs,
+    serialized ``OnlineManager`` files, handler caches and task stores have their
+    own trust requirements. Setting
     ``trusted_artifacts=False`` does not make those inputs safe, and setting it to
     ``True`` does not authenticate them. Only open such executable inputs from
     independently trusted sources. Task/YAML configurations can select executable
     Python components and must also be trusted; this flag does not sandbox them.
 
-    In particular, DDG-DA's existing local ``restricted_pickle_load`` calls remain
-    restricted. The recorder flag does not enable unsupported local cache objects,
-    so such loads can still be refused even with ``trusted_artifacts=True``.
+    DDG-DA cache loading is restricted by default. Its explicit opt-in enables
+    ordinary pickle loading for those object caches, emits a warning, and never
+    retries a refused restricted load automatically. It does not relax the global
+    allowlist or authenticate local files. Prediction, label and numerical-report
+    artifact reads remain restricted.
+
+    Generated DDG-DA tasks retain cache paths and the selected cache policy. A
+    saved task is executable configuration: reusing it can retain earlier cache
+    consent, even when a new workflow instance has its default flag. Configure
+    each task/workflow deliberately; there is no global trust grant or revocation.
 
 Supported data and compatibility
 --------------------------------

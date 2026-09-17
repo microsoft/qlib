@@ -108,7 +108,7 @@ class InternalData:
 
     def _calc_perf(self, pred, label):
         df = pd.DataFrame({"pred": pred, "label": label})
-        df = df.groupby("datetime", group_keys=False).corr(method="spearman")
+        df = df.groupby("datetime", group_keys=True).corr(method="spearman")
         corr = df.loc(axis=0)[:, "pred"]["label"].droplevel(axis=0, level=-1)
         return corr
 

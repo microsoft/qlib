@@ -67,12 +67,15 @@ which adapts to the market dynamics.
 
 The `above example <https://github.com/microsoft/qlib/tree/main/examples/benchmarks_dynamic/DDG-DA>`_ can be found in ``examples/benchmarks_dynamic/DDG-DA/workflow.py``.
 
-The recorder-backed parts of DDG-DA use restricted loading by default. To reload
-executable meta-models or tasks from a trusted writer and access-controlled store,
-configure ``DDGDA(..., trusted_artifacts=True)`` at the workflow entry point.
+DDG-DA uses restricted loading by default for recorder artifacts and local
+handler/internal-data pickle caches. To reload executable meta-models, tasks and
+caches from a trusted writer and access-controlled storage, configure
+``DDGDA(..., trusted_artifacts=True)`` at the workflow entry point.
 Lower-level callers can configure ``MetaDatasetDS`` or ``InternalData.setup`` with
-the same option. Prediction and label artifact reads remain restricted.
-The existing local pickle files in ``working_dir`` must be trusted independently;
-this option does not change those loaders or relax their existing restrictions.
+the same option for recorder task reads. Prediction and label artifact reads
+remain restricted. DDG-DA's opt-in also authorizes its handler/internal-data
+cache reads, so verify ``working_dir``, the configuration directory and any
+explicit ``h_path`` as well as the MLflow store. There is no automatic unsafe retry
+and the global restricted loader is unchanged.
 See :ref:`artifact_trust_migration`
 and the example README for CLI commands.

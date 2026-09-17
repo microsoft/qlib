@@ -469,7 +469,7 @@ class HISTModel(nn.Module):
         return cos_similarity
 
     def forward(self, x, concept_matrix):
-        device = torch.device(torch.get_device(x))
+        device = x.device
 
         x_hidden = x.reshape(len(x), self.d_feat, -1)  # [N, F, T]
         x_hidden = x_hidden.permute(0, 2, 1)  # [N, T, F]
