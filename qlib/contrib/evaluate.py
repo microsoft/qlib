@@ -336,7 +336,9 @@ def long_short_backtest(
         shift=shift,
     )
 
-    _pred_dates = pred.index.get_level_values(level="datetime")
+    # Resolve positionally to survive duplicate "datetime" level names (#1909).
+    _dt_level = pred.index.names.index("datetime")
+    _pred_dates = pred.index.get_level_values(_dt_level)
     predict_dates = D.calendar(start_time=_pred_dates.min(), end_time=_pred_dates.max())
     trade_dates = np.append(predict_dates[shift:], get_date_range(predict_dates[-1], left_shift=1, right_shift=shift))
 
