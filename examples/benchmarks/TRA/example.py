@@ -18,10 +18,7 @@ def main(seed, config_file="configs/config_alstm.yaml"):
     )
 
     # initialize workflow
-    qlib.init(
-        provider_uri=config["qlib_init"]["provider_uri"],
-        region=config["qlib_init"]["region"],
-    )
+    qlib.init(**config["qlib_init"])
     dataset = init_instance_by_config(config["task"]["dataset"])
     model = init_instance_by_config(config["task"]["model"])
 
