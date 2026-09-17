@@ -185,6 +185,7 @@ class TabnetModel(Model):
         self.logger.info("training...")
         self.fitted = True
 
+        best_param = copy.deepcopy(self.tabnet_model.state_dict())
         for epoch_idx in range(self.n_epochs):
             self.logger.info("epoch: %s" % (epoch_idx))
             self.logger.info("training...")
