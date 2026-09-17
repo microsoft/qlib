@@ -91,6 +91,207 @@ Here are some important APIs that are not included in the ``QlibRecorder``:
 
 For other interfaces such as `save_objects`, `load_object`, please refer to `Recorder API <../reference/api.html#recorder>`_.
 
+.. _artifact_trust_migration:
+
+Migration: explicit artifact trust
+==================================
+
+Recorder artifacts can contain either data or executable Python objects. Predictions,
+labels and numerical reports normally need only data reconstruction. A fitted model,
+dataset, meta-model or task containing Python classes can require arbitrary Python
+code during unpickling. A ``.pkl`` suffix, an artifact name such as ``pred.pkl``, or a
+run being marked successful does not establish that its contents are safe.
+
+The built-in MLflow recorder loads artifacts with a restricted unpickler by default:
+
+.. code-block:: python
+
+    from qlib.workflow import R
+
+    rec = R.get_recorder()  # select the intended run in your configured experiment
+    predictions = rec.load_object("pred.pkl")
+    labels = R.load_object("label.pkl")
+
+The restricted loader accepts only explicitly supported reconstruction classes.
+Unsupported objects are refused; there is no automatic fallback to unrestricted
+pickle loading. When upgrading, keep data-only reads in this default mode.
+
+Loading executable artifacts
+----------------------------
+
+For an executable artifact, make the trust decision at the entry point of the
+workflow that owns the run:
+
+.. code-block:: python
+
+    # Only for a model produced by a trusted writer in a trusted artifact store.
+    model = rec.load_object("params.pkl", trusted=True)
+    dataset = R.load_object("dataset", trusted=True)
+
+Both APIs expose a keyword-only ``trusted=False`` argument. Pass an actual boolean;
+``trusted=True`` enables ordinary pickle loading and can execute code with the
+permissions of the loading process. It does not validate, sanitize or authenticate
+the artifact.
+
+Before opting in, verify **both the writer and the store**: know who produced the
+artifact, how it reached this run, and who can replace it. Restrict write access to
+the MLflow artifact directory or object store, including shared filesystem and
+remote storage permissions. A run you created is not sufficient evidence if other
+users or jobs can overwrite its artifacts. Prefer a dedicated, access-controlled
+store for your own workflows.
+
+Do not catch a restricted-load failure and retry with ``trusted=True``. A refusal
+can mean an unsupported data representation, a missing dependency, or an executable
+object; it is not evidence that the artifact is trustworthy. Inspect the reported
+type and provenance, then either regenerate supported data or deliberately opt in
+at the workflow boundary. Do not expand the global class allowlist just to suppress
+a model-loading error.
+
+Workflow-level consent
+----------------------
+
+The following entry points provide a default-off ``trusted_artifacts=False``
+option so callers do not need to patch internal ``load_object`` calls:
+
+* ``RMDLoader``, ``DSBasedUpdater``, ``PredUpdater`` and ``LabelUpdater`` for
+  loading the model or dataset needed for an update.
+* ``OnlineToolR`` for online updates, and ``RollingStrategy`` for its task reads
+  and the online tool it creates. The setting flows from strategy to tool to
+  updater to loader.
+* ``DelayTrainerR`` and ``DelayTrainerRM`` for resuming recorder-backed training.
+  Constructor consent is forwarded to ``end_train`` and, for ``DelayTrainerRM``,
+  the worker completing delayed tasks. ``end_task_train`` also accepts the option
+  directly. A direct ``end_train(..., trusted_artifacts=True)`` call can override
+  the constructor setting for that call.
+* ``DDGDA`` for recorder-backed meta-model loading, its ``InternalData.setup``
+  calls, and its local handler/internal-data pickle cache reads. Verify both the
+  MLflow store and local cache directories before opting in, including an
+  explicitly supplied ``h_path``. For lower-level use, set ``trusted_artifacts``
+  on ``MetaDatasetDS`` or pass it to ``InternalData.setup`` explicitly; these
+  lower-level options authorize only recorder task reads.
+
+For example, after verifying the artifacts and store used by this workflow:
+
+.. code-block:: python
+
+    from qlib.model.trainer import DelayTrainerR
+    from qlib.workflow.online.manager import OnlineManager
+    from qlib.workflow.online.strategy import RollingStrategy
+
+    strategy = RollingStrategy(
+        "my_strategy",
+        task_template=task_template,
+        rolling_gen=rolling_gen,
+        trusted_artifacts=True,
+    )
+    trainer = DelayTrainerR(trusted_artifacts=True)
+    manager = OnlineManager(strategy, trainer=trainer)
+
+``OnlineManager`` has no global trust grant: configure each strategy independently,
+including strategies added later, and configure a delayed trainer separately.
+Ordinary ``TrainerR`` and ``TrainerRM`` constructors do not accept this option.
+If a caller supplies a trainer instance to a workflow, the caller must configure
+that trainer's consent; the workflow must not silently grant it.
+
+Restored components saved before this option existed default to restricted loading;
+components with saved flags retain their own settings. For a legacy saved
+``OnlineManager``, explicitly reconfigure or recreate each strategy, its
+``strategy.tool``, and any delayed trainer after reviewing their artifact sources.
+Changing only the strategy's flag does not update an already-created tool. An
+example constructor's ``trusted_artifacts`` flag does not override a manager
+subsequently loaded from disk; there is no global grant.
+
+These options authorize the necessary executable model, dataset and task artifact
+reads, not all artifacts in a run. Prediction and label reads in these workflows
+remain restricted even when consent is enabled. See :ref:`online_serving` and the
+`example commands <https://github.com/microsoft/qlib/blob/main/examples/README.md#recorder-artifact-trust>`_.
+
+.. warning::
+
+    This is a scoped artifact policy, not an all-Qlib sandbox. Except for DDG-DA's
+    explicitly covered handler/internal-data caches, existing local pickle APIs,
+    serialized ``OnlineManager`` files, handler caches and task stores have their
+    own trust requirements. Setting
+    ``trusted_artifacts=False`` does not make those inputs safe, and setting it to
+    ``True`` does not authenticate them. Only open such executable inputs from
+    independently trusted sources. Task/YAML configurations can select executable
+    Python components and must also be trusted; this flag does not sandbox them.
+
+    DDG-DA cache loading is restricted by default. Its explicit opt-in enables
+    ordinary pickle loading for those object caches, emits a warning, and never
+    retries a refused restricted load automatically. It does not relax the global
+    allowlist or authenticate local files. Prediction, label and numerical-report
+    artifact reads remain restricted.
+
+    Generated DDG-DA tasks retain cache paths and the selected cache policy. A
+    saved task is executable configuration: reusing it can retain earlier cache
+    consent, even when a new workflow instance has its default flag. Configure
+    each task/workflow deliberately; there is no global trust grant or revocation.
+
+Supported data and compatibility
+--------------------------------
+
+The restricted path supports common built-in data containers, NumPy arrays and
+scalars, and pandas ``Series``/``DataFrame`` objects, including typical prediction
+and label ``MultiIndex`` layouts. Supported reconstruction cases include pickle
+protocols 4 and 5, NumPy masked arrays, pandas nullable integer/float/boolean and
+Python-backed string arrays, categorical data, datetime/timedelta data, supported
+timezone metadata (such as UTC and ``pytz``), period and interval data, and sparse
+arrays.
+
+This is not a guarantee for every NumPy or pandas object. Object-dtype cells,
+custom subclasses, extension arrays and metadata can introduce additional classes.
+Arrow-backed pandas data and ``zoneinfo.ZoneInfo``-backed timezone representations
+are not supported by default. Whether a particular representation is used depends
+on Python, NumPy and pandas versions and dtype settings. Regenerate such data using
+supported representations in a trusted producer environment rather than enabling
+unrestricted loading just to read predictions.
+
+Pickle's existing cross-version limitations still apply. Protocol support does not
+guarantee compatibility between Python, NumPy, pandas or model-library versions,
+nor does ``trusted=True`` fix missing or renamed classes. Preserve the producing
+environment for legacy executable artifacts and test representative artifacts
+before upgrading a workflow.
+
+HIST stock-index mapping
+------------------------
+
+HIST's bundled stock-index mapping is now
+``examples/benchmarks/HIST/qlib_csi300_stock_index.json``, containing the same
+735 entries. Update custom YAML ``task.model.kwargs.stock_index`` paths from
+``qlib_csi300_stock_index.npy`` to the JSON file. The bundled workflow already uses
+JSON; the separate numeric ``stock2concept`` matrix remains a ``.npy`` file.
+
+For a known-trusted custom mapping, re-export from the original trusted metadata or
+producer into a JSON object with instrument strings as keys and non-negative integer
+row indices as values. Preserve the correspondence with the ``stock2concept``
+matrix and keep indices within its row bounds. Merely renaming an object ``.npy``
+file does not convert it. Object-pickled ``.npy`` mappings are deliberately not
+supported, and recorder consent does not re-enable them. See the
+`HIST migration instructions <https://github.com/microsoft/qlib/blob/main/examples/benchmarks/HIST/README.md#stock-index-mapping-migration>`_.
+
+Custom recorders and loaders
+----------------------------
+
+Custom ``Recorder`` implementations should adopt
+``load_object(self, name, *, trusted=False)``, validate boolean consent, enforce
+restricted loading by default and allow unrestricted deserialization only with
+explicit ``trusted=True``. Never ignore the flag or add an unsafe retry path.
+
+For compatibility, ``R.load_object(name)`` (and ``trusted=False``) delegates to a
+legacy recorder's ``load_object(name)`` without adding a keyword. Explicit
+``trusted=True`` is forwarded. This keeps legacy default calls usable, but **does
+not certify a custom backend's security**: a legacy backend that uses unrestricted
+pickle still needs to implement the restricted default. A backend without the
+``trusted`` keyword must be adapted before callers can explicitly opt in through
+``R``.
+
+If an updater uses a custom ``loader_cls``, its default construction remains
+legacy-compatible: the updater passes the new ``trusted_artifacts`` keyword only
+when consent is ``True``. To support explicit consent, adapt that loader's
+constructor to accept and enforce ``trusted_artifacts`` as well; accepting the
+keyword without applying its policy is not sufficient.
+
 Record Template
 ===============
 
@@ -152,3 +353,5 @@ For more information about the APIs, please refer to `Record Template API <../re
 Known Limitations
 =================
 - The Python objects are saved based on pickle, which may results in issues when the environment dumping objects and loading objects are different.
+- Restricted loading is intentionally not compatible with arbitrary Python objects.
+  See :ref:`artifact_trust_migration` before changing trust settings.

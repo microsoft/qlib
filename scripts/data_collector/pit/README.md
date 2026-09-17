@@ -26,6 +26,11 @@ python collector.py download_data --source_dir ~/.qlib/stock_data/source/pit --s
 
 
 ### Normalize Data
+
+The normalizer uses report publication dates, or calendar-day offsets of 45 days
+(quarterly) / 90 days (annual) when a publication date is missing. It does not
+fetch or use a Baostock trading calendar.
+
 ```bash
 python collector.py normalize_data --interval quarterly --source_dir ~/.qlib/stock_data/source/pit --normalize_dir ~/.qlib/stock_data/source/pit_normalized
 ```

@@ -49,13 +49,101 @@ SAFE_PICKLE_CLASSES: Set[Tuple[str, str]] = {
     ("qlib.data.dataset.handler", "DataHandler"),
     ("qlib.data.dataset.handler", "DataHandlerLP"),
     ("qlib.data.dataset.loader", "StaticDataLoader"),
+    # NumPy reconstruction primitives. Keep this list explicit: trusting the
+    # whole numpy namespace would also expose functions such as numpy.load.
+    ("numpy", "ndarray"),
+    ("numpy", "dtype"),
+    ("numpy", "scalar"),
+    ("numpy.core.multiarray", "_reconstruct"),
+    ("numpy.core.multiarray", "scalar"),
+    ("numpy._core.multiarray", "_reconstruct"),
+    ("numpy._core.multiarray", "scalar"),
+    # Protocol 5 uses _frombuffer instead of _reconstruct for numeric arrays.
+    ("numpy.core.numeric", "_frombuffer"),
+    ("numpy._core.numeric", "_frombuffer"),
+    ("numpy.ma.core", "_mareconstruct"),
+    # NumPy 1.x and 2.x pickle this class under different module paths.
+    ("numpy.ma.core", "MaskedArray"),
+    ("numpy.ma", "MaskedArray"),
+    # Pandas reconstruction primitives used by Series/DataFrame pickles.
+    # These entries are deliberately exact. I/O helpers such as
+    # pandas.read_pickle must never be added here.
+    ("pandas.core.series", "Series"),
+    ("pandas.core.frame", "DataFrame"),
+    ("pandas.core.internals.managers", "BlockManager"),
+    ("pandas.core.internals.managers", "SingleBlockManager"),
+    ("pandas.core.internals.blocks", "new_block"),
+    ("pandas._libs.internals", "_unpickle_block"),
+    ("pandas.core.indexes.base", "_new_Index"),
+    ("pandas.core.indexes.base", "Index"),
+    ("pandas.core.indexes.range", "RangeIndex"),
+    ("pandas.core.indexes.multi", "MultiIndex"),
+    ("pandas.core.indexes.datetimes", "_new_DatetimeIndex"),
+    ("pandas.core.indexes.datetimes", "DatetimeIndex"),
+    ("pandas.core.indexes.timedeltas", "TimedeltaIndex"),
+    ("pandas.core.indexes.period", "PeriodIndex"),
+    ("pandas.core.indexes.interval", "_new_IntervalIndex"),
+    ("pandas.core.indexes.interval", "IntervalIndex"),
+    ("pandas._libs.tslibs.timestamps", "_unpickle_timestamp"),
+    ("pandas._libs.tslibs.timestamps", "Timestamp"),
+    ("pandas._libs.tslibs.timedeltas", "Timedelta"),
+    ("pandas._libs.tslibs.period", "Period"),
+    ("pandas._libs.arrays", "__pyx_unpickle_NDArrayBacked"),
+    ("pandas.core.arrays.datetimes", "DatetimeArray"),
+    ("pandas.core.arrays.timedeltas", "TimedeltaArray"),
+    ("pandas.core.arrays.period", "PeriodArray"),
+    ("pandas.core.arrays.categorical", "Categorical"),
+    ("pandas.core.dtypes.dtypes", "CategoricalDtype"),
+    ("pandas.core.dtypes.dtypes", "PeriodDtype"),
+    ("pandas.core.dtypes.dtypes", "IntervalDtype"),
+    ("pandas.core.dtypes.dtypes", "SparseDtype"),
+    ("pandas.core.arrays.sparse.dtype", "SparseDtype"),
+    ("pandas.core.arrays.interval", "IntervalArray"),
+    ("pandas._libs.interval", "__pyx_unpickle_IntervalMixin"),
+    ("pandas.core.arrays.sparse.array", "SparseArray"),
+    ("pandas._libs.sparse", "IntIndex"),
+    ("pandas._libs.sparse", "BlockIndex"),
+    ("pandas.core.dtypes.dtypes", "DatetimeTZDtype"),
+    ("pandas._libs.tslibs.nattype", "__nat_unpickle"),
+    ("pandas._libs.missing", "NA"),
+    # DatetimeIndex/PeriodIndex retain their frequency and timezone metadata.
+    ("pandas._libs.tslibs.offsets", "Day"),
+    ("pandas._libs.tslibs.offsets", "BusinessDay"),
+    ("pandas._libs.tslibs.offsets", "Week"),
+    ("pandas._libs.tslibs.offsets", "MonthBegin"),
+    ("pandas._libs.tslibs.offsets", "MonthEnd"),
+    ("pandas._libs.tslibs.offsets", "BusinessMonthBegin"),
+    ("pandas._libs.tslibs.offsets", "BusinessMonthEnd"),
+    ("pandas._libs.tslibs.offsets", "QuarterBegin"),
+    ("pandas._libs.tslibs.offsets", "QuarterEnd"),
+    ("pandas._libs.tslibs.offsets", "YearBegin"),
+    ("pandas._libs.tslibs.offsets", "YearEnd"),
+    ("pandas._libs.tslibs.offsets", "Hour"),
+    ("pandas._libs.tslibs.offsets", "Minute"),
+    ("pandas._libs.tslibs.offsets", "Second"),
+    ("pandas._libs.tslibs.offsets", "Milli"),
+    ("pandas._libs.tslibs.offsets", "Micro"),
+    ("pandas._libs.tslibs.offsets", "Nano"),
+    ("pytz", "_UTC"),
+    ("pytz", "_p"),
+    # Nullable arrays serialize their masks and dtype objects as well as data.
+    ("pandas.core.arrays.integer", "IntegerArray"),
+    ("pandas.core.arrays.integer", "Int8Dtype"),
+    ("pandas.core.arrays.integer", "Int16Dtype"),
+    ("pandas.core.arrays.integer", "Int32Dtype"),
+    ("pandas.core.arrays.integer", "Int64Dtype"),
+    ("pandas.core.arrays.integer", "UInt8Dtype"),
+    ("pandas.core.arrays.integer", "UInt16Dtype"),
+    ("pandas.core.arrays.integer", "UInt32Dtype"),
+    ("pandas.core.arrays.integer", "UInt64Dtype"),
+    ("pandas.core.arrays.floating", "FloatingArray"),
+    ("pandas.core.arrays.floating", "Float32Dtype"),
+    ("pandas.core.arrays.floating", "Float64Dtype"),
+    ("pandas.core.arrays.boolean", "BooleanArray"),
+    ("pandas.core.arrays.boolean", "BooleanDtype"),
+    ("pandas.core.arrays.string_", "StringArray"),
+    ("pandas.core.arrays.string_", "StringDtype"),
 }
-
-
-TRUSTED_MODULE_PREFIXES = (
-    "pandas",
-    "numpy",
-)
 
 
 class RestrictedUnpickler(pickle.Unpickler):
@@ -82,10 +170,6 @@ class RestrictedUnpickler(pickle.Unpickler):
         Raises:
             pickle.UnpicklingError: If the class is not in the whitelist
         """
-        if module.startswith(TRUSTED_MODULE_PREFIXES):
-            return super().find_class(module, name)
-
-        # 2. explicit whitelist (qlib internal)
         if (module, name) in SAFE_PICKLE_CLASSES:
             return super().find_class(module, name)
 
