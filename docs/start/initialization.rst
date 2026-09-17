@@ -95,3 +95,36 @@ The following are several important parameters of `qlib.init` (`Qlib` has a lot 
 
 - `kernels`
     The number of processes used when calculating features in Qlib's expression engine. It is very helpful to set it to 1 when you are debuggin an expression calculating exception
+
+- `trusted_module_roots`
+    Type: sequence of strings or ``pathlib.Path`` objects, optional parameter (default: ``[]``).
+    The trusted directories for loading Python source files through configuration, including file-based models, data handlers, and custom operators.
+    An empty sequence disables file-based module loading. Package imports such as ``qlib.contrib.model.gbdt`` remain available.
+
+.. _trusted_module_roots:
+
+Trusted module directories
+--------------------------
+
+Configurations that previously loaded a local ``.py`` file must now explicitly authorize its directory.
+For example, if ``./custom_modules`` already exists and contains code you trust:
+
+.. code-block:: Python
+
+    qlib.init(
+        provider_uri=provider_uri,
+        region=REG_CN,
+        trusted_module_roots=["./custom_modules"],
+    )
+
+Pass a sequence, not a single string: ``["./custom_modules"]`` is valid, but ``"./custom_modules"`` raises ``TypeError``.
+Directories must exist. Paths expand ``~`` and resolve symbolic links before containment is checked; a file resolving outside the trusted roots is rejected with ``PermissionError``.
+Relative paths are resolved against the process's current working directory, not the configuration file's directory.
+
+These roots apply process-wide after initialization.
+See :ref:`config_file_modules` for YAML configuration, per-call overrides, and migration of trusted file-based model artifacts.
+
+.. warning::
+
+    Only authorize directories containing code you trust. This setting controls where file modules can be loaded from, not what their code can do.
+    Configuration files, imported packages, and custom operator code must still be trusted; this is not a sandbox for untrusted YAML.

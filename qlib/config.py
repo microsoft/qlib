@@ -303,6 +303,9 @@ MODE_CONF = {
         # if element of custom_ops is Type[ExpressionOps], it represents the custom operator class
         # if element of custom_ops is dict, it represents the config of custom operator and should include `class` and `module_path` keys.
         "custom_ops": [],
+        # Trusted roots for modules loaded from Python source files.
+        # File-based module loading is disabled when this list is empty.
+        "trusted_module_roots": [],
     },
 }
 
@@ -502,11 +505,13 @@ class QlibConfig(Config):
 
     def register(self):
         from .utils import init_instance_by_config  # pylint: disable=C0415
+        from .utils.mod import set_trusted_module_roots  # pylint: disable=C0415
         from .data.ops import register_all_ops  # pylint: disable=C0415
         from .data.data import register_all_wrappers  # pylint: disable=C0415
         from .workflow import R, QlibRecorder  # pylint: disable=C0415
         from .workflow.utils import experiment_exit_handler  # pylint: disable=C0415
 
+        set_trusted_module_roots(self.trusted_module_roots)
         register_all_ops(self)
         register_all_wrappers(self)
         # set up QlibRecorder

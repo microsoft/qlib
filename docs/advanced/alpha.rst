@@ -78,6 +78,52 @@ Users can use ``Data Handler`` to build formulaic alphas `MACD` in qlib:
                SZ300251   -0.001026  0.021739
                SZ300315   -0.007559  0.012455
 
+.. _expression_syntax:
+
+Expression syntax and migration
+===============================
+
+Feature expressions are a restricted language, not general Python.
+``Qlib`` interprets their syntax and calls registered operators rather than evaluating arbitrary Python code.
+Standard Alpha158/Alpha360 feature definitions and registered custom operators remain supported.
+
+Supported expressions include:
+
+.. code-block:: text
+
+    $close
+    Ref($close, 1) / $close - 1
+    Mean($close, 2 + 3)
+    $close / (1 + 0.01)
+    If(Gt($close, $open), $close, $open)
+    ($close > $open) & ($volume > 0)
+
+You can use feature references (``$field`` and point-in-time ``$$field``), registered operator calls, arithmetic on expressions, and single comparisons.
+Operator arguments can include literals, lists, tuples, and named arguments where the operator accepts them.
+Numeric parameter arithmetic is supported, including ``+``, ``-``, ``*``, ``/``, ``//``, ``%``, and ``**``.
+Constant arithmetic requires real numbers; integers are limited to 4096 bits and the absolute value of a constant exponent is limited to 4096.
+String/list expansion and complex-valued constant arithmetic are rejected.
+The final result must be a Qlib ``Expression`` object, not a standalone constant.
+
+When migrating expressions that relied on Python syntax:
+
+* Replace attribute access or indexing with supported operators, or move the logic into a trusted custom operator.
+* Use ``&`` and ``|`` with parenthesized comparisons instead of Python ``and`` and ``or``.
+  Write ``($close > 0) & ($close < 10)`` instead of the chained comparison ``0 < $close < 10``.
+* Use explicit operator arguments instead of ``*args`` or ``**kwargs`` expansion.
+  Lambdas, comprehensions, arbitrary function calls, and constant-only comparisons are not supported.
+
+Unsupported syntax and unknown operator names raise ``qlib.data.expression_parser.ExpressionSyntaxError``, a subclass of ``ValueError``.
+Operator-specific argument validation still applies.
+
+Register custom operators before use, for example through ``qlib.init(custom_ops=[...])``; merely making a Python function importable does not make it an expression operator.
+See ``tests/test_register_ops.py`` for an example.
+For file-based custom operators, also configure :ref:`trusted_module_roots`.
+
+.. note::
+
+    Custom operator code must be trusted. The expression language restricts syntax, but does not sandbox registered operators or impose general resource limits on expression evaluation.
+
 Reference
 =========
 
