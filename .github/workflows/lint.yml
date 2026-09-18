@@ -1,0 +1,53 @@
+name: Lint check
+
+# Read-only lint check on pull requests. Runs the existing Makefile lint
+# targets (black, flake8) and fails the workflow if any issues are found,
+# so PRs surface formatting and lint regressions at review time instead of
+# the maintainer having to run them locally. Pylint, mypy and nbqa from the
+# `lint` aggregate target are intentionally left out of this initial workflow
+# so the CI signal stays green-or-red without flagging long-standing
+# diagnostics; they can be added in follow-up changes if maintainers want
+# the broader gate.
+#
+# Auto-fix and auto-commit are explicitly NOT performed here. Pushing
+# generated commits back into a PR head requires `pull_request_target` and
+# `contents: write`, which is unsafe when the PR comes from an external fork
+# (the auto-fix step would run with repo-write secrets in the context of
+# untrusted code). A check-only workflow gives the same lint enforcement
+# benefit with no fork-PR security tradeoff.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: black + flake8
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install lint dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --no-cache-dir -e .[lint]
+
+      - name: Check formatting with black
+        run: make black
+
+      - name: Check style with flake8
+        run: make flake8
