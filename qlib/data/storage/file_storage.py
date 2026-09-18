@@ -303,30 +303,47 @@ class FileFeatureStorage(FileStorageMixin, FeatureStorage):
                 "if you need to clear the FeatureStorage, please execute: FeatureStorage.clear"
             )
             return
-        if not self.uri.exists():
-            # write
+        data_array = np.asarray(data_array, dtype="<f")
+        if not self.uri.exists() or self.uri.stat().st_size == 0:
             index = 0 if index is None else index
             with self.uri.open("wb") as fp:
-                np.hstack([index, data_array]).astype("<f").tofile(fp)
+                np.asarray([index], dtype="<f").tofile(fp)
+                data_array.tofile(fp)
+            return
+
+        storage_start_index = self.start_index
+        storage_end_index = storage_start_index + len(self) - 1
+        if index is None:
+            with self.uri.open("ab") as fp:
+                data_array.tofile(fp)
+        elif index > storage_end_index:
+            gap = np.full(index - storage_end_index - 1, np.nan, dtype="<f")
+            with self.uri.open("ab") as fp:
+                gap.tofile(fp)
+                data_array.tofile(fp)
+        elif index >= storage_start_index:
+            # Values are fixed-width float32, so an overlapping write can update
+            # the affected bytes directly without loading and rewriting the file.
+            with self.uri.open("rb+") as fp:
+                fp.seek(4 * (index - storage_start_index + 1))
+                data_array.tofile(fp)
         else:
-            if index is None or index > self.end_index:
-                # append
-                index = 0 if index is None else index
-                with self.uri.open("ab+") as fp:
-                    np.hstack([[np.nan] * (index - self.end_index - 1), data_array]).astype("<f").tofile(fp)
-            else:
-                # rewrite
-                with self.uri.open("rb+") as fp:
-                    _old_data = np.fromfile(fp, dtype="<f")
-                    _old_index = _old_data[0]
-                    _old_df = pd.DataFrame(
-                        _old_data[1:], index=range(_old_index, _old_index + len(_old_data) - 1), columns=["old"]
-                    )
-                    fp.seek(0)
-                    _new_df = pd.DataFrame(data_array, index=range(index, index + len(data_array)), columns=["new"])
-                    _df = pd.concat([_old_df, _new_df], sort=False, axis=1)
-                    _df = _df.reindex(range(_df.index.min(), _df.index.max() + 1))
-                    _df["new"].fillna(_df["old"]).values.astype("<f").tofile(fp)
+            # Extending the range to the left changes the header and shifts the
+            # existing values, so this uncommon case still requires a rewrite.
+            with self.uri.open("rb") as fp:
+                fp.seek(4)
+                old_data = np.fromfile(fp, dtype="<f")
+
+            new_end_index = index + len(data_array) - 1
+            merged = np.full(
+                max(storage_end_index, new_end_index) - index + 1, np.nan, dtype="<f"
+            )
+            old_offset = storage_start_index - index
+            merged[old_offset : old_offset + len(old_data)] = old_data
+            merged[: len(data_array)] = data_array
+            with self.uri.open("wb") as fp:
+                np.asarray([index], dtype="<f").tofile(fp)
+                merged.tofile(fp)
 
     @property
     def start_index(self) -> Union[int, None]:
