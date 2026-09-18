@@ -937,6 +937,7 @@ class Run(BaseRun):
         check_data_length: int = None,
         delay: float = 1,
         exists_skip: bool = False,
+        delete_old: bool = True,
     ):
         """update yahoo data to bin
 
@@ -953,6 +954,9 @@ class Run(BaseRun):
             time.sleep(delay), default 1
         exists_skip: bool
             exists skip, by default False
+        delete_old: bool
+            delete existing qlib data directories before extracting the downloaded base dataset, by default True.
+            Set to False to skip directory deletion; archive extraction can still overwrite existing files.
         Notes
         -----
             If the data in qlib_data_dir is incomplete, np.nan will be populated to trading_date for the previous trading day
@@ -969,7 +973,11 @@ class Run(BaseRun):
         qlib_data_1d_dir = str(Path(qlib_data_1d_dir).expanduser().resolve())
         if not exists_qlib_data(qlib_data_1d_dir):
             GetData().qlib_data(
-                target_dir=qlib_data_1d_dir, interval=self.interval, region=self.region, exists_skip=exists_skip
+                target_dir=qlib_data_1d_dir,
+                interval=self.interval,
+                region=self.region,
+                exists_skip=exists_skip,
+                delete_old=delete_old,
             )
 
         # start/end date
