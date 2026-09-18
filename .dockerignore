@@ -4,5 +4,3 @@ __pycache__
 *.pyd
 .Python
 .env
-.git
-
