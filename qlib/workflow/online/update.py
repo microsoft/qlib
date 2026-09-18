@@ -5,7 +5,7 @@ Updater is a module to update artifacts such as predictions when the stock data 
 """
 
 from abc import ABCMeta, abstractmethod
-from typing import Optional
+from typing import Optional, Tuple
 
 import pandas as pd
 from qlib import get_module_logger
@@ -16,6 +16,88 @@ from qlib.model import Model
 from qlib.utils import get_date_by_shift
 from qlib.workflow.recorder import Recorder
 from qlib.workflow.record_temp import SignalRecord
+
+
+def get_inference_hist_ref(dataset: DatasetH, hist_ref: Optional[int] = None) -> int:
+    """
+    Return the number of historical trading days required for inference.
+
+    If ``hist_ref`` is not provided, time-series datasets use ``step_len - 1``.
+    Regular tabular datasets do not require historical warmup rows.
+    """
+    if hist_ref is not None:
+        if hist_ref < 0:
+            raise ValueError("hist_ref must be non-negative.")
+        return hist_ref
+    if isinstance(dataset, TSDatasetH):
+        return dataset.step_len - 1
+    return 0
+
+
+def get_incremental_inference_config(
+    start_time,
+    end_time,
+    hist_ref: int = 0,
+    freq: str = "day",
+    segment_name: str = "test",
+) -> Tuple[pd.Timestamp, dict]:
+    """
+    Build the data loading window and prediction segment for incremental inference.
+
+    ``start_time`` and ``end_time`` describe the dates that should receive new
+    predictions. ``hist_ref`` extends only the handler loading window so models
+    that need historical bars have enough warmup data. The returned segment is
+    still limited to the incremental prediction window.
+    """
+    if hist_ref < 0:
+        raise ValueError("hist_ref must be non-negative.")
+    if not segment_name:
+        raise ValueError("segment_name must be a non-empty string.")
+
+    start_time = pd.Timestamp(start_time)
+    end_time = pd.Timestamp(end_time)
+    if start_time > end_time:
+        raise ValueError("start_time must be no later than end_time.")
+
+    data_start_time = (
+        start_time
+        if hist_ref == 0
+        else get_date_by_shift(start_time, -hist_ref, clip_shift=False, freq=freq)
+    )
+    return data_start_time, {segment_name: (start_time, end_time)}
+
+
+def prepare_incremental_inference_dataset(
+    dataset: DatasetH,
+    start_time,
+    end_time,
+    hist_ref: Optional[int] = None,
+    freq: str = "day",
+    segment_name: str = "test",
+    init_type=DataHandlerLP.IT_LS,
+) -> DatasetH:
+    """
+    Configure a DatasetH for lightweight incremental prediction.
+
+    This helper is useful when users update the local qlib data themselves and
+    only need scores for newly available dates. It reloads the handler from the
+    earliest required warmup date while keeping the prediction segment limited
+    to ``start_time`` through ``end_time``.
+    """
+    resolved_hist_ref = get_inference_hist_ref(dataset, hist_ref)
+    data_start_time, segments = get_incremental_inference_config(
+        start_time=start_time,
+        end_time=end_time,
+        hist_ref=resolved_hist_ref,
+        freq=freq,
+        segment_name=segment_name,
+    )
+    dataset.config(
+        handler_kwargs={"start_time": data_start_time, "end_time": pd.Timestamp(end_time)},
+        segments=segments,
+    )
+    dataset.setup_data(handler_kwargs={"init_type": init_type})
+    return dataset
 
 
 class RMDLoader:
@@ -199,13 +281,18 @@ class DSBasedUpdater(RecordUpdater, metaclass=ABCMeta):
         else:
             hist_ref = self.hist_ref
 
-        start_time_buffer = get_date_by_shift(
-            self.last_end, -hist_ref + 1, clip_shift=False, freq=self.freq  # pylint: disable=E1130
-        )
         start_time = get_date_by_shift(self.last_end, 1, freq=self.freq)
-        seg = {"test": (start_time, self.to_date)}
+        start_time_buffer, segments = get_incremental_inference_config(
+            start_time=start_time,
+            end_time=self.to_date,
+            hist_ref=hist_ref,
+            freq=self.freq,
+        )
         return self.rmdl.get_dataset(
-            start_time=start_time_buffer, end_time=self.to_date, segments=seg, unprepared_dataset=unprepared_dataset
+            start_time=start_time_buffer,
+            end_time=self.to_date,
+            segments=segments,
+            unprepared_dataset=unprepared_dataset,
         )
 
     def update(self, dataset: DatasetH = None, write: bool = True, ret_new: bool = False) -> Optional[object]:
