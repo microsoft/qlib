@@ -369,6 +369,23 @@ class YahooNormalize(BaseNormalize):
     DAILY_FORMAT = "%Y-%m-%d"
 
     @staticmethod
+    def _parse_datetime_index(index) -> pd.DatetimeIndex:
+        try:
+            parsed = pd.to_datetime(index)
+            if isinstance(parsed, pd.DatetimeIndex):
+                return parsed.tz_localize(None) if parsed.tz is not None else parsed
+        except ValueError:
+            pass
+
+        parsed_values = []
+        for value in index:
+            timestamp = pd.to_datetime(value)
+            if getattr(timestamp, "tzinfo", None) is not None:
+                timestamp = timestamp.tz_localize(None)
+            parsed_values.append(timestamp)
+        return pd.DatetimeIndex(parsed_values)
+
+    @staticmethod
     def calc_change(df: pd.DataFrame, last_close: float) -> pd.Series:
         df = df.copy()
         _tmp_series = df["close"].ffill()
@@ -392,8 +409,7 @@ class YahooNormalize(BaseNormalize):
         columns = copy.deepcopy(YahooNormalize.COLUMNS)
         df = df.copy()
         df.set_index(date_field_name, inplace=True)
-        df.index = pd.to_datetime(df.index)
-        df.index = df.index.tz_localize(None)
+        df.index = YahooNormalize._parse_datetime_index(df.index)
         df = df[~df.index.duplicated(keep="first")]
         if calendar_list is not None:
             df = df.reindex(
