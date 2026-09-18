@@ -173,7 +173,7 @@ class GetData:
         interval: str
             data freq, value from [1d], by default 1d
         region: str
-            data region, value from [cn, us], by default cn
+            data region, value from [cn, us, in], by default cn
         delete_old: bool
             delete an existing directory, by default True
         exists_skip: bool
