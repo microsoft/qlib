@@ -53,7 +53,7 @@ def _get_figure_with_position(
             layout=dict(
                 title=_col,
                 xaxis=dict(type="category", tickangle=45),
-                yaxis=dict(title="lable-rank-ratio: %"),
+                yaxis=dict(title="label-rank-ratio: %"),
             ),
             graph_kwargs=dict(mode="lines+markers"),
         ).figure
