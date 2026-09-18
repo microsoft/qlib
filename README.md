@@ -601,7 +601,7 @@ Making contributions is not a hard thing. Solving an issue(maybe just answering 
 
 For example, if you want to contribute to Qlib's document/code, you can follow the steps in the figure below.
 <p align="center">
-  <img src="https://github.com/demon143/qlib/blob/main/docs/_static/img/change%20doc.gif" />
+  <img src="https://github.com/microsoft/qlib/blob/main/docs/_static/img/change%20doc.gif" />
 </p>
 
 If you don't know how to start to contribute, you can refer to the following examples.
