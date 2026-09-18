@@ -2,6 +2,8 @@
 # Licensed under the MIT License.
 
 
+import tempfile
+import unittest
 from pathlib import Path
 from collections.abc import Iterable
 
@@ -18,6 +20,25 @@ _file_name = Path(__file__).name.split(".")[0]
 DATA_DIR = Path(__file__).parent.joinpath(f"{_file_name}_data")
 QLIB_DIR = DATA_DIR.joinpath("qlib")
 QLIB_DIR.mkdir(exist_ok=True, parents=True)
+
+
+class TestFileFeatureStorageCaseResolution(unittest.TestCase):
+    def test_feature_storage_uses_existing_instrument_directory_case(self):
+        with tempfile.TemporaryDirectory() as provider_uri:
+            provider_path = Path(provider_uri)
+            calendar_dir = provider_path.joinpath("calendars")
+            calendar_dir.mkdir()
+            calendar_dir.joinpath("day.txt").write_text("2020-01-01\n2020-01-02\n", encoding="utf-8")
+
+            feature_dir = provider_path.joinpath("features", "ABB-U")
+            feature_dir.mkdir(parents=True)
+            np.array([3, 10.0, 11.0], dtype="<f").tofile(feature_dir.joinpath("close.day.bin"))
+
+            feature = FeatureStorage(instrument="ABB-U", field="close", freq="day", provider_uri=provider_path)
+
+            self.assertEqual(feature.uri.parent.name, "ABB-U")
+            self.assertEqual(feature.start_index, 3)
+            self.assertEqual(feature[4][1], 11.0)
 
 
 class TestStorage(TestAutoData):
