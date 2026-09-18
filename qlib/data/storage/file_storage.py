@@ -7,13 +7,21 @@ from typing import Iterable, Union, Dict, Mapping, Tuple, List
 
 import numpy as np
 import pandas as pd
+from qlib.data.storage.storage import PITStorage
 
 from qlib.utils.time import Freq
 from qlib.utils.resam import resam_calendar
 from qlib.config import C
 from qlib.data.cache import H
 from qlib.log import get_module_logger
-from qlib.data.storage import CalendarStorage, InstrumentStorage, FeatureStorage, CalVT, InstKT, InstVT
+from qlib.data.storage import (
+    CalendarStorage,
+    InstrumentStorage,
+    FeatureStorage,
+    CalVT,
+    InstKT,
+    InstVT,
+)
 
 logger = get_module_logger("file_storage")
 
@@ -48,7 +56,10 @@ class FileStorageMixin:
         if len(self.provider_uri) == 1 and C.DEFAULT_FREQ in self.provider_uri:
             freq_l = filter(
                 lambda _freq: not _freq.endswith("_future"),
-                map(lambda x: x.stem, self.dpm.get_data_uri(C.DEFAULT_FREQ).joinpath("calendars").glob("*.txt")),
+                map(
+                    lambda x: x.stem,
+                    self.dpm.get_data_uri(C.DEFAULT_FREQ).joinpath("calendars").glob("*.txt"),
+                ),
             )
         else:
             freq_l = self.provider_uri.keys()
@@ -140,7 +151,10 @@ class FileCalendarStorage(FileStorageMixin, CalendarStorage):
             _calendar = self._read_calendar()
         if Freq(self._freq_file) != Freq(self.freq):
             _calendar = resam_calendar(
-                np.array(list(map(pd.Timestamp, _calendar))), self._freq_file, self.freq, self.region
+                np.array(list(map(pd.Timestamp, _calendar))),
+                self._freq_file,
+                self.freq,
+                self.region,
             )
         return _calendar
 
@@ -287,6 +301,7 @@ class FileFeatureStorage(FileStorageMixin, FeatureStorage):
         super(FileFeatureStorage, self).__init__(instrument, field, freq, **kwargs)
         self._provider_uri = None if provider_uri is None else C.DataPathManager.format_provider_uri(provider_uri)
         self.file_name = f"{instrument.lower()}/{field.lower()}.{freq.lower()}.bin"
+        self._start_index = None
 
     def clear(self):
         with self.uri.open("wb") as _:
@@ -303,6 +318,7 @@ class FileFeatureStorage(FileStorageMixin, FeatureStorage):
                 "if you need to clear the FeatureStorage, please execute: FeatureStorage.clear"
             )
             return
+        self._start_index = None
         if not self.uri.exists():
             # write
             index = 0 if index is None else index
@@ -320,7 +336,9 @@ class FileFeatureStorage(FileStorageMixin, FeatureStorage):
                     _old_data = np.fromfile(fp, dtype="<f")
                     _old_index = _old_data[0]
                     _old_df = pd.DataFrame(
-                        _old_data[1:], index=range(_old_index, _old_index + len(_old_data) - 1), columns=["old"]
+                        _old_data[1:],
+                        index=range(_old_index, _old_index + len(_old_data) - 1),
+                        columns=["old"],
                     )
                     fp.seek(0)
                     _new_df = pd.DataFrame(data_array, index=range(index, index + len(data_array)), columns=["new"])
@@ -332,9 +350,10 @@ class FileFeatureStorage(FileStorageMixin, FeatureStorage):
     def start_index(self) -> Union[int, None]:
         if not self.uri.exists():
             return None
-        with self.uri.open("rb") as fp:
-            index = int(np.frombuffer(fp.read(4), dtype="<f")[0])
-        return index
+        if self._start_index is None:
+            with self.uri.open("rb") as fp:
+                self._start_index = int(np.frombuffer(fp.read(4), dtype="<f")[0])
+        return self._start_index
 
     @property
     def end_index(self) -> Union[int, None]:
@@ -377,3 +396,194 @@ class FileFeatureStorage(FileStorageMixin, FeatureStorage):
     def __len__(self) -> int:
         self.check()
         return self.uri.stat().st_size // 4 - 1
+
+
+class FilePITStorage(FileStorageMixin, PITStorage):
+    """PIT data is a special case of Feature data, it looks like
+
+                date  period     value       _next
+            0  20070428  200701  0.090219  4294967295
+            1  20070817  200702  0.139330  4294967295
+            2  20071023  200703  0.245863  4294967295
+            3  20080301  200704  0.347900          80
+            4  20080313  200704  0.395989  4294967295
+
+    It is sorted by [date, period].
+
+    next field currently is not used. just for forward compatible.
+    """
+
+    # NOTE:
+    # PIT data should have two files, one is the index file, the other is the data file.
+
+    # pesudo code:
+    # date_index = calendar.index(date)
+    # data_start_index, data_end_index = index_file[date_index]
+    # data = data_file[data_start_index:data_end_index]
+
+    # the index file is like feature's data file, but given a start index in index file, it will return the first and the last observe index of the data file.
+    # the data file has tree columns, the first column is observe date, the second column is financial period, the third column is the value.
+
+    # so given start and end date, we can get the start_index and end_index from calendar.
+    # use it to read two line from index file, then we can get the start and end index of the data file.
+
+    # but consider this implementation, we will create a index file which will have 50 times lines than the data file. Is it a good idea?
+    # if we just create a index file the same line with data file, we have to read the whole index file for any time slice search, so why not read whole data file?
+
+    def __init__(self, instrument: str, field: str, freq: str = "day", provider_uri: dict = None, **kwargs):
+        super(FilePITStorage, self).__init__(instrument, field, freq, **kwargs)
+
+        if not field.endswith("_q") and not field.endswith("_a"):
+            raise ValueError("period field must ends with '_q' or '_a'")
+        self.quarterly = field.endswith("_q")
+
+        self._provider_uri = None if provider_uri is None else C.DataPathManager.format_provider_uri(provider_uri)
+        self.file_name = f"{instrument.lower()}/{field.lower()}.data"
+        self.uri.parent.mkdir(parents=True, exist_ok=True)
+        self.raw_dtype = [
+            ("date", C.pit_record_type["date"]),
+            ("period", C.pit_record_type["period"]),
+            ("value", C.pit_record_type["value"]),
+            ("_next", C.pit_record_type["index"]),  # not used in current implementation
+        ]
+        self.dtypes = np.dtype(self.raw_dtype)
+        self.itemsize = self.dtypes.itemsize
+        self.dtype_string = "".join([i[1] for i in self.raw_dtype])
+        self.columns = [i[0] for i in self.raw_dtype]
+
+    @property
+    def uri(self) -> Path:
+        if self.freq not in self.support_freq:
+            raise ValueError(f"{self.storage_name}: {self.provider_uri} does not contain data for {self.freq}")
+        return self.dpm.get_data_uri(self.freq).joinpath(f"{self.storage_name}", self.file_name)
+
+    def clear(self):
+        with self.uri.open("wb") as _:
+            pass
+
+    @property
+    def data(self) -> pd.DataFrame:
+        return self[:]
+
+    def update(self, data_array: np.ndarray) -> None:
+        """update data to storage, replace current data from start_date to end_date with given data_array
+
+        Args:
+            data_array: Structured arrays contains date, period, value and next. same with self.raw_dtype
+        """
+        if not self.uri.exists() or len(self) == 0:
+            # write
+            index = 0
+            self.write(data_array, index)
+        else:
+            # sort it
+            data_array = np.sort(data_array, order=["date", "period"])
+            # get index
+            update_start_date = data_array[0][0]
+            update_end_date = data_array[-1][0]
+            current_data = self.np_data()
+            index = (current_data["date"] >= update_start_date).argmax()
+            end_index = (current_data["date"] > update_end_date).argmax()
+            new_data = np.concatenate([data_array, current_data[end_index:]])
+            self.write(new_data, index)
+
+    def write(self, data_array: np.ndarray, index: int = None) -> None:
+        """write data to storage at specific index
+
+        Args:
+            data_array: Structured arrays contains date, period, value and next
+            index: target index to start writing. Defaults to None.
+        """
+
+        if len(data_array) == 0:
+            logger.info(
+                "len(data_array) == 0, write"
+                "if you need to clear the FeatureStorage, please execute: FeatureStorage.clear"
+            )
+            return
+        # check data_array dtype
+        if data_array.dtype != self.dtypes:
+            raise ValueError(f"data_array.dtype = {data_array.dtype}, self.dtypes = {self.dtypes}")
+
+        # sort data_array with first 2 columns
+        data_array = np.sort(data_array, order=["date", "period"])
+
+        if not self.uri.exists():
+            # write
+            index = 0 if index is None else index
+            with self.uri.open("wb") as fp:
+                data_array.tofile(fp)
+        else:
+            if index is None or index > self.end_index:
+                index = self.end_index + 1
+            with self.uri.open("rb+") as fp:
+                fp.seek(index * self.itemsize)
+                data_array.tofile(fp)
+
+    @property
+    def start_index(self) -> Union[int, None]:
+        return 0
+
+    @property
+    def end_index(self) -> Union[int, None]:
+        if not self.uri.exists():
+            return None
+        # The next  data appending index point will be  `end_index + 1`
+        return self.start_index + len(self) - 1
+
+    def np_data(self, i: Union[int, slice] = None) -> np.ndarray:
+        """return numpy structured array
+
+        Args:
+            i: index or slice. Defaults to None.
+
+        Returns:
+            np.ndarray
+        """
+        if not self.uri.exists():
+            if isinstance(i, int):
+                return None, None
+            elif isinstance(i, slice):
+                return np.array(dtype=self.dtypes)
+            else:
+                raise TypeError(f"type(i) = {type(i)}")
+
+        if i is None:
+            i = slice(None, None)
+        storage_start_index = self.start_index
+        storage_end_index = self.end_index
+        with self.uri.open("rb") as fp:
+            if isinstance(i, int):
+                if storage_start_index > i:
+                    raise IndexError(f"{i}: start index is {storage_start_index}")
+                fp.seek(i * self.itemsize)
+                return np.array([struct.unpack(self.dtype_string, fp.read(self.itemsize))], dtype=self.dtypes)
+            elif isinstance(i, slice):
+                start_index = storage_start_index if i.start is None else i.start
+                end_index = storage_end_index if i.stop is None else i.stop - 1
+                si = max(start_index, storage_start_index)
+                if si > end_index:
+                    return np.array(dtype=self.dtypes)
+                fp.seek(start_index * self.itemsize)
+                # read n bytes
+                count = end_index - si + 1
+                data = np.frombuffer(fp.read(self.itemsize * count), dtype=self.dtypes)
+                return data
+            else:
+                raise TypeError(f"type(i) = {type(i)}")
+
+    def __getitem__(self, i: Union[int, slice]) -> Union[Tuple[int, float], pd.DataFrame]:
+        if isinstance(i, int):
+            return pd.Series(self.np_data(i), index=self.columns, name=i)
+        elif isinstance(i, slice):
+            data = self.np_data(i)
+            si = self.start_index if i.start is None else i.start
+            if si < 0:
+                si = len(self) + si
+            return pd.DataFrame(data, index=pd.RangeIndex(si, si + len(data)), columns=self.columns)
+        else:
+            raise TypeError(f"type(i) = {type(i)}")
+
+    def __len__(self) -> int:
+        self.check()
+        return self.uri.stat().st_size // self.itemsize
