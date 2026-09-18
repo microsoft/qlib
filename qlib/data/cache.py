@@ -591,7 +591,7 @@ class DiskExpressionCache(ExpressionCache):
             self.clear_cache(cp_cache_uri)
             return 2
 
-        with CacheUtils.writer_lock(self.r, f"{str(C.dpm.get_data_uri())}:expression-{cache_uri}"):
+        with CacheUtils.writer_lock(self.r, f"{str(C.dpm.get_data_uri(freq))}:expression-{cache_uri}"):
             with meta_path.open("rb") as f:
                 d = restricted_pickle_load(f)
             instrument = d["info"]["instrument"]
@@ -958,7 +958,7 @@ class DiskDatasetCache(DatasetCache):
             return 2
 
         im = DiskDatasetCache.IndexManager(cp_cache_uri)
-        with CacheUtils.writer_lock(self.r, f"{str(C.dpm.get_data_uri())}:dataset-{cache_uri}"):
+        with CacheUtils.writer_lock(self.r, f"{str(C.dpm.get_data_uri(freq))}:dataset-{cache_uri}"):
             with meta_path.open("rb") as f:
                 d = restricted_pickle_load(f)
             instruments = d["info"]["instruments"]
