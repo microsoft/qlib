@@ -10,6 +10,7 @@ from typing import Text, Union
 import copy
 from ...utils import get_or_create_path
 from ...log import get_module_logger
+from .pytorch_utils import empty_cache
 
 import torch
 import torch.nn as nn
@@ -233,7 +234,10 @@ class SFM(Model):
         self.eval_steps = eval_steps
         self.optimizer = optimizer.lower()
         self.loss = loss
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        if isinstance(GPU, str):
+            self.device = torch.device(GPU)
+        else:
+            self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
         self.seed = seed
 
         self.logger.info(
@@ -410,8 +414,8 @@ class SFM(Model):
         self.logger.info("best score: %.6lf @ %d" % (best_score, best_epoch))
         self.sfm_model.load_state_dict(best_param)
         torch.save(best_param, save_path)
-        if self.device != "cpu":
-            torch.cuda.empty_cache()
+        if self.use_gpu:
+            empty_cache(self.device)
 
     def mse(self, pred, label):
         loss = (pred - label) ** 2

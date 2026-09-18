@@ -11,6 +11,7 @@ from typing import Text, Union
 import copy
 from ...utils import get_or_create_path
 from ...log import get_module_logger
+from .pytorch_utils import empty_cache
 
 import torch
 import torch.nn as nn
@@ -276,7 +277,10 @@ class KRNN(Model):
         self.early_stop = early_stop
         self.optimizer = optimizer.lower()
         self.loss = loss
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        if isinstance(GPU, str):
+            self.device = torch.device(GPU)
+        else:
+            self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
         self.seed = seed
 
         self.logger.info(
@@ -485,7 +489,7 @@ class KRNN(Model):
         torch.save(best_param, save_path)
 
         if self.use_gpu:
-            torch.cuda.empty_cache()
+            empty_cache(self.device)
 
     def predict(self, dataset: DatasetH, segment: Union[Text, slice] = "test"):
         if not self.fitted:

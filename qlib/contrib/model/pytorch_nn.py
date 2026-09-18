@@ -18,7 +18,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from .pytorch_utils import count_parameters
+from .pytorch_utils import count_parameters, empty_cache
 from ...model.base import Model
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
@@ -333,7 +333,7 @@ class DNNModelPytorch(Model):
             # restore the optimal parameters after training
             self.dnn_model.load_state_dict(torch.load(save_path, map_location=self.device))
         if self.use_gpu:
-            torch.cuda.empty_cache()
+            empty_cache(self.device)
 
     def get_lr(self):
         assert len(self.train_optimizer.param_groups) == 1
