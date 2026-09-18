@@ -50,13 +50,13 @@ QlibRL provides an example of an implementation of a single asset order executio
     data:
         source:
             order_dir: ./data/training_order_split
-            data_dir: ./data/pickle_dataframe/backtest
+            feature_root_dir: ./data/pickle_dataframe/backtest
             # number of time indexes
             total_time: 240
-            # start time index
-            default_start_time: 0
-            # end time index
-            default_end_time: 240
+            # start time index (must be divisible by simulator.data_granularity)
+            default_start_time_index: 0
+            # end time index (must be divisible by simulator.data_granularity)
+            default_end_time_index: 240
             proc_data_dim: 6
         num_workers: 0
         queue_size: 20
@@ -83,6 +83,19 @@ QlibRL provides an example of an implementation of a single asset order executio
         val_every_n_epoch: 1
         checkpoint_path: ./checkpoints
         checkpoint_every_n_iters: 1
+
+.. warning::
+
+    ``data_config["source"]["default_start_time_index"]`` and
+    ``data_config["source"]["default_end_time_index"]`` **must both be
+    divisible by** ``simulator.data_granularity``.  This is because the RL
+    environment slices each trading day into uniform windows of
+    ``data_granularity`` ticks, so misaligned indices would corrupt the step
+    boundaries and raise a ``ValueError`` at startup.
+
+    For example, if ``simulator.data_granularity: 5``, valid values are
+    ``0, 5, 10, 15, …``.  The safest starting point is always
+    ``default_start_time_index: 0``.
 
 
 And the config file for backtesting:
@@ -160,13 +173,13 @@ With the above config files, you can start training the agent by the following c
 
 .. code-block:: console
 
-    $ python -m qlib.rl.contrib.train_onpolicy.py --config_path train_config.yml
+    $ python -m qlib.rl.contrib.train_onpolicy --config_path train_config.yml
 
 After the training, you can backtest with the following command:
 
 .. code-block:: console
 
-    $ python -m qlib.rl.contrib.backtest.py --config_path backtest_config.yml
+    $ python -m qlib.rl.contrib.backtest --config_path backtest_config.yml
 
 In that case, :class:`~qlib.rl.order_execution.simulator_qlib.SingleAssetOrderExecution` and :class:`~qlib.rl.order_execution.simulator_simple.SingleAssetOrderExecutionSimple` as examples for simulator, :class:`qlib.rl.order_execution.interpreter.FullHistoryStateInterpreter` and :class:`qlib.rl.order_execution.interpreter.CategoricalActionInterpreter` as examples for interpreter, :class:`qlib.rl.order_execution.policy.PPO` as an example for policy, and :class:`qlib.rl.order_execution.reward.PAPenaltyReward` as an example for reward.
 For the single asset order execution task, if developers have already defined their simulator/interpreters/reward function/policy, they could launch the training and backtest pipeline by simply modifying the corresponding settings in the config files.
