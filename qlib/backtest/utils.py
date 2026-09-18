@@ -222,6 +222,7 @@ class BaseInfrastructure:
             return getattr(self, infra_name)
         else:
             warnings.warn(f"infra {infra_name} is not found!")
+            return None
 
     def has(self, infra_name: str) -> bool:
         return infra_name in self.get_support_infra() and hasattr(self, infra_name)

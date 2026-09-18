@@ -136,6 +136,8 @@ class PortfolioOptimizer(BaseOptimizer):
                 warnings.warn("`r` is set but will not be used for `rp` portfolio")
             return self._optimize_rp(S, w0)
 
+        raise ValueError(f"Unknown optimization method: {self.method}")
+
     def _optimize_inv(self, S: np.ndarray) -> np.ndarray:
         """Inverse volatility"""
         vola = np.diag(S) ** 0.5
