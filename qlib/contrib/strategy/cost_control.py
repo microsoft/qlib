@@ -32,7 +32,7 @@ class SoftTopkStrategy(WeightStrategyBase):
         risk_degree : float
             The target percentage of total value to be invested.
         """
-        super(SoftTopkStrategy, self).__init__(
+        super().__init__(
             model=model, dataset=dataset, order_generator_cls_or_obj=order_generator_cls_or_obj, **kwargs
         )
 

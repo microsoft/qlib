@@ -122,7 +122,7 @@ class HFLGBModel(ModelFT, LightGBMFInt):
         evals_result=None,
     ):
         if evals_result is None:
-            evals_result = dict()
+            evals_result = {}
         dtrain, dvalid = self._prepare_data(dataset)
         early_stopping_callback = lgb.early_stopping(early_stopping_rounds)
         verbose_eval_callback = lgb.log_evaluation(period=verbose_eval)

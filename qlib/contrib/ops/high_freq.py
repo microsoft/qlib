@@ -262,7 +262,7 @@ class Cut(ElemOperator):
         if (self.left is not None and self.left <= 0) or (self.right is not None and self.right >= 0):
             raise ValueError("Cut operator l shoud > 0 and r should < 0")
 
-        super(Cut, self).__init__(feature)
+        super().__init__(feature)
 
     def _load_internal(self, instrument, start_index, end_index, freq):
         series = self.feature.load(instrument, start_index, end_index, freq)

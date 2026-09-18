@@ -491,13 +491,13 @@ class DiskExpressionCache(ExpressionCache):
     """Prepared cache mechanism for server."""
 
     def __init__(self, provider, **kwargs):
-        super(DiskExpressionCache, self).__init__(provider)
+        super().__init__(provider)
         self.r = get_redis_connection()
         # remote==True means client is using this module, writing behaviour will not be allowed.
         self.remote = kwargs.get("remote", False)
 
     def get_cache_dir(self, freq: str = None) -> Path:
-        return super(DiskExpressionCache, self).get_cache_dir(C.features_cache_dir_name, freq)
+        return super().get_cache_dir(C.features_cache_dir_name, freq)
 
     def _uri(self, instrument, field, start_time, end_time, freq):
         field = remove_fields_space(field)
