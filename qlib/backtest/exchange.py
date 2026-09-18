@@ -846,6 +846,11 @@ class Exchange:
         """
         max_trade_amount = 0.0
         if cash >= self.min_cost:
+            if cost_ratio <= 0:
+                # Without a proportional fee the service fee is always `min_cost`,
+                # so there is no critical price to compare against.
+                max_trade_amount = (cash - self.min_cost) / trade_price
+                return max_trade_amount
             # critical_price means the stock transaction price when the service fee is equal to min_cost.
             critical_price = self.min_cost / cost_ratio + self.min_cost
             if cash >= critical_price:
