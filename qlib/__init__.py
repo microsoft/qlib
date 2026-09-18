@@ -194,7 +194,7 @@ def init_from_yaml_conf(conf_path, **kwargs):
     if conf_path is None:
         config = {}
     else:
-        with open(conf_path) as f:
+        with open(conf_path, encoding="utf-8") as f:
             yaml = YAML(typ="safe", pure=True)
             config = yaml.load(f)
     config.update(kwargs)

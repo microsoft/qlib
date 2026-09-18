@@ -116,7 +116,7 @@ class Rolling:
         # - So we have to design a priority mechanism to solve this issue.
 
     def _raw_conf(self) -> dict:
-        with self.conf_path.open("r") as f:
+        with self.conf_path.open("r", encoding="utf-8") as f:
             yaml = YAML(typ="safe", pure=True)
             return yaml.load(f)
 

@@ -111,7 +111,7 @@ class FileCalendarStorage(FileStorageMixin, CalendarStorage):
         if not self.uri.exists():
             self._write_calendar(values=[])
 
-        with self.uri.open("r") as fp:
+        with self.uri.open("r", encoding="utf-8") as fp:
             res = []
             for line in fp.readlines():
                 line = line.strip()
@@ -120,7 +120,9 @@ class FileCalendarStorage(FileStorageMixin, CalendarStorage):
             return res
 
     def _write_calendar(self, values: Iterable[CalVT], mode: str = "wb"):
-        with self.uri.open(mode=mode) as fp:
+        # `mode` is always a binary mode ("wb"/"ab"), so no `encoding` is needed;
+        # `np.savetxt` encodes the text itself via its own `encoding` argument.
+        with self.uri.open(mode=mode) as fp:  # pylint: disable=unspecified-encoding
             np.savetxt(fp, values, fmt="%s", encoding="utf-8")
 
     @property
@@ -219,7 +221,7 @@ class FileInstrumentStorage(FileStorageMixin, InstrumentStorage):
 
     def _write_instrument(self, data: Dict[InstKT, InstVT] = None) -> None:
         if not data:
-            with self.uri.open("w") as _:
+            with self.uri.open("w", encoding="utf-8") as _:
                 pass
             return
 

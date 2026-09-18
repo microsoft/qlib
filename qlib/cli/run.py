@@ -63,7 +63,7 @@ def render_template(config_path: str) -> str:
     str
         the rendered content
     """
-    with open(config_path, "r") as f:
+    with open(config_path, "r", encoding="utf-8") as f:
         config = f.read()
     # Set up the Jinja2 environment
     template = Template(config)
@@ -126,7 +126,7 @@ def workflow(config_path, experiment_name="workflow", uri_folder="mlruns"):
             else:
                 raise FileNotFoundError(f"Can't find the BASE_CONFIG file: {base_config_path}")
 
-        with open(path) as fp:
+        with open(path, encoding="utf-8") as fp:
             yaml = YAML(typ="safe", pure=True)
             base_config = yaml.load(fp)
         logger.info(f"Load BASE_CONFIG_PATH succeed: {path.resolve()}")
