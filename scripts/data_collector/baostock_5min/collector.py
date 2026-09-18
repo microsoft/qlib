@@ -11,7 +11,7 @@ import baostock as bs
 from tqdm import tqdm
 from pathlib import Path
 from loguru import logger
-from typing import Iterable, List
+from typing import Iterable, List, Union
 
 import qlib
 from qlib.data import D
@@ -26,7 +26,7 @@ from data_collector.utils import generate_minutes_calendar_from_daily, calc_adju
 class BaostockCollectorHS3005min(BaseCollector):
     def __init__(
         self,
-        save_dir: [str, Path],
+        save_dir: Union[str, Path],
         start=None,
         end=None,
         interval="5min",
@@ -151,7 +151,7 @@ class BaostockNormalizeHS3005min(BaseNormalize):
     PM_RANGE = ("13:00:00", "14:59:00")
 
     def __init__(
-        self, qlib_data_1d_dir: [str, Path], date_field_name: str = "date", symbol_field_name: str = "symbol", **kwargs
+        self, qlib_data_1d_dir: Union[str, Path], date_field_name: str = "date", symbol_field_name: str = "symbol", **kwargs
     ):
         """
 
@@ -267,7 +267,7 @@ class Run(BaseRun):
         return f"BaostockNormalize{self.region.upper()}{self.interval}"
 
     @property
-    def default_base_dir(self) -> [Path, str]:
+    def default_base_dir(self) -> Union[Path, str]:
         return CUR_DIR
 
     def download_data(

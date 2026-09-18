@@ -6,7 +6,7 @@ from functools import partial
 import sys
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
-from typing import List
+from typing import List, Union, Optional
 from io import StringIO
 
 import fire
@@ -41,7 +41,7 @@ class WIKIIndex(IndexBase):
     def __init__(
         self,
         index_name: str,
-        qlib_dir: [str, Path] = None,
+        qlib_dir: Union[str, Path] = None,
         freq: str = "day",
         request_retry: int = 5,
         retry_sleep: int = 3,
@@ -149,7 +149,7 @@ class NASDAQ100Index(WIKIIndex):
     )
     MAX_WORKERS = 16
 
-    def filter_df(self, df: pd.DataFrame) -> pd.DataFrame:
+    def filter_df(self, df: pd.DataFrame) -> Optional[pd.DataFrame]:
         if len(df) >= 100 and "Ticker" in df.columns:
             return df.loc[:, ["Ticker"]].copy()
 
@@ -208,7 +208,7 @@ class DJIAIndex(WIKIIndex):
     def get_changes(self) -> pd.DataFrame:
         pass
 
-    def filter_df(self, df: pd.DataFrame) -> pd.DataFrame:
+    def filter_df(self, df: pd.DataFrame) -> Optional[pd.DataFrame]:
         if "Symbol" in df.columns:
             _df = df.loc[:, ["Symbol"]].copy()
             _df["Symbol"] = _df["Symbol"].apply(lambda x: x.split(":")[-1])

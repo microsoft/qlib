@@ -7,7 +7,7 @@ import time
 import datetime
 import importlib
 from pathlib import Path
-from typing import Type, Iterable
+from typing import Type, Iterable, Union
 from concurrent.futures import ProcessPoolExecutor
 
 import pandas as pd
@@ -31,7 +31,7 @@ class BaseCollector(abc.ABC):
 
     def __init__(
         self,
-        save_dir: [str, Path],
+        save_dir: Union[str, Path],
         start=None,
         end=None,
         interval="1d",
@@ -85,14 +85,14 @@ class BaseCollector(abc.ABC):
             except Exception as e:
                 logger.warning(f"Cannot use limit_nums={limit_nums}, the parameter will be ignored")
 
-    def normalize_start_datetime(self, start_datetime: [str, pd.Timestamp] = None):
+    def normalize_start_datetime(self, start_datetime: Union[str, pd.Timestamp] = None):
         return (
             pd.Timestamp(str(start_datetime))
             if start_datetime
             else getattr(self, f"DEFAULT_START_DATETIME_{self.interval.upper()}")
         )
 
-    def normalize_end_datetime(self, end_datetime: [str, pd.Timestamp] = None):
+    def normalize_end_datetime(self, end_datetime: Union[str, pd.Timestamp] = None):
         return (
             pd.Timestamp(str(end_datetime))
             if end_datetime
@@ -246,8 +246,8 @@ class BaseNormalize(abc.ABC):
 class Normalize:
     def __init__(
         self,
-        source_dir: [str, Path],
-        target_dir: [str, Path],
+        source_dir: Union[str, Path],
+        target_dir: Union[str, Path],
         normalize_class: Type[BaseNormalize],
         max_workers: int = 16,
         date_field_name: str = "date",
@@ -373,7 +373,7 @@ class BaseRun(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def default_base_dir(self) -> [Path, str]:
+    def default_base_dir(self) -> Union[Path, str]:
         raise NotImplementedError("rewrite default_base_dir")
 
     def download_data(

@@ -4,6 +4,7 @@ from functools import partial
 import sys
 from pathlib import Path
 import datetime
+from typing import Union, Optional
 
 import fire
 import pandas as pd
@@ -26,7 +27,7 @@ class IBOVIndex(IndexBase):
     def __init__(
         self,
         index_name: str,
-        qlib_dir: [str, Path] = None,
+        qlib_dir: Union[str, Path] = None,
         freq: str = "day",
         request_retry: int = 5,
         retry_sleep: int = 3,
@@ -35,7 +36,7 @@ class IBOVIndex(IndexBase):
             index_name=index_name, qlib_dir=qlib_dir, freq=freq, request_retry=request_retry, retry_sleep=retry_sleep
         )
 
-        self.today: datetime = datetime.date.today()
+        self.today: datetime.date = datetime.date.today()
         self.current_4_month_period = self.get_current_4_month_period(self.today.month)
         self.year = str(self.today.year)
         self.years_4_month_periods = self.get_four_month_period()
@@ -276,7 +277,7 @@ class IBOVIndex(IndexBase):
         except Exception as E:
             logger.error("An error occured while getting new companies - {}".format(E))
 
-    def filter_df(self, df: pd.DataFrame) -> pd.DataFrame:
+    def filter_df(self, df: pd.DataFrame) -> Optional[pd.DataFrame]:
         if "Código" in df.columns:
             return df.loc[:, ["Código"]].copy()
 

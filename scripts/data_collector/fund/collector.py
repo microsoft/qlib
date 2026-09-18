@@ -7,6 +7,7 @@ import datetime
 import json
 from abc import ABC
 from pathlib import Path
+from typing import Union, Optional
 
 import fire
 import requests
@@ -26,7 +27,7 @@ INDEX_BENCH_URL = "http://api.fund.eastmoney.com/f10/lsjz?callback=jQuery_&fundC
 class FundCollector(BaseCollector):
     def __init__(
         self,
-        save_dir: [str, Path],
+        save_dir: Union[str, Path],
         start=None,
         end=None,
         interval="1d",
@@ -85,7 +86,7 @@ class FundCollector(BaseCollector):
         self.end_datetime = self.convert_datetime(self.end_datetime, self._timezone)
 
     @staticmethod
-    def convert_datetime(dt: [pd.Timestamp, datetime.date, str], timezone):
+    def convert_datetime(dt: Union[pd.Timestamp, datetime.date, str], timezone):
         try:
             dt = pd.Timestamp(dt, tz=timezone).timestamp()
             dt = pd.Timestamp(dt, tz=tzlocal(), unit="s")
@@ -129,7 +130,7 @@ class FundCollector(BaseCollector):
 
     def get_data(
         self, symbol: str, interval: str, start_datetime: pd.Timestamp, end_datetime: pd.Timestamp
-    ) -> [pd.DataFrame]:
+    ) -> Optional[pd.DataFrame]:
         def _get_simple(start_, end_):
             self.sleep()
             _remote_interval = interval
@@ -244,7 +245,7 @@ class Run(BaseRun):
         return f"FundNormalize{self.region.upper()}{self.interval}"
 
     @property
-    def default_base_dir(self) -> [Path, str]:
+    def default_base_dir(self) -> Union[Path, str]:
         return CUR_DIR
 
     def download_data(

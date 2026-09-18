@@ -252,7 +252,7 @@ class Run(BaseRun):
         return f"PitNormalize"
 
     @property
-    def default_base_dir(self) -> [Path, str]:
+    def default_base_dir(self) -> Union[Path, str]:
         return BASE_DIR
 
 

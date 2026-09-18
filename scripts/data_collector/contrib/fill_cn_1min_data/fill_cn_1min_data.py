@@ -4,6 +4,7 @@
 import sys
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
+from typing import Union
 
 import fire
 import qlib
@@ -40,8 +41,8 @@ def get_symbols(data_1min_dir: Path):
 
 
 def fill_1min_using_1d(
-    data_1min_dir: [str, Path],
-    qlib_data_1d_dir: [str, Path],
+    data_1min_dir: Union[str, Path],
+    qlib_data_1d_dir: Union[str, Path],
     max_workers: int = 16,
     date_field_name: str = "date",
     symbol_field_name: str = "symbol",

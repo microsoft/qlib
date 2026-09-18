@@ -48,7 +48,7 @@ class CollectorFutureCalendar:
         calendar_df["date"] = pd.to_datetime(calendar_df["date"])
         return calendar_df["date"].to_list()
 
-    def _format_datetime(self, datetime_d: [str, pd.Timestamp]):
+    def _format_datetime(self, datetime_d: Union[str, pd.Timestamp]):
         datetime_d = pd.Timestamp(datetime_d)
         return datetime_d.strftime(self.calendar_format)
 

@@ -10,7 +10,7 @@ import pickle
 import requests
 import functools
 from pathlib import Path
-from typing import Iterable, Tuple, List
+from typing import Iterable, Tuple, List, Union
 
 import numpy as np
 import pandas as pd
@@ -111,7 +111,7 @@ def return_date_list(date_field_name: str, file_path: Path):
 
 
 def get_calendar_list_by_ratio(
-    source_dir: [str, Path],
+    source_dir: Union[str, Path],
     date_field_name: str = "date",
     threshold: float = 0.5,
     minimum_count: int = 10,
@@ -286,7 +286,7 @@ def get_hs_stock_symbols() -> list:
     return _HS_SYMBOLS
 
 
-def get_us_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
+def get_us_stock_symbols(qlib_data_path: Union[str, Path] = None) -> list:
     """get US stock symbols
 
     Returns
@@ -367,7 +367,7 @@ def get_us_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
     return _US_SYMBOLS
 
 
-def get_in_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
+def get_in_stock_symbols(qlib_data_path: Union[str, Path] = None) -> list:
     """get IN stock symbols
 
     Returns
@@ -408,7 +408,7 @@ def get_in_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
     return _IN_SYMBOLS
 
 
-def get_br_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
+def get_br_stock_symbols(qlib_data_path: Union[str, Path] = None) -> list:
     """get Brazil(B3) stock symbols
 
     Returns
@@ -459,7 +459,7 @@ def get_br_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
     return _BR_SYMBOLS
 
 
-def get_en_fund_symbols(qlib_data_path: [str, Path] = None) -> list:
+def get_en_fund_symbols(qlib_data_path: Union[str, Path] = None) -> list:
     """get en fund symbols
 
     Returns
