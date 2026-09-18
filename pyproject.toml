@@ -131,3 +131,12 @@ qrun = "qlib.cli.run:run"
 local_scheme = "no-local-version"
 version_scheme = "guess-next-dev"
 write_to = "qlib/_version.py"
+
+[tool.black]
+line-length = 120
+extend-exclude = '''
+/(
+  \.venv
+  | qlib/_version\.py
+)/
+'''

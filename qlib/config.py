@@ -402,7 +402,7 @@ class QlibConfig(Config):
                     return Path(f"{_path}:\\") if ":" not in _path else Path(_path)
                 return Path(self.mount_path[freq])
             else:
-                raise NotImplementedError(f"This type of uri is not supported")
+                raise NotImplementedError("This type of uri is not supported")
 
     def set_mode(self, mode):
         # raise KeyError

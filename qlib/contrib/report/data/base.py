@@ -41,7 +41,7 @@ class FeaAnalyser:
         pass
 
     def plot_single(self, col, ax):
-        raise NotImplementedError(f"This type of input is not supported")
+        raise NotImplementedError("This type of input is not supported")
 
     def skip(self, col):
         return False

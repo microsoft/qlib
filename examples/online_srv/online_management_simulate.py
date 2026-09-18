@@ -71,7 +71,7 @@ class OnlineSimulationExample:
             self.trainer = TrainerR(self.exp_name)
         else:
             # TODO: support all the trainers: TrainerR, TrainerRM, DelayTrainerR
-            raise NotImplementedError(f"This type of input is not supported")
+            raise NotImplementedError("This type of input is not supported")
         self.rolling_online_manager = OnlineManager(
             RollingStrategy(exp_name, task_template=tasks, rolling_gen=self.rolling_gen),
             trainer=self.trainer,

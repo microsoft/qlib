@@ -154,8 +154,8 @@ class TestClass(unittest.TestCase):
 
     def test_exp_05(self):
         exprs = [
-            f"2 * Sub({ self.total_func('ask', 'last')}, {self.total_func('bid', 'last')})/{self.expr_sum_buy_ask_1}",
-            f"Sub({ self.total_func('asize', 'mean')}, {self.total_func('bsize', 'mean')})/{self.total_volume}",
+            f"2 * Sub({self.total_func('ask', 'last')}, {self.total_func('bid', 'last')})/{self.expr_sum_buy_ask_1}",
+            f"Sub({self.total_func('asize', 'mean')}, {self.total_func('bsize', 'mean')})/{self.total_volume}",
         ]
         names = ["p_accspread", "v_accspread"]
 

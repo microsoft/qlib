@@ -77,7 +77,7 @@ class NaiveDFStorage(BaseHandlerStorage):
             try:
                 selector = slice(*selector)
             except ValueError:
-                get_module_logger("DataHandlerLP").info(f"Fail to converting to query to slice. It will used directly")
+                get_module_logger("DataHandlerLP").info("Fail to converting to query to slice. It will used directly")
 
         data_df = self.df
         data_df = fetch_df_by_col(data_df, col_set)

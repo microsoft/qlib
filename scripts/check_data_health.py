@@ -130,7 +130,7 @@ class DataHealthChecker:
         if not result_df.empty:
             return result_df
         else:
-            logger.info(f"✅ There are no missing data.")
+            logger.info("✅ There are no missing data.")
             return None
 
     def check_large_step_changes(self) -> Optional[pd.DataFrame]:
@@ -159,7 +159,7 @@ class DataHealthChecker:
         if not result_df.empty:
             return result_df
         else:
-            logger.info(f"✅ There are no large step changes in the OHLCV column above the threshold.")
+            logger.info("✅ There are no large step changes in the OHLCV column above the threshold.")
             return None
 
     def check_required_columns(self) -> Optional[pd.DataFrame]:
@@ -179,7 +179,7 @@ class DataHealthChecker:
         if not result_df.empty:
             return result_df
         else:
-            logger.info(f"✅ The columns (OLHCV) are complete and not missing.")
+            logger.info("✅ The columns (OLHCV) are complete and not missing.")
             return None
 
     def check_missing_factor(self) -> Optional[pd.DataFrame]:
@@ -207,7 +207,7 @@ class DataHealthChecker:
         if not result_df.empty:
             return result_df
         else:
-            logger.info(f"✅ The `factor` column already exists and is not empty.")
+            logger.info("✅ The `factor` column already exists and is not empty.")
             return None
 
     def check_data(self):
@@ -226,16 +226,16 @@ class DataHealthChecker:
             print(f"\nSummary of data health check ({len(self.data)} files checked):")
             print("-------------------------------------------------")
             if isinstance(check_missing_data_result, pd.DataFrame):
-                logger.warning(f"There is missing data.")
+                logger.warning("There is missing data.")
                 print(check_missing_data_result)
             if isinstance(check_large_step_changes_result, pd.DataFrame):
-                logger.warning(f"The OHLCV column has large step changes.")
+                logger.warning("The OHLCV column has large step changes.")
                 print(check_large_step_changes_result)
             if isinstance(check_required_columns_result, pd.DataFrame):
-                logger.warning(f"Columns (OLHCV) are missing.")
+                logger.warning("Columns (OLHCV) are missing.")
                 print(check_required_columns_result)
             if isinstance(check_missing_factor_result, pd.DataFrame):
-                logger.warning(f"The factor column does not exist or is empty")
+                logger.warning("The factor column does not exist or is empty")
                 print(check_missing_factor_result)
             if isinstance(check_features_dir_case_result, pd.DataFrame):
                 logger.warning(

@@ -70,7 +70,7 @@ class DataQueue(Generic[T]):
                 _logger.info(f"Automatically set data queue maxsize to {queue_maxsize} to avoid overwhelming.")
             else:
                 queue_maxsize = 1
-                _logger.warning(f"CPU count not available. Setting queue maxsize to 1.")
+                _logger.warning("CPU count not available. Setting queue maxsize to 1.")
 
         self.dataset: Sequence[T] = dataset
         self.repeat: int = repeat

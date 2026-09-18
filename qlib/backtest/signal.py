@@ -102,4 +102,4 @@ def create_signal_from(
     elif isinstance(obj, (pd.DataFrame, pd.Series)):
         return SignalWCache(signal=obj)
     else:
-        raise NotImplementedError(f"This type of signal is not supported")
+        raise NotImplementedError("This type of signal is not supported")

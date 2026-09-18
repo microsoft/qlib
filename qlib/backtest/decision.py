@@ -126,14 +126,14 @@ class Order:
             elif dl == "buy":
                 return OrderDir.BUY
             else:
-                raise NotImplementedError(f"This type of input is not supported")
+                raise NotImplementedError("This type of input is not supported")
         elif isinstance(direction, np.ndarray):
             direction_array = direction.copy()
             direction_array[direction_array > 0] = Order.BUY
             direction_array[direction_array <= 0] = Order.SELL
             return direction_array
         else:
-            raise NotImplementedError(f"This type of input is not supported")
+            raise NotImplementedError("This type of input is not supported")
 
     @property
     def key_by_day(self) -> tuple:
@@ -229,7 +229,7 @@ class TradeRange:
         NotImplementedError:
             Exceptions are raised when no range limitation
         """
-        raise NotImplementedError(f"Please implement the `__call__` method")
+        raise NotImplementedError("Please implement the `__call__` method")
 
     @abstractmethod
     def clip_time_range(self, start_time: pd.Timestamp, end_time: pd.Timestamp) -> Tuple[pd.Timestamp, pd.Timestamp]:
@@ -246,7 +246,7 @@ class TradeRange:
             The tradable time range.
             - It is intersection of [start_time, end_time] and the rule of TradeRange itself
         """
-        raise NotImplementedError(f"Please implement the `clip_time_range` method")
+        raise NotImplementedError("Please implement the `clip_time_range` method")
 
 
 class IdxTradeRange(TradeRange):
@@ -356,7 +356,7 @@ class BaseTradeDecision(Generic[DecisionType]):
                 [concrete_decision]:
                     available
         """
-        raise NotImplementedError(f"This type of input is not supported")
+        raise NotImplementedError("This type of input is not supported")
 
     def update(self, trade_calendar: TradeCalendarManager) -> Optional[BaseTradeDecision]:
         """
@@ -434,7 +434,7 @@ class BaseTradeDecision(Generic[DecisionType]):
                 return kwargs["default_value"]
             else:
                 # Default to get full index
-                raise NotImplementedError(f"The decision didn't provide an index range") from e
+                raise NotImplementedError("The decision didn't provide an index range") from e
 
         # clip index
         if getattr(self, "total_step", None) is not None:
@@ -492,7 +492,7 @@ class BaseTradeDecision(Generic[DecisionType]):
         _, _, day_start_idx, day_end_idx = Cal.locate_index(day_start, day_end, freq=freq)
         if self.trade_range is None:
             if raise_error:
-                raise NotImplementedError(f"There is no trade_range in this case")
+                raise NotImplementedError("There is no trade_range in this case")
             else:
                 return 0, day_end_idx - day_start_idx
         else:

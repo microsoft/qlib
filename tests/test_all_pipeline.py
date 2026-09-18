@@ -1,14 +1,11 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-import sys
 import shutil
 import unittest
 import pytest
 from pathlib import Path
 
-import qlib
-from qlib.config import C
 from qlib.utils import init_instance_by_config, flatten_dict
 from qlib.workflow import R
 from qlib.workflow.record_temp import SignalRecord, SigAnaRecord, PortAnaRecord

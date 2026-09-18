@@ -307,7 +307,7 @@ class CSZScoreNorm(Processor):
         elif method == "robust":
             self.zscore_func = robust_zscore
         else:
-            raise NotImplementedError(f"This type of input is not supported")
+            raise NotImplementedError("This type of input is not supported")
 
     def __call__(self, df):
         # try not modify original dataframe

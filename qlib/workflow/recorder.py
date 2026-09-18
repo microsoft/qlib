@@ -85,7 +85,7 @@ class Recorder:
         artifact_path=None : str
             the relative path for the artifact to be stored in the URI.
         """
-        raise NotImplementedError(f"Please implement the `save_objects` method.")
+        raise NotImplementedError("Please implement the `save_objects` method.")
 
     def load_object(self, name):
         """
@@ -100,7 +100,7 @@ class Recorder:
         -------
         The saved object.
         """
-        raise NotImplementedError(f"Please implement the `load_object` method.")
+        raise NotImplementedError("Please implement the `load_object` method.")
 
     def start_run(self):
         """
@@ -111,13 +111,13 @@ class Recorder:
         -------
         An active running object (e.g. mlflow.ActiveRun object).
         """
-        raise NotImplementedError(f"Please implement the `start_run` method.")
+        raise NotImplementedError("Please implement the `start_run` method.")
 
     def end_run(self):
         """
         End an active Recorder.
         """
-        raise NotImplementedError(f"Please implement the `end_run` method.")
+        raise NotImplementedError("Please implement the `end_run` method.")
 
     def log_params(self, **kwargs):
         """
@@ -128,7 +128,7 @@ class Recorder:
         keyword arguments
             key, value pair to be logged as parameters.
         """
-        raise NotImplementedError(f"Please implement the `log_params` method.")
+        raise NotImplementedError("Please implement the `log_params` method.")
 
     def log_metrics(self, step=None, **kwargs):
         """
@@ -139,7 +139,7 @@ class Recorder:
         keyword arguments
             key, value pair to be logged as metrics.
         """
-        raise NotImplementedError(f"Please implement the `log_metrics` method.")
+        raise NotImplementedError("Please implement the `log_metrics` method.")
 
     def log_artifact(self, local_path: str, artifact_path: Optional[str] = None):
         """
@@ -152,7 +152,7 @@ class Recorder:
         artifact_path : Optional[str]
             If provided, the directory in ``artifact_uri`` to write to.
         """
-        raise NotImplementedError(f"Please implement the `log_metrics` method.")
+        raise NotImplementedError("Please implement the `log_metrics` method.")
 
     def set_tags(self, **kwargs):
         """
@@ -163,7 +163,7 @@ class Recorder:
         keyword arguments
             key, value pair to be logged as tags.
         """
-        raise NotImplementedError(f"Please implement the `set_tags` method.")
+        raise NotImplementedError("Please implement the `set_tags` method.")
 
     def delete_tags(self, *keys):
         """
@@ -174,7 +174,7 @@ class Recorder:
         keys : series of strs of the keys
             all the name of the tag to be deleted.
         """
-        raise NotImplementedError(f"Please implement the `delete_tags` method.")
+        raise NotImplementedError("Please implement the `delete_tags` method.")
 
     def list_artifacts(self, artifact_path: str = None):
         """
@@ -189,7 +189,7 @@ class Recorder:
         -------
         A list of artifacts information (name, path, etc.) that being stored.
         """
-        raise NotImplementedError(f"Please implement the `list_artifacts` method.")
+        raise NotImplementedError("Please implement the `list_artifacts` method.")
 
     def download_artifact(self, path: str, dst_path: Optional[str] = None) -> str:
         """
@@ -211,7 +211,7 @@ class Recorder:
         str
             Local path of desired artifact.
         """
-        raise NotImplementedError(f"Please implement the `list_artifacts` method.")
+        raise NotImplementedError("Please implement the `list_artifacts` method.")
 
     def list_metrics(self):
         """
@@ -221,7 +221,7 @@ class Recorder:
         -------
         A dictionary of metrics that being stored.
         """
-        raise NotImplementedError(f"Please implement the `list_metrics` method.")
+        raise NotImplementedError("Please implement the `list_metrics` method.")
 
     def list_params(self):
         """
@@ -231,7 +231,7 @@ class Recorder:
         -------
         A dictionary of params that being stored.
         """
-        raise NotImplementedError(f"Please implement the `list_params` method.")
+        raise NotImplementedError("Please implement the `list_params` method.")
 
     def list_tags(self):
         """
@@ -241,7 +241,7 @@ class Recorder:
         -------
         A dictionary of tags that being stored.
         """
-        raise NotImplementedError(f"Please implement the `list_tags` method.")
+        raise NotImplementedError("Please implement the `list_tags` method.")
 
 
 class MLflowRecorder(Recorder):

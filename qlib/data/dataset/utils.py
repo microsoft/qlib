@@ -35,7 +35,7 @@ def get_level_index(df: pd.DataFrame, level: Union[str, int]) -> int:
     elif isinstance(level, int):
         return level
     else:
-        raise NotImplementedError(f"This type of input is not supported")
+        raise NotImplementedError("This type of input is not supported")
 
 
 def fetch_df_by_index(

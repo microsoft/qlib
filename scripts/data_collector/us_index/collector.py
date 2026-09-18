@@ -176,7 +176,7 @@ class NASDAQ100Index(WIKIIndex):
         return df
 
     def get_history_companies(self):
-        logger.info(f"start get history companies......")
+        logger.info("start get history companies......")
         all_history = []
         error_list = []
         with tqdm(total=len(self.calendar_list)) as p_bar:
@@ -193,7 +193,7 @@ class NASDAQ100Index(WIKIIndex):
         if error_list:
             logger.warning(f"get error: {error_list}")
         logger.info(f"total {len(self.calendar_list)}, error {len(error_list)}")
-        logger.info(f"end of get history companies.")
+        logger.info("end of get history companies.")
         return pd.concat(all_history, sort=False)
 
     def get_changes(self):
@@ -215,7 +215,7 @@ class DJIAIndex(WIKIIndex):
             return _df
 
     def parse_instruments(self):
-        logger.warning(f"No suitable data source has been found!")
+        logger.warning("No suitable data source has been found!")
 
 
 class SP500Index(WIKIIndex):
@@ -226,7 +226,7 @@ class SP500Index(WIKIIndex):
         return pd.Timestamp("1999-01-01")
 
     def get_changes(self) -> pd.DataFrame:
-        logger.info(f"get sp500 history changes......")
+        logger.info("get sp500 history changes......")
         # NOTE: may update the index of the table
         # Add headers to avoid 403 Forbidden error from Wikipedia
         headers = {"User-Agent": self._ua.random}
@@ -251,7 +251,7 @@ class SP500Index(WIKIIndex):
                     lambda x: get_trading_date_by_shift(self.calendar_list, x, -1)
                 )
             _result.append(_df[[self.DATE_FIELD_NAME, self.CHANGE_TYPE_FIELD, self.SYMBOL_FIELD_NAME]])
-        logger.info(f"end of get sp500 history changes.")
+        logger.info("end of get sp500 history changes.")
         return pd.concat(_result, sort=False)
 
     def filter_df(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -272,7 +272,7 @@ class SP400Index(WIKIIndex):
             return df.loc[:, ["Ticker symbol"]].copy()
 
     def parse_instruments(self):
-        logger.warning(f"No suitable data source has been found!")
+        logger.warning("No suitable data source has been found!")
 
 
 if __name__ == "__main__":

@@ -30,7 +30,7 @@ class TestAutoData(unittest.TestCase):
             provider_uri_day = cls.provider_uri_1day
             name_day = "qlib_data"
         else:
-            raise NotImplementedError(f"This type of input is not supported")
+            raise NotImplementedError("This type of input is not supported")
 
         GetData().qlib_data(
             name=name_day,

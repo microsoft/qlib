@@ -58,7 +58,7 @@ class Experiment:
         -------
         An active recorder.
         """
-        raise NotImplementedError(f"Please implement the `start` method.")
+        raise NotImplementedError("Please implement the `start` method.")
 
     def end(self, recorder_status=Recorder.STATUS_S):
         """
@@ -69,7 +69,7 @@ class Experiment:
         recorder_status : str
             the status the recorder to be set with when ending (SCHEDULED, RUNNING, FINISHED, FAILED).
         """
-        raise NotImplementedError(f"Please implement the `end` method.")
+        raise NotImplementedError("Please implement the `end` method.")
 
     def create_recorder(self, recorder_name=None):
         """
@@ -84,7 +84,7 @@ class Experiment:
         -------
         A recorder object.
         """
-        raise NotImplementedError(f"Please implement the `create_recorder` method.")
+        raise NotImplementedError("Please implement the `create_recorder` method.")
 
     def search_records(self, **kwargs):
         """
@@ -98,7 +98,7 @@ class Experiment:
         respectively. For records that don't have a particular metric, parameter, or tag, their
         value will be (NumPy) Nan, None, or None respectively.
         """
-        raise NotImplementedError(f"Please implement the `search_records` method.")
+        raise NotImplementedError("Please implement the `search_records` method.")
 
     def delete_recorder(self, recorder_id):
         """
@@ -109,7 +109,7 @@ class Experiment:
         recorder_id : str
             the id of the recorder to be deleted.
         """
-        raise NotImplementedError(f"Please implement the `delete_recorder` method.")
+        raise NotImplementedError("Please implement the `delete_recorder` method.")
 
     def get_recorder(self, recorder_id=None, recorder_name=None, create: bool = True, start: bool = False) -> Recorder:
         """
@@ -213,7 +213,7 @@ class Experiment:
         ------
         ValueError
         """
-        raise NotImplementedError(f"Please implement the `_get_recorder` method")
+        raise NotImplementedError("Please implement the `_get_recorder` method")
 
     RT_D = "dict"  # return type dict
     RT_L = "list"  # return type list
@@ -237,7 +237,7 @@ class Experiment:
             elif `rtype` == "list":
                 A list of Recorder.
         """
-        raise NotImplementedError(f"Please implement the `list_recorders` method.")
+        raise NotImplementedError("Please implement the `list_recorders` method.")
 
 
 class MLflowExperiment(Experiment):
@@ -376,4 +376,4 @@ class MLflowExperiment(Experiment):
         elif rtype == Experiment.RT_L:
             return recorders
         else:
-            raise NotImplementedError(f"This type of input is not supported")
+            raise NotImplementedError("This type of input is not supported")

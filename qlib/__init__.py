@@ -73,7 +73,7 @@ def init(default_conf="client", **kwargs):
         elif uri_type == C.NFS_URI:
             _mount_nfs_uri(provider_uri, C.dpm.get_data_uri(_freq), C["auto_mount"])
         else:
-            raise NotImplementedError(f"This type of URI is not supported")
+            raise NotImplementedError("This type of URI is not supported")
 
     C.register()
 

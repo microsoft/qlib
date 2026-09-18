@@ -121,7 +121,7 @@ def get_all_files(folder_path, dataset, universe="") -> (str, str):
     if universe != "":
         universe = f"_{universe}"
     yaml_path = str(Path(f"{folder_path}") / f"*{dataset}{universe}.yaml")
-    req_path = str(Path(f"{folder_path}") / f"*.txt")
+    req_path = str(Path(f"{folder_path}") / "*.txt")
     yaml_file = glob.glob(yaml_path)
     req_file = glob.glob(req_path)
     if len(yaml_file) == 0:
@@ -360,7 +360,7 @@ class ModelRunner:
             sys.stderr.write("\n")
             # run workflow_by_config for multiple times
             for i in range(times):
-                sys.stderr.write(f"Running the model: {fn} for iteration {i+1}...\n")
+                sys.stderr.write(f"Running the model: {fn} for iteration {i + 1}...\n")
                 errs = execute(
                     f"{python_path} {env_path / 'bin' / 'qrun'} {yaml_path} {fn} {exp_folder_name}",
                     wait_when_err=wait_when_err,
@@ -376,21 +376,21 @@ class ModelRunner:
                 input("Press Enter to Continue")
             shutil.rmtree(env_path)
         # print errors
-        sys.stderr.write(f"Here are some of the errors of the models...\n")
+        sys.stderr.write("Here are some of the errors of the models...\n")
         pprint(errors)
         self._collect_results(exp_folder_name, dataset)
 
     def _collect_results(self, exp_folder_name, dataset):
         folders = get_all_folders(exp_folder_name, dataset)
         # getting all results
-        sys.stderr.write(f"Retrieving results...\n")
+        sys.stderr.write("Retrieving results...\n")
         results = get_all_results(folders)
         if len(results) > 0:
             # calculating the mean and std
-            sys.stderr.write(f"Calculating the mean and std of results...\n")
+            sys.stderr.write("Calculating the mean and std of results...\n")
             results = cal_mean_std(results)
             # generating md table
-            sys.stderr.write(f"Generating markdown table...\n")
+            sys.stderr.write("Generating markdown table...\n")
             gen_and_save_md_table(results, dataset)
             sys.stderr.write("\n")
         sys.stderr.write("\n")

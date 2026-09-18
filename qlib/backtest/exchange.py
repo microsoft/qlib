@@ -149,10 +149,10 @@ class Exchange:
         self.limit_type = self._get_limit_type(limit_threshold)
         if limit_threshold is None:
             if C.region in [REG_CN, REG_TW]:
-                self.logger.warning(f"limit_threshold not set. The stocks hit the limit may be bought/sold")
+                self.logger.warning("limit_threshold not set. The stocks hit the limit may be bought/sold")
         elif self.limit_type == self.LT_FLT and abs(cast(float, limit_threshold)) > 0.1:
             if C.region in [REG_CN, REG_TW]:
-                self.logger.warning(f"limit_threshold may not be set to a reasonable value")
+                self.logger.warning("limit_threshold may not be set to a reasonable value")
 
         if isinstance(deal_price, str):
             if deal_price[0] != "$":
@@ -161,7 +161,7 @@ class Exchange:
         elif isinstance(deal_price, (tuple, list)):
             self.buy_price, self.sell_price = cast(Tuple[str, str], deal_price)
         else:
-            raise NotImplementedError(f"This type of input is not supported")
+            raise NotImplementedError("This type of input is not supported")
 
         if isinstance(codes, str):
             codes = D.instruments(codes)
@@ -268,7 +268,7 @@ class Exchange:
         elif limit_threshold is None:
             return self.LT_NONE
         else:
-            raise NotImplementedError(f"This type of `limit_threshold` is not supported")
+            raise NotImplementedError("This type of `limit_threshold` is not supported")
 
     def _update_limit(self, limit_threshold: Union[Tuple, float, None]) -> None:
         # $close may contain NaN, the nan indicates that the stock is not tradable at that timestamp
@@ -504,12 +504,12 @@ class Exchange:
         elif direction == OrderDir.BUY:
             pstr = self.buy_price
         else:
-            raise NotImplementedError(f"This type of input is not supported")
+            raise NotImplementedError("This type of input is not supported")
 
         deal_price = self.quote.get_data(stock_id, start_time, end_time, field=pstr, method=method)
         if method is not None and (deal_price is None or np.isnan(deal_price) or deal_price <= 1e-08):
             self.logger.warning(f"(stock_id:{stock_id}, trade_time:{(start_time, end_time)}, {pstr}): {deal_price}!!!")
-            self.logger.warning(f"setting deal_price to close price")
+            self.logger.warning("setting deal_price to close price")
             deal_price = self.get_close(stock_id, start_time, end_time, method)
         return deal_price
 
@@ -721,7 +721,7 @@ class Exchange:
             if stock_id is not None and start_time is not None and end_time is not None:
                 factor = self.get_factor(stock_id=stock_id, start_time=start_time, end_time=end_time)
             else:
-                raise ValueError(f"`factor` and (`stock_id`, `start_time`, `end_time`) can't both be None")
+                raise ValueError("`factor` and (`stock_id`, `start_time`, `end_time`) can't both be None")
         assert factor is not None
         return factor
 

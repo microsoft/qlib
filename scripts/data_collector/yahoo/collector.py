@@ -113,7 +113,7 @@ class YahooCollector(BaseCollector):
         try:
             dt = pd.Timestamp(dt, tz=timezone).timestamp()
             dt = pd.Timestamp(dt, tz=tzlocal(), unit="s")
-        except ValueError as e:
+        except ValueError:
             pass
         return dt
 
@@ -143,7 +143,7 @@ class YahooCollector(BaseCollector):
                     _show_logging_func()
             else:
                 _show_logging_func()
-        except Exception as e:
+        except Exception:
             logger.warning(
                 f"get data error: {symbol}--{start}--{end}"
                 + "Your data request fails. This may be caused by your firewall (e.g. GFW). Please switch your network if you want to access Yahoo! data"
@@ -172,7 +172,7 @@ class YahooCollector(BaseCollector):
         if interval == self.INTERVAL_1d:
             try:
                 _result = _get_simple(start_datetime, end_datetime)
-            except ValueError as e:
+            except ValueError:
                 pass
         elif interval == self.INTERVAL_1min:
             _res = []
@@ -182,7 +182,7 @@ class YahooCollector(BaseCollector):
                 try:
                     _resp = _get_simple(_start, _tmp_end)
                     _res.append(_resp)
-                except ValueError as e:
+                except ValueError:
                     pass
                 _start = _tmp_end
             if _res:
@@ -963,7 +963,7 @@ class Run(BaseRun):
         """
 
         if self.interval.lower() != "1d":
-            logger.warning(f"currently supports 1d data updates: --interval 1d")
+            logger.warning("currently supports 1d data updates: --interval 1d")
 
         # download qlib 1d data
         qlib_data_1d_dir = str(Path(qlib_data_1d_dir).expanduser().resolve())

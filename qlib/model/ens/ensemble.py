@@ -26,7 +26,7 @@ class Ensemble:
     """
 
     def __call__(self, ensemble_dict: dict, *args, **kwargs):
-        raise NotImplementedError(f"Please implement the `__call__` method.")
+        raise NotImplementedError("Please implement the `__call__` method.")
 
 
 class SingleKeyEnsemble(Ensemble):

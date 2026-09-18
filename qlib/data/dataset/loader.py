@@ -104,7 +104,7 @@ class DLWParser(DataLoader):
         elif isinstance(fields_info[0], (list, tuple)):
             exprs, names = fields_info
         else:
-            raise NotImplementedError(f"This type of input is not supported")
+            raise NotImplementedError("This type of input is not supported")
         return exprs, names
 
     @abc.abstractmethod

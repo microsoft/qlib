@@ -143,7 +143,7 @@ def get_calendar_list_by_ratio(
 
     _number_all_funds = len(file_list)
 
-    logger.info(f"count how many funds trade in this day......")
+    logger.info("count how many funds trade in this day......")
     _dict_count_trade = dict()  # dict{date:count}
     _fun = partial(return_date_list, date_field_name)
     all_oldest_list = []
@@ -160,7 +160,7 @@ def get_calendar_list_by_ratio(
 
                 p_bar.update()
 
-    logger.info(f"count how many funds have founded in this day......")
+    logger.info("count how many funds have founded in this day......")
     _dict_count_founding = {date: _number_all_funds for date in _dict_count_trade}  # dict{date:count}
     with tqdm(total=_number_all_funds) as p_bar:
         for oldest_date in all_oldest_list:
@@ -248,7 +248,7 @@ def get_hs_stock_symbols() -> list:
                 raise requests.exceptions.HTTPError(
                     f"Request to {base_url} failed with status code {resp.status_code}"
                 ) from e
-            except Exception as e:
+            except Exception:
                 logger.warning("An error occurred while extracting data from the response.")
                 raise
 
@@ -266,7 +266,6 @@ def get_hs_stock_symbols() -> list:
 
     if _HS_SYMBOLS is None:
         symbols = set()
-        _retry = 60
         # It may take multiple times to get the complete
         while len(symbols) < MINIMUM_SYMBOLS_NUM:
             symbols |= _get_symbol()
@@ -378,7 +377,7 @@ def get_in_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
 
     @deco_retry
     def _get_nifty():
-        url = f"https://www1.nseindia.com/content/equities/EQUITY_L.csv"
+        url = "https://www1.nseindia.com/content/equities/EQUITY_L.csv"
         df = pd.read_csv(url)
         df = df.rename(columns={"SYMBOL": "Symbol"})
         df["Symbol"] = df["Symbol"] + ".NS"

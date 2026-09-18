@@ -82,7 +82,7 @@ class BaseCollector(abc.ABC):
         if limit_nums is not None:
             try:
                 self.instrument_list = self.instrument_list[: int(limit_nums)]
-            except Exception as e:
+            except Exception:
                 logger.warning(f"Cannot use limit_nums={limit_nums}, the parameter will be ignored")
 
     def normalize_start_datetime(self, start_datetime: [str, pd.Timestamp] = None):
@@ -204,9 +204,9 @@ class BaseCollector(abc.ABC):
         for i in range(self.max_collector_count):
             if not instrument_list:
                 break
-            logger.info(f"getting data: {i+1}")
+            logger.info(f"getting data: {i + 1}")
             instrument_list = self._collector(instrument_list)
-            logger.info(f"{i+1} finish.")
+            logger.info(f"{i + 1} finish.")
         for _symbol, _df_list in self.mini_symbol_map.items():
             _df = pd.concat(_df_list, sort=False)
             if not _df.empty:

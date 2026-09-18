@@ -215,7 +215,7 @@ class MTSDatasetH(DatasetH):
         elif isinstance(slc, (list, tuple)):
             start, stop = slc
         else:
-            raise NotImplementedError(f"This type of input is not supported")
+            raise NotImplementedError("This type of input is not supported")
         start_date = pd.Timestamp(fn(start))
         end_date = pd.Timestamp(fn(stop))
         obj = copy.copy(self)  # shallow copy

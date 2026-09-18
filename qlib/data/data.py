@@ -377,7 +377,7 @@ class PITProvider(abc.ABC):
         FileNotFoundError
             This exception will be raised if the queried data do not exist.
         """
-        raise NotImplementedError(f"Please implement the `period_feature` method")
+        raise NotImplementedError("Please implement the `period_feature` method")
 
 
 class ExpressionProvider(abc.ABC):

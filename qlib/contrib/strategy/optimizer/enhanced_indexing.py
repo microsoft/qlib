@@ -191,7 +191,7 @@ class EnhancedIndexingOptimizer(BaseOptimizer):
             return w0
 
         if prob.status == "optimal_inaccurate":
-            logger.warning(f"the optimization is inaccurate")
+            logger.warning("the optimization is inaccurate")
 
         # remove small weight
         w = np.asarray(w.value)

@@ -144,24 +144,24 @@ class TRAModel(Model):
         print(self.tra)
 
         if self.init_state:
-            self.logger.warning(f"load state dict from `init_state`")
+            self.logger.warning("load state dict from `init_state`")
             state_dict = torch.load(self.init_state, map_location="cpu")
             self.model.load_state_dict(state_dict["model"])
             res = load_state_dict_unsafe(self.tra, state_dict["tra"])
             self.logger.warning(str(res))
 
         if self.reset_router:
-            self.logger.warning(f"reset TRA.router parameters")
+            self.logger.warning("reset TRA.router parameters")
             self.tra.fc.reset_parameters()
             self.tra.router.reset_parameters()
 
         if self.freeze_model:
-            self.logger.warning(f"freeze model parameters")
+            self.logger.warning("freeze model parameters")
             for param in self.model.parameters():
                 param.requires_grad_(False)
 
         if self.freeze_predictors:
-            self.logger.warning(f"freeze TRA.predictors parameters")
+            self.logger.warning("freeze TRA.predictors parameters")
             for param in self.tra.predictors.parameters():
                 param.requires_grad_(False)
 

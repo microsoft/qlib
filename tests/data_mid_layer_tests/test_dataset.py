@@ -3,7 +3,6 @@
 
 import unittest
 import pytest
-import sys
 from qlib.tests import TestAutoData
 from qlib.data.dataset import TSDatasetH, TSDataSampler
 import numpy as np
