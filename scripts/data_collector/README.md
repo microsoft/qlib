@@ -4,7 +4,7 @@
 
 Scripts for data collection
 
-- yahoo: get *US/CN* stock data from *Yahoo Finance*
+- yahoo: get *US/CN/IN/BR/JP* stock data from *Yahoo Finance*
 - fund: get fund data from *http://fund.eastmoney.com*
 - cn_index: get *CN index* from *http://www.csindex.com.cn*, *CSI300*/*CSI100*
 - us_index: get *US index* from *https://en.wikipedia.org/wiki*, *SP500*/*NASDAQ100*/*DJIA*/*SP400*
