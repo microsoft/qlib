@@ -1,16 +1,18 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+from typing import List, Text, Tuple, Union
+
 import numpy as np
 import pandas as pd
 import lightgbm as lgb
-from typing import List, Text, Tuple, Union
+
+from qlib.workflow import R
 from ...model.base import ModelFT
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
 from ...model.interpret.base import LightGBMFInt
 from ...data.dataset.weight import Reweighter
-from qlib.workflow import R
 
 
 class LGBModel(ModelFT, LightGBMFInt):
