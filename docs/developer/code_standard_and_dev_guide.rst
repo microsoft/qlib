@@ -47,7 +47,7 @@ When you submit a PR request, you can check whether your code passes the CI test
 
 .. code-block:: bash
 
-    pip install -e .[dev]
+    pip install -e '.[dev]'
     pre-commit install
 
 
