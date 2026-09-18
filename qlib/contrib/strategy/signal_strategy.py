@@ -227,8 +227,6 @@ class TopkDropoutStrategy(BaseSignalStrategy):
         else:
             raise NotImplementedError(f"This type of input is not supported")
 
-        # Get the stock list we really want to buy
-        buy = today[: len(sell) + self.topk - len(last)]
         for code in current_stock_list:
             if not self.trade_exchange.is_stock_tradable(
                 stock_id=code,
@@ -260,6 +258,10 @@ class TopkDropoutStrategy(BaseSignalStrategy):
                     )
                     # update cash
                     cash += trade_val - trade_cost
+
+        # Get the stock list we really want to buy.
+        # Buy only enough to keep holdings within topk after the sell orders that were actually generated.
+        buy = today[: max(0, len(sell_order_list) + self.topk - len(last))]
         # buy new stock
         # note the current has been changed
         # current_stock_list = current_temp.get_stock_list()
