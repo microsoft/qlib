@@ -31,10 +31,12 @@ class CatBoostModel(Model, FeatureInt):
         num_boost_round=1000,
         early_stopping_rounds=50,
         verbose_eval=20,
-        evals_result=dict(),
+        evals_result=None,
         reweighter=None,
         **kwargs,
     ):
+        if evals_result is None:
+            evals_result = {}
         df_train, df_valid = dataset.prepare(
             ["train", "valid"],
             col_set=["feature", "label"],
@@ -73,9 +75,9 @@ class CatBoostModel(Model, FeatureInt):
         # train the model
         self.model.fit(train_pool, eval_set=valid_pool, use_best_model=True, **kwargs)
 
-        evals_result = self.model.get_evals_result()
-        evals_result["train"] = list(evals_result["learn"].values())[0]
-        evals_result["valid"] = list(evals_result["validation"].values())[0]
+        model_evals_result = self.model.get_evals_result()
+        evals_result["train"] = list(model_evals_result["learn"].values())[0]
+        evals_result["valid"] = list(model_evals_result["validation"].values())[0]
 
     def predict(self, dataset: DatasetH, segment: Union[Text, slice] = "test"):
         if self.model is None:
