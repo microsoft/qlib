@@ -95,6 +95,9 @@ class InternalData:
             pred = rec.load_object("pred.pkl")
             task = rec.load_object("task")
             data_key = task["dataset"]["kwargs"]["segments"]["train"]
+            # Convert list to tuple to make it hashable (fix for unhashable type error)
+            if isinstance(data_key, list):
+                data_key = tuple(data_key)
             key_l.append(data_key)
             ic_l.append(delayed(self._calc_perf)(pred.iloc[:, 0], label_df.iloc[:, 0]))
 
@@ -106,8 +109,9 @@ class InternalData:
 
     def _calc_perf(self, pred, label):
         df = pd.DataFrame({"pred": pred, "label": label})
-        df = df.groupby("datetime", group_keys=False).corr(method="spearman")
-        corr = df.loc(axis=0)[:, "pred"]["label"].droplevel(axis=0, level=-1)
+        df = df.groupby("datetime").corr(method="spearman")
+        # Use xs to select 'label' from the second level of MultiIndex, then get 'pred' column
+        corr = df.xs("label", level=1)["pred"]
         return corr
 
     def update(self):
