@@ -1,0 +1,6 @@
+fire
+joblib
+loguru
+pandas
+requests
+tqdm
