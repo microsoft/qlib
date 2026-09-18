@@ -595,7 +595,7 @@ Before we released Qlib as an open-source project on Github in Sep 2020, Qlib is
 
 This project welcomes contributions and suggestions.  
 **Here are some 
-[code standards and development guidance](docs/developer/code_standard_and_dev_guide.rst) for submiting a pull request.**
+[code standards and development guidance](docs/developer/code_standard_and_dev_guide.rst) for submitting a pull request.**
 
 Making contributions is not a hard thing. Solving an issue(maybe just answering a question raised in [issues list](https://github.com/microsoft/qlib/issues) or [gitter](https://gitter.im/Microsoft/qlib)), fixing/issuing a bug, improving the documents and even fixing a typo are important contributions to Qlib.
 
@@ -615,7 +615,7 @@ If you don't know how to start to contribute, you can refer to the following exa
 
 [Good first issues](https://github.com/microsoft/qlib/labels/good%20first%20issue) are labelled to indicate that they are easy to start your contributions.
 
-You can find some impefect implementation in Qlib by  `rg 'TODO|FIXME' qlib`
+You can find some imperfect implementations in Qlib by running `rg 'TODO|FIXME' qlib`.
  
 If you would like to become one of Qlib's maintainers to contribute more (e.g. help merge PR, triage issues), please contact us by email([qlib@microsoft.com](mailto:qlib@microsoft.com)).  We are glad to help to upgrade your permission.
 
