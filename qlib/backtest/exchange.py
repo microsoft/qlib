@@ -69,12 +69,23 @@ class Exchange:
         :param subscribe_fields: list, subscribe fields. This expressions will be added to the query and `self.quote`.
                                  It is useful when users want more fields to be queried
         :param limit_threshold: Union[Tuple[str, str], float, None]
-                                1) `None`: no limitation
-                                2) float, 0.1 for example, default None
-                                3) Tuple[str, str]: (<the expression for buying stock limitation>,
-                                                     <the expression for sell stock limitation>)
-                                                    `False` value indicates the stock is tradable
-                                                    `True` value indicates the stock is limited and not tradable
+                                Controls whether stocks hit price-limit restrictions.
+                                Three modes are supported:
+
+                                1) ``None``: no price-limit restrictions are applied (default).
+                                   Only suspension status affects tradability.
+
+                                2) ``float`` (e.g. ``0.095``): a **static threshold** based on
+                                   the daily price change (``$change``). A stock is marked as
+                                   buy-limited when ``$change >= threshold`` and sell-limited
+                                   when ``$change <= -threshold``.
+                                   Default values by region: China 0.095, US None, Taiwan 0.1.
+
+                                3) ``Tuple[str, str]``: a pair of **qlib data expressions**
+                                   ``(buy_limit_expr, sell_limit_expr)``. Each expression is
+                                   evaluated and cast to bool — ``True`` means the stock is
+                                   **limited** (not tradable), ``False`` means tradable.
+                                   Example: ``("$ask == 0", "$bid == 0")``.
         :param volume_threshold: Union[
                                     Dict[
                                         "all": ("cum" or "current", limit_str),
@@ -519,12 +530,22 @@ class Exchange:
         start_time: pd.Timestamp,
         end_time: pd.Timestamp,
     ) -> Optional[float]:
-        """
+        """Return the adjustment factor for a stock in the given time range.
+
+        The ``$factor`` field represents the **cumulative adjustment factor**
+        for stock splits, dividends, and other corporate actions. It is used
+        by ``round_amount_by_trade_unit`` to convert between adjusted and
+        unadjusted share amounts so that orders can be rounded to the
+        market's minimum trading unit (e.g. 100 shares for China A-shares).
+
+        Without ``$factor`` in the quote data, ``round_amount_by_trade_unit``
+        will raise an error when ``trade_unit`` is set.
+
         Returns
         -------
         Optional[float]:
-            `None`: if the stock is suspended `None` may be returned
-            `float`: return factor if the factor exists
+            ``None`` if the stock is suspended or not found.
+            ``float`` the adjustment factor value otherwise.
         """
         assert start_time is not None and end_time is not None, "the time range must be given"
         if stock_id not in self.quote.get_all_stock():
