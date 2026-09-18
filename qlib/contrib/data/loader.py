@@ -103,15 +103,15 @@ class Alpha158DL(QlibDataLoader):
         names = []
         if "kbar" in config:
             fields += [
-                "($close-$open)/$open",
-                "($high-$low)/$open",
-                "($close-$open)/($high-$low+1e-12)",
-                "($high-Greater($open, $close))/$open",
-                "($high-Greater($open, $close))/($high-$low+1e-12)",
-                "(Less($open, $close)-$low)/$open",
-                "(Less($open, $close)-$low)/($high-$low+1e-12)",
-                "(2*$close-$high-$low)/$open",
-                "(2*$close-$high-$low)/($high-$low+1e-12)",
+                "($close-$open)/$open",# KMID：收盘价与开盘价的差值比率
+                "($high-$low)/$open",# KLEN：最高价与最低价的差值比率
+                "($close-$open)/($high-$low+1e-12)",# KMID2：收盘价与开盘价的差值在价格区间中的位置
+                "($high-Greater($open, $close))/$open",# KUP：上影线长度
+                "($high-Greater($open, $close))/($high-$low+1e-12)",# KUP2：上影线占总区间的比例
+                "(Less($open, $close)-$low)/$open",# KLOW：下影线长度
+                "(Less($open, $close)-$low)/($high-$low+1e-12)",# KLOW2：下影线占总区间的比例
+                "(2*$close-$high-$low)/$open",# KSFT：价格偏移程度
+                "(2*$close-$high-$low)/($high-$low+1e-12)", # KSFT2：价格偏移在区间中的位置
             ]
             names += [
                 "KMID",
@@ -124,8 +124,10 @@ class Alpha158DL(QlibDataLoader):
                 "KSFT",
                 "KSFT2",
             ]
-        if "price" in config:
-            windows = config["price"].get("windows", range(5))
+            # 价格特征是基于原始价格数据（开盘价、收盘价、最高价、最低价、成交量加权平均价）计算的特征：
+            if "price" in config:
+                # 默认使用0-4天的窗口
+                windows = config["price"].get("windows", range(5))
             feature = config["price"].get("feature", ["OPEN", "HIGH", "LOW", "CLOSE", "VWAP"])
             for field in feature:
                 field = field.lower()
