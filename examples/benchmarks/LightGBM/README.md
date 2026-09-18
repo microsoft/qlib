@@ -8,3 +8,6 @@ Decision Tree. [https://proceedings.neurips.cc/paper/2017/file/6449f44a102fde848
 
 `workflow_config_lightgbm_multi_freq.yaml`
 - It uses data sources of different frequencies (i.e. multiple frequencies) for daily prediction.
+
+`workflow_config_lightgbm_Alpha158Adanos_US.yaml`
+- It demonstrates a US daily LightGBM workflow that augments `Alpha158` with optional Adanos retail sentiment factors such as lagged buzz, sentiment, coverage, disagreement, and Polymarket activity.
