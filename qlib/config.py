@@ -129,7 +129,16 @@ class Config:
     def register_from_C(config, skip_register=True):
         from .utils import set_log_with_config  # pylint: disable=C0415
 
-        if C.registered and skip_register:
+        # ``C.registered`` resolves through ``QlibConfig.registered``, which
+        # reads ``self._registered`` -- a key stored inside ``self._config`` via
+        # the overridden ``__setattr__``.  In freshly-spawned joblib worker
+        # processes that key may be absent (e.g. when ``Config.reset()`` rebuilt
+        # ``_config`` from ``_default_config`` between ``QlibConfig.__init__``
+        # and this call), and ``Config.__getattr__`` would then raise
+        # ``AttributeError: No such ``registered`` in self._config`` and crash
+        # the backtest worker (issue #2038).  Falling back to ``False`` lets
+        # the worker re-register safely instead of dying.
+        if getattr(C, "registered", False) and skip_register:
             return
 
         C.set_conf_from_C(config)
@@ -540,7 +549,14 @@ class QlibConfig(Config):
 
     @property
     def registered(self):
-        return self._registered
+        # ``_registered`` is stored inside ``self._config`` because the
+        # overridden ``__setattr__`` routes attribute writes there.  After a
+        # ``Config.reset()`` (or in joblib worker subprocesses where ``_config``
+        # is recreated from ``_default_config`` before ``QlibConfig.__init__``
+        # finishes), the key may be missing.  Treat missing as ``False`` so
+        # callers see a consistent "not yet registered" signal instead of
+        # ``AttributeError`` (issue #2038).
+        return self.__dict__.get("_config", {}).get("_registered", False)
 
 
 # global config
