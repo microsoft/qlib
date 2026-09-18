@@ -932,7 +932,10 @@ def fname_to_code(fname: str):
 
     prefix = "_qlib_"
     if fname.startswith(prefix):
-        fname = fname.lstrip(prefix)
+        # NOTE: use slicing rather than ``lstrip(prefix)``; ``str.lstrip`` strips
+        # any leading characters contained in ``prefix`` (e.g. it would turn
+        # "_qlib_lpt1" into "pt1"), not the prefix as a whole.
+        fname = fname[len(prefix) :]
     return fname
 
 
