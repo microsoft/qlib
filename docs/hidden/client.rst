@@ -16,7 +16,7 @@ Client-Server is designed to solve following  problems
 Therefore, we designed the client-server framework to solve these problems.
 We will maintain a server and provide the data.
 
-You have to initialize you qlib with specific config for using the client-server framework.
+You have to initialize Qlib with a specific config for using the client-server framework.
 Here is a typical initialization process.
 
 qlib ``init`` commonly used parameters; ``nfs-common`` must be installed on the server where the client is located, execute: ``sudo apt install nfs-common``:

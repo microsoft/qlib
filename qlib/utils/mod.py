@@ -145,8 +145,8 @@ def init_instance_by_config(
         This will be passed into the second parameter of isinstance.
 
     try_kwargs: Dict
-        Try to pass in kwargs in `try_kwargs` when initialized the instance
-        If error occurred, it will fail back to initialization without try_kwargs.
+        Try to pass in kwargs in `try_kwargs` when initializing the instance
+        If an error occurs, it will fall back to initialization without try_kwargs.
 
     Returns
     -------
