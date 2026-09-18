@@ -1031,21 +1031,20 @@ class DiskDatasetCache(DatasetCache):
                 else:
                     return 0  # No data to update cache
 
-                store = pd.HDFStore(cp_cache_uri)
                 # FIXME:
                 # Because the feature cache are stored as .bin file.
                 # So the series read from features are all float32.
                 # However, the first dataset cache is calculated based on the
                 # raw data. So the data type may be float64.
                 # Different data type will result in failure of appending data
-                if "/{}".format(DatasetCache.HDF_KEY) in store.keys():
-                    schema = store.select(DatasetCache.HDF_KEY, start=0, stop=0)
-                    for col, dtype in schema.dtypes.items():
-                        data[col] = data[col].astype(dtype)
-                if rm_lines > 0:
-                    store.remove(key=im.KEY, start=-rm_lines)
-                store.append(DatasetCache.HDF_KEY, data)
-                store.close()
+                with pd.HDFStore(cp_cache_uri) as store:
+                    if "/{}".format(DatasetCache.HDF_KEY) in store.keys():
+                        schema = store.select(DatasetCache.HDF_KEY, start=0, stop=0)
+                        for col, dtype in schema.dtypes.items():
+                            data[col] = data[col].astype(dtype)
+                    if rm_lines > 0:
+                        store.remove(key=im.KEY, start=-rm_lines)
+                    store.append(DatasetCache.HDF_KEY, data)
 
                 # update index file
                 new_index_data = im.build_index_from_data(
