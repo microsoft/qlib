@@ -18,7 +18,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from .pytorch_utils import count_parameters
+from .pytorch_utils import count_parameters, get_device
 from ...model.base import Model
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
@@ -90,10 +90,7 @@ class DNNModelPytorch(Model):
         self.eval_steps = eval_steps
         self.optimizer = optimizer.lower()
         self.loss_type = loss
-        if isinstance(GPU, str):
-            self.device = torch.device(GPU)
-        else:
-            self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        self.device = get_device(GPU)
         self.seed = seed
         self.weight_decay = weight_decay
         self.data_parall = data_parall
@@ -156,7 +153,6 @@ class DNNModelPytorch(Model):
                     mode="min",
                     factor=0.5,
                     patience=10,
-                    verbose=True,
                     threshold=0.0001,
                     threshold_mode="rel",
                     cooldown=0,
@@ -334,6 +330,8 @@ class DNNModelPytorch(Model):
             self.dnn_model.load_state_dict(torch.load(save_path, map_location=self.device))
         if self.use_gpu:
             torch.cuda.empty_cache()
+            if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+                torch.mps.empty_cache()
 
     def get_lr(self):
         assert len(self.train_optimizer.param_groups) == 1
