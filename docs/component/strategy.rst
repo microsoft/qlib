@@ -88,6 +88,14 @@ TopkDropoutStrategy
 
 - Generate the order list from the target amount
 
+.. note::
+    `TopkDropoutStrategy` holds an **equal-weighted** portfolio: the available cash is split
+    evenly among the stocks bought on each rebalance. When its results are compared against a
+    capitalization-weighted benchmark such as the default ``SH000300``, the reported excess
+    return also contains the equal- versus cap-weighting spread of the universe, which is a
+    property of the weighting scheme rather than of the signal. Use a benchmark whose weighting
+    scheme matches the strategy if you want to isolate the contribution of the signal.
+
 EnhancedIndexingStrategy
 ------------------------
 `EnhancedIndexingStrategy` Enhanced indexing combines the arts of active management and passive management,

@@ -73,6 +73,24 @@ class BaseSignalStrategy(BaseStrategy, ABC):
 
 
 class TopkDropoutStrategy(BaseSignalStrategy):
+    """
+    An equal-weighted top-k strategy with fixed daily turnover (the ``Topk-Drop`` algorithm).
+
+    .. note::
+        Positions are **equal-weighted**. On each rebalance the available cash is divided
+        evenly among the stocks to be bought (see :meth:`generate_trade_decision`), so the
+        realized portfolio approximates an equal-weighted portfolio of ``topk`` names.
+
+        This is worth keeping in mind when reading the excess return reported by
+        :class:`qlib.workflow.record_temp.PortAnaRecord`, which is a plain difference
+        against a single benchmark instrument. The default benchmark ``SH000300``
+        (CSI 300) is capitalization-weighted, so that difference also contains the return
+        spread between equal- and cap-weighting of the universe, which is a property of
+        the weighting scheme rather than of the signal. To isolate the contribution of the
+        signal, use a benchmark whose weighting scheme matches the strategy, e.g.
+        an equal-weighted portfolio of the same universe run through the same executor.
+    """
+
     # TODO:
     # 1. Supporting leverage the get_range_limit result from the decision
     # 2. Supporting alter_outer_trade_decision
