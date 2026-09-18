@@ -128,7 +128,16 @@ class TradeCalendarManager:
         if trade_step is None:
             trade_step = self.get_trade_step()
         calendar_index = self.start_index + trade_step - shift
-        return self._calendar[calendar_index], epsilon_change(self._calendar[calendar_index + 1])
+        if calendar_index + 1 < len(self._calendar):
+            right_time = self._calendar[calendar_index + 1]
+        else:
+            delta = (
+                self._calendar[calendar_index] - self._calendar[calendar_index - 1]
+                if calendar_index > 0
+                else pd.Timedelta(days=1)
+            )
+            right_time = self._calendar[calendar_index] + delta
+        return self._calendar[calendar_index], epsilon_change(right_time)
 
     def get_data_cal_range(self, rtype: str = "full") -> Tuple[int, int]:
         """
