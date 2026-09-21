@@ -153,6 +153,62 @@ constructor or CLI flag does not overwrite a manager subsequently restored from
 disk. ``add_strategy`` applies the current flag to new strategies only. There is
 no manager-wide permission or revocation.
 
+Example: re-authorizing a restored manager
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Initialize Qlib with your existing market-data and tracking configuration first.
+Replace the input filename and ``my_strategy`` below with the saved manager and
+strategy you intend to resume. Review that strategy's experiment storage and,
+separately, all task stores used by its delayed trainer before granting consent.
+A tool or trainer can be shared: its policy changes for every reference to that
+same instance, not only for the selected strategy.
+
+.. warning::
+
+    ``OnlineManager.load`` itself uses unrestricted pickle/dill and can execute
+    code before any component settings are changed. Only restore an independently
+    trusted manager file. Setting component flags later does not make this initial
+    load safe.
+
+.. code-block:: python
+    :name: restored-manager-migration
+
+    from pathlib import Path
+
+    from qlib.model.trainer import DelayTrainerR, DelayTrainerRM
+    from qlib.workflow.online.manager import OnlineManager
+    from qlib.workflow.online.strategy import RollingStrategy
+    from qlib.workflow.online.utils import OnlineToolR
+
+    manager = OnlineManager.load("manager.pkl")
+    matches = [s for s in manager.strategies if s.name_id == "my_strategy"]
+    if len(matches) != 1:
+        raise ValueError("Expected exactly one saved strategy named my_strategy")
+    strategy = matches[0]
+    if not isinstance(strategy, RollingStrategy) or not isinstance(strategy.tool, OnlineToolR):
+        raise TypeError("Adapt this example to your custom strategy/tool's loading policy")
+
+    strategy.trusted = True
+    strategy.tool.trusted = True
+    if isinstance(manager.trainer, (DelayTrainerR, DelayTrainerRM)):
+        manager.trainer.trusted = True
+
+    with Path("manager.migrated.pkl").open("xb") as stream:
+        manager.get_backend().dump(manager, stream, protocol=4)
+
+This changes the selected strategy and its existing tool, plus the delayed
+trainer when present. Other strategy objects are not automatically opted in.
+Ordinary ``TrainerR``/``TrainerRM`` need no trust setting, and custom trainers
+require their own loading-policy review. Repeat
+the strategy configuration only for other components whose sources you have
+reviewed, before resuming routines that use them.
+
+The new file retains the manager's saved history and selected settings; exclusive
+creation (``"xb"``) refuses to overwrite an existing output. After reviewing it,
+point your resume command at ``manager.migrated.pkl`` rather than loading the old
+file again. This migration does not run ``first_train``, reset experiments, or
+retrain models. Prediction and label reads remain restricted.
+
 DDG-DA caches and exported tasks
 ================================
 
@@ -249,6 +305,136 @@ guarantee compatibility across Python, NumPy, pandas or model-library versions,
 and ``trusted=True`` does not fix missing or renamed classes. Preserve the
 producing environment for legacy executable artifacts and test representative
 loads before upgrading.
+
+Example: converting Arrow-backed columns
+-----------------------------------------
+
+Prefer converting the trusted producer's in-memory data before saving it.
+The sample below requires pandas 2.x and PyArrow; replace ``original`` with your
+actual DataFrame and choose target types from its schema. Do not cast an entire
+table to ``float64``: that can lose large integer values or change other columns.
+These explicit targets preserve the sample's float width, integer values,
+missing-value masks and Python-backed strings.
+
+.. code-block:: python
+    :name: arrow-artifact-migration
+
+    import pandas as pd
+
+    original = pd.DataFrame(
+        {
+            "score": pd.Series([0.1, None, -0.3], dtype="float32[pyarrow]"),
+            "count": pd.Series([2**60 + 1, None, 2**60 + 3], dtype="int64[pyarrow]"),
+            "enabled": pd.Series([True, None, False], dtype="bool[pyarrow]"),
+            "instrument": pd.Series(["SH600000", None, "SZ000001"], dtype="string[pyarrow]"),
+        }
+    )
+    compatible = original.astype(
+        {
+            "score": "Float32",
+            "count": "Int64",
+            "enabled": "boolean",
+            "instrument": pd.StringDtype(storage="python"),
+        }
+    )
+    pd.testing.assert_frame_equal(original.isna(), compatible.isna())
+    for column in original.columns:
+        assert original[column].dropna().tolist() == compatible[column].dropna().tolist()
+    assert compatible.loc[0, "count"] == 2**60 + 1
+    assert compatible.loc[2, "count"] == 2**60 + 3
+
+This is not a generic converter for Arrow decimals, nested arrays, timestamps or
+custom extension types. Review the index, ``attrs`` and object-valued cells too;
+converting the listed columns does not necessarily remove every unsupported
+object from a real artifact.
+
+Example: preserving a ZoneInfo index's time semantics
+------------------------------------------------------
+
+This example requires Python 3.9+ and uses a Qlib-style ``datetime`` /
+``instrument`` MultiIndex. It changes the timezone implementation to ``pytz``
+while keeping the same named timezone. The sample crosses a daylight-saving
+transition: two different instants have the same local ``01:30`` clock label.
+
+.. code-block:: python
+    :name: zoneinfo-artifact-migration
+
+    from zoneinfo import ZoneInfo
+
+    import pandas as pd
+    import pytz
+
+    times = pd.date_range("2023-11-05 04:30", periods=4, freq="h", tz="UTC")
+    times = times.tz_convert(ZoneInfo("America/New_York"))
+    original = pd.DataFrame(
+        {"score": [0.1, None, 0.3, 0.4]},
+        index=pd.MultiIndex.from_arrays(
+            [times, ["DEMO"] * len(times)], names=["datetime", "instrument"]
+        ),
+    )
+    compatible = original.tz_convert(pytz.timezone("America/New_York"), level="datetime")
+
+    before = original.index.get_level_values("datetime")
+    after = compatible.index.get_level_values("datetime")
+    pd.testing.assert_index_equal(before.tz_convert("UTC"), after.tz_convert("UTC"))
+    pd.testing.assert_index_equal(before.tz_localize(None), after.tz_localize(None))
+    pd.testing.assert_index_equal(
+        original.index.get_level_values("instrument"),
+        compatible.index.get_level_values("instrument"),
+    )
+    pd.testing.assert_frame_equal(
+        original.reset_index(drop=True), compatible.reset_index(drop=True)
+    )
+
+The comparisons check both absolute instants and local clock labels; timezone
+removal is used only for the comparison, not on the saved result. Do not simply
+strip timezones to bypass a loading error. Converting to UTC preserves instants
+but can change local dates, so use it only if your trading-calendar conventions
+allow that change. For timezone-aware columns, use ``Series.dt.tz_convert`` with
+the intended timezone as well; changing an index does not convert its columns.
+
+Example: checking and saving the converted artifact
+----------------------------------------------------
+
+After either conversion above, check the entire result with the restricted
+loader before publishing it. The recorder example uses your initialized Qlib
+configuration with the built-in MLflow backend and an access-controlled store.
+It creates a new run and does not overwrite the original artifact.
+
+.. code-block:: python
+    :name: converted-artifact-roundtrip
+
+    import pickle
+
+    import pandas as pd
+
+    from qlib.utils.pickle_utils import restricted_pickle_loads
+    from qlib.workflow import R
+
+    restored = restricted_pickle_loads(pickle.dumps(compatible, protocol=4))
+    pd.testing.assert_frame_equal(compatible, restored)
+
+    with R.start(experiment_name="artifact-migration"):
+        destination = R.get_recorder()
+        destination.save_objects(**{"data.migrated.pkl": compatible})
+        restored = destination.load_object("data.migrated.pkl")
+        pd.testing.assert_frame_equal(compatible, restored)
+        print("Migrated data recorder:", destination.id)
+
+For real predictions or labels, preserve their original columns, index layout
+and business meaning rather than adding the sample columns above. This staging
+run contains converted data only, not a complete model/Dataset/task bundle.
+Keep the original run backed up and explicitly plan how to publish the verified
+data under the ``pred.pkl`` / ``label.pkl`` names expected by your workflow; do
+not replace its model recorder with this data-only run.
+
+If only a legacy pickle remains, recover it only in an independently trusted
+producer environment. A deliberately selected MLflow artifact can be read with
+``source_rec.load_object("pred.pkl", trusted=True)`` after verifying its writer
+and storage, but that unrestricted load can execute code. Never open an unknown
+pickle merely to convert it, or automatically retry a restricted-load failure
+with consent. Online workflow consent still does not authorize unrestricted
+prediction/label reads.
 
 Custom recorders, loaders and completion callbacks
 ==================================================
