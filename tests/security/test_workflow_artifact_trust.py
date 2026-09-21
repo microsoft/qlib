@@ -32,13 +32,13 @@ def test_restored_workflows_without_trust_state_remain_restricted(module_name, c
 
     legacy = object.__new__(cls)
     opted_in = object.__new__(cls)
-    opted_in.trusted_artifacts = True
+    opted_in.trusted = True
 
-    assert "trusted_artifacts" not in legacy.__dict__
-    assert legacy.trusted_artifacts is False
-    assert opted_in.trusted_artifacts is True
-    del opted_in.trusted_artifacts
-    assert opted_in.trusted_artifacts is False
+    assert "trusted" not in legacy.__dict__
+    assert legacy.trusted is False
+    assert opted_in.trusted is True
+    del opted_in.trusted
+    assert opted_in.trusted is False
 
 
 @pytest.fixture
@@ -69,7 +69,7 @@ def online_artifacts(monkeypatch):
     return SimpleNamespace(recorder=recorder, dataset=dataset, model=model, predictions=predictions, dates=dates)
 
 
-@pytest.mark.parametrize("options", [{}, {"trusted_artifacts": False}, {"trusted_artifacts": True}])
+@pytest.mark.parametrize("options", [{}, {"trusted": False}, {"trusted": True}])
 def test_rolling_constructor_propagates_trust_through_online_update(online_artifacts, monkeypatch, options):
     from qlib.workflow.online import strategy
 
@@ -83,7 +83,7 @@ def test_rolling_constructor_propagates_trust_through_online_update(online_artif
     assert [item.args[0] for item in calls] == ["pred.pkl", "dataset", "dataset", "params.pkl"]
     assert calls[0].kwargs == {}
     for item in calls[1:]:
-        assert item.kwargs.get("trusted", False) is options.get("trusted_artifacts", False)
+        assert item.kwargs.get("trusted", False) is options.get("trusted", False)
     online_artifacts.dataset.setup_data.assert_called_once()
     online_artifacts.model.predict.assert_called_once_with(online_artifacts.dataset)
     online_artifacts.recorder.save_objects.assert_called_once()
@@ -93,7 +93,7 @@ def test_rolling_constructor_propagates_trust_through_online_update(online_artif
 
 
 @pytest.mark.parametrize("updater_name", ["PredUpdater", "LabelUpdater"])
-@pytest.mark.parametrize("options", [{}, {"trusted_artifacts": False}, {"trusted_artifacts": True}])
+@pytest.mark.parametrize("options", [{}, {"trusted": False}, {"trusted": True}])
 def test_updater_preserves_legacy_loader_constructor_until_opt_in(online_artifacts, updater_name, options):
     from qlib.workflow.online import update
 
@@ -102,10 +102,10 @@ def test_updater_preserves_legacy_loader_constructor_until_opt_in(online_artifac
 
     loader = Mock(side_effect=make_loader)
     updater_cls = getattr(update, updater_name)
-    if options.get("trusted_artifacts", False):
-        with pytest.raises(TypeError, match="trusted_artifacts"):
+    if options.get("trusted", False):
+        with pytest.raises(TypeError, match="trusted"):
             updater_cls(online_artifacts.recorder, loader_cls=loader, **options)
-        loader.assert_called_once_with(rec=online_artifacts.recorder, trusted_artifacts=True)
+        loader.assert_called_once_with(rec=online_artifacts.recorder, trusted=True)
         online_artifacts.recorder.load_object.assert_not_called()
     else:
         updater = updater_cls(online_artifacts.recorder, loader_cls=loader, **options)
@@ -129,8 +129,8 @@ def test_default_loader_accepts_a_dataset_supplied_by_the_caller():
     dataset.setup_data.assert_called_once()
 
 
-@pytest.mark.parametrize("trusted_artifacts", [False, True])
-def test_rolling_task_collection_and_generation_honor_strategy_trust(monkeypatch, trusted_artifacts):
+@pytest.mark.parametrize("trusted", [False, True])
+def test_rolling_task_collection_and_generation_honor_strategy_trust(monkeypatch, trusted):
     from qlib.workflow.online import strategy
 
     segment = (pd.Timestamp("2024-01-01"), pd.Timestamp("2024-01-31"))
@@ -143,7 +143,7 @@ def test_rolling_task_collection_and_generation_honor_strategy_trust(monkeypatch
     rolling_gen = object.__new__(strategy.RollingGen)
     rolling_gen.step = 20
     rolling_gen.gen_following_tasks = Mock(return_value=[task])
-    rolling = strategy.RollingStrategy("rolling", task, rolling_gen, trusted_artifacts=trusted_artifacts)
+    rolling = strategy.RollingStrategy("rolling", task, rolling_gen, trusted=trusted)
     rolling.tool.online_models = Mock(return_value=[recorder])
 
     assert rolling.get_collector().rec_key_func(recorder) == ("LinearModel", segment)
@@ -154,7 +154,7 @@ def test_rolling_task_collection_and_generation_honor_strategy_trust(monkeypatch
     assert recorder.load_object.call_count == 6
     for item in recorder.load_object.call_args_list:
         assert item.args == ("task",)
-        assert item.kwargs.get("trusted", False) is trusted_artifacts
+        assert item.kwargs.get("trusted", False) is trusted
 
 
 @pytest.fixture
@@ -197,10 +197,10 @@ def _finish_delayed(backend, mode, end_train_func, constructor_options, call_opt
     "constructor_options,call_options,expected_kwargs",
     [
         ({}, {}, {}),
-        ({"trusted_artifacts": False}, {}, {}),
-        ({"trusted_artifacts": True}, {}, {"trusted_artifacts": True}),
-        ({"trusted_artifacts": True}, {"trusted_artifacts": False}, {"trusted_artifacts": False}),
-        ({}, {"trusted_artifacts": True, "marker": "preserved"}, {"trusted_artifacts": True, "marker": "preserved"}),
+        ({"trusted": False}, {}, {}),
+        ({"trusted": True}, {}, {"trusted": True}),
+        ({"trusted": True}, {"trusted": False}, {"trusted": False}),
+        ({}, {"trusted": True, "marker": "preserved"}, {"trusted": True, "marker": "preserved"}),
     ],
     ids=["default", "disabled", "enabled", "disable-override", "enable-override"],
 )
@@ -230,7 +230,7 @@ def test_delayed_trainers_forward_only_selected_trust(
         assert scheduled["before_status"] == delayed_backend.manager.STATUS_PART_DONE
         assert {key: value for key, value in scheduled.items() if key in expected_kwargs} == expected_kwargs
         if not expected_kwargs:
-            assert "trusted_artifacts" not in scheduled
+            assert "trusted" not in scheduled
 
 
 @pytest.mark.parametrize("mode", ["recorder", "task-manager", "worker"])
@@ -242,16 +242,26 @@ def test_delayed_trainers_allow_per_call_end_function_and_experiment(delayed_bac
         delayed_backend,
         mode,
         default_finish,
-        {"trusted_artifacts": True},
+        {"trusted": True},
         {"end_train_func": custom_finish, "experiment_name": "override"},
     )
 
     default_finish.assert_not_called()
-    custom_finish.assert_called_once_with(delayed_backend.recorder, "override", trusted_artifacts=True)
+    custom_finish.assert_called_once_with(delayed_backend.recorder, "override", trusted=True)
 
 
-@pytest.mark.parametrize("trusted_artifacts", [False, True])
-def test_internal_data_trust_applies_to_tasks_not_predictions(monkeypatch, trusted_artifacts):
+@pytest.mark.parametrize("mode", ["recorder", "task-manager", "worker"])
+@pytest.mark.parametrize("options", [{"trusted_artifacts": True}, {"trusted": "false"}, {"trusted": 1}])
+def test_delayed_completion_rejects_old_keyword_and_invalid_consent(delayed_backend, mode, options):
+    finish = Mock()
+    with pytest.raises(TypeError, match="trusted"):
+        _finish_delayed(delayed_backend, mode, finish, {}, options)
+    finish.assert_not_called()
+    delayed_backend.run_task.assert_not_called()
+
+
+@pytest.mark.parametrize("trusted", [False, True])
+def test_internal_data_trust_applies_to_tasks_not_predictions(monkeypatch, trusted):
     pytest.importorskip("torch")
     from qlib.contrib.meta.data_selection import dataset as meta_dataset
 
@@ -285,7 +295,7 @@ def test_internal_data_trust_applies_to_tasks_not_predictions(monkeypatch, trust
     monkeypatch.setattr(meta_dataset.InternalData, "_calc_perf", calc_perf)
     internal = meta_dataset.InternalData(task, step=1, exp_name="internal")
 
-    internal.setup(trainer=make_trainer, trusted_artifacts=trusted_artifacts)
+    internal.setup(trainer=make_trainer, trusted=trusted)
 
     trainer.train.assert_not_called()
     calls = recorder.load_object.call_args_list
@@ -293,7 +303,7 @@ def test_internal_data_trust_applies_to_tasks_not_predictions(monkeypatch, trust
     assert calls[0].args == ("pred.pkl",)
     assert calls[0].kwargs == {}
     assert calls[1].args == ("task",)
-    assert calls[1].kwargs.get("trusted", False) is trusted_artifacts
+    assert calls[1].kwargs.get("trusted", False) is trusted
     calc_perf.assert_called_once()
     for series in calc_perf.call_args.args:
         pd.testing.assert_series_equal(series, data.iloc[:, 0])
@@ -301,7 +311,7 @@ def test_internal_data_trust_applies_to_tasks_not_predictions(monkeypatch, trust
     assert internal.data_ic_df.iloc[:, 0].tolist() == pytest.approx([1.0, 1.0])
 
 
-@pytest.mark.parametrize("options", [{}, {"trusted_artifacts": False}, {"trusted_artifacts": True}])
+@pytest.mark.parametrize("options", [{}, {"trusted": False}, {"trusted": True}])
 def test_meta_dataset_forwards_trust_to_internal_data_setup(monkeypatch, options):
     pytest.importorskip("torch")
     from qlib.contrib.meta.data_selection import dataset as meta_dataset
@@ -317,4 +327,4 @@ def test_meta_dataset_forwards_trust_to_internal_data_setup(monkeypatch, options
 
     assert dataset.internal_data.exp_name == "internal"
     setup.assert_called_once()
-    assert setup.call_args.kwargs.get("trusted_artifacts", False) is options.get("trusted_artifacts", False)
+    assert setup.call_args.kwargs.get("trusted", False) is options.get("trusted", False)

@@ -14,21 +14,20 @@ from qlib.data.dataset import Dataset, DatasetH, TSDatasetH
 from qlib.data.dataset.handler import DataHandlerLP
 from qlib.model import Model
 from qlib.utils import get_date_by_shift
+from qlib.utils.pickle_utils import ArtifactTrustMixin, validate_trusted
 from qlib.workflow.recorder import Recorder
 from qlib.workflow.record_temp import SignalRecord
 
 
-class RMDLoader:
+class RMDLoader(ArtifactTrustMixin):
     """
     Recorder Model Dataset Loader
     """
 
-    trusted_artifacts = False
-
-    def __init__(self, rec: Recorder, *, trusted_artifacts: bool = False):
-        """Only enable ``trusted_artifacts`` for trusted model/dataset storage."""
+    def __init__(self, rec: Recorder, *, trusted: bool = False):
+        """Only enable ``trusted`` for trusted model/dataset storage."""
         self.rec = rec
-        self.trusted_artifacts = trusted_artifacts
+        self.trusted = validate_trusted(trusted)
 
     def get_dataset(
         self, start_time, end_time, segments=None, unprepared_dataset: Optional[DatasetH] = None
@@ -56,7 +55,7 @@ class RMDLoader:
         if segments is None:
             segments = {"test": (start_time, end_time)}
         if unprepared_dataset is None:
-            dataset: DatasetH = self.rec.load_object("dataset", trusted=self.trusted_artifacts)
+            dataset: DatasetH = self.rec.load_object("dataset", trusted=self.trusted)
         else:
             dataset = unprepared_dataset
         dataset.config(handler_kwargs={"start_time": start_time, "end_time": end_time}, segments=segments)
@@ -64,7 +63,7 @@ class RMDLoader:
         return dataset
 
     def get_model(self) -> Model:
-        return self.rec.load_object("params.pkl", trusted=self.trusted_artifacts)
+        return self.rec.load_object("params.pkl", trusted=self.trusted)
 
 
 class RecordUpdater(metaclass=ABCMeta):
@@ -83,7 +82,7 @@ class RecordUpdater(metaclass=ABCMeta):
         """
 
 
-class DSBasedUpdater(RecordUpdater, metaclass=ABCMeta):
+class DSBasedUpdater(ArtifactTrustMixin, RecordUpdater, metaclass=ABCMeta):
     """
     Dataset-Based Updater
 
@@ -105,8 +104,6 @@ class DSBasedUpdater(RecordUpdater, metaclass=ABCMeta):
                        SZ300676   -0.001321
     """
 
-    trusted_artifacts = False
-
     def __init__(
         self,
         record: Recorder,
@@ -117,7 +114,7 @@ class DSBasedUpdater(RecordUpdater, metaclass=ABCMeta):
         fname="pred.pkl",
         loader_cls: type = RMDLoader,
         *,
-        trusted_artifacts: bool = False,
+        trusted: bool = False,
     ):
         """
         Init PredUpdater.
@@ -152,7 +149,7 @@ class DSBasedUpdater(RecordUpdater, metaclass=ABCMeta):
 
             loader_cls : type
                 the class to load the model and dataset
-            trusted_artifacts : bool
+            trusted : bool
                 Allow unrestricted loading of model/dataset artifacts from a
                 trusted source and store. Predictions and labels remain restricted.
                 A custom loader must accept this keyword when it is enabled.
@@ -165,11 +162,11 @@ class DSBasedUpdater(RecordUpdater, metaclass=ABCMeta):
         self.hist_ref = hist_ref
         self.freq = freq
         self.fname = fname
-        self.trusted_artifacts = trusted_artifacts
-        if trusted_artifacts is False:
+        self.trusted = validate_trusted(trusted)
+        if trusted is False:
             self.rmdl = loader_cls(rec=record)
         else:
-            self.rmdl = loader_cls(rec=record, trusted_artifacts=trusted_artifacts)
+            self.rmdl = loader_cls(rec=record, trusted=trusted)
 
         latest_date = D.calendar(freq=freq)[-1]
         if to_date is None:
@@ -207,7 +204,7 @@ class DSBasedUpdater(RecordUpdater, metaclass=ABCMeta):
         # automatically getting the historical dependency if not specified
         if self.hist_ref is None:
             dataset: DatasetH = (
-                self.record.load_object("dataset", trusted=self.trusted_artifacts)
+                self.record.load_object("dataset", trusted=self.trusted)
                 if unprepared_dataset is None
                 else unprepared_dataset
             )
@@ -309,8 +306,8 @@ class LabelUpdater(DSBasedUpdater):
     - The label is generated from record_temp.SignalRecord.
     """
 
-    def __init__(self, record: Recorder, to_date=None, **kwargs):
-        super().__init__(record, to_date=to_date, fname="label.pkl", **kwargs)
+    def __init__(self, record: Recorder, to_date=None, *, trusted: bool = False, **kwargs):
+        super().__init__(record, to_date=to_date, fname="label.pkl", trusted=trusted, **kwargs)
 
     def get_update_data(self, dataset: Dataset) -> pd.DataFrame:
         new_label = SignalRecord.generate_label(dataset)

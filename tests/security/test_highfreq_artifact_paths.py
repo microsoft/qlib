@@ -6,6 +6,7 @@ from unittest.mock import Mock
 import pytest
 
 from qlib.contrib.data.highfreq_provider import HighFreqProvider
+from qlib.utils.pickle_utils import ARTIFACT_MIGRATION_URL
 
 
 def _provider(root):
@@ -21,8 +22,10 @@ def test_highfreq_artifact_path_stays_under_root(tmp_path):
 
 def test_highfreq_artifact_path_rejects_parent_traversal(tmp_path):
     provider = _provider(tmp_path / "artifacts")
-    with pytest.raises(ValueError, match="escapes artifact_root"):
+    with pytest.raises(ValueError, match="escapes artifact_root") as caught:
         provider._resolve_artifact_path("../outside.pkl")
+    assert ARTIFACT_MIGRATION_URL in str(caught.value)
+    assert "dedicated trusted artifact_root" in str(caught.value)
 
 
 def test_highfreq_artifact_path_rejects_absolute_path(tmp_path):

@@ -24,6 +24,7 @@ from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
 from ...contrib.model.pytorch_lstm import LSTMModel
 from ...contrib.model.pytorch_gru import GRUModel
+from ...utils.pickle_utils import ARTIFACT_MIGRATION_URL
 
 UNKNOWN_STOCK_INDEX = 733
 
@@ -34,7 +35,9 @@ def _load_stock_index(path, upper_bound=None):
     if path.suffix.lower() != ".json":
         raise ValueError(
             "HIST stock_index must be a JSON file. Object .npy files are no longer "
-            "supported because loading them requires unsafe pickle deserialization."
+            "supported because loading them requires unsafe pickle deserialization. "
+            "Export the mapping from trusted source metadata and update stock_index, "
+            f"including on restored model objects. Migration guide: {ARTIFACT_MIGRATION_URL}"
         )
 
     with path.open("r", encoding="utf-8") as fp:

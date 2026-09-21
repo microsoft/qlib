@@ -9,6 +9,7 @@ from qlib import get_module_logger
 from qlib.data import D
 from qlib.config import REG_CN
 from qlib.utils import init_instance_by_config
+from qlib.utils.pickle_utils import ARTIFACT_MIGRATION_URL
 from qlib.data.dataset.handler import DataHandlerLP
 from qlib.data.data import Cal
 from qlib.contrib.ops.high_freq import get_calendar_day, DayLast, FFillNan, BFillNan, Date, Select, IsNull, IsInf, Cut
@@ -61,7 +62,11 @@ class HighFreqProvider:
         try:
             target.relative_to(self.artifact_root)
         except ValueError as exc:
-            raise ValueError(f"Artifact path {str(path)!r} escapes artifact_root {str(self.artifact_root)!r}") from exc
+            raise ValueError(
+                f"Artifact path {str(path)!r} escapes artifact_root {str(self.artifact_root)!r}. "
+                "Place caches under a dedicated trusted artifact_root and resolve configured paths relative to it. "
+                f"Migration guide: {ARTIFACT_MIGRATION_URL}"
+            ) from exc
         return target
 
     def get_pre_datasets(self):

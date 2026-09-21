@@ -21,6 +21,7 @@ from .exp import Experiment
 from .recorder import Recorder
 from ..utils import Wrapper
 from ..utils.exceptions import RecorderInitializationError
+from ..utils.pickle_utils import validate_trusted
 
 
 class QlibRecorder:
@@ -540,6 +541,7 @@ class QlibRecorder:
         Set ``trusted=True`` only for pickle artifacts whose source and storage
         are trusted. Unrestricted pickle loading may execute arbitrary code.
         """
+        trusted = validate_trusted(trusted)
         recorder = self.get_exp().get_recorder(start=True)
         if trusted is False:
             return recorder.load_object(name)

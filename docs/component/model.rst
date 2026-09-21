@@ -121,8 +121,8 @@ facade). Keep prediction and label data reads restricted by omitting ``trusted``
 Do not automatically retry a refused load with unrestricted deserialization.
 
 Workflows that resume training can configure ``DelayTrainerR`` or
-``DelayTrainerRM`` with ``trusted_artifacts=True`` at construction, rather than
-changing internal loads. See :ref:`artifact_trust_migration` for migration details,
+``DelayTrainerRM`` with ``trusted=True`` at construction, rather than
+changing internal loads. See :ref:`artifact_loading_migration` for migration details,
 version limitations and the separate trust requirements of local pickle files.
 
 

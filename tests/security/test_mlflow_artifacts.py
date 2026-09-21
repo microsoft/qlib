@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 
 from qlib.utils.exceptions import LoadObjectError
+from qlib.utils.pickle_utils import ARTIFACT_MIGRATION_URL
 from qlib.workflow.recorder import MLflowRecorder, Recorder, UnsafeArtifactWarning
 
 
@@ -56,7 +57,8 @@ def test_mlflow_artifact_uses_restricted_loading_without_fallback(tmp_path, monk
 
     assert "payload.pkl" in str(error.value)
     assert "trusted=True" in str(error.value)
-    assert "trusted_artifacts=True" in str(error.value)
+    assert "workflow entry point" in str(error.value)
+    assert ARTIFACT_MIGRATION_URL in str(error.value)
     unrestricted.assert_not_called()
     assert not any(issubclass(warning.category, UnsafeArtifactWarning) for warning in caught)
 
@@ -206,13 +208,13 @@ def test_real_mlflow_model_and_dataset_require_workflow_opt_in(mlflow_recorders)
     legacy_loader = object.__new__(RMDLoader)
     legacy_loader.rec = reader
     for default_loader in (RMDLoader(reader), legacy_loader):
-        assert default_loader.trusted_artifacts is False
+        assert default_loader.trusted is False
         with pytest.raises(LoadObjectError, match="LinearModel"):
             default_loader.get_model()
         with pytest.raises(LoadObjectError, match="DatasetH"):
             default_loader.get_dataset(dates[4], dates[5])
 
-    trusted_loader = RMDLoader(reader, trusted_artifacts=True)
+    trusted_loader = RMDLoader(reader, trusted=True)
     with pytest.warns(UnsafeArtifactWarning):
         loaded_model = trusted_loader.get_model()
         loaded_dataset = trusted_loader.get_dataset(dates[4], dates[5])
@@ -238,7 +240,7 @@ def test_trusted_workflow_does_not_trust_prediction_or_label_artifacts(
     monkeypatch.setattr(update, "D", SimpleNamespace(calendar=lambda **kwargs: pd.date_range("2024-01-01", periods=2)))
 
     with pytest.raises(LoadObjectError, match="Forbidden class"):
-        getattr(update, updater_name)(reader, trusted_artifacts=True)
+        getattr(update, updater_name)(reader, trusted=True)
 
     reader.load_object.assert_called_once_with(artifact_name)
 
@@ -285,14 +287,14 @@ def test_end_task_train_loads_trusted_reweighter(tmp_path, monkeypatch):
     monkeypatch.setattr(trainer, "_exe_task", execute)
     record_info = SimpleNamespace(info={"id": recorder.id})
 
-    with pytest.raises(LoadObjectError, match="trusted_artifacts=True"):
+    with pytest.raises(LoadObjectError, match="trusted=True"):
         trainer.end_task_train(record_info, "training")
     execute.assert_not_called()
     start.reset_mock()
     load.reset_mock()
 
     with pytest.warns(UnsafeArtifactWarning):
-        assert trainer.end_task_train(record_info, "training", trusted_artifacts=True) is record_info
+        assert trainer.end_task_train(record_info, "training", trusted=True) is record_info
 
     start.assert_called_once_with(experiment_name="training", recorder_id=recorder.id, resume=True)
     load.assert_called_once_with("task", trusted=True)
@@ -302,7 +304,7 @@ def test_end_task_train_loads_trusted_reweighter(tmp_path, monkeypatch):
     pd.testing.assert_series_equal(loaded.time_weight, weights)
 
 
-@pytest.mark.parametrize("options", [{}, {"trusted_artifacts": False}, {"trusted_artifacts": True}])
+@pytest.mark.parametrize("options", [{}, {"trusted": False}, {"trusted": True}])
 def test_ddgda_requires_opt_in_before_meta_model_inference(tmp_path, monkeypatch, options):
     pytest.importorskip("torch")
     from qlib.contrib.rolling import ddgda
@@ -337,8 +339,8 @@ def test_ddgda_requires_opt_in_before_meta_model_inference(tmp_path, monkeypatch
     rolling.step = 20
     rolling._internal_data_path.write_bytes(pickle.dumps(None))
 
-    if not options.get("trusted_artifacts", False):
-        with pytest.raises(LoadObjectError, match="trusted_artifacts=True"):
+    if not options.get("trusted", False):
+        with pytest.raises(LoadObjectError, match="trusted=True"):
             rolling.get_task_list()
         inference_calls.assert_not_called()
         ddgda.MetaDatasetDS.assert_not_called()
@@ -352,7 +354,7 @@ def test_ddgda_requires_opt_in_before_meta_model_inference(tmp_path, monkeypatch
     assert pickle.loads(rolling._task_path.read_bytes()) == [{"generated": True}]
 
 
-@pytest.mark.parametrize("options", [{}, {"trusted_artifacts": False}, {"trusted_artifacts": True}])
+@pytest.mark.parametrize("options", [{}, {"trusted": False}, {"trusted": True}])
 def test_rolling_strategy_requires_opt_in_for_tasks_with_reweighters(tmp_path, monkeypatch, options):
     pytest.importorskip("torch")
     from qlib.contrib.meta.data_selection.model import TimeReweighter
@@ -369,8 +371,8 @@ def test_rolling_strategy_requires_opt_in_for_tasks_with_reweighters(tmp_path, m
     monkeypatch.setattr(strategy, "TimeAdjuster", Mock())
     rolling = strategy.RollingStrategy("rolling", task, object.__new__(strategy.RollingGen), **options)
 
-    if not options.get("trusted_artifacts", False):
-        with pytest.raises(LoadObjectError, match="trusted_artifacts=True"):
+    if not options.get("trusted", False):
+        with pytest.raises(LoadObjectError, match="trusted=True"):
             rolling._list_latest([recorder])
         return
 

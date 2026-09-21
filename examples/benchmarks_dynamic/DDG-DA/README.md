@@ -17,28 +17,29 @@ Though the dataset is different, the conclusion remains the same. By applying `D
 After verifying that the recorder artifacts and local working files are your own
 and cannot be replaced by untrusted writers (see below), run from this directory:
 ```bash
-    python workflow.py --trusted_artifacts=True run
+    python workflow.py --trusted=True run
 ```
 
 The default forecasting models are `Linear`. Users can choose other forecasting models by changing the `forecast_model` parameter when `DDG-DA` initializes. For example, users can try `LightGBM` forecasting models by running the following command:
 ```bash
-    python workflow.py --trusted_artifacts=True --conf_path=../baseline/workflow_config_lightgbm_Alpha158.yaml run
+    python workflow.py --trusted=True --conf_path=../baseline/workflow_config_lightgbm_Alpha158.yaml run
 ```
 
 ## Recorder artifacts and local working files
 
 `workflow.py` exposes the `DDGDA` workflow through the `DDGDABench` Fire entry
-point. Its `trusted_artifacts` option defaults to `False`. Set it explicitly only
+point. Its `trusted` option defaults to `False`. Set it explicitly only
 for artifacts and caches from a verified writer in access-controlled MLflow and
 local storage: unrestricted pickle loading can execute code. Creating a run
 yourself is not enough if someone else can overwrite its files.
 
 The option covers recorder-backed executable meta-model/task loading, including
 `InternalData.setup`, and DDG-DA's local handler/internal-data pickle cache reads;
-prediction and label artifact loads remain restricted.
-Lower-level callers can also pass `trusted_artifacts=True` to `MetaDatasetDS` or
-`InternalData.setup`. A refused load is not a reason to retry automatically with
-trust enabled. See the [recorder migration guide](https://qlib.readthedocs.io/en/latest/component/recorder.html#artifact-trust-migration)
+prediction, label and numerical-report artifact loads remain restricted.
+Lower-level callers can also pass `trusted=True` to `MetaDatasetDS` or
+`InternalData.setup` for recorder task reads, not as a global local-cache grant.
+A refused load is not a reason to retry automatically with trust enabled.
+See the [artifact loading migration guide](https://qlib.readthedocs.io/en/latest/start/artifact_migration.html)
 for data compatibility and migration details.
 
 This example also saves and reuses **local pickle files in `working_dir`**, which
@@ -53,14 +54,19 @@ unsafe retry and no change to the global restricted loader. Other pickle APIs
 and workflow YAML retain their own trust requirements; only use trusted
 configurations and files.
 
-Generated tasks keep lightweight handler-cache references, including the chosen
-cache policy, rather than embedding the full market data. Treat saved task
-configurations as executable inputs; reusing an opted-in task also reuses that
-local-cache consent. Loading a saved task containing a reweighter through a
-recorder still requires explicit recorder consent.
+Generated tasks keep lightweight handler-cache configuration references, including
+the path and chosen `trusted` setting, rather than embedding the full market data.
+Do not assume `task["dataset"]["kwargs"]["handler"]` is a `file://` string.
+Treat saved task configurations as executable inputs; reusing an opted-in task
+also reuses that local-cache consent independently of a new workflow's default.
+An old exported task may need regeneration with its matching meta-model and
+configuration to obtain the current cache reference and selected policy. Loading
+a saved task containing a reweighter through a recorder still requires explicit
+recorder consent; that flag alone does not globally authorize local cache reads.
 
 The Makefile's `clean` target deletes local pickle files and `mlruns`; preserve any
-results you need before using it.
+results you need before using it. Deleting experiments or running a full retrain
+is not necessary to migrate ordinary trusted artifacts.
 
 ## Full workflow regression
 

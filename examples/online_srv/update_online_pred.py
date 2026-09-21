@@ -32,11 +32,11 @@ class UpdatePredExample:
         experiment_name="online_srv",
         task_config=task,
         *,
-        trusted_artifacts=False,
+        trusted=False,
     ):
         qlib.init(provider_uri=provider_uri, region=region)
         self.experiment_name = experiment_name
-        self.online_tool = OnlineToolR(self.experiment_name, trusted_artifacts=trusted_artifacts)
+        self.online_tool = OnlineToolR(self.experiment_name, trusted=trusted)
         self.task_config = task_config
 
     def first_train(self):
@@ -56,7 +56,7 @@ if __name__ == "__main__":
     # python update_online_pred.py first_train
     ## to update online predictions once a day, use the command below
     # Only opt in for artifacts whose writer and store you trust.
-    # python update_online_pred.py --trusted_artifacts=True update_online_pred
+    # python update_online_pred.py --trusted=True update_online_pred
     ## to see the whole process with your own parameters, use the command below
-    # python update_online_pred.py --trusted_artifacts=True --experiment_name="your_exp_name" main
+    # python update_online_pred.py --trusted=True --experiment_name="your_exp_name" main
     fire.Fire(UpdatePredExample)

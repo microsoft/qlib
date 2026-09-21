@@ -156,7 +156,7 @@ def _check_artifacts(context, recorder):
     with pytest.raises(LoadObjectError, match="DatasetH"):
         restricted.get_dataset(*segments["test"])
 
-    loader = RMDLoader(recorder, trusted_artifacts=True)
+    loader = RMDLoader(recorder, trusted=True)
     with pytest.warns(UnsafeArtifactWarning):
         model = loader.get_model()
     with pytest.warns(UnsafeArtifactWarning):

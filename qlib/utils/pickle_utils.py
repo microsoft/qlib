@@ -9,7 +9,63 @@ that restricts deserialization to a whitelist of safe classes.
 
 import io
 import pickle
+import warnings
 from typing import Any, BinaryIO, Set, Tuple
+
+ARTIFACT_MIGRATION_URL = "https://qlib.readthedocs.io/en/latest/start/artifact_migration.html"
+
+
+def validate_trusted(trusted: bool) -> bool:
+    if not isinstance(trusted, bool):
+        raise TypeError(f"`trusted` must be a bool. Migration guide: {ARTIFACT_MIGRATION_URL}")
+    return trusted
+
+
+def _migrate_trust_state(state: dict) -> dict:
+    """Migrate pre-release saved state without adding a second public keyword."""
+    if not isinstance(state, dict):
+        raise TypeError("Artifact trust state must be a dict")
+    state = state.copy()
+    if "trusted" in state:
+        validate_trusted(state["trusted"])
+    if "trusted_artifacts" in state:
+        legacy = validate_trusted(state.pop("trusted_artifacts"))
+        if "trusted" in state and state["trusted"] is not legacy:
+            raise ValueError(f"Conflicting saved artifact trust settings. Migration guide: {ARTIFACT_MIGRATION_URL}")
+        state["trusted"] = legacy
+        warnings.warn(
+            "Migrated pre-release saved `trusted_artifacts` to `trusted`; "
+            f"review the retained consent before reusing this workflow. Migration guide: {ARTIFACT_MIGRATION_URL}",
+            FutureWarning,
+            stacklevel=3,
+        )
+    return state
+
+
+class ArtifactTrustMixin:
+    """Keep old workflows restricted and migrate explicit pre-release consent."""
+
+    trusted = False
+
+    def _set_trust_kwargs(self, kwargs):
+        if "trusted_artifacts" in kwargs:
+            raise TypeError(
+                "`trusted_artifacts` is not a public argument; use `trusted`. "
+                f"Migration guide: {ARTIFACT_MIGRATION_URL}"
+            )
+        if "trusted" in kwargs:
+            validate_trusted(kwargs["trusted"])
+        elif self.trusted is not False:
+            kwargs["trusted"] = validate_trusted(self.trusted)
+
+    def __setstate__(self, state):
+        state = _migrate_trust_state(state)
+        restore = getattr(super(), "__setstate__", None)
+        if restore is None:
+            self.__dict__.update(state)
+        else:
+            restore(state)
+
 
 # Whitelist of safe classes that are allowed to be unpickled
 # These are common data types used in qlib that should be safe to deserialize
@@ -176,7 +232,8 @@ class RestrictedUnpickler(pickle.Unpickler):
         raise pickle.UnpicklingError(
             f"Forbidden class: {module}.{name}. "
             f"Only whitelisted classes are allowed for security reasons. "
-            f"This is to prevent arbitrary code execution through pickle deserialization."
+            f"This is to prevent arbitrary code execution through pickle deserialization. "
+            f"Migration guide: {ARTIFACT_MIGRATION_URL}"
         )
 
 

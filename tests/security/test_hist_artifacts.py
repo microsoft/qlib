@@ -8,6 +8,7 @@ import pytest
 pytest.importorskip("torch")
 
 from qlib.contrib.model.pytorch_hist import HIST, _load_stock_index
+from qlib.utils.pickle_utils import ARTIFACT_MIGRATION_URL
 
 
 def test_load_stock_index_from_json(tmp_path):
@@ -30,8 +31,10 @@ def test_load_stock_index_rejects_object_npy(tmp_path):
     path = tmp_path / "stock_index.npy"
     np.save(path, {"SH600000": 0}, allow_pickle=True)
 
-    with pytest.raises(ValueError, match="must be a JSON file"):
+    with pytest.raises(ValueError, match="must be a JSON file") as caught:
         _load_stock_index(path)
+    assert ARTIFACT_MIGRATION_URL in str(caught.value)
+    assert "restored model objects" in str(caught.value)
 
 
 class _MarkerPayload:

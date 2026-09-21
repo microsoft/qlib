@@ -28,6 +28,7 @@ from qlib.utils import (
     init_instance_by_config,
 )
 from qlib.utils.paral import call_in_subproc
+from qlib.utils.pickle_utils import ArtifactTrustMixin, validate_trusted
 from qlib.workflow import R
 from qlib.workflow.recorder import Recorder
 from qlib.workflow.task.manage import TaskManager, run_task
@@ -88,21 +89,22 @@ def begin_task_train(task_config: dict, experiment_name: str, recorder_name: str
         return R.get_recorder()
 
 
-def end_task_train(rec: Recorder, experiment_name: str, *, trusted_artifacts: bool = False) -> Recorder:
+def end_task_train(rec: Recorder, experiment_name: str, *, trusted: bool = False) -> Recorder:
     """
     Finish task training with real model fitting and saving.
 
     Args:
         rec (Recorder): the recorder will be resumed
         experiment_name (str): the name of experiment
-        trusted_artifacts (bool): allow executable objects in a saved task only
+        trusted (bool): allow executable objects in a saved task only
             when its source and artifact store are trusted. Defaults to False.
 
     Returns:
         Recorder: the model recorder
     """
+    trusted = validate_trusted(trusted)
     with R.start(experiment_name=experiment_name, recorder_id=rec.info["id"], resume=True):
-        task_config = R.load_object("task", trusted=trusted_artifacts)
+        task_config = R.load_object("task", trusted=trusted)
         _exe_task(task_config)
     return rec
 
@@ -292,12 +294,10 @@ class TrainerR(Trainer):
         return models
 
 
-class DelayTrainerR(TrainerR):
+class DelayTrainerR(ArtifactTrustMixin, TrainerR):
     """
     A delayed implementation based on TrainerR, which means `train` method may only do some preparation and `end_train` method can do the real model fitting.
     """
-
-    trusted_artifacts = False
 
     def __init__(
         self,
@@ -305,7 +305,7 @@ class DelayTrainerR(TrainerR):
         train_func=begin_task_train,
         end_train_func=end_task_train,
         *,
-        trusted_artifacts: bool = False,
+        trusted: bool = False,
         **kwargs,
     ):
         """
@@ -315,12 +315,12 @@ class DelayTrainerR(TrainerR):
             experiment_name (str): the default name of experiment.
             train_func (Callable, optional): default train method. Defaults to `begin_task_train`.
             end_train_func (Callable, optional): default end_train method. Defaults to `end_task_train`.
-            trusted_artifacts (bool): explicitly trust saved task objects and
+            trusted (bool): explicitly trust saved task objects and
                 their artifact store when resuming training. Defaults to False.
         """
         super().__init__(experiment_name, train_func, **kwargs)
         self.end_train_func = end_train_func
-        self.trusted_artifacts = trusted_artifacts
+        self.trusted = validate_trusted(trusted)
         self.delay = True
 
     def end_train(self, models, end_train_func=None, experiment_name: str = None, **kwargs) -> List[Recorder]:
@@ -343,8 +343,7 @@ class DelayTrainerR(TrainerR):
             end_train_func = self.end_train_func
         if experiment_name is None:
             experiment_name = self.experiment_name
-        if self.trusted_artifacts is not False:
-            kwargs.setdefault("trusted_artifacts", self.trusted_artifacts)
+        self._set_trust_kwargs(kwargs)
         for rec in models:
             if rec.list_tags()[self.STATUS_KEY] == self.STATUS_END:
                 continue
@@ -503,13 +502,11 @@ class TrainerRM(Trainer):
         return True
 
 
-class DelayTrainerRM(TrainerRM):
+class DelayTrainerRM(ArtifactTrustMixin, TrainerRM):
     """
     A delayed implementation based on TrainerRM, which means `train` method may only do some preparation and `end_train` method can do the real model fitting.
 
     """
-
-    trusted_artifacts = False
 
     def __init__(
         self,
@@ -519,7 +516,7 @@ class DelayTrainerRM(TrainerRM):
         end_train_func=end_task_train,
         skip_run_task: bool = False,
         *,
-        trusted_artifacts: bool = False,
+        trusted: bool = False,
         **kwargs,
     ):
         """
@@ -530,7 +527,7 @@ class DelayTrainerRM(TrainerRM):
             task_pool (str): task pool name in TaskManager. None for use same name as experiment_name.
             train_func (Callable, optional): default train method. Defaults to `begin_task_train`.
             end_train_func (Callable, optional): default end_train method. Defaults to `end_task_train`.
-            trusted_artifacts (bool): explicitly trust saved task objects and
+            trusted (bool): explicitly trust saved task objects and
                 their artifact store in both end_train and worker. Defaults to False.
             skip_run_task (bool):
                 If skip_run_task == True:
@@ -539,7 +536,7 @@ class DelayTrainerRM(TrainerRM):
         """
         super().__init__(experiment_name, task_pool, train_func, **kwargs)
         self.end_train_func = end_train_func
-        self.trusted_artifacts = trusted_artifacts
+        self.trusted = validate_trusted(trusted)
         self.delay = True
         self.skip_run_task = skip_run_task
 
@@ -599,8 +596,7 @@ class DelayTrainerRM(TrainerRM):
             _id_list.append(rec.list_tags()[self.TM_ID])
 
         query = {"_id": {"$in": _id_list}}
-        if self.trusted_artifacts is not False:
-            kwargs.setdefault("trusted_artifacts", self.trusted_artifacts)
+        self._set_trust_kwargs(kwargs)
         if not self.skip_run_task:
             run_task(
                 end_train_func,
@@ -625,7 +621,7 @@ class DelayTrainerRM(TrainerRM):
             end_train_func (Callable, optional): the end_train method which need at least `recorders` and `experiment_name`. Defaults to None for using self.end_train_func.
             experiment_name (str): the experiment name, None for use default name.
             kwargs: parameters for end_train_func, including an explicit
-                trusted_artifacts override.
+                trusted override.
         """
         if end_train_func is None:
             end_train_func = self.end_train_func
@@ -634,8 +630,7 @@ class DelayTrainerRM(TrainerRM):
         task_pool = self.task_pool
         if task_pool is None:
             task_pool = experiment_name
-        if self.trusted_artifacts is not False:
-            kwargs.setdefault("trusted_artifacts", self.trusted_artifacts)
+        self._set_trust_kwargs(kwargs)
         run_task(
             end_train_func,
             task_pool=task_pool,

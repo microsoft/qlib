@@ -82,13 +82,13 @@ If you do not want to use ``Task Manager`` to manage tasks, then use TrainerR to
 Delayed training reloads saved task configurations from recorders. For tasks
 containing executable objects such as reweighters, first verify their writer and
 artifact store, then configure
-``DelayTrainerR(trusted_artifacts=True)`` or
-``DelayTrainerRM(trusted_artifacts=True)``. This consent is forwarded to delayed
+``DelayTrainerR(trusted=True)`` or
+``DelayTrainerRM(trusted=True)``. This consent is forwarded to delayed
 training completion, including the ``DelayTrainerRM`` worker. Direct callers can
-instead pass ``trusted_artifacts=True`` to ``end_task_train`` or ``end_train``.
+instead pass ``trusted=True`` to ``end_task_train`` or ``end_train``.
 Do not pass this constructor option to ordinary ``TrainerR`` or ``TrainerRM``.
 The option concerns recorder artifacts, not the independent trust requirements of
-MongoDB task contents. See :ref:`artifact_trust_migration`.
+MongoDB task contents. See :ref:`artifact_loading_migration`.
 
 Task Collecting
 ===============

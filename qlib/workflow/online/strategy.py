@@ -9,6 +9,7 @@ from typing import List, Union
 from qlib.log import get_module_logger
 from qlib.model.ens.group import RollingGroup
 from qlib.utils import transform_end_date
+from qlib.utils.pickle_utils import ArtifactTrustMixin, validate_trusted
 from qlib.workflow.online.utils import OnlineTool, OnlineToolR
 from qlib.workflow.recorder import Recorder
 from qlib.workflow.task.collect import Collector, RecorderCollector
@@ -89,13 +90,10 @@ class OnlineStrategy:
         raise NotImplementedError(f"Please implement the `get_collector` method.")
 
 
-class RollingStrategy(OnlineStrategy):
+class RollingStrategy(ArtifactTrustMixin, OnlineStrategy):
     """
     This example strategy always uses the latest rolling model sas online models.
     """
-
-    # Restored workflows from older versions must not gain implicit trust.
-    trusted_artifacts = False
 
     def __init__(
         self,
@@ -103,7 +101,7 @@ class RollingStrategy(OnlineStrategy):
         task_template: Union[dict, List[dict]],
         rolling_gen: RollingGen,
         *,
-        trusted_artifacts: bool = False,
+        trusted: bool = False,
     ):
         """
         Init RollingStrategy.
@@ -114,19 +112,19 @@ class RollingStrategy(OnlineStrategy):
             name_id (str): a unique name or id. Will be also the name of the Experiment.
             task_template (Union[dict, List[dict]]): a list of task_template or a single template, which will be used to generate many tasks using rolling_gen.
             rolling_gen (RollingGen): an instance of RollingGen
-            trusted_artifacts (bool): allow unrestricted task/model/dataset
+            trusted (bool): allow unrestricted task/model/dataset
                 loading for this strategy's trusted experiment. Data artifacts
                 remain restricted. Defaults to False.
         """
         super().__init__(name_id=name_id)
         self.exp_name = self.name_id
-        self.trusted_artifacts = trusted_artifacts
+        self.trusted = validate_trusted(trusted)
         if not isinstance(task_template, list):
             task_template = [task_template]
         self.task_template = task_template
         self.rg = rolling_gen
         assert issubclass(self.rg.__class__, RollingGen), "The rolling strategy relies on the feature if RollingGen"
-        self.tool = OnlineToolR(self.exp_name, trusted_artifacts=trusted_artifacts)
+        self.tool = OnlineToolR(self.exp_name, trusted=trusted)
         self.ta = TimeAdjuster()
 
     def get_collector(self, process_list=[RollingGroup()], rec_key_func=None, rec_filter_func=None, artifacts_key=None):
@@ -143,7 +141,7 @@ class RollingStrategy(OnlineStrategy):
         """
 
         def rec_key(recorder):
-            task_config = recorder.load_object("task", trusted=self.trusted_artifacts)
+            task_config = recorder.load_object("task", trusted=self.trusted)
             model_key = task_config["model"]["class"]
             rolling_key = task_config["dataset"]["kwargs"]["segments"]["test"]
             return model_key, rolling_key
@@ -193,7 +191,7 @@ class RollingStrategy(OnlineStrategy):
         )
         res = []
         for rec in latest_records:
-            task = rec.load_object("task", trusted=self.trusted_artifacts)
+            task = rec.load_object("task", trusted=self.trusted)
             res.extend(self.rg.gen_following_tasks(task, calendar_latest))
         return res
 
@@ -210,14 +208,10 @@ class RollingStrategy(OnlineStrategy):
         if len(rec_list) == 0:
             return rec_list, None
         max_test = max(
-            rec.load_object("task", trusted=self.trusted_artifacts)["dataset"]["kwargs"]["segments"]["test"]
-            for rec in rec_list
+            rec.load_object("task", trusted=self.trusted)["dataset"]["kwargs"]["segments"]["test"] for rec in rec_list
         )
         latest_rec = []
         for rec in rec_list:
-            if (
-                rec.load_object("task", trusted=self.trusted_artifacts)["dataset"]["kwargs"]["segments"]["test"]
-                == max_test
-            ):
+            if rec.load_object("task", trusted=self.trusted)["dataset"]["kwargs"]["segments"]["test"] == max_test:
                 latest_rec.append(rec)
         return latest_rec, max_test

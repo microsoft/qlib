@@ -113,10 +113,10 @@ def test_ddgda_full_workflow(workflow_context, sim_task_model, monkeypatch):
     previous_rng = torch.get_rng_state()
     try:
         torch.set_num_threads(1)
-        with pytest.raises(pickle.UnpicklingError, match="trusted_artifacts=True"):
+        with pytest.raises(pickle.UnpicklingError, match="trusted=True"):
             workflow.run()
         assert not workflow._internal_data_path.exists()
-        workflow.trusted_artifacts = True
+        workflow.trusted = True
         with parallel_backend("threading"), pytest.warns(UnsafeArtifactWarning):
             workflow.run()
     finally:
@@ -134,7 +134,7 @@ def test_ddgda_full_workflow(workflow_context, sim_task_model, monkeypatch):
     if sim_task_model == "gbdt":
         for similarity_recorder in similarity_recorders.values():
             with pytest.warns(UnsafeArtifactWarning):
-                similarity_model = RMDLoader(similarity_recorder, trusted_artifacts=True).get_model()
+                similarity_model = RMDLoader(similarity_recorder, trusted=True).get_model()
             assert similarity_model.early_stopping_rounds is None
             assert similarity_model.num_boost_round == 150
             assert similarity_model.model.num_trees() > 1
@@ -172,7 +172,7 @@ def test_ddgda_full_workflow(workflow_context, sim_task_model, monkeypatch):
             recorder.load_object("task")
         with pytest.warns(UnsafeArtifactWarning):
             task = recorder.load_object("task", trusted=True)
-            model = RMDLoader(recorder, trusted_artifacts=True).get_model()
+            model = RMDLoader(recorder, trusted=True).get_model()
             dataset = recorder.load_object("dataset", trusted=True)
         assert isinstance(task["reweighter"], TimeReweighter)
         assert np.isfinite(task["reweighter"].time_weight).all()
@@ -194,7 +194,7 @@ def test_ddgda_full_workflow(workflow_context, sim_task_model, monkeypatch):
     with pytest.raises(LoadObjectError, match="TimeReweighter"):
         replay_trainer.end_train(replay_records)
     with pytest.warns(UnsafeArtifactWarning):
-        replay_trainer.end_train(replay_records, trusted_artifacts=True)
+        replay_trainer.end_train(replay_records, trusted=True)
     for task, replay_recorder in zip(saved_tasks, replay_records):
         replay_prediction = replay_recorder.load_object("pred.pkl").iloc[:, 0]
         expected = rolling_predictions[tuple(task["dataset"]["kwargs"]["segments"]["test"])]
@@ -234,15 +234,15 @@ def test_ddgda_cache_requires_explicit_trust(tmp_path):
     expected = InternalData({}, 20, "unused")
     path.write_bytes(pickle.dumps(expected))
     workflow = object.__new__(DDGDA)
-    with pytest.raises(pickle.UnpicklingError, match="trusted_artifacts=True"):
+    with pytest.raises(pickle.UnpicklingError, match="trusted=True"):
         workflow._load_cache(path)
-    workflow.trusted_artifacts = True
+    workflow.trusted = True
     with pytest.warns(UnsafeArtifactWarning, match="cache source and storage"):
         actual = workflow._load_cache(path)
     assert isinstance(actual, InternalData)
     assert actual.__dict__ == expected.__dict__
-    workflow.trusted_artifacts = False
-    with pytest.raises(pickle.UnpicklingError, match="trusted_artifacts=True"):
+    workflow.trusted = False
+    with pytest.raises(pickle.UnpicklingError, match="trusted=True"):
         workflow._load_cache(path)
 
 
@@ -250,27 +250,27 @@ def test_ddgda_external_cache_keeps_a_reloadable_reference(tmp_path):
     path = tmp_path / "handler.pkl"
     expected = {"data": [1, 2, 3]}
     path.write_bytes(pickle.dumps(expected))
-    workflow = DDGDA(conf_path=tmp_path / "unused.yaml", h_path=path, trusted_artifacts=True)
+    workflow = DDGDA(conf_path=tmp_path / "unused.yaml", h_path=path, trusted=True)
     task = {"dataset": {"kwargs": {"handler": "replaced-by-h-path"}}}
     task = workflow._replace_handler_with_cache(task)
     for model_type in ("linear", "gbdt"):
         workflow._adjust_task(task, model_type)
         task = workflow._replace_handler_with_cache(task, tmp_path / "unused")
         handler = task["dataset"]["kwargs"]["handler"]
-        assert handler["kwargs"] == {"path": str(path), "trusted_artifacts": True}
+        assert handler["kwargs"] == {"path": str(path), "trusted": True}
         with pytest.warns(UnsafeArtifactWarning):
             assert init_instance_by_config(handler) == expected
     assert not (tmp_path / "unused").exists()
-    workflow.trusted_artifacts = False
+    workflow.trusted = False
     task = workflow._replace_handler_with_cache(task)
-    assert task["dataset"]["kwargs"]["handler"]["kwargs"]["trusted_artifacts"] is False
+    assert task["dataset"]["kwargs"]["handler"]["kwargs"]["trusted"] is False
     assert init_instance_by_config(task["dataset"]["kwargs"]["handler"]) == expected
 
 
 @pytest.mark.parametrize("value", ["false", 0, 1, None, np.bool_(True)])
 def test_ddgda_cache_rejects_non_boolean_trust(tmp_path, value):
     workflow = object.__new__(DDGDA)
-    workflow.trusted_artifacts = value
+    workflow.trusted = value
     with pytest.raises(TypeError, match="must be a bool"):
         workflow._load_cache(tmp_path / "not-opened.pkl")
 

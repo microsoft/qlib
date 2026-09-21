@@ -17,7 +17,7 @@ from datetime import datetime
 from qlib.utils.serial import Serializable
 from qlib.utils.exceptions import LoadObjectError
 from qlib.utils.paral import AsyncCaller
-from qlib.utils.pickle_utils import RestrictedUnpickler
+from qlib.utils.pickle_utils import ARTIFACT_MIGRATION_URL, RestrictedUnpickler, validate_trusted
 
 from ..log import TimeInspector, get_module_logger
 from mlflow.store.artifact.azure_blob_artifact_repo import AzureBlobArtifactRepository
@@ -440,8 +440,7 @@ class MLflowRecorder(Recorder):
         """
         assert self.uri is not None, "Please start the experiment and recorder first before using recorder directly."
 
-        if not isinstance(trusted, bool):
-            raise TypeError("`trusted` must be a bool")
+        trusted = validate_trusted(trusted)
         if trusted and unpickler is not None:
             raise ValueError("`trusted` and `unpickler` cannot be used together")
 
@@ -470,11 +469,13 @@ class MLflowRecorder(Recorder):
             return data
         except pickle.UnpicklingError as e:
             if not trusted and unpickler is None:
+                guide = "" if ARTIFACT_MIGRATION_URL in str(e) else f" Migration guide: {ARTIFACT_MIGRATION_URL}"
                 raise LoadObjectError(
                     f"Restricted loading of artifact {name!r} failed: {e}. "
                     "Use a supported data representation, or explicitly set trusted=True "
-                    "(trusted_artifacts=True on a workflow) only when both the artifact "
+                    "on load_object() or the workflow entry point only when both the artifact "
                     "source and storage are trusted. Unrestricted pickle may execute arbitrary code."
+                    f"{guide}"
                 ) from e
             raise LoadObjectError(str(e)) from e
         except Exception as e:

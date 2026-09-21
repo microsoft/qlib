@@ -50,11 +50,11 @@ class TestRolling(TestAutoData):
 
         pred = rec.load_object("pred.pkl")
 
-        with pytest.raises(LoadObjectError, match="trusted_artifacts=True"):
+        with pytest.raises(LoadObjectError, match="trusted=True"):
             PredUpdater(rec, from_date=latest_date - pd.Timedelta(days=20)).update()
         pd.testing.assert_frame_equal(rec.load_object("pred.pkl"), pred)
 
-        online_tool = OnlineToolR(exp_name, trusted_artifacts=True)
+        online_tool = OnlineToolR(exp_name, trusted=True)
         online_tool.reset_online_tag(rec)  # set to online model
 
         online_tool.update_online_pred(to_date=latest_date + pd.Timedelta(days=10))
@@ -116,9 +116,9 @@ class TestRolling(TestAutoData):
 
         pred = rec.load_object("pred.pkl")
 
-        online_tool = OnlineToolR(exp_name, trusted_artifacts=True)
+        online_tool = OnlineToolR(exp_name, trusted=True)
         online_tool.reset_online_tag(rec)  # set to online model
-        with pytest.raises(LoadObjectError, match="trusted_artifacts=True"):
+        with pytest.raises(LoadObjectError, match="trusted=True"):
             OnlineToolR(exp_name).update_online_pred()
         pd.testing.assert_frame_equal(rec.load_object("pred.pkl"), pred)
         online_tool.update_online_pred()
@@ -132,10 +132,10 @@ class TestRolling(TestAutoData):
         self.assertTrue(label_date < pred_date)
 
         # Update label now
-        with pytest.raises(LoadObjectError, match="trusted_artifacts=True"):
+        with pytest.raises(LoadObjectError, match="trusted=True"):
             LabelUpdater(rec).update()
         pd.testing.assert_frame_equal(rec.load_object("label.pkl"), label)
-        lu = LabelUpdater(rec, trusted_artifacts=True)
+        lu = LabelUpdater(rec, trusted=True)
         lu.update()
         new_label = rec.load_object("label.pkl")
         new_label_date = new_label.index.get_level_values("datetime").max()

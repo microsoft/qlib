@@ -18,7 +18,14 @@ task:
 
 This path follows the example's convention of running from `examples/`; adjust it
 to your working directory. `stock2concept` is a separate numeric matrix and still
-uses `.npy`. Do not rename or replace that matrix with the JSON mapping.
+uses a two-dimensional `.npy` loaded without pickle. Do not rename or replace that
+matrix with the JSON mapping. It must include the unknown-stock row **733** (at
+least **734 rows**), and all mapped indices must be within its row bounds.
+
+A previously saved HIST model retains its own path. After independently trusting
+and restoring it, update `model.stock_index` to the matching JSON file before
+prediction or further fitting. Changing YAML alone does not update a restored
+model. Preserve all 735 bundled entries and their original matrix row assignments.
 
 For a **known-trusted custom mapping**, re-export it from your original trusted
 metadata or producer into a JSON object:
@@ -37,7 +44,7 @@ Changing the filename extension alone does not convert the contents. HIST
 deliberately rejects the old object format because it requires executable pickle
 deserialization; there is no fallback or recorder trust flag that re-enables it.
 
-See the [recorder migration guide](https://qlib.readthedocs.io/en/latest/component/recorder.html#artifact-trust-migration)
+See the [artifact loading migration guide](https://qlib.readthedocs.io/en/latest/start/artifact_migration.html)
 for the separate policy on model/dataset artifacts. The JSON mapping change does
 not make pre-existing local model checkpoints or other pickle loaders safe; those
 inputs still require independent trust.

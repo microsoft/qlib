@@ -16,7 +16,13 @@ from qlib.model.meta.task import MetaTask
 from qlib.model.trainer import TrainerR
 from qlib.typehint import Literal
 from qlib.utils import init_instance_by_config
-from qlib.utils.pickle_utils import restricted_pickle_load
+from qlib.utils.pickle_utils import (
+    ARTIFACT_MIGRATION_URL,
+    ArtifactTrustMixin,
+    _migrate_trust_state,
+    restricted_pickle_load,
+    validate_trusted,
+)
 from qlib.workflow import R
 from qlib.workflow.recorder import UnsafeArtifactWarning
 from qlib.workflow.task.utils import replace_task_handler_with_cache
@@ -69,16 +75,22 @@ PROC_ARGS = yaml.load(PROC_ARGS, Loader=yaml.FullLoader)
 
 UTIL_MODEL_TYPE = Literal["linear", "gbdt"]
 _CACHE_LOADER = "qlib.contrib.rolling.ddgda._load_cache"
+_UNSET = object()
 
 
-def _load_cache(path, *, trusted_artifacts=False):
-    if not isinstance(trusted_artifacts, bool):
-        raise TypeError("`trusted_artifacts` must be a bool")
+def _load_cache(path, *, trusted=_UNSET, **legacy_options):
+    # Only this serialized factory accepts the pre-release keyword; public APIs use trusted.
+    unexpected = set(legacy_options) - {"trusted_artifacts"}
+    if unexpected:
+        raise TypeError(f"Unexpected cache loading options: {sorted(unexpected)}")
+    if trusted is not _UNSET:
+        legacy_options["trusted"] = trusted
+    trusted = validate_trusted(_migrate_trust_state(legacy_options).get("trusted", False))
     with Path(path).open("rb") as stream:
-        if trusted_artifacts:
+        if trusted:
             warnings.warn(
                 "Loading a trusted DDG-DA pickle cache may execute arbitrary code. "
-                "Only use trusted_artifacts=True when the cache source and storage are trusted.",
+                "Only use trusted=True when the cache source and storage are trusted.",
                 UnsafeArtifactWarning,
                 stacklevel=2,
             )
@@ -86,13 +98,15 @@ def _load_cache(path, *, trusted_artifacts=False):
         try:
             return restricted_pickle_load(stream)
         except pickle.UnpicklingError as error:
+            guide = "" if ARTIFACT_MIGRATION_URL in str(error) else f" Migration guide: {ARTIFACT_MIGRATION_URL}"
             raise pickle.UnpicklingError(
                 f"Restricted loading of DDG-DA cache {str(path)!r} failed: {error}. "
-                "Set trusted_artifacts=True only when the cache source and storage are trusted."
+                "Set trusted=True at the DDGDA workflow entry point only when the cache source and storage are trusted. "
+                f"{guide}"
             ) from error
 
 
-class DDGDA(Rolling):
+class DDGDA(ArtifactTrustMixin, Rolling):
     """
     It is a rolling based on DDG-DA
 
@@ -100,8 +114,6 @@ class DDGDA(Rolling):
     before running the example, please clean your previous results with following command
     - `rm -r mlruns`
     """
-
-    trusted_artifacts = False
 
     def __init__(
         self,
@@ -114,7 +126,7 @@ class DDGDA(Rolling):
         segments: Union[float, str] = 0.62,
         hist_step_n: int = 30,
         working_dir: Optional[Union[str, Path]] = None,
-        trusted_artifacts: bool = False,
+        trusted: bool = False,
         **kwargs,
     ):
         """
@@ -137,7 +149,7 @@ class DDGDA(Rolling):
                 The ratio of training data in the meta task dataset
             if segments is a string:
                 it will try its best to put its data in training and ensure that the date `segments` is in the test set
-        trusted_artifacts : bool
+        trusted : bool
             Explicitly allow executable task/meta-model objects from trusted
             MLflow storage and handler/internal-data pickle caches from trusted
             local storage. Defaults to False. Predictions remain restricted.
@@ -145,7 +157,7 @@ class DDGDA(Rolling):
         # NOTE:
         # the horizon must match the meaning in the base task template
         self.meta_exp_name = "DDG-DA"
-        self.trusted_artifacts = trusted_artifacts
+        self.trusted = validate_trusted(trusted)
         self.sim_task_model: UTIL_MODEL_TYPE = sim_task_model  # The model to capture the distribution of data.
         self.alpha = alpha
         self.meta_1st_train_end = meta_1st_train_end
@@ -159,12 +171,13 @@ class DDGDA(Rolling):
         self.hist_step_n = hist_step_n
 
     def _load_cache(self, path):
-        return _load_cache(path, trusted_artifacts=self.trusted_artifacts)
+        return _load_cache(path, trusted=self.trusted)
 
     def _replace_handler_with_cache(self, task, cache_dir=None):
         handler = task["dataset"]["kwargs"]["handler"]
         if isinstance(handler, dict) and handler.get("class") == _CACHE_LOADER:
-            handler["kwargs"]["trusted_artifacts"] = self.trusted_artifacts
+            handler["kwargs"] = _migrate_trust_state(handler["kwargs"])
+            handler["kwargs"]["trusted"] = self.trusted
             return task
         if cache_dir is None:
             task = super()._replace_handler_with_cache(task)
@@ -177,7 +190,7 @@ class DDGDA(Rolling):
             # Keep tasks lightweight and reloadable after training changes the handler's serialization settings.
             task["dataset"]["kwargs"]["handler"] = {
                 "class": _CACHE_LOADER,
-                "kwargs": {"path": str(handler), "trusted_artifacts": self.trusted_artifacts},
+                "kwargs": {"path": str(handler), "trusted": self.trusted},
             }
         return task
 
@@ -303,7 +316,7 @@ class DDGDA(Rolling):
         exp_name_sim = f"data_sim_s{self.step}"
 
         internal_data = InternalData(sim_task, self.step, exp_name=exp_name_sim)
-        internal_data.setup(trainer=TrainerR, trusted_artifacts=self.trusted_artifacts)
+        internal_data.setup(trainer=TrainerR, trusted=self.trusted)
 
         with self._internal_data_path.open("wb") as f:
             pickle.dump(internal_data, f)
@@ -389,7 +402,7 @@ class DDGDA(Rolling):
         # 1) get meta model
         exp = R.get_exp(experiment_name=self.meta_exp_name)
         rec = exp.list_recorders(rtype=exp.RT_L)[0]
-        meta_model: MetaModelDS = rec.load_object("model", trusted=self.trusted_artifacts)
+        meta_model: MetaModelDS = rec.load_object("model", trusted=self.trusted)
 
         # 2)
         # we are transfer to knowledge of meta model to final forecasting tasks.
