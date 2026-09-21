@@ -2,6 +2,28 @@ Changelog
 =========
 Here you can see the full list of changes between each QLib release.
 
+Unreleased
+----------
+
+Configuration-driven execution
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- **Breaking change:** loading a local ``.py`` module through configuration now
+  requires a sequence of ``trusted_module_roots`` in ``qlib.init`` / ``qlib_init``.
+  Package imports are unchanged. Scripts loading YAML must forward these initialization
+  options. See :ref:`config_file_modules` and :ref:`trusted_module_roots`, including
+  the pre-import requirement for trusted older file-based model artifacts.
+- Feature expressions use a restricted AST interpreter instead of Python ``eval``.
+  Registered operators and standard Alpha158/Alpha360 definitions remain supported,
+  as do bounded literal containers, argument expansion, indexing/slicing, and scalar
+  conditions. Arbitrary Python execution and Python truth-value tests on expression
+  objects are not supported. See :ref:`expression_syntax` for supported syntax,
+  limits, and migration examples.
+- Built-in TRA model names and model-performance graph names use explicit mappings.
+  Custom extensions must update the corresponding mapping rather than relying on
+  dynamically evaluated module globals. Configuration and extension code must still
+  be trusted; these changes do not create a sandbox.
+
 Version 0.1.0
 -------------
 This is the initial release of QLib library.

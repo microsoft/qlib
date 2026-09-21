@@ -19,8 +19,11 @@ import hashlib
 import datetime
 import requests
 import collections
+import tokenize
 import numpy as np
 import pandas as pd
+from io import StringIO
+from keyword import iskeyword
 from pathlib import Path
 from typing import List, Union, Optional, Callable
 from packaging import version
@@ -274,6 +277,17 @@ def hash_args(*args):
     return hashlib.md5(string.encode()).hexdigest()
 
 
+def _field_tokens(field):
+    offsets = [0]
+    for line in StringIO(field):
+        offsets.append(offsets[-1] + len(line))
+    for token in tokenize.generate_tokens(StringIO(field).readline):
+        if token.string:
+            start = offsets[token.start[0] - 1] + token.start[1]
+            end = offsets[token.end[0] - 1] + token.end[1]
+            yield token, start, end
+
+
 def parse_field(field):
     # Following patterns will be matched:
     # - $close -> Feature("close")
@@ -290,16 +304,32 @@ def parse_field(field):
     # \uff08 -> (
     # \uff09 -> )
     chinese_punctuation_regex = r"\u3001\uff1a\uff08\uff09"
-    for pattern, new in [
+    patterns = [
         (
             rf"\$\$([\w{chinese_punctuation_regex}]+)",
             r'PFeature("\1")',
         ),  # $$ must be before $
         (rf"\$([\w{chinese_punctuation_regex}]+)", r'Feature("\1")'),
-        (r"(\w+\s*)\(", r"Operators.\1("),
-    ]:  # Features  # Operators
-        field = re.sub(pattern, new, field)
-    return field
+        (
+            r"\b(\w+)(\s*)\(",
+            lambda match: match.group(0) if iskeyword(match.group(1)) else f"Operators.{match.group(0)}",
+        ),
+    ]
+
+    def replace_code(source):
+        for pattern, replacement in patterns:
+            source = re.sub(pattern, replacement, source)
+        return source
+
+    # Only rewrite code, never feature-like text inside string arguments.
+    parts = []
+    cursor = 0
+    for token, start, end in _field_tokens(field):
+        if token.type in (tokenize.STRING, tokenize.COMMENT):
+            parts.extend((replace_code(field[cursor:start]), field[start:end]))
+            cursor = end
+    parts.append(replace_code(field[cursor:]))
+    return "".join(parts)
 
 
 def compare_dict_value(src_data: dict, dst_data: dict):
@@ -336,15 +366,43 @@ def remove_repeat_field(fields):
     return sorted(_fields, key=fields.index)
 
 
+def _remove_field_space(field):
+    parts = []
+    cursor = 0
+    previous = None
+    word_types = (tokenize.NAME, tokenize.NUMBER, tokenize.STRING)
+    for token, start, end in _field_tokens(field):
+        if token.type in (tokenize.ERRORTOKEN, tokenize.INDENT) and token.string.isspace():
+            continue
+        gap = field[cursor:start].replace(" ", "")
+        if previous is not None and start > cursor and not gap:
+            # Keep token boundaries: "1 if", string prefixes, and "* *" must not merge.
+            if (
+                previous.type in word_types
+                and (token.type in word_types or token.string == "$")
+                or previous.string + token.string in tokenize.EXACT_TOKEN_TYPES
+                or previous.type == tokenize.NUMBER
+                and token.string == "."
+                or previous.string == "."
+                and (token.type == tokenize.NUMBER or token.string == ".")
+            ):
+                gap = " "
+        parts.extend((gap, field[start:end]))
+        cursor = end
+        previous = token
+    parts.append(field[cursor:].replace(" ", ""))
+    return "".join(parts)
+
+
 def remove_fields_space(fields: [list, str, tuple]):
-    """remove fields space
+    """Remove unnecessary spaces without changing literals or expression syntax.
 
     :param fields: features fields
     :return: list or str
     """
     if isinstance(fields, str):
-        return fields.replace(" ", "")
-    return [i.replace(" ", "") if isinstance(i, str) else str(i) for i in fields]
+        return _remove_field_space(fields)
+    return [_remove_field_space(i) if isinstance(i, str) else str(i) for i in fields]
 
 
 def normalize_cache_fields(fields: [list, tuple]):

@@ -41,6 +41,19 @@ This section is used to reproduce the results in the paper.
 
 We attach our running scripts for the paper in `run.sh`.
 
+Run the commands below from `examples/benchmarks/TRA`. The legacy configurations
+load `src/model.py` and `src/dataset.py`, so they declare
+`qlib_init.trusted_module_roots: [.]`. This authorizes code under the current
+working directory; it is not relative to the YAML file. Only use these settings
+with code and configurations you trust.
+
+If you copied an older configuration or `example.py`, update both: add the
+trusted directory sequence and forward the full initialization section with
+`qlib.init(**config["qlib_init"])`. See the
+[file-module migration guide](../../../docs/component/workflow.rst#custom-modules-and-migration).
+The legacy `model_type: LSTM` belongs to `src/model.py`; do not rename it just
+because the separate built-in TRA implementation supports `RNN` and `Transformer`.
+
 And here are two ways to run the model:
 
 * Running from scripts with default parameters
