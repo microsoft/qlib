@@ -11,7 +11,7 @@ from typing import List, Union
 
 from qlib.log import get_module_logger
 from qlib.utils.exceptions import LoadObjectError
-from qlib.utils.pickle_utils import ArtifactTrustMixin, validate_trusted
+from qlib.utils.pickle_utils import validate_trusted
 from qlib.workflow.online.update import PredUpdater
 from qlib.workflow.recorder import Recorder
 from qlib.workflow.task.utils import list_recorders
@@ -85,10 +85,12 @@ class OnlineTool:
         raise NotImplementedError(f"Please implement the `update_online_pred` method.")
 
 
-class OnlineToolR(ArtifactTrustMixin, OnlineTool):
+class OnlineToolR(OnlineTool):
     """
     The implementation of OnlineTool based on (R)ecorder.
     """
+
+    trusted = False
 
     def __init__(self, default_exp_name: str = None, *, trusted: bool = False):
         """

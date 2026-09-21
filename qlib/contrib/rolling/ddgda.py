@@ -18,8 +18,6 @@ from qlib.typehint import Literal
 from qlib.utils import init_instance_by_config
 from qlib.utils.pickle_utils import (
     ARTIFACT_MIGRATION_URL,
-    ArtifactTrustMixin,
-    _migrate_trust_state,
     restricted_pickle_load,
     validate_trusted,
 )
@@ -75,17 +73,10 @@ PROC_ARGS = yaml.load(PROC_ARGS, Loader=yaml.FullLoader)
 
 UTIL_MODEL_TYPE = Literal["linear", "gbdt"]
 _CACHE_LOADER = "qlib.contrib.rolling.ddgda._load_cache"
-_UNSET = object()
 
 
-def _load_cache(path, *, trusted=_UNSET, **legacy_options):
-    # Only this serialized factory accepts the pre-release keyword; public APIs use trusted.
-    unexpected = set(legacy_options) - {"trusted_artifacts"}
-    if unexpected:
-        raise TypeError(f"Unexpected cache loading options: {sorted(unexpected)}")
-    if trusted is not _UNSET:
-        legacy_options["trusted"] = trusted
-    trusted = validate_trusted(_migrate_trust_state(legacy_options).get("trusted", False))
+def _load_cache(path, *, trusted: bool = False):
+    trusted = validate_trusted(trusted)
     with Path(path).open("rb") as stream:
         if trusted:
             warnings.warn(
@@ -106,7 +97,7 @@ def _load_cache(path, *, trusted=_UNSET, **legacy_options):
             ) from error
 
 
-class DDGDA(ArtifactTrustMixin, Rolling):
+class DDGDA(Rolling):
     """
     It is a rolling based on DDG-DA
 
@@ -114,6 +105,8 @@ class DDGDA(ArtifactTrustMixin, Rolling):
     before running the example, please clean your previous results with following command
     - `rm -r mlruns`
     """
+
+    trusted = False
 
     def __init__(
         self,
@@ -176,7 +169,6 @@ class DDGDA(ArtifactTrustMixin, Rolling):
     def _replace_handler_with_cache(self, task, cache_dir=None):
         handler = task["dataset"]["kwargs"]["handler"]
         if isinstance(handler, dict) and handler.get("class") == _CACHE_LOADER:
-            handler["kwargs"] = _migrate_trust_state(handler["kwargs"])
             handler["kwargs"]["trusted"] = self.trusted
             return task
         if cache_dir is None:

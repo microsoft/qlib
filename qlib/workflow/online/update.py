@@ -14,15 +14,17 @@ from qlib.data.dataset import Dataset, DatasetH, TSDatasetH
 from qlib.data.dataset.handler import DataHandlerLP
 from qlib.model import Model
 from qlib.utils import get_date_by_shift
-from qlib.utils.pickle_utils import ArtifactTrustMixin, validate_trusted
+from qlib.utils.pickle_utils import validate_trusted
 from qlib.workflow.recorder import Recorder
 from qlib.workflow.record_temp import SignalRecord
 
 
-class RMDLoader(ArtifactTrustMixin):
+class RMDLoader:
     """
     Recorder Model Dataset Loader
     """
+
+    trusted = False
 
     def __init__(self, rec: Recorder, *, trusted: bool = False):
         """Only enable ``trusted`` for trusted model/dataset storage."""
@@ -82,7 +84,7 @@ class RecordUpdater(metaclass=ABCMeta):
         """
 
 
-class DSBasedUpdater(ArtifactTrustMixin, RecordUpdater, metaclass=ABCMeta):
+class DSBasedUpdater(RecordUpdater, metaclass=ABCMeta):
     """
     Dataset-Based Updater
 
@@ -103,6 +105,8 @@ class DSBasedUpdater(ArtifactTrustMixin, RecordUpdater, metaclass=ABCMeta):
             2021-05-28 SZ300498    0.015748
                        SZ300676   -0.001321
     """
+
+    trusted = False
 
     def __init__(
         self,

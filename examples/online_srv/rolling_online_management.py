@@ -14,7 +14,7 @@ import os
 import fire
 import qlib
 from qlib.model.trainer import DelayTrainerR, DelayTrainerRM, TrainerR, TrainerRM, end_task_train, task_train
-from qlib.utils.pickle_utils import ArtifactTrustMixin, validate_trusted
+from qlib.utils.pickle_utils import validate_trusted
 from qlib.workflow import R
 from qlib.workflow.online.strategy import RollingStrategy
 from qlib.workflow.task.gen import RollingGen
@@ -23,7 +23,9 @@ from qlib.tests.config import CSI100_RECORD_XGBOOST_TASK_CONFIG_ROLLING, CSI100_
 from qlib.workflow.task.manage import TaskManager
 
 
-class RollingOnlineExample(ArtifactTrustMixin):
+class RollingOnlineExample:
+    trusted = False
+
     def __init__(
         self,
         provider_uri="~/.qlib/qlib_data/cn_data",

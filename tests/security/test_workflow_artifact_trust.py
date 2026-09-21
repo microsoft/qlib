@@ -251,8 +251,8 @@ def test_delayed_trainers_allow_per_call_end_function_and_experiment(delayed_bac
 
 
 @pytest.mark.parametrize("mode", ["recorder", "task-manager", "worker"])
-@pytest.mark.parametrize("options", [{"trusted_artifacts": True}, {"trusted": "false"}, {"trusted": 1}])
-def test_delayed_completion_rejects_old_keyword_and_invalid_consent(delayed_backend, mode, options):
+@pytest.mark.parametrize("options", [{"trusted": "false"}, {"trusted": 1}])
+def test_delayed_completion_rejects_invalid_consent(delayed_backend, mode, options):
     finish = Mock()
     with pytest.raises(TypeError, match="trusted"):
         _finish_delayed(delayed_backend, mode, finish, {}, options)

@@ -9,7 +9,7 @@ from typing import List, Union
 from qlib.log import get_module_logger
 from qlib.model.ens.group import RollingGroup
 from qlib.utils import transform_end_date
-from qlib.utils.pickle_utils import ArtifactTrustMixin, validate_trusted
+from qlib.utils.pickle_utils import validate_trusted
 from qlib.workflow.online.utils import OnlineTool, OnlineToolR
 from qlib.workflow.recorder import Recorder
 from qlib.workflow.task.collect import Collector, RecorderCollector
@@ -90,10 +90,12 @@ class OnlineStrategy:
         raise NotImplementedError(f"Please implement the `get_collector` method.")
 
 
-class RollingStrategy(ArtifactTrustMixin, OnlineStrategy):
+class RollingStrategy(OnlineStrategy):
     """
     This example strategy always uses the latest rolling model sas online models.
     """
+
+    trusted = False
 
     def __init__(
         self,

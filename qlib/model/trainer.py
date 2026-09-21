@@ -28,10 +28,17 @@ from qlib.utils import (
     init_instance_by_config,
 )
 from qlib.utils.paral import call_in_subproc
-from qlib.utils.pickle_utils import ArtifactTrustMixin, validate_trusted
+from qlib.utils.pickle_utils import validate_trusted
 from qlib.workflow import R
 from qlib.workflow.recorder import Recorder
 from qlib.workflow.task.manage import TaskManager, run_task
+
+
+def _set_trust_kwargs(kwargs: dict, trusted: bool) -> None:
+    if "trusted" in kwargs:
+        validate_trusted(kwargs["trusted"])
+    elif trusted is not False:
+        kwargs["trusted"] = validate_trusted(trusted)
 
 
 def _log_task_info(task_config: dict):
@@ -294,10 +301,12 @@ class TrainerR(Trainer):
         return models
 
 
-class DelayTrainerR(ArtifactTrustMixin, TrainerR):
+class DelayTrainerR(TrainerR):
     """
     A delayed implementation based on TrainerR, which means `train` method may only do some preparation and `end_train` method can do the real model fitting.
     """
+
+    trusted = False
 
     def __init__(
         self,
@@ -343,7 +352,7 @@ class DelayTrainerR(ArtifactTrustMixin, TrainerR):
             end_train_func = self.end_train_func
         if experiment_name is None:
             experiment_name = self.experiment_name
-        self._set_trust_kwargs(kwargs)
+        _set_trust_kwargs(kwargs, self.trusted)
         for rec in models:
             if rec.list_tags()[self.STATUS_KEY] == self.STATUS_END:
                 continue
@@ -502,11 +511,13 @@ class TrainerRM(Trainer):
         return True
 
 
-class DelayTrainerRM(ArtifactTrustMixin, TrainerRM):
+class DelayTrainerRM(TrainerRM):
     """
     A delayed implementation based on TrainerRM, which means `train` method may only do some preparation and `end_train` method can do the real model fitting.
 
     """
+
+    trusted = False
 
     def __init__(
         self,
@@ -596,7 +607,7 @@ class DelayTrainerRM(ArtifactTrustMixin, TrainerRM):
             _id_list.append(rec.list_tags()[self.TM_ID])
 
         query = {"_id": {"$in": _id_list}}
-        self._set_trust_kwargs(kwargs)
+        _set_trust_kwargs(kwargs, self.trusted)
         if not self.skip_run_task:
             run_task(
                 end_train_func,
@@ -630,7 +641,7 @@ class DelayTrainerRM(ArtifactTrustMixin, TrainerRM):
         task_pool = self.task_pool
         if task_pool is None:
             task_pool = experiment_name
-        self._set_trust_kwargs(kwargs)
+        _set_trust_kwargs(kwargs, self.trusted)
         run_task(
             end_train_func,
             task_pool=task_pool,

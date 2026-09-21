@@ -153,28 +153,6 @@ constructor or CLI flag does not overwrite a manager subsequently restored from
 disk. ``add_strategy`` applies the current flag to new strategies only. There is
 no manager-wide permission or revocation.
 
-Pre-release trial artifact compatibility
------------------------------------------
-
-The earlier PR trial spelling ``trusted_artifacts`` was not a released API. New
-public constructor keywords and CLI flags must use ``trusted``; there is no
-public alias and ``--trusted_artifacts`` is not supported.
-
-A narrow compatibility path supports saved workflow objects from those trials:
-boolean ``trusted_artifacts`` state migrates to ``trusted`` with a visible
-``FutureWarning`` linking to this guide. Missing fields default to ``False``;
-non-booleans and conflicting old/new values are rejected rather than guessed.
-Saving those workflow objects again writes only ``trusted`` in their trust state.
-The private DDG-DA cache-loader factory also interprets the old keyword in saved
-configurations with a warning at that boundary only. It does not rewrite the
-caller's plain dictionary or saved file: simply re-saving an old task dictionary
-does not rename its keys. Cache-loader configurations generated or regenerated
-through the workflow use ``trusted``.
-
-This support is for trial artifacts, not a reason to keep using the old spelling
-or to trust an unknown pickle. Previously released objects without either flag
-remain fail closed.
-
 DDG-DA caches and exported tasks
 ================================
 
