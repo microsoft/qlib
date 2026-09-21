@@ -205,7 +205,8 @@ class TestCIConfiguration(unittest.TestCase):
                 self.assertTrue(downloads)
                 for step in downloads:
                     options = step["with"]
-                    self.assertEqual(options["max_attempts"], 3)
+                    self.assertEqual(options["max_attempts"], 5)
+                    self.assertEqual(options["retry_wait_seconds"], 60)
                     self.assertEqual(options["timeout_minutes"], 15)
                     self.assertEqual(options["shell"], "bash")
                     commands = options["command"]
@@ -216,6 +217,33 @@ class TestCIConfiguration(unittest.TestCase):
                             self.assertIs(ast.literal_eval(args[args.index("--delete_old") + 1]), False)
                     if len(commands.splitlines()) > 1:
                         self.assertIn("set -euo pipefail", commands)
+
+    def test_downloads_use_explicit_release_archives_without_version_probes(self):
+        expected = {
+            "test_qlib_from_source.yml": ["v2/qlib_data_simple_cn_1d_latest.zip", "rl_data.zip"],
+            "test_qlib_from_source_slow.yml": ["v2/qlib_data_simple_cn_1d_latest.zip"],
+            "test_qlib_from_pip.yml": ["v2/qlib_data_cn_1d_latest.zip"],
+        }
+        for name, workflow in self.workflows.items():
+            with self.subTest(workflow=name):
+                archives = []
+                for step in workflow["jobs"]["build"]["steps"]:
+                    if (
+                        "data download" not in step["name"].lower()
+                        and "downloads dependencies" not in step["name"].lower()
+                    ):
+                        continue
+                    for line in step["with"]["command"].splitlines():
+                        args = shlex.split(line)
+                        self.assertNotIn("qlib_data", args)
+                        if "download_data" in args:
+                            archives.append(args[args.index("--file_name") + 1])
+                            target = args[args.index("--target_dir") + 1]
+                            self.assertEqual(
+                                target,
+                                "tests/.data/rl" if archives[-1] == "rl_data.zip" else "~/.qlib/qlib_data/cn_data",
+                            )
+                self.assertEqual(archives, expected[name])
 
     def test_pypi_workflow_does_not_import_the_checkout(self):
         steps = self.workflows["test_qlib_from_pip.yml"]["jobs"]["build"]["steps"]
