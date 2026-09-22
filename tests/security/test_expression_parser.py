@@ -1,3 +1,5 @@
+import logging
+
 import pytest
 
 from qlib.config import C
@@ -78,6 +80,52 @@ def test_expression_provider_rejects_code_without_side_effects(tmp_path):
     with pytest.raises(ExpressionSyntaxError):
         provider.get_expression_instance(source)
     assert not marker.exists()
+
+
+@pytest.mark.parametrize("source", ["Ref($close,", "UnknownOp($close)", "$close.__class__"])
+def test_expression_provider_logs_parser_errors(source, caplog, monkeypatch):
+    from qlib.data.data import LocalExpressionProvider
+
+    monkeypatch.setattr(logging.getLogger("qlib"), "propagate", True)
+    provider = LocalExpressionProvider()
+    with caplog.at_level(logging.ERROR, logger="qlib.data"):
+        with pytest.raises(ExpressionSyntaxError) as error:
+            provider.get_expression_instance(source)
+    records = [record for record in caplog.records if record.name == "qlib.data"]
+    assert len(records) == 1
+    assert records[0].getMessage() == f"ERROR: field [{source}] contains invalid expression: {error.value}"
+    assert records[0].exc_info[1] is error.value
+    assert source not in provider.expression_instance_cache
+
+
+@pytest.mark.parametrize(
+    "error, message",
+    [
+        (NameError("name 'missing' is not defined"), "contains invalid operator/variable ['missing']"),
+        (SyntaxError("invalid custom operator syntax"), "contains invalid syntax"),
+    ],
+)
+def test_expression_provider_preserves_custom_operator_errors(error, message, caplog, monkeypatch):
+    from qlib.data.data import LocalExpressionProvider
+    from qlib.data.ops import Ref
+
+    class FailingOp(Ref):
+        def __init__(self, feature):
+            raise error
+
+    Operators.register([FailingOp])
+    monkeypatch.setattr(logging.getLogger("qlib"), "propagate", True)
+    provider = LocalExpressionProvider()
+    source = "FailingOp($close)"
+    with caplog.at_level(logging.ERROR, logger="qlib.data"):
+        with pytest.raises(type(error)) as raised:
+            provider.get_expression_instance(source)
+    assert raised.value is error
+    records = [record for record in caplog.records if record.name == "qlib.data"]
+    assert len(records) == 1
+    assert records[0].getMessage() == f"ERROR: field [{source}] {message}"
+    assert records[0].exc_info[1] is error
+    assert source not in provider.expression_instance_cache
 
 
 @pytest.mark.parametrize(

@@ -36,7 +36,7 @@ from ..utils import (
     get_period_list,
 )
 from ..utils.paral import ParallelExt
-from .expression_parser import parse_expression
+from .expression_parser import ExpressionSyntaxError, parse_expression
 
 
 class ProviderBackendMixin:
@@ -395,6 +395,9 @@ class ExpressionProvider(abc.ABC):
             else:
                 expression = parse_expression(field)
                 self.expression_instance_cache[field] = expression
+        except ExpressionSyntaxError as e:
+            get_module_logger("data").exception("ERROR: field [%s] contains invalid expression: %s", str(field), e)
+            raise
         except NameError as e:
             get_module_logger("data").exception(
                 "ERROR: field [%s] contains invalid operator/variable [%s]" % (str(field), str(e).split()[1])
