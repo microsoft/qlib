@@ -47,10 +47,21 @@ def test_file_module_loading_refuses_before_execution(file_component, options):
     with pytest.raises(PermissionError, match="disabled by default") as error:
         get_module_by_module_path(config["module_path"], **options)
     assert not marker.exists()
-    assert config["module_path"] in str(error.value)
+    assert repr(config["module_path"]) in str(error.value)
     assert "alongside class/module_path (not in kwargs)" in str(error.value)
     assert "get_module_by_module_path" in str(error.value)
     assert CONFIG_MIGRATION_GUIDE in str(error.value)
+
+
+@pytest.mark.parametrize(
+    "module_path",
+    [r"C:\custom modules\model.py", r"\\server\share\model.py", "custom/model's.py", "custom/model\nname.py"],
+)
+@pytest.mark.parametrize("options", [{}, {"trusted": False}])
+def test_file_module_refusal_escapes_path(module_path, options):
+    with pytest.raises(PermissionError, match="disabled by default") as error:
+        get_module_by_module_path(module_path, **options)
+    assert str(error.value).startswith(f"Loading Python file {module_path!r} is disabled by default.")
 
 
 def test_file_module_loading_accepts_explicit_trust(file_component):
