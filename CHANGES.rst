@@ -2,6 +2,18 @@ Changelog
 =========
 Here you can see the full list of changes between each QLib release.
 
+Unreleased
+----------
+- **BREAKING:** New source builds restrict recorder artifact loading by default.
+  Reloading executable artifacts requires verified source/storage and explicit
+  ``trusted=True`` (CLI: ``--trusted=True``); supported data-only reads and fresh
+  in-memory training need no opt-in. See the
+  `artifact loading migration guide <https://qlib.readthedocs.io/en/latest/start/artifact_migration.html>`_
+  for workflow, HIST and high-frequency cache upgrades.
+- Merging into ``main`` affects source installs before a PyPI release. These
+  changes remain unreleased until included in a tagged release; its versioned
+  upgrade notes should link to the same guide.
+
 Version 0.1.0
 -------------
 This is the initial release of QLib library.

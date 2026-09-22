@@ -28,9 +28,17 @@ from qlib.utils import (
     init_instance_by_config,
 )
 from qlib.utils.paral import call_in_subproc
+from qlib.utils.pickle_utils import validate_trusted
 from qlib.workflow import R
 from qlib.workflow.recorder import Recorder
 from qlib.workflow.task.manage import TaskManager, run_task
+
+
+def _set_trust_kwargs(kwargs: dict, trusted: bool) -> None:
+    if "trusted" in kwargs:
+        validate_trusted(kwargs["trusted"])
+    elif trusted is not False:
+        kwargs["trusted"] = validate_trusted(trusted)
 
 
 def _log_task_info(task_config: dict):
@@ -88,19 +96,22 @@ def begin_task_train(task_config: dict, experiment_name: str, recorder_name: str
         return R.get_recorder()
 
 
-def end_task_train(rec: Recorder, experiment_name: str) -> Recorder:
+def end_task_train(rec: Recorder, experiment_name: str, *, trusted: bool = False) -> Recorder:
     """
     Finish task training with real model fitting and saving.
 
     Args:
         rec (Recorder): the recorder will be resumed
         experiment_name (str): the name of experiment
+        trusted (bool): allow executable objects in a saved task only
+            when its source and artifact store are trusted. Defaults to False.
 
     Returns:
         Recorder: the model recorder
     """
+    trusted = validate_trusted(trusted)
     with R.start(experiment_name=experiment_name, recorder_id=rec.info["id"], resume=True):
-        task_config = R.load_object("task")
+        task_config = R.load_object("task", trusted=trusted)
         _exe_task(task_config)
     return rec
 
@@ -295,8 +306,16 @@ class DelayTrainerR(TrainerR):
     A delayed implementation based on TrainerR, which means `train` method may only do some preparation and `end_train` method can do the real model fitting.
     """
 
+    trusted = False
+
     def __init__(
-        self, experiment_name: str = None, train_func=begin_task_train, end_train_func=end_task_train, **kwargs
+        self,
+        experiment_name: str = None,
+        train_func=begin_task_train,
+        end_train_func=end_task_train,
+        *,
+        trusted: bool = False,
+        **kwargs,
     ):
         """
         Init TrainerRM.
@@ -305,9 +324,12 @@ class DelayTrainerR(TrainerR):
             experiment_name (str): the default name of experiment.
             train_func (Callable, optional): default train method. Defaults to `begin_task_train`.
             end_train_func (Callable, optional): default end_train method. Defaults to `end_task_train`.
+            trusted (bool): explicitly trust saved task objects and
+                their artifact store when resuming training. Defaults to False.
         """
         super().__init__(experiment_name, train_func, **kwargs)
         self.end_train_func = end_train_func
+        self.trusted = validate_trusted(trusted)
         self.delay = True
 
     def end_train(self, models, end_train_func=None, experiment_name: str = None, **kwargs) -> List[Recorder]:
@@ -330,6 +352,7 @@ class DelayTrainerR(TrainerR):
             end_train_func = self.end_train_func
         if experiment_name is None:
             experiment_name = self.experiment_name
+        _set_trust_kwargs(kwargs, self.trusted)
         for rec in models:
             if rec.list_tags()[self.STATUS_KEY] == self.STATUS_END:
                 continue
@@ -494,6 +517,8 @@ class DelayTrainerRM(TrainerRM):
 
     """
 
+    trusted = False
+
     def __init__(
         self,
         experiment_name: str = None,
@@ -501,6 +526,8 @@ class DelayTrainerRM(TrainerRM):
         train_func=begin_task_train,
         end_train_func=end_task_train,
         skip_run_task: bool = False,
+        *,
+        trusted: bool = False,
         **kwargs,
     ):
         """
@@ -511,6 +538,8 @@ class DelayTrainerRM(TrainerRM):
             task_pool (str): task pool name in TaskManager. None for use same name as experiment_name.
             train_func (Callable, optional): default train method. Defaults to `begin_task_train`.
             end_train_func (Callable, optional): default end_train method. Defaults to `end_task_train`.
+            trusted (bool): explicitly trust saved task objects and
+                their artifact store in both end_train and worker. Defaults to False.
             skip_run_task (bool):
                 If skip_run_task == True:
                 Only run_task in the worker. Otherwise skip run_task.
@@ -518,6 +547,7 @@ class DelayTrainerRM(TrainerRM):
         """
         super().__init__(experiment_name, task_pool, train_func, **kwargs)
         self.end_train_func = end_train_func
+        self.trusted = validate_trusted(trusted)
         self.delay = True
         self.skip_run_task = skip_run_task
 
@@ -577,6 +607,7 @@ class DelayTrainerRM(TrainerRM):
             _id_list.append(rec.list_tags()[self.TM_ID])
 
         query = {"_id": {"$in": _id_list}}
+        _set_trust_kwargs(kwargs, self.trusted)
         if not self.skip_run_task:
             run_task(
                 end_train_func,
@@ -593,13 +624,15 @@ class DelayTrainerRM(TrainerRM):
             rec.set_tags(**{self.STATUS_KEY: self.STATUS_END})
         return recs
 
-    def worker(self, end_train_func=None, experiment_name: str = None):
+    def worker(self, end_train_func=None, experiment_name: str = None, **kwargs):
         """
         The multiprocessing method for `end_train`. It can share a same task_pool with `end_train` and can run in other progress or other machines.
 
         Args:
             end_train_func (Callable, optional): the end_train method which need at least `recorders` and `experiment_name`. Defaults to None for using self.end_train_func.
             experiment_name (str): the experiment name, None for use default name.
+            kwargs: parameters for end_train_func, including an explicit
+                trusted override.
         """
         if end_train_func is None:
             end_train_func = self.end_train_func
@@ -608,11 +641,13 @@ class DelayTrainerRM(TrainerRM):
         task_pool = self.task_pool
         if task_pool is None:
             task_pool = experiment_name
+        _set_trust_kwargs(kwargs, self.trusted)
         run_task(
             end_train_func,
             task_pool=task_pool,
             experiment_name=experiment_name,
             before_status=TaskManager.STATUS_PART_DONE,
+            **kwargs,
         )
 
     def has_worker(self) -> bool:

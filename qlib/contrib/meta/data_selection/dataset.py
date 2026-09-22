@@ -14,6 +14,7 @@ from qlib.model.trainer import TrainerR
 from qlib.log import get_module_logger
 from qlib.utils import auto_filter_kwargs, get_date_by_shift, init_instance_by_config
 from qlib.utils.data import deepcopy_basic_type
+from qlib.utils.pickle_utils import validate_trusted
 from qlib.workflow import R
 from qlib.workflow.task.gen import RollingGen, task_generator
 from qlib.workflow.task.utils import TimeAdjuster
@@ -26,11 +27,13 @@ class InternalData:
         self.step = step
         self.exp_name = exp_name
 
-    def setup(self, trainer=TrainerR, trainer_kwargs={}):
+    def setup(self, trainer=TrainerR, trainer_kwargs={}, *, trusted: bool = False):
         """
         after running this function `self.data_ic_df` will become set.
         Each col represents a data.
         Each row represents the Timestamp of performance of that data.
+        Set ``trusted=True`` only for saved tasks from a trusted
+        source and experiment store. Predictions always use restricted loading.
         For example,
 
         .. code-block:: python
@@ -47,6 +50,7 @@ class InternalData:
 
         """
 
+        trusted = validate_trusted(trusted)
         # 1) prepare the prediction of proxy models
         perf_task_tpl = deepcopy(self.task_tpl)  # this task is supposed to contains no complicated objects
         # The only thing we want to save is the prediction
@@ -93,7 +97,7 @@ class InternalData:
         ic_l = []
         for _, rec in tqdm(recorders.items(), desc="calc"):
             pred = rec.load_object("pred.pkl")
-            task = rec.load_object("task")
+            task = rec.load_object("task", trusted=trusted)
             data_key = task["dataset"]["kwargs"]["segments"]["train"]
             key_l.append(data_key)
             ic_l.append(delayed(self._calc_perf)(pred.iloc[:, 0], label_df.iloc[:, 0]))
@@ -106,7 +110,7 @@ class InternalData:
 
     def _calc_perf(self, pred, label):
         df = pd.DataFrame({"pred": pred, "label": label})
-        df = df.groupby("datetime", group_keys=False).corr(method="spearman")
+        df = df.groupby("datetime", group_keys=True).corr(method="spearman")
         corr = df.loc(axis=0)[:, "pred"]["label"].droplevel(axis=0, level=-1)
         return corr
 
@@ -247,6 +251,7 @@ class MetaDatasetDS(MetaTaskDataset):
         hist_step_n: int = 10,
         task_mode: str = MetaTask.PROC_MODE_FULL,
         fill_method: str = "max",
+        trusted: bool = False,
     ):
         """
         A dataset for meta model.
@@ -283,13 +288,17 @@ class MetaDatasetDS(MetaTaskDataset):
             Number of steps of the data similarity information
         task_mode : str
             Please refer to the docs of MetaTask
+        trusted : bool
+            Explicitly trust task objects read from ``exp_name`` when preparing
+            internal data. Not needed for an already prepared InternalData.
         """
+        trusted = validate_trusted(trusted)
         super().__init__(segments=segments)
         if isinstance(exp_name, InternalData):
             self.internal_data = exp_name
         else:
             self.internal_data = InternalData(task_tpl, step=step, exp_name=exp_name)
-            self.internal_data.setup()
+            self.internal_data.setup(trusted=trusted)
         self.task_tpl = deepcopy(task_tpl)  # FIXME: if the handler is shared, how to avoid the explosion of the memroy.
         self.trunc_days = trunc_days
         self.hist_step_n = hist_step_n

@@ -23,6 +23,13 @@ Example
 ``Qlib``'s serializable class includes  ``DataHandler``, ``DataSet``, ``Processor`` and ``Model``, etc., which are subclass of  ``qlib.utils.serial.Serializable``.
 Specifically, ``qlib.data.dataset.DatasetH`` is one of them. Users can serialize ``DatasetH`` as follows.
 
+.. warning::
+
+    The direct local ``pickle.load`` below can execute code and must only read a
+    file from an independently trusted source and store. Recorder/workflow
+    ``trusted`` settings do not authorize or protect this API. For the separate
+    recorder loading policy and upgrade steps, see :ref:`artifact_loading_migration`.
+
 .. code-block:: Python
 
     ##=============dump dataset=============

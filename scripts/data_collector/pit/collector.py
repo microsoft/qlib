@@ -16,7 +16,7 @@ BASE_DIR = Path(__file__).resolve().parent
 sys.path.append(str(BASE_DIR.parent.parent))
 
 from data_collector.base import BaseCollector, BaseRun, BaseNormalize
-from data_collector.utils import get_hs_stock_symbols, get_calendar_list
+from data_collector.utils import get_hs_stock_symbols
 
 
 class PitCollector(BaseCollector):
@@ -239,7 +239,8 @@ class PitNormalize(BaseNormalize):
         return df
 
     def _get_calendar_list(self) -> Iterable[pd.Timestamp]:
-        return get_calendar_list()
+        # PIT uses report dates and calendar-day offsets, not trading sessions.
+        return []
 
 
 class Run(BaseRun):

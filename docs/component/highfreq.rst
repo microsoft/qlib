@@ -35,6 +35,13 @@ An example of a nested decision execution framework for high-frequency can be fo
 
 Besides, the above examples, here are some other related works about high-frequency trading in Qlib.
 
+.. note::
+
+    New source builds require ``HighFreqProvider`` artifact paths, including derived
+    cache files, to remain inside ``artifact_root`` (the current directory by
+    default). Cached pickle contents still require independent trust. See
+    :ref:`artifact_loading_migration` before reusing existing provider configurations.
+
 - `Prediction with high-frequency data <https://github.com/microsoft/qlib/tree/main/examples/highfreq#benchmarks-performance-predicting-the-price-trend-in-high-frequency-data>`_
 - `Examples <https://github.com/microsoft/qlib/blob/main/examples/orderbook_data/>`_ to extract features from high-frequency data without fixed frequency.
 - `A paper <https://github.com/microsoft/qlib/tree/high-freq-execution#high-frequency-execution>`_ for high-frequency trading.

@@ -7,6 +7,18 @@ Installation
 .. currentmodule:: qlib
 
 
+.. important::
+
+   **Unreleased upgrade notice for new source builds:** recorder artifact loading
+   is restricted by default. Reloading executable models, datasets or workflow
+   objects requires explicit ``trusted=True`` after verifying their source and
+   storage; supported data-only reads and fresh in-memory training need no opt-in.
+   Follow :ref:`artifact_loading_migration` before upgrading existing workflows.
+   Merging into ``main`` affects source installs before a new PyPI release.
+   This change is unreleased until included in a tagged release, whose upgrade
+   notes should link to that guide.
+
+
 ``Qlib`` Installation
 =====================
 .. note::

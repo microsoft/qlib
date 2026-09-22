@@ -76,8 +76,17 @@ selection, add caches, or reduce test data sizes.
 
 ## Network and workflow retries
 
-Dataset commands have at most three attempts, with a 15-minute timeout per
-attempt. `--delete_old False` makes retries noninteractive in these fresh CI
+Dataset commands name the existing `v2` release archives explicitly: source
+jobs use `qlib_data_simple_cn_1d_latest.zip`, and PyPI jobs use
+`qlib_data_cn_1d_latest.zip`. These are the same datasets selected by successful
+version-probing downloads, not smaller substitutes. Naming the archive avoids
+an unnecessary request for a nonexistent package-version asset: the downloader
+can otherwise mistake an HTTP 504 response for confirmation that the file exists.
+
+Download steps have at most five attempts, with a 15-minute timeout per
+attempt and a 60-second pause between failures, allowing transient GitHub
+download outages more time to recover than three closely spaced attempts.
+`--delete_old False` makes retries noninteractive in these fresh CI
 directories, including when an earlier attempt already extracted one dataset.
 Bash command blocks use `set -euo pipefail`, so an earlier failure cannot be
 hidden by a later successful command. Exhausted retries still fail the job.

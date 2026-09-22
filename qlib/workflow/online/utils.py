@@ -11,6 +11,7 @@ from typing import List, Union
 
 from qlib.log import get_module_logger
 from qlib.utils.exceptions import LoadObjectError
+from qlib.utils.pickle_utils import validate_trusted
 from qlib.workflow.online.update import PredUpdater
 from qlib.workflow.recorder import Recorder
 from qlib.workflow.task.utils import list_recorders
@@ -89,15 +90,20 @@ class OnlineToolR(OnlineTool):
     The implementation of OnlineTool based on (R)ecorder.
     """
 
-    def __init__(self, default_exp_name: str = None):
+    trusted = False
+
+    def __init__(self, default_exp_name: str = None, *, trusted: bool = False):
         """
         Init OnlineToolR.
 
         Args:
             default_exp_name (str): the default experiment name.
+            trusted (bool): explicitly allow model/dataset pickle loading
+                from trusted sources and storage when updating predictions.
         """
         super().__init__()
         self.default_exp_name = default_exp_name
+        self.trusted = validate_trusted(trusted)
 
     def set_online_tag(self, tag, recorder: Union[Recorder, List]):
         """
@@ -168,7 +174,7 @@ class OnlineToolR(OnlineTool):
         online_models = self.online_models(exp_name=exp_name)
         for rec in online_models:
             try:
-                updater = PredUpdater(rec, to_date=to_date, from_date=from_date)
+                updater = PredUpdater(rec, to_date=to_date, from_date=from_date, trusted=self.trusted)
             except LoadObjectError as e:
                 # skip the recorder without pred
                 self.logger.warn(f"An exception `{str(e)}` happened when load `pred.pkl`, skip it.")

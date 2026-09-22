@@ -108,12 +108,12 @@ jobs:
       uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4
       with:
         timeout_minutes: 15
-        max_attempts: 3
-        retry_wait_seconds: 10
+        max_attempts: 5
+        retry_wait_seconds: 60
         shell: bash
         command: |
           set -euo pipefail
-          python scripts/get_data.py qlib_data --name qlib_data_simple --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn --delete_old False
+          python scripts/get_data.py download_data --file_name v2/qlib_data_simple_cn_1d_latest.zip --target_dir ~/.qlib/qlib_data/cn_data --delete_old False
           python scripts/get_data.py download_data --file_name rl_data.zip --target_dir tests/.data/rl --delete_old False
 
     - name: Check Qlib ipynb with nbconvert

@@ -10,8 +10,9 @@ from qlib.data import D
 from qlib.model.trainer import task_train
 from qlib.tests import TestAutoData
 from qlib.tests.config import CSI300_GBDT_TASK
+from qlib.utils.exceptions import LoadObjectError
 from qlib.workflow.online.utils import OnlineToolR
-from qlib.workflow.online.update import LabelUpdater
+from qlib.workflow.online.update import LabelUpdater, PredUpdater
 
 
 class TestRolling(TestAutoData):
@@ -49,7 +50,11 @@ class TestRolling(TestAutoData):
 
         pred = rec.load_object("pred.pkl")
 
-        online_tool = OnlineToolR(exp_name)
+        with pytest.raises(LoadObjectError, match="trusted=True"):
+            PredUpdater(rec, from_date=latest_date - pd.Timedelta(days=20)).update()
+        pd.testing.assert_frame_equal(rec.load_object("pred.pkl"), pred)
+
+        online_tool = OnlineToolR(exp_name, trusted=True)
         online_tool.reset_online_tag(rec)  # set to online model
 
         online_tool.update_online_pred(to_date=latest_date + pd.Timedelta(days=10))
@@ -111,8 +116,11 @@ class TestRolling(TestAutoData):
 
         pred = rec.load_object("pred.pkl")
 
-        online_tool = OnlineToolR(exp_name)
+        online_tool = OnlineToolR(exp_name, trusted=True)
         online_tool.reset_online_tag(rec)  # set to online model
+        with pytest.raises(LoadObjectError, match="trusted=True"):
+            OnlineToolR(exp_name).update_online_pred()
+        pd.testing.assert_frame_equal(rec.load_object("pred.pkl"), pred)
         online_tool.update_online_pred()
 
         new_pred = rec.load_object("pred.pkl")
@@ -124,7 +132,10 @@ class TestRolling(TestAutoData):
         self.assertTrue(label_date < pred_date)
 
         # Update label now
-        lu = LabelUpdater(rec)
+        with pytest.raises(LoadObjectError, match="trusted=True"):
+            LabelUpdater(rec).update()
+        pd.testing.assert_frame_equal(rec.load_object("label.pkl"), label)
+        lu = LabelUpdater(rec, trusted=True)
         lu.update()
         new_label = rec.load_object("label.pkl")
         new_label_date = new_label.index.get_level_values("datetime").max()

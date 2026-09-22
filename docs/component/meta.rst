@@ -66,3 +66,16 @@ which adapts to the market dynamics.
 4. Apply guide information to the forecasting models to improve their performances.
 
 The `above example <https://github.com/microsoft/qlib/tree/main/examples/benchmarks_dynamic/DDG-DA>`_ can be found in ``examples/benchmarks_dynamic/DDG-DA/workflow.py``.
+
+DDG-DA uses restricted loading by default for recorder artifacts and local
+handler/internal-data pickle caches. To reload executable meta-models, tasks and
+caches from a trusted writer and access-controlled storage, configure
+``DDGDA(..., trusted=True)`` at the workflow entry point.
+Lower-level callers can configure ``MetaDatasetDS`` or ``InternalData.setup`` with
+the same option for recorder task reads. Prediction, label and numerical-report reads
+remain restricted. DDG-DA's opt-in also authorizes its handler/internal-data
+cache reads, so verify ``working_dir``, the configuration directory and any
+explicit ``h_path`` as well as the MLflow store. There is no automatic unsafe retry
+and the global restricted loader is unchanged.
+See :ref:`artifact_loading_migration`
+and the example README for CLI commands.

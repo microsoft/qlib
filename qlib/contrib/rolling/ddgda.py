@@ -1,7 +1,9 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 from pathlib import Path
+from copy import deepcopy
 import pickle
+import warnings
 from typing import Optional, Union
 
 import pandas as pd
@@ -14,8 +16,13 @@ from qlib.model.meta.task import MetaTask
 from qlib.model.trainer import TrainerR
 from qlib.typehint import Literal
 from qlib.utils import init_instance_by_config
-from qlib.utils.pickle_utils import restricted_pickle_load
+from qlib.utils.pickle_utils import (
+    ARTIFACT_MIGRATION_URL,
+    restricted_pickle_load,
+    validate_trusted,
+)
 from qlib.workflow import R
+from qlib.workflow.recorder import UnsafeArtifactWarning
 from qlib.workflow.task.utils import replace_task_handler_with_cache
 
 from .base import Rolling
@@ -65,6 +72,29 @@ learn_processors:
 PROC_ARGS = yaml.load(PROC_ARGS, Loader=yaml.FullLoader)
 
 UTIL_MODEL_TYPE = Literal["linear", "gbdt"]
+_CACHE_LOADER = "qlib.contrib.rolling.ddgda._load_cache"
+
+
+def _load_cache(path, *, trusted: bool = False):
+    trusted = validate_trusted(trusted)
+    with Path(path).open("rb") as stream:
+        if trusted:
+            warnings.warn(
+                "Loading a trusted DDG-DA pickle cache may execute arbitrary code. "
+                "Only use trusted=True when the cache source and storage are trusted.",
+                UnsafeArtifactWarning,
+                stacklevel=2,
+            )
+            return pickle.load(stream)
+        try:
+            return restricted_pickle_load(stream)
+        except pickle.UnpicklingError as error:
+            guide = "" if ARTIFACT_MIGRATION_URL in str(error) else f" Migration guide: {ARTIFACT_MIGRATION_URL}"
+            raise pickle.UnpicklingError(
+                f"Restricted loading of DDG-DA cache {str(path)!r} failed: {error}. "
+                "Set trusted=True at the DDGDA workflow entry point only when the cache source and storage are trusted. "
+                f"{guide}"
+            ) from error
 
 
 class DDGDA(Rolling):
@@ -75,6 +105,8 @@ class DDGDA(Rolling):
     before running the example, please clean your previous results with following command
     - `rm -r mlruns`
     """
+
+    trusted = False
 
     def __init__(
         self,
@@ -87,6 +119,7 @@ class DDGDA(Rolling):
         segments: Union[float, str] = 0.62,
         hist_step_n: int = 30,
         working_dir: Optional[Union[str, Path]] = None,
+        trusted: bool = False,
         **kwargs,
     ):
         """
@@ -109,10 +142,15 @@ class DDGDA(Rolling):
                 The ratio of training data in the meta task dataset
             if segments is a string:
                 it will try its best to put its data in training and ensure that the date `segments` is in the test set
+        trusted : bool
+            Explicitly allow executable task/meta-model objects from trusted
+            MLflow storage and handler/internal-data pickle caches from trusted
+            local storage. Defaults to False. Predictions remain restricted.
         """
         # NOTE:
         # the horizon must match the meaning in the base task template
         self.meta_exp_name = "DDG-DA"
+        self.trusted = validate_trusted(trusted)
         self.sim_task_model: UTIL_MODEL_TYPE = sim_task_model  # The model to capture the distribution of data.
         self.alpha = alpha
         self.meta_1st_train_end = meta_1st_train_end
@@ -124,6 +162,29 @@ class DDGDA(Rolling):
         self.loss_skip_thresh = loss_skip_thresh
         self.segments = segments
         self.hist_step_n = hist_step_n
+
+    def _load_cache(self, path):
+        return _load_cache(path, trusted=self.trusted)
+
+    def _replace_handler_with_cache(self, task, cache_dir=None):
+        handler = task["dataset"]["kwargs"]["handler"]
+        if isinstance(handler, dict) and handler.get("class") == _CACHE_LOADER:
+            handler["kwargs"]["trusted"] = self.trusted
+            return task
+        if cache_dir is None:
+            task = super()._replace_handler_with_cache(task)
+        else:
+            task = replace_task_handler_with_cache(task, cache_dir)
+        handler = task["dataset"]["kwargs"]["handler"]
+        if isinstance(handler, str) and handler.startswith("file://"):
+            handler = Path(handler[len("file://") :])
+        if isinstance(handler, Path):
+            # Keep tasks lightweight and reloadable after training changes the handler's serialization settings.
+            task["dataset"]["kwargs"]["handler"] = {
+                "class": _CACHE_LOADER,
+                "kwargs": {"path": str(handler), "trusted": self.trusted},
+            }
+        return task
 
     def _adjust_task(self, task: dict, astype: UTIL_MODEL_TYPE):
         """
@@ -139,17 +200,18 @@ class DDGDA(Rolling):
         # NOTE: here is just for aligning with previous implementation
         # It is not necessary for the current implementation
         handler = task["dataset"].setdefault("kwargs", {}).setdefault("handler", {})
+        adjustable_handler = isinstance(handler, dict) and handler.get("class") != _CACHE_LOADER
         if astype == "gbdt":
-            task["model"] = LGBM_MODEL
-            if isinstance(handler, dict):
+            task["model"] = deepcopy(LGBM_MODEL)
+            if adjustable_handler:
                 # We don't need preprocessing when using GBDT model
                 for k in ["infer_processors", "learn_processors"]:
                     if k in handler.setdefault("kwargs", {}):
                         handler["kwargs"].pop(k)
         elif astype == "linear":
-            task["model"] = LINEAR_MODEL
-            if isinstance(handler, dict):
-                handler["kwargs"].update(PROC_ARGS)
+            task["model"] = deepcopy(LINEAR_MODEL)
+            if adjustable_handler:
+                handler["kwargs"].update(deepcopy(PROC_ARGS))
             else:
                 self.logger.warning("The handler can't be adjusted.")
         else:
@@ -160,7 +222,7 @@ class DDGDA(Rolling):
         # this must be lightGBM, because it needs to get the feature importance
         task = self.basic_task(enable_handler_cache=False)
         task = self._adjust_task(task, astype="gbdt")
-        task = replace_task_handler_with_cache(task, self.working_dir)
+        task = self._replace_handler_with_cache(task, self.working_dir)
 
         with R.start(experiment_name="feature_importance"):
             model = init_instance_by_config(task["model"])
@@ -186,7 +248,7 @@ class DDGDA(Rolling):
         # NOTE: adjusting to `self.sim_task_model` just for aligning with previous implementation.
         # In previous version. The data for proxy model is using sim_task_model's way for processing
         task = self._adjust_task(self.basic_task(enable_handler_cache=False), self.sim_task_model)
-        task = replace_task_handler_with_cache(task, self.working_dir)
+        task = self._replace_handler_with_cache(task, self.working_dir)
         # if self.meta_data_proc is not None:
         # else:
         #     # Otherwise, we don't need futher processing
@@ -225,7 +287,7 @@ class DDGDA(Rolling):
                 "kwargs": {"config": self.working_dir / "fea_label_df.pkl"},
             }
         )
-        handler.to_pickle(self.working_dir / self.proxy_hd, dump_all=True)
+        handler.to_pickle(self.proxy_hd, dump_all=True)
 
     @property
     def _internal_data_path(self):
@@ -238,7 +300,7 @@ class DDGDA(Rolling):
         """
         # According to the experiments, the choice of the model type is very important for achieving good results
         sim_task = self._adjust_task(self.basic_task(enable_handler_cache=False), astype=self.sim_task_model)
-        sim_task = replace_task_handler_with_cache(sim_task, self.working_dir)
+        sim_task = self._replace_handler_with_cache(sim_task, self.working_dir)
 
         if self.sim_task_model == "gbdt":
             sim_task["model"].setdefault("kwargs", {}).update({"early_stopping_rounds": None, "num_boost_round": 150})
@@ -246,7 +308,7 @@ class DDGDA(Rolling):
         exp_name_sim = f"data_sim_s{self.step}"
 
         internal_data = InternalData(sim_task, self.step, exp_name=exp_name_sim)
-        internal_data.setup(trainer=TrainerR)
+        internal_data.setup(trainer=TrainerR, trusted=self.trusted)
 
         with self._internal_data_path.open("wb") as f:
             pickle.dump(internal_data, f)
@@ -271,7 +333,7 @@ class DDGDA(Rolling):
             "dataset": {
                 "class": "qlib.data.dataset.DatasetH",
                 "kwargs": {
-                    "handler": f"file://{(self.working_dir / self.proxy_hd).absolute()}",
+                    "handler": f"file://{self.proxy_hd.absolute()}",
                     "segments": {
                         "train": (train_start, train_end),
                         "test": (test_start, self.basic_task()["dataset"]["kwargs"]["segments"]["test"][1]),
@@ -298,8 +360,7 @@ class DDGDA(Rolling):
         # the input of meta model (internal data) are shared between proxy model and final forecasting model
         # but their task test segment are not aligned! It worked in my previous experiment.
         # So the misalignment will not affect the effectiveness of the method.
-        with self._internal_data_path.open("rb") as f:
-            internal_data = restricted_pickle_load(f)
+        internal_data = self._load_cache(self._internal_data_path)
 
         md = MetaDatasetDS(exp_name=internal_data, **kwargs)
 
@@ -333,7 +394,7 @@ class DDGDA(Rolling):
         # 1) get meta model
         exp = R.get_exp(experiment_name=self.meta_exp_name)
         rec = exp.list_recorders(rtype=exp.RT_L)[0]
-        meta_model: MetaModelDS = rec.load_object("model")
+        meta_model: MetaModelDS = rec.load_object("model", trusted=self.trusted)
 
         # 2)
         # we are transfer to knowledge of meta model to final forecasting tasks.
@@ -360,8 +421,7 @@ class DDGDA(Rolling):
             task_mode=MetaTask.PROC_MODE_TRANSFER,
         )
 
-        with self._internal_data_path.open("rb") as f:
-            internal_data = restricted_pickle_load(f)
+        internal_data = self._load_cache(self._internal_data_path)
         mds = MetaDatasetDS(exp_name=internal_data, **kwargs)
 
         # 3) meta model make inference and get new qlib task

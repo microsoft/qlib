@@ -91,8 +91,22 @@ Here are some important APIs that are not included in the ``QlibRecorder``:
 
 For other interfaces such as `save_objects`, `load_object`, please refer to `Recorder API <../reference/api.html#recorder>`_.
 
+.. _artifact_trust_migration:
+
+Migration: explicit artifact trust
+==================================
+
+The migration guide has moved to :ref:`artifact_loading_migration`. See that guide
+for the unreleased restricted-loading default, explicit ``trusted=True`` opt-in,
+workflow and custom-loader changes, and HIST/high-frequency cache migrations.
+
 Record Template
 ===============
+
+``RecordTemp.load(name, trusted=True)`` can explicitly authorize an individual
+artifact from a verified source and store, including parent-path lookup. The
+default remains restricted, and this does not authorize other loads or the
+template's ``generate`` method. See :ref:`artifact_loading_migration` for examples.
 
 The ``RecordTemp`` class is a class that enables generate experiment results such as IC and backtest in a certain format. We have provided three different `Record Template` class:
 
@@ -152,3 +166,5 @@ For more information about the APIs, please refer to `Record Template API <../re
 Known Limitations
 =================
 - The Python objects are saved based on pickle, which may results in issues when the environment dumping objects and loading objects are different.
+- Restricted loading is intentionally not compatible with arbitrary Python objects.
+  See :ref:`artifact_loading_migration` before changing trust settings.
