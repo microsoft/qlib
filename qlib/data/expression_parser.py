@@ -162,7 +162,8 @@ def _mapping(pairs, keyword_args=False):
     for key_node, value_node in pairs:
         if key_node is None:
             update = _evaluate(value_node)
-            if type(update) is not dict:
+            # Subclasses may override mapping protocols; only literal dictionaries are allowed.
+            if type(update) is not dict:  # pylint: disable=unidiomatic-typecheck
                 raise ExpressionSyntaxError("Mapping expansion requires a literal dictionary")
             items = _check_size(update).items()
         else:
@@ -171,7 +172,7 @@ def _mapping(pairs, keyword_args=False):
         for key, value in items:
             _check_scalar(key)
             if keyword_args:
-                if type(key) is not str:
+                if not isinstance(key, str):
                     raise ExpressionSyntaxError("Keyword argument names must be strings")
                 if key in values:
                     raise ExpressionSyntaxError(f"Repeated keyword argument: {key!r}")
@@ -189,12 +190,12 @@ def _subscript(node):
         index = index.value
     if isinstance(index, ast.Slice):
         bounds = [_evaluate(part) if part is not None else None for part in (index.lower, index.upper, index.step)]
-        if type(value) is dict or any(part is not None and type(part) not in (int, bool) for part in bounds):
+        if isinstance(value, dict) or any(part is not None and type(part) not in (int, bool) for part in bounds):
             raise ExpressionSyntaxError("Sequence slices require integer bounds")
         index = slice(*bounds)
     else:
         index = _check_scalar(_evaluate(index))
-        if type(value) is not dict and type(index) not in (int, bool):
+        if not isinstance(value, dict) and type(index) not in (int, bool):
             raise ExpressionSyntaxError("Sequence indices must be integers")
     try:
         return value[index]

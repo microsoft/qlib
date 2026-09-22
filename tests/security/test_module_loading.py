@@ -91,6 +91,25 @@ def test_trust_validation_does_not_invoke_truthiness(file_component):
     assert not marker.exists()
 
 
+def test_trust_validation_rejects_spoofed_boolean_class(file_component):
+    class NotABoolean:
+        @property
+        def __class__(self):
+            return bool
+
+        def __bool__(self):
+            raise AssertionError("must not coerce arbitrary values")
+
+    config, marker = file_component
+    trusted = NotABoolean()
+    assert isinstance(trusted, bool)
+    with pytest.raises(TypeError, match="boolean"):
+        get_module_by_module_path(config["module_path"], trusted=trusted)
+    with pytest.raises(TypeError, match="boolean"):
+        init_instance_by_config(dict(config, trusted=trusted))
+    assert not marker.exists()
+
+
 @pytest.mark.parametrize("key", ["class", "func"])
 def test_component_trust_is_metadata_not_a_constructor_argument(file_component, key):
     config, marker = file_component

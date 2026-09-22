@@ -30,7 +30,8 @@ CONFIG_MIGRATION_GUIDE = (
 
 
 def _validate_module_trust(trusted):
-    if type(trusted) is not bool:
+    # isinstance() can accept objects that spoof __class__; consent must be an actual bool.
+    if type(trusted) is not bool:  # pylint: disable=unidiomatic-typecheck
         raise TypeError(f"trusted must be a boolean. Migration guide: {CONFIG_MIGRATION_GUIDE}")
 
 

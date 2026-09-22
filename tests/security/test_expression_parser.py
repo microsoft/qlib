@@ -278,6 +278,26 @@ def test_expression_protocols_are_not_used_for_literal_operations(monkeypatch):
         hook.assert_not_called()
 
 
+@pytest.mark.parametrize("source", ["Ref($close, **ForeignMapping())", "Ref($close, ForeignMapping()['N'])"])
+def test_literal_mapping_operations_reject_subclass_protocols(source):
+    from qlib.data.ops import Ref
+
+    class ForeignDict(dict):
+        def items(self):
+            raise AssertionError("custom mapping protocol must not run")
+
+        def __getitem__(self, key):
+            raise AssertionError("custom indexing protocol must not run")
+
+    class ForeignMapping(Ref):
+        def __new__(cls):
+            return ForeignDict(N=1)
+
+    Operators.register([ForeignMapping])
+    with pytest.raises(ExpressionSyntaxError):
+        parse_expression(source)
+
+
 def test_inactive_branches_are_validated_without_calling_operators():
     from unittest.mock import Mock
     from qlib.data.ops import Ref

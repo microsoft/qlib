@@ -377,15 +377,15 @@ def _remove_field_space(field):
         gap = field[cursor:start].replace(" ", "")
         if previous is not None and start > cursor and not gap:
             # Keep token boundaries: "1 if", string prefixes, and "* *" must not merge.
-            if (
-                previous.type in word_types
-                and (token.type in word_types or token.string == "$")
-                or previous.string + token.string in tokenize.EXACT_TOKEN_TYPES
-                or previous.type == tokenize.NUMBER
+            word_boundary = previous.type in word_types and (token.type in word_types or token.string == "$")
+            operator_boundary = previous.string + token.string in tokenize.EXACT_TOKEN_TYPES
+            number_boundary = (
+                previous.type == tokenize.NUMBER
                 and token.string == "."
                 or previous.string == "."
                 and (token.type == tokenize.NUMBER or token.string == ".")
-            ):
+            )
+            if word_boundary or operator_boundary or number_boundary:
                 gap = " "
         parts.extend((gap, field[start:end]))
         cursor = end
