@@ -23,6 +23,7 @@ data_handler_config: &data_handler_config
         feature_15min:
             - class: ResampleNProcessor
               module_path: features_resample_N.py
+              trusted: true
               kwargs:
                   target_frq: 1d
 
@@ -66,6 +67,7 @@ task:
             handler:
                 class: Avg15minHandler
                 module_path: multi_freq_handler.py
+                trusted: true
                 kwargs: *data_handler_config
             segments:
                 train: [2008-01-01, 2014-12-31]

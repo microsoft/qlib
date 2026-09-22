@@ -15,7 +15,7 @@ else:
     from typing_extensions import Literal, TypedDict, final
 
 
-class InstDictConf(TypedDict):
+class InstDictConf(TypedDict, total=False):
     """
     InstDictConf  is a Dict-based config to describe an instance
 
@@ -23,7 +23,8 @@ class InstDictConf(TypedDict):
         {
             'class': 'ClassName',
             'kwargs': dict, #  It is optional. {} will be used if not given
-            'model_path': path, # It is optional if module is given in the class
+            'module_path': path, # It is optional if module is given in the class
+            'trusted': True, # Optional file-module consent; defaults to False
         }
         case 2)
         {
@@ -35,6 +36,7 @@ class InstDictConf(TypedDict):
     # class: str  # because class is a keyword of Python. We have to comment it
     kwargs: dict  # It is optional. {} will be used if not given
     module_path: str  # It is optional if module is given in the class
+    trusted: bool  # Optional file-module consent, not a constructor argument
 
 
 InstConf = Union[InstDictConf, str, object, Path]

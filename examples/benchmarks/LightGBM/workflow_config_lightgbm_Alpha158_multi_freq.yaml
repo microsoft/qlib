@@ -22,6 +22,7 @@ data_handler_config: &data_handler_config
         feature:
             - class: Resample1minProcessor
               module_path: features_sample.py
+              trusted: true
               kwargs:
                   hour: 14
                   minute: 56

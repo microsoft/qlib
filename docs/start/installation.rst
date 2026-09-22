@@ -6,6 +6,14 @@ Installation
 
 .. currentmodule:: qlib
 
+.. important::
+
+   Upgrading an existing workflow? Read :ref:`config_migration` before using
+   local Python modules, custom expressions, or extension registries. The guide
+   describes unreleased source changes; a PR checkout, ``main``, and a tagged
+   or PyPI release can differ. Use examples and documentation matching your
+   installed revision.
+
 
 ``Qlib`` Installation
 =====================

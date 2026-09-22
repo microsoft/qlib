@@ -168,6 +168,12 @@ Also, there are some optional fields. The meaning of each field is as follows:
 - `tuner_module_path`
     The module path, str type, absolute url is also supported, indicates the path of the implementation of tuner. The default value is `qlib.contrib.tuner.tuner`
 
+- `trusted`
+    Strict bool, default ``False``. Set ``experiment.trusted: true`` only after
+    reviewing a file-based ``tuner_module_path``. This permits only the tuner's
+    module import, not other components or the workflow. Package imports remain
+    available without it. See :ref:`config_migration` for details.
+
 About the optimization criteria
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

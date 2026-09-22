@@ -116,6 +116,13 @@ Custom Model
 
 Qlib supports custom models. If users are interested in customizing their own models and integrating the models into ``Qlib``, please refer to `Custom Model Integration <../start/integration.html>`_.
 
+See :ref:`config_migration` when upgrading file-based models: each ``.py``
+component needs its own top-level boolean ``trusted`` declaration, while
+package imports remain available. The guide also covers trusted older
+file-model pickles and registering custom built-in TRA backbones through
+``qlib.contrib.model.pytorch_tra.MODEL_TYPES`` before construction, including
+in workers.
+
 
 API
 ===

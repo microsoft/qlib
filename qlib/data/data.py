@@ -28,7 +28,6 @@ from ..utils import (
     init_instance_by_config,
     register_wrapper,
     get_module_by_module_path,
-    parse_field,
     hash_args,
     normalize_cache_fields,
     code_to_fname,
@@ -37,7 +36,7 @@ from ..utils import (
     get_period_list,
 )
 from ..utils.paral import ParallelExt
-from .ops import Operators  # pylint: disable=W0611  # noqa: F401
+from .expression_parser import ExpressionSyntaxError, parse_expression
 
 
 class ProviderBackendMixin:
@@ -394,8 +393,11 @@ class ExpressionProvider(abc.ABC):
             if field in self.expression_instance_cache:
                 expression = self.expression_instance_cache[field]
             else:
-                expression = eval(parse_field(field))
+                expression = parse_expression(field)
                 self.expression_instance_cache[field] = expression
+        except ExpressionSyntaxError as e:
+            get_module_logger("data").exception("ERROR: field [%s] contains invalid expression: %s", str(field), e)
+            raise
         except NameError as e:
             get_module_logger("data").exception(
                 "ERROR: field [%s] contains invalid operator/variable [%s]" % (str(field), str(e).split()[1])

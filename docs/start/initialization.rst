@@ -95,3 +95,15 @@ The following are several important parameters of `qlib.init` (`Qlib` has a lot 
 
 - `kernels`
     The number of processes used when calculating features in Qlib's expression engine. It is very helpful to set it to 1 when you are debuggin an expression calculating exception
+
+File-based components
+---------------------
+
+File-based models, handlers, and custom operators declare top-level
+``trusted: true`` in their individual component configurations. Initialization
+does not grant process-wide file-import permission, and no trusted-directory
+setting is required. Importable package paths and class objects remain available.
+
+See :ref:`config_migration` for Python/YAML examples, custom operator
+registration through ``qlib.init(custom_ops=[...])``, path resolution, and the
+independent trust decisions required for source code and artifacts.

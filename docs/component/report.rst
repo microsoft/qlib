@@ -23,6 +23,14 @@ Introduction
 All of the accumulated profit metrics(e.g. return, max drawdown) in Qlib are calculated by summation.
 This avoids the metrics or the plots being skewed exponentially over time.
 
+.. note::
+
+    Model-performance graph names use the explicit ``GRAPH_FUNCTIONS`` mapping.
+    Built-in names are unchanged; custom names must be registered before use,
+    including in workers. See :ref:`config_migration` for a working extension
+    example and the upgrade checklist. File-import ``trusted`` does not bypass
+    this mapping.
+
 Graphical Reports
 =================
 

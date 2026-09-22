@@ -13,6 +13,7 @@ from scipy import stats
 
 from typing import Sequence
 from qlib.typehint import Literal
+from qlib.utils.mod import CONFIG_MIGRATION_GUIDE
 
 from ..graph import ScatterGraph, SubplotsGraph, BarGraph, HeatmapGraph
 from ..utils import guess_plotly_rangebreaks
@@ -268,6 +269,14 @@ def _pred_turnover(pred_label: pd.DataFrame, N=5, lag=1, **kwargs) -> tuple:
     return (turnover_figure,)
 
 
+GRAPH_FUNCTIONS = {
+    "group_return": _group_return,
+    "pred_ic": _pred_ic,
+    "pred_autocorr": _pred_autocorr,
+    "pred_turnover": _pred_turnover,
+}
+
+
 def ic_figure(ic_df: pd.DataFrame, show_nature_day=True, **kwargs) -> go.Figure:
     r"""IC figure
 
@@ -330,7 +339,14 @@ def model_performance_graph(
     """
     figure_list = []
     for graph_name in graph_names:
-        fun_res = eval(f"_{graph_name}")(
+        try:
+            graph_function = GRAPH_FUNCTIONS[graph_name]
+        except KeyError as exc:
+            raise ValueError(
+                f"Unsupported graph name {graph_name!r}; expected one of {sorted(GRAPH_FUNCTIONS)}. "
+                f"Register trusted extensions in GRAPH_FUNCTIONS before use. Migration guide: {CONFIG_MIGRATION_GUIDE}"
+            ) from exc
+        fun_res = graph_function(
             pred_label=pred_label, lag=lag, N=N, reverse=reverse, rank=rank, show_nature_day=show_nature_day, **kwargs
         )
         figure_list += fun_res
