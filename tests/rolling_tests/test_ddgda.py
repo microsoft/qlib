@@ -1,5 +1,6 @@
 import copy
 import pickle
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -17,6 +18,7 @@ from qlib.utils.exceptions import LoadObjectError
 from qlib.workflow import R
 from qlib.workflow.online.update import RMDLoader
 from qlib.workflow.recorder import UnsafeArtifactWarning
+from qlib.workflow.task.gen import RollingGen, handler_mod
 
 
 def _task(context):
@@ -273,6 +275,58 @@ def test_ddgda_cache_rejects_non_boolean_trust(tmp_path, value):
     workflow.trusted = value
     with pytest.raises(TypeError, match="must be a bool"):
         workflow._load_cache(tmp_path / "not-opened.pkl")
+
+
+def test_ddgda_fresh_cache_loads_in_open_ended_rolling_tail(workflow_context):
+    context = workflow_context
+    dates = context.calendar
+    task = _task(context)
+    dataset_kwargs = task["dataset"]["kwargs"]
+    dataset_kwargs["handler"]["kwargs"]["end_time"] = str(dates[-1].date())
+    dataset_kwargs["segments"]["test"] = [str(dates[-10].date()), str(dates[-1].date())]
+    cache_dir = context.root / "handler-cache"
+    cache_dir.mkdir()
+    workflow = DDGDA(conf_path=context.root / "unused.yaml", trusted=True)
+    task = workflow._replace_handler_with_cache(task, cache_dir)
+    reference = copy.deepcopy(task["dataset"]["kwargs"]["handler"])
+    assert Path(reference["kwargs"]["path"]).is_file()
+
+    with pytest.warns(UnsafeArtifactWarning):
+        expected = init_instance_by_config(task["dataset"]).prepare("test", col_set=["feature", "label"])
+    assert len(expected) == 10 * len(context.instruments)
+    rolling_tasks = RollingGen(step=20).generate(task)
+    assert len(rolling_tasks) == 1
+    dataset_config = rolling_tasks[0]["dataset"]
+    assert dataset_config["kwargs"]["segments"]["test"][1] is None
+    assert dataset_config["kwargs"]["handler"] == reference
+    assert task["dataset"]["kwargs"]["handler"] == reference
+    with pytest.warns(UnsafeArtifactWarning):
+        actual = init_instance_by_config(dataset_config).prepare("test", col_set=["feature", "label"])
+    pd.testing.assert_frame_equal(actual, expected, check_exact=True)
+
+    restricted = copy.deepcopy(dataset_config)
+    restricted["kwargs"]["handler"]["kwargs"]["trusted"] = False
+    with pytest.raises(pickle.UnpicklingError, match="Alpha158"):
+        init_instance_by_config(restricted)
+
+
+@pytest.mark.parametrize(
+    "handler_end,test_end,expected_end",
+    [(20, 30, 30), (40, 30, 40), (20, None, None), (None, 30, None), (None, None, None)],
+)
+def test_rolling_handler_mod_extends_only_bounded_handlers(workflow_context, handler_end, test_end, expected_end):
+    dates = workflow_context.calendar
+    handler_kwargs = {"end_time": None if handler_end is None else dates[handler_end]}
+    task = {
+        "dataset": {
+            "kwargs": {
+                "handler": {"kwargs": handler_kwargs},
+                "segments": {"test": (dates[10], None if test_end is None else dates[test_end])},
+            }
+        }
+    }
+    handler_mod(task, RollingGen(step=20))
+    assert handler_kwargs["end_time"] == (None if expected_end is None else dates[expected_end])
 
 
 def test_ddgda_adjusted_task_does_not_mutate_defaults():

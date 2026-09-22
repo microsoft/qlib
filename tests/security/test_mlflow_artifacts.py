@@ -1,6 +1,8 @@
+import os
 import pickle
 import warnings
 from contextlib import nullcontext
+from datetime import timedelta
 from types import SimpleNamespace
 from unittest.mock import Mock
 
@@ -32,6 +34,11 @@ class _ArtifactClient:
 class _CustomArtifact:
     def __init__(self, value=42):
         self.value = value
+
+
+class _ExecutableArtifact:
+    def __reduce__(self):
+        return os.system, ("echo vulnerable",)
 
 
 def _recorder(path):
@@ -179,6 +186,126 @@ def test_real_mlflow_store_roundtrips_data_artifacts(mlflow_recorders, value):
     else:
         np.testing.assert_array_equal(actual.data, value.data)
         np.testing.assert_array_equal(actual.mask, value.mask)
+
+
+@pytest.mark.parametrize("protocol", [4, 5])
+@pytest.mark.parametrize("multi_index", [False, True], ids=["datetime-index", "multi-index"])
+@pytest.mark.parametrize(
+    "offset",
+    [
+        pytest.param(
+            pd.offsets.BusinessHour(
+                n=2, start=["08:30", "13:00"], end=["11:30", "16:00"], offset=timedelta(minutes=15)
+            ),
+            id="split-business-hours",
+        ),
+        pytest.param(
+            pd.offsets.CustomBusinessDay(
+                n=2,
+                weekmask="Mon Tue Thu Fri",
+                holidays=["2024-01-04", "2024-01-15"],
+                offset=timedelta(hours=1, minutes=15),
+            ),
+            id="custom-business-days",
+        ),
+    ],
+)
+def test_real_mlflow_store_roundtrips_business_frequency_predictions(
+    mlflow_recorders, monkeypatch, offset, multi_index, protocol
+):
+    from qlib.config import C
+
+    monkeypatch.setitem(C, "dump_protocol_version", protocol)
+    dates = pd.date_range("2024-01-01 08:30", periods=4, freq=offset, name="datetime")
+    index = (
+        pd.MultiIndex.from_product([dates, ["SH600000", "SH600004"]], names=["datetime", "instrument"])
+        if multi_index
+        else dates
+    )
+    expected = pd.DataFrame(
+        {
+            "score": np.resize([1.25, np.nan], len(index)),
+            "volume": pd.array(np.resize([100, None], len(index)), dtype="Int64"),
+        },
+        index=index,
+    )
+    original = expected.copy(deep=True)
+    frequency_args = offset.__reduce__()[1]
+    writer, reader = mlflow_recorders
+
+    writer.save_objects(**{"pred.pkl": expected})
+    actual = reader.load_object("pred.pkl")
+
+    pd.testing.assert_frame_equal(actual, original, check_exact=True, check_freq=True)
+    actual_dates = actual.index.levels[0] if multi_index else actual.index
+    pd.testing.assert_index_equal(actual_dates, dates, exact=True, check_exact=True)
+    assert type(actual_dates.freq) is type(offset)
+    assert actual_dates.freq.__reduce__()[1] == frequency_args
+    actual.iloc[0, 0] = -100.0
+    pd.testing.assert_frame_equal(expected, original, check_exact=True, check_freq=True)
+    assert offset.__reduce__()[1] == frequency_args
+
+
+@pytest.mark.parametrize("protocol", [4, 5])
+@pytest.mark.parametrize("record_index", [None, 0, 1], ids=["recarray", "record", "missing-record"])
+def test_real_mlflow_store_roundtrips_records(mlflow_recorders, monkeypatch, protocol, record_index):
+    from qlib.config import C
+
+    monkeypatch.setitem(C, "dump_protocol_version", protocol)
+    records = np.array(
+        [("SH600000", 1.25, 100, "2024-01-01"), ("SH600004", np.nan, 0, "NaT")],
+        dtype=[("instrument", "U8"), ("score", "<f8"), ("volume", "<i4"), ("datetime", "M8[ns]")],
+    ).view(np.recarray)
+    expected = records if record_index is None else records[record_index]
+    original = expected.copy()
+    original_bytes = expected.tobytes()
+    writer, reader = mlflow_recorders
+
+    writer.save_objects(**{"data.pkl": expected})
+    actual = reader.load_object("data.pkl")
+
+    assert type(actual) is (np.recarray if record_index is None else np.record)
+    assert actual.dtype == original.dtype
+    assert actual.dtype.names == ("instrument", "score", "volume", "datetime")
+    assert actual.shape == original.shape
+    assert actual.tobytes() == original_bytes
+    for name in original.dtype.names:
+        np.testing.assert_array_equal(actual[name], original[name])
+        np.testing.assert_array_equal(getattr(actual, name), original[name])
+    actual["score"] = -100.0
+    assert expected.dtype == original.dtype
+    assert expected.tobytes() == original_bytes
+
+
+@pytest.mark.parametrize("protocol", [4, 5])
+@pytest.mark.parametrize("container", ["recarray", "record", "dataframe"])
+def test_real_mlflow_data_artifacts_reject_nested_executable_objects(
+    mlflow_recorders, monkeypatch, protocol, container
+):
+    from qlib.config import C
+
+    monkeypatch.setitem(C, "dump_protocol_version", protocol)
+    nested = {"nested": [_ExecutableArtifact()]}
+    if container == "dataframe":
+        value = pd.DataFrame(
+            {"score": [nested]},
+            index=pd.date_range("2024-01-01", periods=1, freq=pd.offsets.BusinessHour(start="08:30", end="16:00")),
+        )
+    else:
+        value = np.empty(1, dtype=[("payload", object)]).view(np.recarray)
+        value.payload[0] = nested
+        if container == "record":
+            value = value[0]
+    writer, reader = mlflow_recorders
+    writer.save_objects(**{"data.pkl": value})
+    execute = Mock()
+    module = os.system.__module__
+    monkeypatch.setattr(f"{module}.system", execute)
+
+    with pytest.raises(LoadObjectError, match=rf"Forbidden class: {module}\.system"):
+        reader.load_object("data.pkl")
+
+    execute.assert_not_called()
 
 
 def test_real_mlflow_model_and_dataset_require_workflow_opt_in(mlflow_recorders):

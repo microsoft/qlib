@@ -27,6 +27,10 @@ containing ``Position`` instances or indicator objects require the same decision
 they are not data-only reports. A ``.pkl`` suffix, a familiar artifact name or a
 successful run does not establish safety.
 
+This also applies to objects saved earlier in the same new workflow. Creating a
+model or dataset does not implicitly authorize its later deserialization from
+an artifact store.
+
 Before updating an existing workflow:
 
 1. Identify which loads read data and which restore executable objects. Leave
@@ -91,6 +95,47 @@ failure and retry with ``trusted=True``. A refusal may indicate an unsupported
 representation, a missing dependency or executable content; it does not establish
 trust. Inspect the reported type and provenance. Do not expand the global class
 allowlist simply to suppress a model-loading error.
+
+Record templates and mixed artifact collections
+------------------------------------------------
+
+``RecordTemp.load`` accepts the same keyword-only ``trusted=False``. Consent
+applies to that call, including lookup through parent record-template paths;
+it does not change subsequent loads or the policy used by ``generate``:
+
+.. code-block:: python
+
+    from qlib.workflow.record_temp import RecordTemp
+
+    template = RecordTemp(rec)
+    model = template.load("params.pkl", trusted=True)
+    predictions = template.load("pred.pkl")
+
+For a collection containing both executable objects and data, supply
+``artifact_load_kwargs`` to ``RecorderCollector``. Keys are the aliases in
+``artifacts_path``, not filenames. After verifying the model's source and store:
+
+.. code-block:: python
+
+    from qlib.workflow.task.collect import RecorderCollector
+
+    collector = RecorderCollector(
+        experiment=lambda: [rec],
+        artifacts_path={"model": "params.pkl", "pred": "pred.pkl", "label": "label.pkl"},
+        artifact_load_kwargs={"model": {"trusted": True}},
+    )
+    artifacts = collector.collect(only_exist=False)
+
+Only the ``model`` entry receives consent; ``pred`` and ``label`` keep restricted
+loading. Loading options are copied at construction and forwarded to each
+recorder's ``load_object`` method. Backend-specific options such as a custom
+unpickler retain that backend's trust requirements. There is no collector-wide
+permission or automatic retry with unrestricted loading.
+
+``only_exist=False`` propagates loading failures when every requested artifact
+is required. The existing default, ``only_exist=True``, skips failed artifact
+reads with a warning that includes the reason; do not treat a partial collection
+as proof that all requested artifacts were loaded.
 
 Workflow-level entry points
 ===========================
@@ -289,9 +334,13 @@ Supported data and version compatibility
 The restricted loader supports common built-in containers, NumPy arrays/scalars
 and pandas ``Series``/``DataFrame`` objects, including typical prediction/label
 ``MultiIndex`` layouts. Supported reconstruction cases include pickle protocols
-4 and 5, NumPy masked arrays, pandas nullable integer/float/boolean and
-Python-backed string arrays, categorical data, datetime/timedelta data, supported
-timezone metadata (such as UTC and ``pytz``), period/interval data and sparse arrays.
+4 and 5, NumPy masked arrays, record arrays and record scalars, pandas nullable
+integer/float/boolean and Python-backed string arrays, categorical data,
+datetime/timedelta data, supported timezone metadata (such as UTC and ``pytz``),
+period/interval data and sparse arrays.
+``BusinessHour`` and ``CustomBusinessDay`` frequency metadata are also supported,
+including custom business hours, weekmasks and holidays, without removing the
+frequency or changing the index values.
 
 Not every dtype or object is supported. Object-dtype cells, custom subclasses,
 extension arrays and metadata can introduce executable classes. Arrow-backed

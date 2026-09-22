@@ -98,6 +98,14 @@ To collect the results of ``task`` after training, ``Qlib`` provides `Collector 
 
 `Collector <../reference/api.html#Collector>`_ can collect objects from everywhere and process them such as merging, grouping, averaging and so on. It has 2 step action including ``collect`` (collect anything in a dict) and ``process_collect`` (process collected dict).
 
+``RecorderCollector`` keeps artifact reads restricted by default. To collect
+verified executable objects alongside predictions, use per-artifact loading
+options, for example ``artifact_load_kwargs={"model": {"trusted": True}}`` with
+``artifacts_path={"model": "params.pkl", "pred": "pred.pkl"}``. Only the named
+``model`` entry receives consent; prediction reads remain restricted. Use
+``collect(only_exist=False)`` when loading failures must not produce a partial
+collection. See :ref:`artifact_loading_migration` for a complete example.
+
 `Group <../reference/api.html#Group>`_ also has 2 steps including ``group`` (can group a set of object based on `group_func` and change them to a dict) and ``reduce`` (can make a dict become an ensemble based on some rule).
 For example: {(A,B,C1): object, (A,B,C2): object} ---``group``---> {(A,B): {C1: object, C2: object}} ---``reduce``---> {(A,B): object}
 

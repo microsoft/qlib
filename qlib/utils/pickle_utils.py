@@ -61,6 +61,11 @@ SAFE_PICKLE_CLASSES: Set[Tuple[str, str]] = {
     # NumPy reconstruction primitives. Keep this list explicit: trusting the
     # whole numpy namespace would also expose functions such as numpy.load.
     ("numpy", "ndarray"),
+    # Record arrays use the ndarray reconstruction/state path, with a record
+    # scalar type in their structured dtype. NumPy 2 moved the array's path.
+    ("numpy", "recarray"),
+    ("numpy.rec", "recarray"),
+    ("numpy", "record"),
     ("numpy", "dtype"),
     ("numpy", "scalar"),
     ("numpy.core.multiarray", "_reconstruct"),
@@ -118,6 +123,10 @@ SAFE_PICKLE_CLASSES: Set[Tuple[str, str]] = {
     # DatetimeIndex/PeriodIndex retain their frequency and timezone metadata.
     ("pandas._libs.tslibs.offsets", "Day"),
     ("pandas._libs.tslibs.offsets", "BusinessDay"),
+    # Reconstruct business schedules from times, weekmasks and date scalars;
+    # CustomBusinessDay rebuilds its calendar rather than unpickling one.
+    ("pandas._libs.tslibs.offsets", "BusinessHour"),
+    ("pandas._libs.tslibs.offsets", "CustomBusinessDay"),
     ("pandas._libs.tslibs.offsets", "Week"),
     ("pandas._libs.tslibs.offsets", "MonthBegin"),
     ("pandas._libs.tslibs.offsets", "MonthEnd"),

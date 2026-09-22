@@ -95,6 +95,7 @@ def _entry_points():
     from qlib.workflow.online.update import LabelUpdater, PredUpdater, RMDLoader
     from qlib.workflow.online.utils import OnlineToolR
     from qlib.workflow.recorder import MLflowRecorder, Recorder
+    from qlib.workflow.record_temp import RecordTemp
 
     return [
         (RMDLoader, {"rec": None}),
@@ -109,6 +110,7 @@ def _entry_points():
         (InternalData({}, 20, "unused").setup, {}),
         (end_task_train, {"rec": None, "experiment_name": "unused"}),
         (QlibRecorder(None).load_object, {"name": "unused"}),
+        (RecordTemp(None).load, {"name": "unused"}),
         (MLflowRecorder.load_object, {}),
         (Recorder.load_object, {}),
     ]

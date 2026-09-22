@@ -103,6 +103,11 @@ workflow and custom-loader changes, and HIST/high-frequency cache migrations.
 Record Template
 ===============
 
+``RecordTemp.load(name, trusted=True)`` can explicitly authorize an individual
+artifact from a verified source and store, including parent-path lookup. The
+default remains restricted, and this does not authorize other loads or the
+template's ``generate`` method. See :ref:`artifact_loading_migration` for examples.
+
 The ``RecordTemp`` class is a class that enables generate experiment results such as IC and backtest in a certain format. We have provided three different `Record Template` class:
 
 - ``SignalRecord``: This class generates the `prediction` results of the model.
