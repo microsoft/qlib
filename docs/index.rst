@@ -26,6 +26,7 @@ Document Structure
    :caption: FIRST STEPS:
 
    Installation <start/installation.rst>
+   Configuration Migration <start/config_migration.rst>
    Initialization <start/initialization.rst>
    Data Retrieval <start/getdata.rst>
    Custom Model Integration <start/integration.rst>

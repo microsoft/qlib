@@ -339,6 +339,17 @@ def test_malformed_tokens_raise_expression_syntax_error(source):
         parse_expression(source)
 
 
+def test_expression_error_links_migration_after_exception_roundtrip():
+    import pickle
+    from qlib.utils.mod import CONFIG_MIGRATION_GUIDE
+
+    with pytest.raises(ExpressionSyntaxError) as error:
+        parse_expression("$close.__class__")
+    restored = pickle.loads(pickle.dumps(error.value))
+    assert str(restored) == str(error.value)
+    assert str(restored).count(CONFIG_MIGRATION_GUIDE) == 1
+
+
 @pytest.mark.parametrize("source", ["Ref($close, 2 * * 3)", "Ref($close, 1 . 2)", "Ref($close, r 'x')"])
 def test_normalization_does_not_merge_distinct_tokens(source):
     with pytest.raises(ExpressionSyntaxError):

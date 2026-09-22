@@ -189,9 +189,8 @@ The meaning of each field is as follows:
 
         The value of `region` should be aligned with the data stored in `provider_uri`.
 
-- `trusted_module_roots`
-    Optional sequence of trusted directories for file-based Python modules; defaults to ``[]``, which disables file imports.
-    See :ref:`config_file_modules` for migration examples and :ref:`trusted_module_roots` for path resolution rules.
+File-import consent belongs to each component's configuration, not the
+``qlib_init`` section. See :ref:`config_migration`.
 
 
 Task Section
@@ -226,74 +225,64 @@ The meaning of each field is as follows:
     Type: str. The name for the model class.
 
 - `module_path`
-    Type: str. An importable Python module name, or a ``.py`` file path under an explicitly trusted directory.
+    Type: str. An importable Python module name, or a ``.py`` file path.
+
+- `trusted`
+    Type: bool, optional (default: ``False``). Set to ``True`` only to authorize
+    importing this component's reviewed ``.py`` file. Package imports and class
+    objects do not require this field. It is separate from constructor ``kwargs``.
 
 - `kwargs`
     The keywords arguments for the model. Please refer to the specific model implementation for more information: `models <https://github.com/microsoft/qlib/blob/main/qlib/contrib/model>`_.
 
 .. note::
 
-    ``Qlib`` provides a util named: ``init_instance_by_config`` to initialize any class inside ``Qlib`` with the configuration includes the fields: `class`, `module_path` and `kwargs`.
+    ``Qlib`` provides ``init_instance_by_config`` to initialize a class from
+    ``class``, ``module_path``, and ``kwargs``. For file modules, add ``trusted``
+    alongside those fields, not as a keyword argument to the factory.
 
 .. _config_file_modules:
 
 Custom modules and migration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Package-based configurations, such as ``module_path: qlib.contrib.model.gbdt`` or an importable ``module_path: my_package.model``, do not require file-module authorization.
-Configurations loading local Python files now require explicit trust.
-Without trusted roots, ``module_path: custom_modules/model.py`` raises ``PermissionError`` before the file is executed.
-
-To keep using an existing file-based model, authorize its directory in the initialization section:
+For the upgrade checklist and complete Python/custom-operator examples, see
+:ref:`config_migration`. Package-based configurations such as
+``module_path: qlib.contrib.model.gbdt`` or ``module_path: my_package.model``
+remain available without file-import consent. To load a reviewed local model,
+declare consent in that model's configuration:
 
 .. code-block:: YAML
 
     qlib_init:
         provider_uri: "~/.qlib/qlib_data/cn_data"
         region: cn
-        trusted_module_roots: [./custom_modules]
     task:
         model:
             class: MyModel
             module_path: custom_modules/model.py
+            trusted: true
             kwargs: {}
         # Keep the existing dataset and record sections here.
 
-The directory must already exist and contain trusted code.
-Both relative module paths and relative trusted roots use the process's current working directory, not the YAML file's location.
-Use a sequence such as ``[./custom_modules]``, not a scalar string.
-The same authorization applies to file-based datasets, handlers, and custom operators.
+Every nested file-based dataset, handler, or custom operator needs its own
+top-level ``trusted: true``; trust is not inherited. Only boolean values are
+accepted. Without consent, file imports raise ``PermissionError``.
+Relative paths use the process's current working directory, not the YAML file.
+Keep these fields when saving configurations or passing them to workers.
 
 ``qrun`` forwards the ``qlib_init`` section automatically.
-If you load YAML in a Python script, forward the complete section so that authorization and other initialization options are preserved:
+If you load YAML in a Python script, forward the complete section to preserve
+initialization options (this does not grant file-import permission):
 
 .. code-block:: Python
 
     qlib.init(**config["qlib_init"])
 
-For direct calls, ``get_module_by_module_path``, ``get_callable_kwargs``, and ``init_instance_by_config`` accept ``allowed_module_roots``:
-
-.. code-block:: Python
-
-    from qlib.utils import init_instance_by_config
-
-    model = init_instance_by_config(
-        {
-            "class": "MyModel",
-            "module_path": "custom_modules/model.py",
-            "kwargs": {},
-        },
-        allowed_module_roots=["./custom_modules"],
-    )
-
-The default ``None`` uses Qlib's process-wide trusted roots.
-An explicit sequence overrides those roots for that loading call; ``[]`` disables file loading even when global roots are configured.
-This does not disable package imports or create a sandbox around constructor code.
-
-For an older trusted model pickle whose class was loaded from a ``.py`` file, explicitly import the original module from a trusted directory before loading the artifact.
-The authorized import registers legacy module-name aliases for the supplied and resolved paths, without overwriting an unrelated existing package.
-Use the original module path spelling where needed to match an older artifact's module name.
-This compatibility step does not make untrusted pickle data safe or replace the artifact loader's own trust checks.
+Only run configurations and source code you trust; embedded consent does not
+make untrusted YAML safe. See :ref:`config_migration` for the distinction between
+import consent and constructor/artifact permissions, and recovery of trusted
+older file-model pickles.
 
 Dataset Section
 ~~~~~~~~~~~~~~~

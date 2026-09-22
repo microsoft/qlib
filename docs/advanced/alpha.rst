@@ -86,6 +86,8 @@ Expression syntax and migration
 Feature expressions are a restricted language, not general Python.
 ``Qlib`` interprets their syntax and calls registered operators rather than evaluating arbitrary Python code.
 Standard Alpha158/Alpha360 feature definitions and registered custom operators remain supported.
+For an upgrade checklist covering expressions, file imports, and extension
+registries, see :ref:`config_migration`.
 
 Supported expressions include:
 
@@ -154,7 +156,10 @@ Operator-specific argument validation still applies.
 
 Register custom operators before use, for example through ``qlib.init(custom_ops=[...])``; merely making a Python function importable does not make it an expression operator.
 See ``tests/test_register_ops.py`` for an example.
-For file-based custom operators, also configure :ref:`trusted_module_roots`.
+For file-based custom operators, put ``trusted: true`` in each operator's
+configuration alongside ``class`` and ``module_path``; see the working example
+in :ref:`config_migration`. This permits that file import only and never
+relaxes the expression grammar.
 
 .. note::
 

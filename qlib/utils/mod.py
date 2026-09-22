@@ -16,30 +16,22 @@ import pkgutil
 import re
 import sys
 from types import ModuleType
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Tuple, Union
 from urllib.parse import urlparse
 
 from qlib.typehint import InstConf
 from qlib.utils.pickle_utils import restricted_pickle_load
 
-_TRUSTED_MODULE_ROOTS: List[Path] = []
+CONFIG_MIGRATION_GUIDE = (
+    "https://qlib.readthedocs.io/en/latest/start/config_migration.html "
+    "(source: https://github.com/microsoft/qlib/blob/security/constrain-config-execution/"
+    "docs/start/config_migration.rst)"
+)
 
 
-def _resolve_module_roots(roots: Optional[Sequence[Union[str, Path]]]) -> List[Path]:
-    if isinstance(roots, (str, Path)):
-        raise TypeError("Module roots must be a sequence of directories, not a single path")
-    resolved_roots = []
-    for root in roots or ():
-        resolved_root = Path(root).expanduser().resolve(strict=True)
-        if not resolved_root.is_dir():
-            raise ValueError(f"Trusted module root {str(resolved_root)!r} must be a directory")
-        resolved_roots.append(resolved_root)
-    return resolved_roots
-
-
-def set_trusted_module_roots(roots: Optional[Sequence[Union[str, Path]]]) -> None:
-    """Set process-wide trusted roots for configuration-driven file modules."""
-    _TRUSTED_MODULE_ROOTS[:] = _resolve_module_roots(roots)
+def _validate_module_trust(trusted):
+    if type(trusted) is not bool:
+        raise TypeError(f"trusted must be a boolean. Migration guide: {CONFIG_MIGRATION_GUIDE}")
 
 
 def _register_legacy_module_alias(module, module_path, module_file):
@@ -54,18 +46,17 @@ def _register_legacy_module_alias(module, module_path, module_file):
             sys.modules[legacy_name] = module
 
 
-def get_module_by_module_path(
-    module_path: Union[str, ModuleType], allowed_module_roots: Optional[Sequence[Union[str, Path]]] = None
-):
+def get_module_by_module_path(module_path: Union[str, ModuleType], *, trusted: bool = False):
     """Load module path
 
     :param module_path:
-    :param allowed_module_roots: Trusted directories for ``.py`` files. ``None``
-        uses Qlib's configured roots; an empty sequence disables file imports.
-        Package imports remain available and configurations must be trusted.
+    :param trusted: Explicit consent to execute this ``.py`` file. Must be a boolean;
+        defaults to ``False``. Package imports remain available. This does not
+        restrict directories, sandbox code, or authorize artifact deserialization.
     :return:
     :raises: ModuleNotFoundError
     """
+    _validate_module_trust(trusted)
     if module_path is None:
         raise ModuleNotFoundError("None is passed in as parameters as module_path")
 
@@ -73,26 +64,15 @@ def get_module_by_module_path(
         module = module_path
     else:
         if module_path.endswith(".py"):
-            if allowed_module_roots is None:
-                allowed_module_roots = _TRUSTED_MODULE_ROOTS
-            else:
-                allowed_module_roots = _resolve_module_roots(allowed_module_roots)
-            if not allowed_module_roots:
+            if not trusted:
                 raise PermissionError(
-                    "Loading Python modules from file paths is disabled by default. "
-                    "Pass allowed_module_roots containing a trusted directory to enable it."
+                    f"Loading Python file {module_path!r} is disabled by default. "
+                    "Only after reviewing its code and who can modify it, set trusted: true on this component "
+                    "alongside class/module_path (not in kwargs), or pass trusted=True to "
+                    "get_module_by_module_path for a direct import. "
+                    f"Migration guide: {CONFIG_MIGRATION_GUIDE}"
                 )
             module_file = Path(module_path).expanduser().resolve(strict=True)
-            allowed = False
-            for root in allowed_module_roots:
-                try:
-                    module_file.relative_to(root)
-                    allowed = True
-                    break
-                except ValueError:
-                    continue
-            if not allowed:
-                raise PermissionError(f"Module path {str(module_file)!r} is outside the allowed module roots")
             if not module_file.is_file() or module_file.suffix.lower() != ".py":
                 raise ValueError(f"Module path {str(module_file)!r} must be a Python source file")
 
@@ -133,17 +113,15 @@ def split_module_path(module_path: str) -> Tuple[str, str]:
     return m_path, cls
 
 
-def get_callable_kwargs(
-    config: InstConf,
-    default_module: Union[str, ModuleType] = None,
-    allowed_module_roots: Optional[Sequence[Union[str, Path]]] = None,
-) -> (type, dict):
+def get_callable_kwargs(config: InstConf, default_module: Union[str, ModuleType] = None) -> (type, dict):
     """
     extract class/func and kwargs from config info
 
     Parameters
     ----------
     config : [dict, str]
+        A dictionary's top-level ``trusted`` boolean authorizes its file-module import.
+        It defaults to ``False`` and is separate from constructor ``kwargs``.
         similar to config
         please refer to the doc of init_instance_by_config
 
@@ -151,9 +129,6 @@ def get_callable_kwargs(
         It should be a python module to load the class type
         This function will load class from the config['module_path'] first.
         If config['module_path'] doesn't exists, it will load the class from default_module.
-
-    allowed_module_roots : sequence of paths, optional
-        Trusted directories for file modules; defaults to Qlib's configured roots.
 
     Returns
     -------
@@ -165,6 +140,8 @@ def get_callable_kwargs(
         ModuleNotFoundError
     """
     if isinstance(config, dict):
+        trusted = config.get("trusted", False)
+        _validate_module_trust(trusted)
         key = "class" if "class" in config else "func"
         if isinstance(config[key], str):
             # 1) get module and class
@@ -173,7 +150,7 @@ def get_callable_kwargs(
             m_path, cls = split_module_path(config[key])
             if m_path == "":
                 m_path = config.get("module_path", default_module)
-            module = get_module_by_module_path(m_path, allowed_module_roots=allowed_module_roots)
+            module = get_module_by_module_path(m_path, trusted=trusted)
 
             # 2) get callable
             _callable = getattr(module, cls)  # may raise AttributeError
@@ -183,9 +160,7 @@ def get_callable_kwargs(
     elif isinstance(config, str):
         # a.b.c.ClassName
         m_path, cls = split_module_path(config)
-        module = get_module_by_module_path(
-            default_module if m_path == "" else m_path, allowed_module_roots=allowed_module_roots
-        )
+        module = get_module_by_module_path(default_module if m_path == "" else m_path)
 
         _callable = getattr(module, cls)
         kwargs = {}
@@ -202,7 +177,6 @@ def init_instance_by_config(
     default_module=None,
     accept_types: Union[type, Tuple[type]] = (),
     try_kwargs: Dict = {},
-    allowed_module_roots: Optional[Sequence[Union[str, Path]]] = None,
     **kwargs,
 ) -> Any:
     """
@@ -211,6 +185,11 @@ def init_instance_by_config(
     Parameters
     ----------
     config : InstConf
+        File-based components require a top-level ``trusted: True`` in their
+        configuration dictionary. Each nested component needs its own consent.
+        This flag is not forwarded to the constructor and does not authorize
+        pickle loading. Constructor arguments named ``trusted`` still belong in
+        ``config["kwargs"]``, ``try_kwargs``, or this function's ``**kwargs``.
 
     default_module : Python module
         Optional. It should be a python module.
@@ -226,9 +205,6 @@ def init_instance_by_config(
     try_kwargs: Dict
         Try to pass in kwargs in `try_kwargs` when initialized the instance
         If error occurred, it will fail back to initialization without try_kwargs.
-
-    allowed_module_roots : sequence of paths, optional
-        Trusted directories for file modules; an empty sequence disables file imports.
 
     Returns
     -------
@@ -255,9 +231,7 @@ def init_instance_by_config(
             with config.open("rb") as f:
                 return restricted_pickle_load(f)
 
-    klass, cls_kwargs = get_callable_kwargs(
-        config, default_module=default_module, allowed_module_roots=allowed_module_roots
-    )
+    klass, cls_kwargs = get_callable_kwargs(config, default_module=default_module)
 
     try:
         return klass(**cls_kwargs, **try_kwargs, **kwargs)

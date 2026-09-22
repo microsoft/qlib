@@ -9,10 +9,12 @@ Configuration-driven execution
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - **Breaking change:** loading a local ``.py`` module through configuration now
-  requires a sequence of ``trusted_module_roots`` in ``qlib.init`` / ``qlib_init``.
-  Package imports are unchanged. Scripts loading YAML must forward these initialization
-  options. See :ref:`config_file_modules` and :ref:`trusted_module_roots`, including
-  the pre-import requirement for trusted older file-based model artifacts.
+  requires top-level boolean ``trusted: true`` on each file-based component;
+  direct ``get_module_by_module_path`` calls require ``trusted=True``.
+  Package imports and class objects are unchanged. Directory-root authorization
+  from earlier PR revisions was removed; consent is not inherited or process-wide.
+  See :ref:`config_migration` for the upgrade checklist, constructor/artifact
+  trust distinction, and recovery of trusted older file-model pickles.
 - Feature expressions use a restricted AST interpreter instead of Python ``eval``.
   Registered operators and standard Alpha158/Alpha360 definitions remain supported,
   as do bounded literal containers, argument expansion, indexing/slicing, and scalar
@@ -21,8 +23,12 @@ Configuration-driven execution
   limits, and migration examples.
 - Built-in TRA model names and model-performance graph names use explicit mappings.
   Custom extensions must update the corresponding mapping rather than relying on
-  dynamically evaluated module globals. Configuration and extension code must still
-  be trusted; these changes do not create a sandbox.
+  dynamically evaluated module globals; :ref:`config_migration` includes working
+  registration examples. Configuration and extension code must still be trusted;
+  these changes do not create a sandbox.
+- These are unreleased PR #2340 source changes. PR source, ``main``, and tagged
+  releases can differ. PR #2339's separate artifact-consent changes are not
+  implied to be merged or released.
 
 Version 0.1.0
 -------------

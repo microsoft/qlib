@@ -1625,7 +1625,7 @@ class OpsWrapper:
     def reset(self):
         self._ops = {}
 
-    def register(self, ops_list: List[Union[Type[ExpressionOps], dict]], allowed_module_roots=None):
+    def register(self, ops_list: List[Union[Type[ExpressionOps], dict]]):
         """register operator
 
         Parameters
@@ -1642,10 +1642,11 @@ class OpsWrapper:
                     }
 
                 Note: `class` should be the class name of operator, `module_path` should be a python module or path of file.
+                File paths require a top-level ``"trusted": True`` on each reviewed operator configuration.
         """
         for _operator in ops_list:
             if isinstance(_operator, dict):
-                _ops_class, _ = get_callable_kwargs(_operator, allowed_module_roots=allowed_module_roots)
+                _ops_class, _ = get_callable_kwargs(_operator)
             else:
                 _ops_class = _operator
 
@@ -1681,5 +1682,5 @@ def register_all_ops(C):
     Operators.register(OpsList + [P, PRef])
 
     if getattr(C, "custom_ops", None) is not None:
-        Operators.register(C.custom_ops, allowed_module_roots=getattr(C, "trusted_module_roots", None))
+        Operators.register(C.custom_ops)
         logger.debug("register custom operator {}".format(C.custom_ops))

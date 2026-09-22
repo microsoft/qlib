@@ -5,6 +5,7 @@ import operator
 import tokenize
 
 from qlib.utils import parse_field
+from qlib.utils.mod import CONFIG_MIGRATION_GUIDE
 
 from .base import Expression
 from .ops import Operators
@@ -12,6 +13,9 @@ from .ops import Operators
 
 class ExpressionSyntaxError(ValueError):
     """Raised when an expression contains syntax outside Qlib's language."""
+
+    def __str__(self):
+        return f"{super().__str__()}. Migration guide: {CONFIG_MIGRATION_GUIDE}"
 
 
 _BINARY_OPERATORS = {

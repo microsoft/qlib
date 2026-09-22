@@ -931,14 +931,16 @@ class Wrapper:
         return getattr(self._provider, key)
 
 
-def register_wrapper(wrapper, cls_or_obj, module_path=None):
+def register_wrapper(wrapper, cls_or_obj, module_path=None, *, trusted: bool = False):
     """register_wrapper
 
     :param wrapper: A wrapper.
     :param cls_or_obj:  A class or class name or object instance.
+    :param trusted: Explicit consent to import a file-based module; defaults to ``False``.
     """
+    _validate_module_trust(trusted)
     if isinstance(cls_or_obj, str):
-        module = get_module_by_module_path(module_path)
+        module = get_module_by_module_path(module_path, trusted=trusted)
         cls_or_obj = getattr(module, cls_or_obj)
     obj = cls_or_obj() if isinstance(cls_or_obj, type) else cls_or_obj
     wrapper.register(obj)
@@ -995,6 +997,7 @@ def fname_to_code(fname: str):
 
 
 from .mod import (
+    _validate_module_trust,
     get_module_by_module_path,
     split_module_path,
     get_callable_kwargs,

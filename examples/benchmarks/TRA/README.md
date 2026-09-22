@@ -23,6 +23,11 @@ If you find our work useful in your research, please cite:
 
 ## Usage (Recommended)
 
+When upgrading, consult the [configuration migration guide](../../../docs/start/config_migration.rst).
+It covers the unreleased source changes, including explicit `MODEL_TYPES`
+registration for custom built-in TRA backbones. Register extensions before model
+construction in each worker; source/main/tagged installations may differ.
+
 **Update**: `TRA` has been moved to `qlib.contrib.model.pytorch_tra` to support other `Qlib` components like  `qlib.workflow` and `Alpha158/Alpha360` dataset.
 
 Please follow the official [doc](https://qlib.readthedocs.io/en/latest/component/workflow.html) to use `TRA` with `workflow`. Here we also provide several example config files:
@@ -42,15 +47,18 @@ This section is used to reproduce the results in the paper.
 We attach our running scripts for the paper in `run.sh`.
 
 Run the commands below from `examples/benchmarks/TRA`. The legacy configurations
-load `src/model.py` and `src/dataset.py`, so they declare
-`qlib_init.trusted_module_roots: [.]`. This authorizes code under the current
-working directory; it is not relative to the YAML file. Only use these settings
-with code and configurations you trust.
+load `src/model.py` and `src/dataset.py`, so **both** `task.model` and
+`task.dataset` declare top-level `trusted: true`, alongside `class`,
+`module_path`, and `kwargs`. Relative file paths use the current working
+directory, not the YAML file. Only use these settings with code and
+configurations you trust; consent is not inherited from another component.
 
-If you copied an older configuration or `example.py`, update both: add the
-trusted directory sequence and forward the full initialization section with
-`qlib.init(**config["qlib_init"])`. See the
-[file-module migration guide](../../../docs/component/workflow.rst#custom-modules-and-migration).
+If you copied an older configuration, add these per-component booleans and
+remove any `qlib_init.trusted_module_roots` setting from earlier PR revisions.
+If you copied `example.py`, retain full initialization forwarding with
+`qlib.init(**config["qlib_init"])`; it forwards settings, not file-import
+permission. See the [migration guide](../../../docs/start/config_migration.rst)
+for strict boolean semantics, workers, and independent artifact permissions.
 The legacy `model_type: LSTM` belongs to `src/model.py`; do not rename it just
 because the separate built-in TRA implementation supports `RNN` and `Transformer`.
 

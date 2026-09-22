@@ -13,6 +13,7 @@ from scipy import stats
 
 from typing import Sequence
 from qlib.typehint import Literal
+from qlib.utils.mod import CONFIG_MIGRATION_GUIDE
 
 from ..graph import ScatterGraph, SubplotsGraph, BarGraph, HeatmapGraph
 from ..utils import guess_plotly_rangebreaks
@@ -342,7 +343,8 @@ def model_performance_graph(
             graph_function = GRAPH_FUNCTIONS[graph_name]
         except KeyError as exc:
             raise ValueError(
-                f"Unsupported graph name {graph_name!r}; expected one of {sorted(GRAPH_FUNCTIONS)}"
+                f"Unsupported graph name {graph_name!r}; expected one of {sorted(GRAPH_FUNCTIONS)}. "
+                f"Register trusted extensions in GRAPH_FUNCTIONS before use. Migration guide: {CONFIG_MIGRATION_GUIDE}"
             ) from exc
         fun_res = graph_function(
             pred_label=pred_label, lag=lag, N=N, reverse=reverse, rank=rank, show_nature_day=show_nature_day, **kwargs

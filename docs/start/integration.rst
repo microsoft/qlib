@@ -112,11 +112,12 @@ The configuration file is described in detail in the `Workflow <../component/wor
 .. important::
 
     A file-based ``module_path`` such as ``custom_modules/model.py`` now requires
-    explicit directory authorization through ``trusted_module_roots``.
-    Importable package names such as ``my_package.model`` do not require this
-    file-module setting. See :ref:`config_file_modules` for migration, path
-    resolution, and trusted older model artifacts, and :ref:`expression_syntax`
-    if your model uses custom feature expressions.
+    top-level ``trusted: true`` alongside ``class``, ``module_path``, and
+    ``kwargs`` after reviewing its source. No directory authorization is needed.
+    Importable package names such as ``my_package.model`` remain unaffected.
+    See :ref:`config_migration` for the upgrade checklist, path resolution,
+    independent artifact permissions, and trusted older model artifacts;
+    see :ref:`expression_syntax` for custom feature expressions.
 
 - Example: The following example describes the `model` field of configuration file about the custom lightgbm model mentioned above, where `module_path` is the module path, `class` is the class name, and `args` is the hyperparameter passed into the __init__ method. All parameters in the field is passed to `self._params` by `\*\*kwargs` in `__init__` except `loss = mse`.
 

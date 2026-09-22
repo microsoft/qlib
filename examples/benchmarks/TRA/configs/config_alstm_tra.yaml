@@ -1,7 +1,6 @@
 qlib_init:
   provider_uri: "~/.qlib/qlib_data/cn_data"
   region: cn
-  trusted_module_roots: [.]
 
 data_loader_config: &data_loader_config
   class: StaticDataLoader
@@ -31,6 +30,7 @@ task:
   model:
     class: TRAModel
     module_path: src/model.py
+    trusted: true
     kwargs:
       lr: 0.0001
       n_epochs: 500
@@ -48,6 +48,7 @@ task:
   dataset:
     class: MTSDatasetH
     module_path: src/dataset.py
+    trusted: true
     kwargs:
       handler:
         class: DataHandler

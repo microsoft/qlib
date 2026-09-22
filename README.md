@@ -7,6 +7,13 @@
 [![License](https://img.shields.io/pypi/l/pyqlib)](LICENSE)
 [![Join the chat at https://gitter.im/Microsoft/qlib](https://badges.gitter.im/Microsoft/qlib.svg)](https://gitter.im/Microsoft/qlib?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
+> **Upgrading configuration-driven workflows?** See the
+> [configuration migration guide](docs/start/config_migration.rst) for the
+> unreleased source changes: per-component `trusted: true` for local `.py`
+> imports, restricted expressions, and explicit extension mappings. Package
+> imports remain available. Match this guide to your checkout; PR source,
+> `main`, and tagged/PyPI releases may differ.
+
 ## :newspaper: **What's NEW!** &nbsp;   :sparkling_heart: 
 
 Recent released features

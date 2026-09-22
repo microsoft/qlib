@@ -31,6 +31,11 @@ def test_tra_example_forwards_initialization_config(monkeypatch, config_name):
     with config_path.open() as stream:
         config = YAML(typ="safe", pure=True).load(stream)
 
+    assert "trusted" not in config["qlib_init"]
+    assert "trusted_module_roots" not in config["qlib_init"]
+    for component in ("model", "dataset"):
+        assert config["task"][component]["trusted"] is True
+
     main = runpy.run_path(str(TRA_DIR / "example.py"))["main"]
     initialize = Mock()
     dataset, model = Mock(), Mock()

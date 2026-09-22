@@ -32,8 +32,9 @@ def test_tra_rejects_code_as_model_name(tmp_path):
     model = object.__new__(TRAModel)
     model.logger = Mock()
     model.model_type = f"__import__('pathlib').Path({str(marker)!r}).touch()"
-    with pytest.raises(ValueError, match="Unsupported model_type"):
+    with pytest.raises(ValueError, match="Unsupported model_type") as error:
         model._init_model()
+    assert "MODEL_TYPES" in str(error.value) and "config_migration.rst" in str(error.value)
     assert not marker.exists()
 
 
@@ -61,8 +62,9 @@ def test_graph_rejects_code_as_graph_name(tmp_path):
 
     marker = tmp_path / "executed.txt"
     name = f"_import__('pathlib').Path({str(marker)!r}).touch()"
-    with pytest.raises(ValueError, match="Unsupported graph name"):
+    with pytest.raises(ValueError, match="Unsupported graph name") as error:
         model_performance_graph(pd.DataFrame(), graph_names=[name], show_notebook=False)
+    assert "GRAPH_FUNCTIONS" in str(error.value) and "config_migration.rst" in str(error.value)
     assert not marker.exists()
 
 

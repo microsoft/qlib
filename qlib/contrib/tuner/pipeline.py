@@ -68,7 +68,10 @@ class Pipeline:
         tuner_config["trainer"].update({"args": self.time_config})
 
         # 5. Import Tuner class
-        tuner_module = get_module_by_module_path(self.pipeline_ex_config.tuner_module_path)
+        tuner_module = get_module_by_module_path(
+            self.pipeline_ex_config.tuner_module_path,
+            trusted=getattr(self.pipeline_ex_config, "trusted", False),
+        )
         tuner_class = getattr(tuner_module, self.pipeline_ex_config.tuner_class)
         # 6. Return the specific tuner
         return tuner_class(tuner_config, self.optim_config)
