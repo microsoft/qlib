@@ -14,6 +14,16 @@ def register_operators():
     register_all_ops(C)
 
 
+@pytest.fixture
+def data_caplog(caplog, monkeypatch):
+    logger = logging.getLogger("qlib.data")
+    # Capture once at the source, regardless of parent/root capture handlers.
+    monkeypatch.setattr(logger, "handlers", [caplog.handler])
+    monkeypatch.setattr(logger, "propagate", False)
+    with caplog.at_level(logging.ERROR, logger="qlib.data"):
+        yield caplog
+
+
 @pytest.mark.parametrize(
     "source",
     [
@@ -83,15 +93,13 @@ def test_expression_provider_rejects_code_without_side_effects(tmp_path):
 
 
 @pytest.mark.parametrize("source", ["Ref($close,", "UnknownOp($close)", "$close.__class__"])
-def test_expression_provider_logs_parser_errors(source, caplog, monkeypatch):
+def test_expression_provider_logs_parser_errors(source, data_caplog):
     from qlib.data.data import LocalExpressionProvider
 
-    monkeypatch.setattr(logging.getLogger("qlib"), "propagate", True)
     provider = LocalExpressionProvider()
-    with caplog.at_level(logging.ERROR, logger="qlib.data"):
-        with pytest.raises(ExpressionSyntaxError) as error:
-            provider.get_expression_instance(source)
-    records = [record for record in caplog.records if record.name == "qlib.data"]
+    with pytest.raises(ExpressionSyntaxError) as error:
+        provider.get_expression_instance(source)
+    records = [record for record in data_caplog.records if record.name == "qlib.data"]
     assert len(records) == 1
     assert records[0].getMessage() == f"ERROR: field [{source}] contains invalid expression: {error.value}"
     assert records[0].exc_info[1] is error.value
@@ -105,7 +113,7 @@ def test_expression_provider_logs_parser_errors(source, caplog, monkeypatch):
         (SyntaxError("invalid custom operator syntax"), "contains invalid syntax"),
     ],
 )
-def test_expression_provider_preserves_custom_operator_errors(error, message, caplog, monkeypatch):
+def test_expression_provider_preserves_custom_operator_errors(error, message, data_caplog):
     from qlib.data.data import LocalExpressionProvider
     from qlib.data.ops import Ref
 
@@ -114,14 +122,12 @@ def test_expression_provider_preserves_custom_operator_errors(error, message, ca
             raise error
 
     Operators.register([FailingOp])
-    monkeypatch.setattr(logging.getLogger("qlib"), "propagate", True)
     provider = LocalExpressionProvider()
     source = "FailingOp($close)"
-    with caplog.at_level(logging.ERROR, logger="qlib.data"):
-        with pytest.raises(type(error)) as raised:
-            provider.get_expression_instance(source)
+    with pytest.raises(type(error)) as raised:
+        provider.get_expression_instance(source)
     assert raised.value is error
-    records = [record for record in caplog.records if record.name == "qlib.data"]
+    records = [record for record in data_caplog.records if record.name == "qlib.data"]
     assert len(records) == 1
     assert records[0].getMessage() == f"ERROR: field [{source}] {message}"
     assert records[0].exc_info[1] is error
