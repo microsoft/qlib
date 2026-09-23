@@ -3,7 +3,6 @@
 
 """`scripts/collect_info.py` is what the bug report template asks users to run."""
 
-import importlib.util
 import subprocess
 import sys
 import textwrap
@@ -13,10 +12,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "collect_info.py"
 
-# setuptools stopped shipping pkg_resources with 82.0.0, so block it here rather than
-# letting the result depend on whichever setuptools the environment happens to hold.
-WITHOUT_PKG_RESOURCES = textwrap.dedent(
-    """
+# Neither branch of the script may depend on what the machine happens to hold.
+# setuptools stopped shipping pkg_resources with 82.0.0, so block the import. And
+# `cython` is a build requirement that a plain install does not have, but a machine
+# that does have it would skip the missing-package branch, so make one name missing.
+MISSING = "cython"
+DRIVER = textwrap.dedent(
+    f"""
+    import importlib.metadata
     import runpy
     import sys
 
@@ -30,6 +33,17 @@ WITHOUT_PKG_RESOURCES = textwrap.dedent(
 
     sys.meta_path.insert(0, BlockPkgResources())
     sys.modules.pop("pkg_resources", None)
+
+    _real_version = importlib.metadata.version
+
+
+    def _version(name):
+        if name == {MISSING!r}:
+            raise importlib.metadata.PackageNotFoundError(name)
+        return _real_version(name)
+
+
+    importlib.metadata.version = _version
     sys.argv = ["collect_info.py", "all"]
     runpy.run_path(sys.argv[0], run_name="__main__")
     """
@@ -38,7 +52,7 @@ WITHOUT_PKG_RESOURCES = textwrap.dedent(
 
 def run_collect_info():
     return subprocess.run(
-        [sys.executable, "-c", WITHOUT_PKG_RESOURCES],
+        [sys.executable, "-c", DRIVER],
         cwd=SCRIPT.parent,
         capture_output=True,
         text=True,
@@ -53,12 +67,10 @@ class TestCollectInfo(unittest.TestCase):
         self.assertIn("Qlib version:", result.stdout)
         self.assertIn("numpy==", result.stdout)
 
-    @unittest.skipIf(importlib.util.find_spec("Cython") is not None, "cython is installed here")
     def test_reports_a_package_that_is_not_installed(self):
-        # cython is a build requirement, not a runtime one, so a plain install does not have it.
         result = run_collect_info()
         self.assertEqual(result.returncode, 0, f"collect_info.py all failed:\n{result.stderr}")
-        self.assertIn("cython", result.stdout)
+        self.assertIn(f"{MISSING}: not installed", result.stdout)
 
 
 if __name__ == "__main__":
