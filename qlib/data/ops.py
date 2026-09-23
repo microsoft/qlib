@@ -990,9 +990,9 @@ class IdxMax(Rolling):
     def _load_internal(self, instrument, start_index, end_index, *args):
         series = self.feature.load(instrument, start_index, end_index, *args)
         if self.N == 0:
-            series = series.expanding(min_periods=1).apply(lambda x: x.argmax() + 1, raw=True)
+            series = series.expanding(min_periods=1).apply(lambda x: np.nanargmax(x) + 1, raw=True)
         else:
-            series = series.rolling(self.N, min_periods=1).apply(lambda x: x.argmax() + 1, raw=True)
+            series = series.rolling(self.N, min_periods=1).apply(lambda x: np.nanargmax(x) + 1, raw=True)
         return series
 
 
@@ -1038,9 +1038,9 @@ class IdxMin(Rolling):
     def _load_internal(self, instrument, start_index, end_index, *args):
         series = self.feature.load(instrument, start_index, end_index, *args)
         if self.N == 0:
-            series = series.expanding(min_periods=1).apply(lambda x: x.argmin() + 1, raw=True)
+            series = series.expanding(min_periods=1).apply(lambda x: np.nanargmin(x) + 1, raw=True)
         else:
-            series = series.rolling(self.N, min_periods=1).apply(lambda x: x.argmin() + 1, raw=True)
+            series = series.rolling(self.N, min_periods=1).apply(lambda x: np.nanargmin(x) + 1, raw=True)
         return series
 
 
