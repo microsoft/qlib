@@ -66,7 +66,8 @@ def risk_analysis(r, N: int = None, freq: str = "day", mode: Literal["sum", "pro
         mean = r.mean()
         std = r.std(ddof=1)
         annualized_return = mean * N
-        max_drawdown = (r.cumsum() - r.cumsum().cummax()).min()
+        # the starting value 0 is the first peak, so a loss in the first period counts
+        max_drawdown = (r.cumsum() - r.cumsum().cummax().clip(lower=0)).min()
     elif mode == "product":
         cumulative_curve = (1 + r).cumprod()
         # geometric mean (compound annual growth rate)
@@ -76,8 +77,8 @@ def risk_analysis(r, N: int = None, freq: str = "day", mode: Literal["sum", "pro
 
         cumulative_return = cumulative_curve.iloc[-1] - 1
         annualized_return = (1 + cumulative_return) ** (N / len(r)) - 1
-        # max percentage drawdown from peak cumulative product
-        max_drawdown = (cumulative_curve / cumulative_curve.cummax() - 1).min()
+        # max percentage drawdown from peak cumulative product, starting from 1
+        max_drawdown = (cumulative_curve / cumulative_curve.cummax().clip(lower=1) - 1).min()
     else:
         raise ValueError(f"risk_analysis accumulation mode {mode} is not supported. Expected `sum` or `product`.")
 

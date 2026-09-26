@@ -29,7 +29,7 @@ def _calculate_mdd(series):
     :param series:
     :return:
     """
-    return series - series.cummax()
+    return series - series.cummax().clip(lower=0)
 
 
 def _calculate_report_data(df: pd.DataFrame) -> pd.DataFrame:
