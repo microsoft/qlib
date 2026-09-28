@@ -169,6 +169,50 @@ def test_authenticated_error_points_users_to_subscription():
     assert "https://fxmacrodata.com/subscribe" in message
 
 
+class FXMacroDataPageResponse:
+    status_code = 200
+
+    def __init__(self, payload):
+        self.payload = payload
+
+    def json(self):
+        return self.payload
+
+    def raise_for_status(self):
+        pass
+
+
+def test_request_all_rows_follows_pagination():
+    collector = load_fxmacrodata_collector()
+    pages = {
+        0: {
+            "data": [{"date": "2026-01-04", "val": 1.4}, {"date": "2026-01-03", "val": 1.3}],
+            "pagination": {"has_more": True, "next_offset": 2},
+        },
+        2: {
+            "data": [{"date": "2026-01-02", "val": 1.2}],
+            "pagination": {"has_more": False, "next_offset": None},
+        },
+    }
+    calls = []
+
+    def fake_get(url, params, headers, timeout):
+        calls.append(params)
+        return FXMacroDataPageResponse(pages[params["offset"]])
+
+    with patch.object(collector.requests, "get", side_effect=fake_get):
+        rows = collector.FXMacroDataCollector._request_all_rows(
+            "https://api.fxmacrodata.com/v1",
+            "forex/eur/usd",
+            params={"start_date": "2026-01-01", "end_date": "2026-01-04"},
+        )
+
+    assert [row["date"] for row in rows] == ["2026-01-04", "2026-01-03", "2026-01-02"]
+    assert [call["offset"] for call in calls] == [0, 2]
+    assert all(call["limit"] == 100 for call in calls)
+    assert all(call["start_date"] == "2026-01-01" for call in calls)
+
+
 def test_macro_normalize_keeps_numeric_feature_columns():
     collector = load_fxmacrodata_collector()
     normalizer = collector.FXMacroDataMacroNormalize()

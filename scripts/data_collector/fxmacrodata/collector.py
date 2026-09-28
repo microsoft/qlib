@@ -36,6 +36,8 @@ DEFAULT_MACRO_INDICATORS = (
     "gdp",
 )
 API_KEY_ENV_VARS = ("FXMACRODATA_API_KEY", "FXMD_API_KEY")
+PAGE_LIMIT = 100
+MAX_PAGES = 1000
 OUTPUT_COLUMNS = [
     "date",
     "symbol",
@@ -129,18 +131,13 @@ class FXMacroDataCollector(BaseCollector):
             "start_date": self._format_date(start_datetime),
             "end_date": self._format_date(end_datetime),
         }
-        headers = {}
-        if self.api_key:
-            headers["X-API-Key"] = self.api_key
-
-        response = requests.get(
-            f"{self.base_url}/forex/{base}/{quote}",
+        rows = self._request_all_rows(
+            self.base_url,
+            f"forex/{base}/{quote}",
             params=params,
-            headers=headers,
+            api_key=self.api_key,
             timeout=self.timeout,
         )
-        self._raise_for_status(response, f"forex/{base}/{quote}")
-        rows = self._payload_rows(response.json())
         return self._rows_to_frame(pair, rows)
 
     @classmethod
@@ -206,6 +203,35 @@ class FXMacroDataCollector(BaseCollector):
         )
         cls._raise_for_status(response, path)
         return response.json()
+
+    @classmethod
+    def _request_all_rows(
+        cls,
+        base_url: str,
+        path: str,
+        params: Optional[dict] = None,
+        api_key: Optional[str] = None,
+        timeout: float = 30,
+    ) -> list:
+        # list endpoints return at most 100 rows per request (newest first),
+        # so follow pagination.next_offset until has_more is false
+        rows = []
+        offset = 0
+        for _ in range(MAX_PAGES):
+            payload = cls._request_json(
+                base_url,
+                path,
+                params={**(params or {}), "limit": PAGE_LIMIT, "offset": offset},
+                api_key=api_key,
+                timeout=timeout,
+            )
+            page = cls._payload_rows(payload)
+            rows.extend(page)
+            pagination = payload.get("pagination") if isinstance(payload, dict) else None
+            if not page or not isinstance(pagination, dict) or not pagination.get("has_more"):
+                break
+            offset = pagination.get("next_offset") or offset + len(page)
+        return rows
 
     @staticmethod
     def _raise_for_status(response, path: str):
@@ -408,6 +434,14 @@ class FXMacroDataMacroCollector(BaseCollector):
         return self._rows_to_macro_frame(currency, indicator, rows)
 
     def _request_rows(self, path: str, params: dict) -> list:
+        if self.dataset != "calendar":
+            return FXMacroDataCollector._request_all_rows(
+                self.base_url,
+                path,
+                params=params,
+                api_key=self.api_key,
+                timeout=self.timeout,
+            )
         payload = FXMacroDataCollector._request_json(
             self.base_url,
             path,
