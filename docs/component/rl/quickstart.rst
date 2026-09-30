@@ -170,6 +170,6 @@ After the training, you can backtest with the following command:
 
 In that case, :class:`~qlib.rl.order_execution.simulator_qlib.SingleAssetOrderExecution` and :class:`~qlib.rl.order_execution.simulator_simple.SingleAssetOrderExecutionSimple` as examples for simulator, :class:`qlib.rl.order_execution.interpreter.FullHistoryStateInterpreter` and :class:`qlib.rl.order_execution.interpreter.CategoricalActionInterpreter` as examples for interpreter, :class:`qlib.rl.order_execution.policy.PPO` as an example for policy, and :class:`qlib.rl.order_execution.reward.PAPenaltyReward` as an example for reward.
 For the single asset order execution task, if developers have already defined their simulator/interpreters/reward function/policy, they could launch the training and backtest pipeline by simply modifying the corresponding settings in the config files.
-The details about the example can be found `here <https://github.com/microsoft/qlib/blob/main/examples/rl/README.md>`_. 
+The details about the example can be found `here <https://github.com/microsoft/qlib/blob/main/examples/rl_order_execution/README.md>`_. 
 
 In the future, we will provide more examples for different scenarios such as RL-based portfolio construction.

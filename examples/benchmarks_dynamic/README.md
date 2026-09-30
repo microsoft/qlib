@@ -5,7 +5,7 @@ So adapting the forecasting models/strategies to market dynamics is very importa
 The table below shows the performances of different solutions on different forecasting models.
 
 ## Alpha158 Dataset
-Here is the [crowd sourced version of qlib data](data_collector/crowd_source/README.md): https://github.com/chenditc/investment_data/releases
+Here is the [crowd sourced version of qlib data](../../scripts/data_collector/crowd_source/README.md): https://github.com/chenditc/investment_data/releases
 ```bash
 wget https://github.com/chenditc/investment_data/releases/latest/download/qlib_bin.tar.gz
 mkdir -p ~/.qlib/qlib_data/cn_data
