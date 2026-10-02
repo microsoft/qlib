@@ -35,9 +35,10 @@ def test_idx_extrema_ignore_nan_in_window(operator, window, expected):
 
 
 @pytest.mark.parametrize("operator", [IdxMax, IdxMin])
-def test_idx_extrema_return_nan_for_all_nan_windows(operator):
+@pytest.mark.parametrize("window", [0, 2])
+def test_idx_extrema_return_nan_for_all_nan_windows(operator, window):
     feature = SeriesFeature([np.nan, np.nan])
 
-    result = operator(feature, 2)._load_internal("TEST", 0, 1, "day")
+    result = operator(feature, window)._load_internal("TEST", 0, 1, "day")
 
     assert result.isna().all()
