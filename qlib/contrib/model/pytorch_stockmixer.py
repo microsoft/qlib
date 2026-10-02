@@ -44,10 +44,11 @@ class StockMixer(Model):
         dataframe index, and each day is fed to the network as one
         ``(n_stock, time_steps, d_feat)`` tensor. Days with less than
         ``n_stock`` instruments are zero-padded (padded rows are masked out
-        of the loss and dropped from the predictions); a day with more than
-        ``n_stock`` instruments raises a ``ValueError``, so ``n_stock``
-        should be set to at least the maximum daily cross-section size
-        (e.g. 305 for CSI300).
+        of the loss, excluded from the statistics of the market-aware
+        stock-mixing layer, and dropped from the predictions); a day with
+        more than ``n_stock`` instruments raises a ``ValueError``, so
+        ``n_stock`` should be set to at least the maximum daily
+        cross-section size (e.g. 305 for CSI300).
 
         For ``Alpha360`` data (360 = 6 indicators x 60 days) use
         ``d_feat=6, time_steps=60``, the setting closest to the paper. For
@@ -223,12 +224,13 @@ class StockMixer(Model):
         np.random.shuffle(day_indices)
 
         for day in day_indices:
-            x_day, y_day, _ = self._pad_day(x_train_values[day], y_train_values[day])
+            x_day, y_day, n_day = self._pad_day(x_train_values[day], y_train_values[day])
 
             feature = torch.from_numpy(x_day).float().to(self.device)
             label = torch.from_numpy(y_day).float().to(self.device)
+            mask = torch.arange(self.n_stock, device=self.device) < n_day
 
-            pred = self.stock_mixer_model(feature)
+            pred = self.stock_mixer_model(feature, mask)
             loss = self.loss_fn(pred, label)
 
             self.train_optimizer.zero_grad()
@@ -248,13 +250,14 @@ class StockMixer(Model):
         day_indices = self._prepare_day_groups(data_x.index)
 
         for day in day_indices:
-            x_day, y_day, _ = self._pad_day(x_values[day], y_values[day])
+            x_day, y_day, n_day = self._pad_day(x_values[day], y_values[day])
 
             feature = torch.from_numpy(x_day).float().to(self.device)
             label = torch.from_numpy(y_day).float().to(self.device)
+            mask = torch.arange(self.n_stock, device=self.device) < n_day
 
             with torch.no_grad():
-                pred = self.stock_mixer_model(feature)
+                pred = self.stock_mixer_model(feature, mask)
                 loss = self.loss_fn(pred, label)
                 losses.append(loss.item())
 
@@ -342,9 +345,10 @@ class StockMixer(Model):
             x_day, _, n_day = self._pad_day(x_values[day])
 
             feature = torch.from_numpy(x_day).float().to(self.device)
+            mask = torch.arange(self.n_stock, device=self.device) < n_day
 
             with torch.no_grad():
-                pred = self.stock_mixer_model(feature)[:n_day].detach().cpu().numpy()
+                pred = self.stock_mixer_model(feature, mask)[:n_day].detach().cpu().numpy()
 
             preds.append(pd.Series(pred, index=index[day]))
 
@@ -438,14 +442,29 @@ class NoGraphMixer(nn.Module):
         self.activation = nn.Hardswish()
         self.dense2 = nn.Linear(hidden_dim, stocks)
 
-    def forward(self, inputs):
+    def forward(self, inputs, mask=None):
         # inputs: (stocks, features)
+        # mask: (stocks,) boolean tensor, True for real stocks, False for padding
         x = inputs
         x = x.permute(1, 0)
-        x = self.layer_norm_stock(x)
+        if mask is None:
+            x = self.layer_norm_stock(x)
+        else:
+            # masked layer-norm: statistics are computed over real stocks only,
+            # so zero-padded rows cannot pollute the normalization
+            x_real = x[:, mask]
+            mean = x_real.mean(dim=-1, keepdim=True)
+            var = x_real.var(dim=-1, keepdim=True, unbiased=False)
+            x = (x - mean) / torch.sqrt(var + self.layer_norm_stock.eps)
+            x = x * self.layer_norm_stock.weight + self.layer_norm_stock.bias
+            # zero the padded rows so they do not leak through dense1
+            x = x * mask.to(x.dtype)
         x = self.dense1(x)
         x = self.activation(x)
         x = self.dense2(x)
+        if mask is not None:
+            # zero the padded rows again: dense2 mixes them back in otherwise
+            x = x * mask.to(x.dtype)
         x = x.permute(1, 0)
         return x
 
@@ -471,8 +490,9 @@ class StockMixerModel(nn.Module):
         self.time_fc = nn.Linear(self.time_feat, 1)
         self.time_fc_ = nn.Linear(self.time_feat, 1)
 
-    def forward(self, inputs):
+    def forward(self, inputs, mask=None):
         # inputs: (stocks, channels * time_steps) tabular rows (Alpha360-style layout)
+        # mask: (stocks,) boolean tensor, True for real stocks, False for padding
         x = inputs.reshape(inputs.shape[0], self.channels, self.time_steps).permute(0, 2, 1)
 
         if self.use_scale:
@@ -482,7 +502,7 @@ class StockMixerModel(nn.Module):
             y = self.mix_layer(x)
         y = self.channel_fc(y).squeeze(-1)
 
-        z = self.stock_mixer(y)
+        z = self.stock_mixer(y, mask)
         y = self.time_fc(y)
         z = self.time_fc_(z)
         return (y + z).squeeze(-1)
