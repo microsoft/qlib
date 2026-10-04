@@ -206,10 +206,14 @@ def get_beta(r, b):
         daily return series of strategy
     b : pandas.Series
         daily return series of baseline
+
+    Returns
+    -------
+    float
+        Covariance of strategy and baseline returns divided by baseline variance.
     """
     cov_r_b = np.cov(r, b)
-    var_b = np.var(b)
-    return cov_r_b / var_b
+    return cov_r_b[0, 1] / cov_r_b[1, 1]
 
 
 def get_alpha(r, b, risk_free_rate=0.03):
