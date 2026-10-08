@@ -187,7 +187,8 @@ def get_max_drawdown_from_series(r):
     """
     # mdd = ((r.cumsum() - r.cumsum().cummax()) / (1 + r.cumsum().cummax())).min()
 
-    mdd = (((1 + r).cumprod() - (1 + r).cumprod().cummax()) / ((1 + r).cumprod().cummax())).min()
+    peak = (1 + r).cumprod().cummax().clip(lower=1)
+    mdd = (((1 + r).cumprod() - peak) / peak).min()
 
     return mdd
 
