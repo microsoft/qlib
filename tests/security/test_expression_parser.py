@@ -424,10 +424,18 @@ def test_expression_error_links_migration_after_exception_roundtrip():
     assert str(restored).count(CONFIG_MIGRATION_GUIDE) == 1
 
 
-@pytest.mark.parametrize("source", ["Ref($close, 2 * * 3)", "Ref($close, 1 . 2)", "Ref($close, r 'x')"])
+@pytest.mark.parametrize(
+    "source", ["Ref($close, 2 * * 3)", "Ref($close, 1 . 2)", "Ref($close, r 'x')", "Ref($ close, 1)"]
+)
 def test_normalization_does_not_merge_distinct_tokens(source):
     with pytest.raises(ExpressionSyntaxError):
         parse_expression(remove_fields_space(source))
+
+
+@pytest.mark.parametrize("source", ["Ref($close, ...)", "Ref($close, 1j)", "$close if True else Ref($open, ...)"])
+def test_expression_rejects_non_scalar_constants_even_in_inactive_branches(source):
+    with pytest.raises(ExpressionSyntaxError):
+        parse_expression(source)
 
 
 def test_normalization_preserves_container_and_literal_semantics(capture_operator):

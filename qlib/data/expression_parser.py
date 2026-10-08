@@ -107,6 +107,8 @@ def _validate(tree):
             pending.extend(node.args)
             pending.extend(node.keywords)
         elif isinstance(node, _SUPPORTED_NODES):
+            if isinstance(node, ast.Constant):
+                _check_scalar(node.value)
             if (
                 isinstance(node, ast.BoolOp)
                 or isinstance(node, ast.UnaryOp)
@@ -225,7 +227,7 @@ def _constant_arithmetic(node, operation, left, right):
 
 def _evaluate(node):
     if isinstance(node, ast.Constant):
-        return node.value
+        return _check_scalar(node.value)
 
     if isinstance(node, ast.List):
         return _sequence(node.elts)
