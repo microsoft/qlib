@@ -4,6 +4,16 @@ Here you can see the full list of changes between each QLib release.
 
 Unreleased
 ----------
+- **BREAKING:** New source builds restrict recorder artifact loading by default.
+  Reloading executable artifacts requires verified source/storage and explicit
+  ``trusted=True`` (CLI: ``--trusted=True``); supported data-only reads and fresh
+  in-memory training need no opt-in. See the
+  `artifact loading migration guide <https://qlib.readthedocs.io/en/latest/start/artifact_migration.html>`_
+  for workflow, HIST and high-frequency cache upgrades.
+- Merging into ``main`` affects source installs before a PyPI release. These
+  changes remain unreleased until included in a tagged release; its versioned
+  upgrade notes should link to the same guide.
+
 
 Configuration-driven execution
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -26,9 +36,7 @@ Configuration-driven execution
   dynamically evaluated module globals; :ref:`config_migration` includes working
   registration examples. Configuration and extension code must still be trusted;
   these changes do not create a sandbox.
-- These are unreleased PR #2340 source changes. PR source, ``main``, and tagged
-  releases can differ. PR #2339's separate artifact-consent changes are not
-  implied to be merged or released.
+- These changes remain unreleased until included in a tagged release.
 
 Version 0.1.0
 -------------

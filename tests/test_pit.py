@@ -9,6 +9,7 @@ import unittest
 import pytest
 import pandas as pd
 from pathlib import Path
+from unittest.mock import Mock
 
 from qlib.data import D
 from qlib.tests.data import GetData
@@ -17,7 +18,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent.joinpath("scripts")))
 from dump_pit import DumpPitData
 
 sys.path.append(str(Path(__file__).resolve().parent.parent.joinpath("scripts/data_collector/pit")))
-from collector import Run
+from collector import PitNormalize, Run
 
 pd.set_option("display.width", 1000)
 pd.set_option("display.max_columns", None)
@@ -27,6 +28,24 @@ SOURCE_DIR = DATA_DIR.joinpath("stock_data/source")
 SOURCE_DIR.mkdir(exist_ok=True, parents=True)
 QLIB_DIR = DATA_DIR.joinpath("qlib_data")
 QLIB_DIR.mkdir(exist_ok=True, parents=True)
+
+
+@pytest.mark.parametrize(
+    ("interval", "period", "missing_date"),
+    [
+        ("quarterly", 202304, "2024-02-14"),
+        ("annual", 2023, "2024-03-30"),
+    ],
+)
+def test_pit_normalization_does_not_fetch_trading_calendar(monkeypatch, interval, period, missing_date):
+    login = Mock(side_effect=AssertionError("PIT normalization must not request an online trading calendar"))
+    monkeypatch.setattr("data_collector.utils.bs.login", login)
+    normalizer = PitNormalize(interval=interval)
+    source = pd.DataFrame({"date": [None, "2024-01-20"], "period": ["2023-12-31", "2023-12-31"], "value": [0.1, 0.2]})
+    expected = pd.DataFrame({"date": [missing_date, "2024-01-20"], "period": [period, period], "value": [0.1, 0.2]})
+
+    pd.testing.assert_frame_equal(normalizer.normalize(source), expected)
+    login.assert_not_called()
 
 
 class TestPIT(unittest.TestCase):

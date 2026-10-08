@@ -1,6 +1,18 @@
 # Changelog
 
-## Unreleased: configuration-driven execution
+## Unreleased
+
+- **BREAKING:** New source builds restrict recorder artifact loading by default.
+  Reloading executable artifacts requires verified source/storage and explicit
+  `trusted=True` (CLI: `--trusted=True`). Supported data-only reads and fresh
+  in-memory training need no opt-in. See the
+  [artifact loading migration guide](https://qlib.readthedocs.io/en/latest/start/artifact_migration.html)
+  for workflow, HIST and high-frequency cache upgrades.
+- Merging into `main` affects source installs before a PyPI release. These changes
+  remain unreleased until included in a tagged release; its versioned upgrade notes
+  should link to the same guide.
+
+### Configuration-driven execution
 
 - Local `.py` imports require explicit boolean consent: top-level `trusted: true`
   on each component configuration, or `trusted=True` on a direct
@@ -12,8 +24,7 @@
 
 See the [configuration migration guide](docs/start/config_migration.rst) for the
 upgrade checklist, Python/YAML examples, extension registration, and trusted
-older file-model pickle recovery. These are PR #2340 source changes, not a
-statement that `main` or a tagged/PyPI release contains them. PR #2339's artifact
-permissions are a separate unreleased change.
+older file-model pickle recovery. These changes remain unreleased until included
+in a tagged/PyPI release.
 
 The full release history is maintained in [CHANGES.rst](CHANGES.rst).

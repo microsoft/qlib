@@ -21,6 +21,7 @@ from .exp import Experiment
 from .recorder import Recorder
 from ..utils import Wrapper
 from ..utils.exceptions import RecorderInitializationError
+from ..utils.pickle_utils import validate_trusted
 
 
 class QlibRecorder:
@@ -533,11 +534,18 @@ class QlibRecorder:
             )
         self.get_exp().get_recorder(start=True).save_objects(local_path, artifact_path, **kwargs)
 
-    def load_object(self, name: Text):
+    def load_object(self, name: Text, *, trusted: bool = False):
         """
         Method for loading an object from artifacts in the experiment in the uri.
+
+        Set ``trusted=True`` only for pickle artifacts whose source and storage
+        are trusted. Unrestricted pickle loading may execute arbitrary code.
         """
-        return self.get_exp().get_recorder(start=True).load_object(name)
+        trusted = validate_trusted(trusted)
+        recorder = self.get_exp().get_recorder(start=True)
+        if trusted is False:
+            return recorder.load_object(name)
+        return recorder.load_object(name, trusted=trusted)
 
     def log_params(self, **kwargs):
         """

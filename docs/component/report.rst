@@ -25,6 +25,12 @@ This avoids the metrics or the plots being skewed exponentially over time.
 
 .. note::
 
+    Supported numerical report artifacts load in the restricted default mode.
+    Saved backtest artifacts containing ``Position`` instances or indicator objects
+    instead require explicit ``trusted=True`` after verifying their writer and
+    store. See :ref:`artifact_loading_migration`; a report filename alone does not
+    establish that its contents are data-only.
+
     Model-performance graph names use the explicit ``GRAPH_FUNCTIONS`` mapping.
     Built-in names are unchanged; custom names must be registered before use,
     including in workers. See :ref:`config_migration` for a working extension

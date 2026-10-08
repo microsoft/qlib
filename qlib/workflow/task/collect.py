@@ -6,11 +6,13 @@ Collector module can collect objects from everywhere and process them such as me
 """
 
 from collections import defaultdict
+from collections.abc import Mapping
 from qlib.log import TimeInspector
-from typing import Callable, Dict, Iterable, List
+from typing import Any, Callable, Dict, Iterable, List, Optional
 from qlib.log import get_module_logger
 from qlib.utils.serial import Serializable
 from qlib.utils.exceptions import LoadObjectError
+from qlib.utils.pickle_utils import validate_trusted
 from qlib.workflow import R
 from qlib.workflow.exp import Experiment
 from qlib.workflow.recorder import Recorder
@@ -135,6 +137,7 @@ class MergeCollector(Collector):
 
 class RecorderCollector(Collector):
     ART_KEY_RAW = "__raw"
+    artifact_load_kwargs: Optional[Dict[str, Dict[str, Any]]] = None
 
     def __init__(
         self,
@@ -146,6 +149,8 @@ class RecorderCollector(Collector):
         artifacts_key=None,
         list_kwargs={},
         status: Iterable = {Recorder.STATUS_FI},
+        *,
+        artifact_load_kwargs: Optional[Dict[str, Dict[str, Any]]] = None,
     ):
         """
         Init RecorderCollector.
@@ -161,7 +166,24 @@ class RecorderCollector(Collector):
             artifacts_key (str or List, optional): the artifacts key you want to get. If None, get all artifacts.
             list_kwargs (str): arguments for list_recorders function.
             status (Iterable): only collect recorders with specific status. None indicating collecting all the recorders
+            artifact_load_kwargs (dict, optional): keyword arguments for ``load_object``,
+                keyed by artifact alias in ``artifacts_path``. For example,
+                ``{"model": {"trusted": True}}`` authorizes only the model artifact.
+                Unspecified artifacts retain restricted loading. Only opt in after
+                verifying the selected artifacts' sources and storage.
         """
+        if artifact_load_kwargs is not None and not isinstance(artifact_load_kwargs, Mapping):
+            raise TypeError("artifact_load_kwargs must map artifact keys to loading keyword arguments")
+        self.artifact_load_kwargs = {}
+        for key, options in (artifact_load_kwargs or {}).items():
+            if key == self.ART_KEY_RAW or key not in artifacts_path:
+                raise ValueError(f"Loading keyword arguments require a configured artifact path: {key!r}")
+            if not isinstance(options, Mapping):
+                raise TypeError(f"Loading keyword arguments for {key!r} must be a mapping")
+            options = dict(options)
+            if "trusted" in options and not validate_trusted(options["trusted"]):
+                del options["trusted"]
+            self.artifact_load_kwargs[key] = options
         super().__init__(process_list=process_list)
         if isinstance(experiment, str):
             experiment = R.get_exp(experiment_name=experiment)
@@ -224,6 +246,7 @@ class RecorderCollector(Collector):
         for r in recs:
             status_stat[r.status] += 1
         logger.info(f"Nubmer of recorders after filter: {status_stat}")
+        load_kwargs = self.artifact_load_kwargs or {}
         for rec in recs:
             rec_key = self.rec_key_func(rec)
             for key in artifacts_key:
@@ -231,11 +254,11 @@ class RecorderCollector(Collector):
                     artifact = rec
                 else:
                     try:
-                        artifact = rec.load_object(self.artifacts_path[key])
+                        artifact = rec.load_object(self.artifacts_path[key], **load_kwargs.get(key, {}))
                     except LoadObjectError as e:
                         if only_exist:
                             # only collect existing artifact
-                            logger.warning(f"Fail to load {self.artifacts_path[key]} and it is ignored.")
+                            logger.warning(f"Fail to load {self.artifacts_path[key]} and it is ignored: {e}")
                             continue
                         raise e
                 # give user some warning if the values are overridden

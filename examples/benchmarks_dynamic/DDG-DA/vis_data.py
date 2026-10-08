@@ -43,7 +43,8 @@ from qlib.workflow import R
 
 exp = R.get_exp(experiment_name="DDG-DA")
 meta_rec = exp.list_recorders(rtype="list", max_results=1)[0]
-meta_m = meta_rec.load_object("model")
+# Only load executable models/tasks from experiments whose storage you trust.
+meta_m = meta_rec.load_object("model", trusted=True)
 
 pd.DataFrame(meta_m.tn.twm.linear.weight.detach().numpy()).T[0].plot()
 
@@ -86,10 +87,10 @@ exp = R.get_exp(experiment_name="rolling_ds")
 def show_linear_weight(exp):
     coef_df = {}
     for r in exp.list_recorders("list"):
-        t = r.load_object("task")
+        t = r.load_object("task", trusted=True)
         if None in t["dataset"]["kwargs"]["segments"]["test"]:
             continue
-        m = r.load_object("params.pkl")
+        m = r.load_object("params.pkl", trusted=True)
         coef_df[t["dataset"]["kwargs"]["segments"]["test"]] = pd.Series(m.coef_)
 
     coef_df = pd.concat(coef_df)

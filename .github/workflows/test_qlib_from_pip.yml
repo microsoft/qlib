@@ -64,13 +64,13 @@ jobs:
       uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4
       with:
         timeout_minutes: 15
-        max_attempts: 3
-        retry_wait_seconds: 10
+        max_attempts: 5
+        retry_wait_seconds: 60
         shell: bash
         command: |
           set -euo pipefail
           cd "$RUNNER_TEMP"
-          python -m qlib.cli.data qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn --delete_old False
+          python -m qlib.cli.data download_data --file_name v2/qlib_data_cn_1d_latest.zip --target_dir ~/.qlib/qlib_data/cn_data --delete_old False
 
     - name: Test workflow by config
       uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4

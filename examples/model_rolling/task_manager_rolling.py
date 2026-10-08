@@ -83,7 +83,7 @@ class RollingTaskExample:
         print("========== task_collecting ==========")
 
         def rec_key(recorder):
-            task_config = recorder.load_object("task")
+            task_config = recorder.load_object("task", trusted=True)
             model_key = task_config["model"]["class"]
             rolling_key = task_config["dataset"]["kwargs"]["segments"]["test"]
             return model_key, rolling_key
