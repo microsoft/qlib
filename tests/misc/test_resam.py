@@ -50,6 +50,34 @@ def test_resam_calendar_period_boundaries(dates, raw_freq, sampled_freq, expecte
     np.testing.assert_array_equal(result, np.array([pd.Timestamp(value) for value in expected]))
 
 
+@pytest.mark.parametrize(
+    "start, end, gap_start, gap_end, sampled_freq, expected",
+    [
+        (
+            "2024-01-29",
+            "2024-03-08",
+            "2024-02-12",
+            "2024-02-16",
+            "2week",
+            ["2024-01-29", "2024-02-19", "2024-03-04"],
+        ),
+        (
+            "2024-01-01",
+            "2024-06-28",
+            "2024-03-01",
+            "2024-03-31",
+            "2month",
+            ["2024-01-01", "2024-04-01", "2024-06-03"],
+        ),
+    ],
+)
+def test_resam_calendar_counts_nonempty_periods(start, end, gap_start, gap_end, sampled_freq, expected):
+    calendar = pd.bdate_range(start, end)
+    calendar = calendar[(calendar < gap_start) | (calendar > gap_end)]
+    result = resam_calendar(calendar.to_pydatetime(), "day", sampled_freq, region=REG_CN)
+    np.testing.assert_array_equal(result, np.array([pd.Timestamp(value) for value in expected]))
+
+
 @pytest.mark.parametrize("sampled_freq", ["week", "month", "2week", "2month"])
 def test_resam_calendar_empty(sampled_freq):
     calendar = np.array([], dtype=object)

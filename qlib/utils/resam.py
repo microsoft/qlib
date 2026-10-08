@@ -25,6 +25,8 @@ def resam_calendar(
         Frequency of the raw calendar
     freq_sam : str
         Sample frequency
+        Weekly and monthly sampling counts periods present in the input, so entirely
+        missing weeks or months do not advance the sampling count.
     region: str
         Region, for example, "cn", "us"
     Returns
