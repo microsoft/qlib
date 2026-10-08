@@ -1,0 +1,5 @@
+requests>=2.28
+fire>=0.5
+loguru>=0.6
+pandas>=1.5
+
