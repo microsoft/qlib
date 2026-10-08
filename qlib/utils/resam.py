@@ -92,8 +92,12 @@ def get_higher_eq_freq_feature(instruments, fields, start_time=None, end_time=No
                 _result = D.features(instruments, fields, start_time, end_time, freq="1min", disk_cache=disk_cache)
                 _freq = "1min"
         elif norm_freq == Freq.NORM_FREQ_MINUTE:
-            _result = D.features(instruments, fields, start_time, end_time, freq="1min", disk_cache=disk_cache)
-            _freq = "1min"
+            try:
+                _result = D.features(instruments, fields, start_time, end_time, freq="1min", disk_cache=disk_cache)
+                _freq = "1min"
+            except (ValueError, KeyError):
+                _result = D.features(instruments, fields, start_time, end_time, freq="day", disk_cache=disk_cache)
+                _freq = "day"
         else:
             raise ValueError(f"freq {freq} is not supported") from value_key_e
     return _result, _freq
