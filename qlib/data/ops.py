@@ -1491,10 +1491,13 @@ class Corr(PairRolling):
         # NOTE: Load uses MemCache, so calling load again will not cause performance degradation
         series_left = self.feature_left.load(instrument, start_index, end_index, *args)
         series_right = self.feature_right.load(instrument, start_index, end_index, *args)
-        res.loc[
-            np.isclose(series_left.rolling(self.N, min_periods=1).std(), 0, atol=2e-05)
-            | np.isclose(series_right.rolling(self.N, min_periods=1).std(), 0, atol=2e-05)
-        ] = np.nan
+        if self.N == 0:
+            std_left = series_left.expanding(min_periods=1).std()
+            std_right = series_right.expanding(min_periods=1).std()
+        else:
+            std_left = series_left.rolling(self.N, min_periods=1).std()
+            std_right = series_right.rolling(self.N, min_periods=1).std()
+        res.loc[np.isclose(std_left, 0, atol=2e-05) | np.isclose(std_right, 0, atol=2e-05)] = np.nan
         return res
 
 
