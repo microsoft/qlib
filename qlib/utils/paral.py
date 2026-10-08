@@ -57,7 +57,10 @@ def datetime_groupby_apply(
 
     def _naive_group_apply(df):
         if isinstance(apply_func, str):
-            return getattr(df.groupby(axis=axis, level=level, group_keys=False), apply_func)()
+            # pandas 3 removed `groupby(axis=...)`; group the transpose for axis=1
+            if axis == 1:
+                return getattr(df.T.groupby(level=level, group_keys=False), apply_func)().T
+            return getattr(df.groupby(level=level, group_keys=False), apply_func)()
         return df.groupby(level=level, group_keys=False).apply(apply_func)
 
     if n_jobs != 1:

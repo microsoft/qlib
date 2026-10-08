@@ -10,6 +10,7 @@ from qlib.log import TimeInspector
 from qlib.constant import REG_CN, REG_US, REG_TW
 from qlib.utils.time import cal_sam_minute as cal_sam_minute_new, get_min_cal, CN_TIME, US_TIME, TW_TIME
 from qlib.utils.data import guess_horizon
+from qlib.utils.paral import datetime_groupby_apply
 
 REG_MAP = {REG_CN: CN_TIME, REG_US: US_TIME, REG_TW: TW_TIME}
 
@@ -130,6 +131,18 @@ class DataUtils(TestCase):
         label = ["Ref($close, -1) / Ref($close, -1) - 1"]
         result = guess_horizon(label)
         assert result == 1
+
+
+class ParalUtils(TestCase):
+    def test_datetime_groupby_apply_str(self):
+        index = pd.MultiIndex.from_product(
+            [pd.date_range("2021-01-01", periods=3), ["SH600000", "SH600001", "SH600002", "SH600003"]],
+            names=["datetime", "instrument"],
+        )
+        df = pd.DataFrame({"a": np.arange(12.0) ** 2, "b": np.arange(12.0) % 5}, index=index)
+        expected = df.groupby(level="datetime").skew()
+        pd.testing.assert_frame_equal(datetime_groupby_apply(df, "skew", n_jobs=1), expected)
+        pd.testing.assert_frame_equal(datetime_groupby_apply(df.T, "skew", axis=1, n_jobs=1), expected.T)
 
 
 if __name__ == "__main__":
