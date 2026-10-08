@@ -25,6 +25,8 @@ def resam_calendar(
         Frequency of the raw calendar
     freq_sam : str
         Sample frequency
+        Weekly and monthly sampling counts periods present in the input, so entirely
+        missing weeks or months do not advance the sampling count.
     region: str
         Region, for example, "cn", "us"
     Returns
@@ -57,13 +59,13 @@ def resam_calendar(
             return _calendar_day[:: freq_sam.count]
 
         elif freq_sam.base == Freq.NORM_FREQ_WEEK:
-            _day_in_week = np.array(list(map(lambda x: x.dayofweek, _calendar_day)))
-            _calendar_week = _calendar_day[np.ediff1d(_day_in_week, to_begin=-1) < 0]
+            _week = pd.DatetimeIndex(_calendar_day).to_period("W")
+            _calendar_week = _calendar_day[~_week.duplicated()]
             return _calendar_week[:: freq_sam.count]
 
         elif freq_sam.base == Freq.NORM_FREQ_MONTH:
-            _day_in_month = np.array(list(map(lambda x: x.day, _calendar_day)))
-            _calendar_month = _calendar_day[np.ediff1d(_day_in_month, to_begin=-1) < 0]
+            _month = pd.DatetimeIndex(_calendar_day).to_period("M")
+            _calendar_month = _calendar_day[~_month.duplicated()]
             return _calendar_month[:: freq_sam.count]
         else:
             raise ValueError("sampling freq must be xmin, xd, xw, xm")
