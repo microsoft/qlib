@@ -79,6 +79,12 @@ def get_higher_eq_freq_feature(instruments, fields, start_time=None, end_time=No
 
     from ..data.data import D  # pylint: disable=C0415
 
+    # NOTE: normalize `freq` (e.g. "1day" -> "day") so it matches the freq strings
+    # used to name feature files on disk. Without this, an equivalent but
+    # differently-spelled freq (e.g. "1day" from `time_per_step`) silently fails to
+    # find any data instead of raising, which later surfaces as a confusing
+    # "benchmark does not exist" error.
+    freq = str(Freq(freq))
     try:
         _result = D.features(instruments, fields, start_time, end_time, freq=freq, disk_cache=disk_cache)
         _freq = freq
