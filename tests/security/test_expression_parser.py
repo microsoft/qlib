@@ -425,7 +425,15 @@ def test_expression_error_links_migration_after_exception_roundtrip():
 
 
 @pytest.mark.parametrize(
-    "source", ["Ref($close, 2 * * 3)", "Ref($close, 1 . 2)", "Ref($close, r 'x')", "Ref($ close, 1)"]
+    "source",
+    [
+        "Ref($close, 2 * * 3)",
+        "Ref($close, 1 . 2)",
+        "Ref($close, r 'x')",
+        "Ref($ close, 1)",
+        "Ref($ $close, 1)",
+        "Ref($$ close, 1)",
+    ],
 )
 def test_normalization_does_not_merge_distinct_tokens(source):
     with pytest.raises(ExpressionSyntaxError):
