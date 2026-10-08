@@ -101,7 +101,7 @@ def backtest_analysis(pred, rid, uri_path: str = None):
         recorder = R.get_recorder(experiment_name="workflow", recorder_id=rid)
 
     dataset = init_instance_by_config(CSI300_GBDT_TASK["dataset"])
-    model = recorder.load_object("trained_model")
+    model = recorder.load_object("trained_model", trusted=True)
 
     port_analysis_config = {
         "executor": {

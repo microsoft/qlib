@@ -20,6 +20,7 @@ from ..utils import fill_placeholder, flatten_dict, class_casting, get_date_by_s
 from ..utils.time import Freq
 from ..utils.data import deepcopy_basic_type
 from ..utils.exceptions import QlibException
+from ..utils.pickle_utils import validate_trusted
 from ..contrib.eva.alpha import calc_ic, calc_long_short_return, calc_long_short_prec
 
 logger = get_module_logger("workflow", logging.INFO)
@@ -78,7 +79,7 @@ class RecordTemp:
         """
         raise NotImplementedError(f"Please implement the `generate` method.")
 
-    def load(self, name: str, parents: bool = True):
+    def load(self, name: str, parents: bool = True, *, trusted: bool = False):
         """
         It behaves the same as self.recorder.load_object.
         But it is an easier interface because users don't have to care about `get_path` and `artifact_path`
@@ -93,17 +94,23 @@ class RecordTemp:
             So parents recursively find the path in parents
             Sub classes has higher priority
 
+        trusted : bool
+            Explicitly allow unrestricted loading of this artifact, including
+            parent-path lookup, only when its source and storage are trusted.
+            This does not change the policy of subsequent loads or generation.
+
         Return
         ------
         The stored records.
         """
+        load_kwargs = {"trusted": True} if validate_trusted(trusted) else {}
         try:
-            return self.recorder.load_object(self.get_path(name))
+            return self.recorder.load_object(self.get_path(name), **load_kwargs)
         except LoadObjectError as e:
             if parents:
                 if self.depend_cls is not None:
                     with class_casting(self, self.depend_cls):
-                        return self.load(name, parents=True)
+                        return self.load(name, parents=True, **load_kwargs)
             raise e
 
     def list(self):

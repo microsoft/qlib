@@ -199,8 +199,10 @@ def class_casting(obj: object, cls: type):
     """
     orig_cls = obj.__class__
     obj.__class__ = cls
-    yield
-    obj.__class__ = orig_cls
+    try:
+        yield
+    finally:
+        obj.__class__ = orig_cls
 
 
 def find_all_classes(module_path: Union[str, ModuleType], cls: type) -> List[type]:

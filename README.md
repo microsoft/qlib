@@ -7,6 +7,20 @@
 [![License](https://img.shields.io/pypi/l/pyqlib)](LICENSE)
 [![Join the chat at https://gitter.im/Microsoft/qlib](https://badges.gitter.im/Microsoft/qlib.svg)](https://gitter.im/Microsoft/qlib?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
+## Unreleased breaking change: artifact loading
+
+New source builds introduce a **backward-incompatible safety default**: recorder
+loads are restricted. If you reload saved models/datasets, resume online or delayed
+training, or use DDG-DA, verify the artifact writer and storage permissions before
+opting in with `trusted=True` (CLI: `--trusted=True`). Fresh in-memory training and
+supported data-only reads need no opt-in. HIST mappings and high-frequency cache
+paths also have migration requirements.
+
+Follow the [artifact loading migration guide](https://qlib.readthedocs.io/en/latest/start/artifact_migration.html)
+before upgrading. Merging into `main` affects source installs before a new PyPI
+release; this change remains **unreleased until the first tagged release containing
+it**. That release's versioned upgrade notes should link to the same guide.
+
 ## :newspaper: **What's NEW!** &nbsp;   :sparkling_heart: 
 
 Recent released features

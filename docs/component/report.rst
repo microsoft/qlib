@@ -23,6 +23,14 @@ Introduction
 All of the accumulated profit metrics(e.g. return, max drawdown) in Qlib are calculated by summation.
 This avoids the metrics or the plots being skewed exponentially over time.
 
+.. note::
+
+    Supported numerical report artifacts load in the restricted default mode.
+    Saved backtest artifacts containing ``Position`` instances or indicator objects
+    instead require explicit ``trusted=True`` after verifying their writer and
+    store. See :ref:`artifact_loading_migration`; a report filename alone does not
+    establish that its contents are data-only.
+
 Graphical Reports
 =================
 
