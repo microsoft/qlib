@@ -27,6 +27,7 @@ Document Structure
 
    Installation <start/installation.rst>
    Artifact Loading Migration <start/artifact_migration.rst>
+   Configuration Migration <start/config_migration.rst>
    Initialization <start/initialization.rst>
    Data Retrieval <start/getdata.rst>
    Custom Model Integration <start/integration.rst>

@@ -109,6 +109,16 @@ Configuration File
 
 The configuration file is described in detail in the `Workflow <../component/workflow.html#complete-example>`_ document. In order to integrate the custom model into ``Qlib``, users need to modify the "model" field in the configuration file. The configuration describes which models to use and how we can initialize it.
 
+.. important::
+
+    A file-based ``module_path`` such as ``custom_modules/model.py`` now requires
+    top-level ``trusted: true`` alongside ``class``, ``module_path``, and
+    ``kwargs`` after reviewing its source. No directory authorization is needed.
+    Importable package names such as ``my_package.model`` remain unaffected.
+    See :ref:`config_migration` for the upgrade checklist, path resolution,
+    independent artifact permissions, and trusted older model artifacts;
+    see :ref:`expression_syntax` for custom feature expressions.
+
 - Example: The following example describes the `model` field of configuration file about the custom lightgbm model mentioned above, where `module_path` is the module path, `class` is the class name, and `args` is the hyperparameter passed into the __init__ method. All parameters in the field is passed to `self._params` by `\*\*kwargs` in `__init__` except `loss = mse`.
 
     .. code-block:: YAML

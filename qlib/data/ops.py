@@ -1642,6 +1642,7 @@ class OpsWrapper:
                     }
 
                 Note: `class` should be the class name of operator, `module_path` should be a python module or path of file.
+                File paths require a top-level ``"trusted": True`` on each reviewed operator configuration.
         """
         for _operator in ops_list:
             if isinstance(_operator, dict):
@@ -1658,10 +1659,14 @@ class OpsWrapper:
                 )
             self._ops[_ops_class.__name__] = _ops_class
 
+    def get_operator(self, name):
+        """Return a registered expression operator, excluding wrapper methods."""
+        if name not in self._ops:
+            raise AttributeError("The operator [{0}] is not registered".format(name))
+        return self._ops[name]
+
     def __getattr__(self, key):
-        if key not in self._ops:
-            raise AttributeError("The operator [{0}] is not registered".format(key))
-        return self._ops[key]
+        return self.get_operator(key)
 
 
 Operators = OpsWrapper()

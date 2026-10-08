@@ -50,9 +50,11 @@ class PipelineExperimentConfig:
         # Get the tuner type
         self.tuner_module_path = config.get("tuner_module_path", "qlib.contrib.tuner.tuner")
         self.tuner_class = config.get("tuner_class", "QLibTuner")
+        self.trusted = config.get("trusted", False)
         # Save the tuner experiment for further view
         tuner_ex_config_path = os.path.join(self.tuner_ex_dir, "tuner_config.yaml")
         with open(tuner_ex_config_path, "w") as fp:
+            yaml = YAML(typ="safe", pure=True)
             yaml.dump(TUNER_CONFIG_MANAGER.config, fp)
 
 

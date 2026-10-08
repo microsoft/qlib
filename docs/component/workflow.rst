@@ -189,6 +189,9 @@ The meaning of each field is as follows:
 
         The value of `region` should be aligned with the data stored in `provider_uri`.
 
+File-import consent belongs to each component's configuration, not the
+``qlib_init`` section. See :ref:`config_migration`.
+
 
 Task Section
 ------------
@@ -222,14 +225,64 @@ The meaning of each field is as follows:
     Type: str. The name for the model class.
 
 - `module_path`
-    Type: str. The path for the model in qlib.
+    Type: str. An importable Python module name, or a ``.py`` file path.
+
+- `trusted`
+    Type: bool, optional (default: ``False``). Set to ``True`` only to authorize
+    importing this component's reviewed ``.py`` file. Package imports and class
+    objects do not require this field. It is separate from constructor ``kwargs``.
 
 - `kwargs`
     The keywords arguments for the model. Please refer to the specific model implementation for more information: `models <https://github.com/microsoft/qlib/blob/main/qlib/contrib/model>`_.
 
 .. note::
 
-    ``Qlib`` provides a util named: ``init_instance_by_config`` to initialize any class inside ``Qlib`` with the configuration includes the fields: `class`, `module_path` and `kwargs`.
+    ``Qlib`` provides ``init_instance_by_config`` to initialize a class from
+    ``class``, ``module_path``, and ``kwargs``. For file modules, add ``trusted``
+    alongside those fields, not as a keyword argument to the factory.
+
+.. _config_file_modules:
+
+Custom modules and migration
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For the upgrade checklist and complete Python/custom-operator examples, see
+:ref:`config_migration`. Package-based configurations such as
+``module_path: qlib.contrib.model.gbdt`` or ``module_path: my_package.model``
+remain available without file-import consent. To load a reviewed local model,
+declare consent in that model's configuration:
+
+.. code-block:: YAML
+
+    qlib_init:
+        provider_uri: "~/.qlib/qlib_data/cn_data"
+        region: cn
+    task:
+        model:
+            class: MyModel
+            module_path: custom_modules/model.py
+            trusted: true
+            kwargs: {}
+        # Keep the existing dataset and record sections here.
+
+Every nested file-based dataset, handler, or custom operator needs its own
+top-level ``trusted: true``; trust is not inherited. Only boolean values are
+accepted. Without consent, file imports raise ``PermissionError``.
+Relative paths use the process's current working directory, not the YAML file.
+Keep these fields when saving configurations or passing them to workers.
+
+``qrun`` forwards the ``qlib_init`` section automatically.
+If you load YAML in a Python script, forward the complete section to preserve
+initialization options (this does not grant file-import permission):
+
+.. code-block:: Python
+
+    qlib.init(**config["qlib_init"])
+
+Only run configurations and source code you trust; embedded consent does not
+make untrusted YAML safe. See :ref:`config_migration` for the distinction between
+import consent and constructor/artifact permissions, and recovery of trusted
+older file-model pickles.
 
 Dataset Section
 ~~~~~~~~~~~~~~~

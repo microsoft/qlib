@@ -21,6 +21,13 @@ before upgrading. Merging into `main` affects source installs before a new PyPI
 release; this change remains **unreleased until the first tagged release containing
 it**. That release's versioned upgrade notes should link to the same guide.
 
+> **Upgrading configuration-driven workflows?** See the
+> [configuration migration guide](docs/start/config_migration.rst) for the
+> unreleased source changes: per-component `trusted: true` for local `.py`
+> imports, restricted expressions, and explicit extension mappings. Package
+> imports remain available. Match this guide to your checkout; PR source,
+> `main`, and tagged/PyPI releases may differ.
+
 ## :newspaper: **What's NEW!** &nbsp;   :sparkling_heart: 
 
 Recent released features

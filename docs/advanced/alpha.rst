@@ -78,6 +78,93 @@ Users can use ``Data Handler`` to build formulaic alphas `MACD` in qlib:
                SZ300251   -0.001026  0.021739
                SZ300315   -0.007559  0.012455
 
+.. _expression_syntax:
+
+Expression syntax and migration
+===============================
+
+Feature expressions are a restricted language, not general Python.
+``Qlib`` interprets their syntax and calls registered operators rather than evaluating arbitrary Python code.
+Standard Alpha158/Alpha360 feature definitions and registered custom operators remain supported.
+For an upgrade checklist covering expressions, file imports, and extension
+registries, see :ref:`config_migration`.
+
+Supported expressions include:
+
+.. code-block:: text
+
+    $close
+    Ref($close, 1) / $close - 1
+    Mean($close, 2 + 3)
+    $close / (1 + 0.01)
+    If(Gt($close, $open), $close, $open)
+    ($close > $open) & ($volume > 0)
+    Ref(*[$close, 1])
+    Mean($close, **{"N": 2 + 3})
+    Ref($close, [1, 5, 10][0])
+    Ref(*[$close, 1, 99][:2])
+    Ref($close, 5 if (1 < 2 and not False) else 10)
+
+You can use feature references (``$field`` and point-in-time ``$$field``), registered operator calls, arithmetic on expressions, and single comparisons.
+Operator arguments can include literals, lists, tuples, dictionaries, and named arguments where the operator accepts them.
+Numeric parameter arithmetic is supported, including ``+``, ``-``, ``*``, ``/``, ``//``, ``%``, and ``**``.
+Constant arithmetic requires real numbers; integers are limited to 4096 bits and the absolute value of a constant exponent is limited to 4096.
+String/list repetition (such as ``'x' * n`` or ``[1] * n``) and complex-valued constant arithmetic are rejected.
+The final result must be a Qlib ``Expression`` object, not a standalone constant.
+
+Safe parameter syntax
+---------------------
+
+* ``*`` expands literal lists or tuples into positional arguments or another list/tuple.
+  ``**`` expands literal dictionaries into keyword arguments or another dictionary.
+  Arbitrary iterables and mapping objects are not accepted.
+* Dictionary keys must be literal scalars (numbers, booleans, strings, bytes, or ``None``), not expression objects or tuples.
+  Keyword argument names must be strings, and duplicate keyword arguments are rejected.
+  Dictionary literals retain Python's last-value-wins behavior when keys are repeated.
+* Literal lists, tuples, dictionaries, strings, and bytes support indexing.
+  Sequences also support slices with integer bounds and steps.
+  These containers can hold expressions, but expression objects themselves cannot be indexed: ``[$close][0]`` is supported, while ``$close[0]`` is not.
+* Each list, tuple, or dictionary is limited to 4096 items, including items introduced by expansion.
+  A call is limited to 4096 positional and keyword arguments in total.
+* Literal scalar ``<``, ``<=``, ``>``, ``>=``, ``==``, and ``!=`` comparisons, including chained comparisons, are supported.
+  Scalar ``and``, ``or``, ``not``, and conditional expressions preserve Python's short-circuit behavior.
+  Their truth-value tests must be built from literal scalars, optionally using constant arithmetic or literal-container lookups; they cannot contain Qlib operator calls.
+  For example, ``$close if True else $open`` is supported, but ``$close if $volume > 0 else $open`` is not.
+
+All branches are checked for supported syntax and registered operator names before any operators are constructed, even if a branch will not be selected.
+String arguments are preserved literally; text such as ``"$close"`` inside a string is not rewritten into a feature reference.
+Dataset and disk-cache field normalization also preserve spaces inside literals and the token boundaries needed by scalar conditions.
+
+Expression logic and unsupported Python syntax
+----------------------------------------------
+
+For elementwise logic involving Qlib expressions, use ``&`` and ``|`` with parenthesized comparisons, or ``If``.
+Write ``($close > 0) & ($close < 10)`` instead of ``0 < $close < 10``.
+Use ``If($volume > 0, $close, $open)`` instead of a Python conditional whose test is an expression.
+Python ``and``, ``or``, ``not``, and chained comparisons involving expression objects are rejected rather than silently changing their meaning.
+
+Attribute access, lambdas, comprehensions, and arbitrary function calls inside expression strings remain unsupported.
+Move such logic into trusted Python code or a registered custom operator.
+These restrictions do not affect normal Python code used to generate expression strings:
+
+.. code-block:: Python
+
+    fields = [f"Mean($close, {window})" for window in [5, 10, 20]]
+
+Unsupported syntax and unknown operator names raise ``qlib.data.expression_parser.ExpressionSyntaxError``, a subclass of ``ValueError``.
+Operator-specific argument validation still applies.
+
+Register custom operators before use, for example through ``qlib.init(custom_ops=[...])``; merely making a Python function importable does not make it an expression operator.
+See ``tests/test_register_ops.py`` for an example.
+For file-based custom operators, put ``trusted: true`` in each operator's
+configuration alongside ``class`` and ``module_path``; see the working example
+in :ref:`config_migration`. This permits that file import only and never
+relaxes the expression grammar.
+
+.. note::
+
+    Custom operator code must be trusted. The expression language restricts syntax, but does not sandbox registered operators or impose general resource limits on expression evaluation.
+
 Reference
 =========
 

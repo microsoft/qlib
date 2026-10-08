@@ -31,6 +31,12 @@ This avoids the metrics or the plots being skewed exponentially over time.
     store. See :ref:`artifact_loading_migration`; a report filename alone does not
     establish that its contents are data-only.
 
+    Model-performance graph names use the explicit ``GRAPH_FUNCTIONS`` mapping.
+    Built-in names are unchanged; custom names must be registered before use,
+    including in workers. See :ref:`config_migration` for a working extension
+    example and the upgrade checklist. File-import ``trusted`` does not bypass
+    this mapping.
+
 Graphical Reports
 =================
 

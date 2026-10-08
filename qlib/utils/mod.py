@@ -8,6 +8,7 @@ All module related class, e.g. :
 """
 
 import contextlib
+import hashlib
 import importlib
 import os
 from pathlib import Path
@@ -21,14 +22,42 @@ from urllib.parse import urlparse
 from qlib.typehint import InstConf
 from qlib.utils.pickle_utils import restricted_pickle_load
 
+CONFIG_MIGRATION_GUIDE = (
+    "https://qlib.readthedocs.io/en/latest/start/config_migration.html "
+    "(source: https://github.com/microsoft/qlib/blob/security/constrain-config-execution/"
+    "docs/start/config_migration.rst)"
+)
 
-def get_module_by_module_path(module_path: Union[str, ModuleType]):
+
+def _validate_module_trust(trusted):
+    # isinstance() can accept objects that spoof __class__; consent must be an actual bool.
+    if type(trusted) is not bool:  # pylint: disable=unidiomatic-typecheck
+        raise TypeError(f"trusted must be a boolean. Migration guide: {CONFIG_MIGRATION_GUIDE}")
+
+
+def _register_legacy_module_alias(module, module_path, module_file):
+    """Keep trusted old model pickles loadable after their module is imported."""
+    for path in (module_path, str(module_file)):
+        legacy_name = re.sub("^[^a-zA-Z_]+", "", re.sub("[^0-9a-zA-Z_]", "", path[:-3].replace("/", "_")))
+        previous = sys.modules.get(legacy_name)
+        previous_file = getattr(previous, "__file__", None)
+        if legacy_name and (
+            previous is None or (previous_file is not None and Path(previous_file).resolve() == module_file)
+        ):
+            sys.modules[legacy_name] = module
+
+
+def get_module_by_module_path(module_path: Union[str, ModuleType], *, trusted: bool = False):
     """Load module path
 
     :param module_path:
+    :param trusted: Explicit consent to execute this ``.py`` file. Must be a boolean;
+        defaults to ``False``. Package imports remain available. This does not
+        restrict directories, sandbox code, or authorize artifact deserialization.
     :return:
     :raises: ModuleNotFoundError
     """
+    _validate_module_trust(trusted)
     if module_path is None:
         raise ModuleNotFoundError("None is passed in as parameters as module_path")
 
@@ -36,11 +65,32 @@ def get_module_by_module_path(module_path: Union[str, ModuleType]):
         module = module_path
     else:
         if module_path.endswith(".py"):
-            module_name = re.sub("^[^a-zA-Z_]+", "", re.sub("[^0-9a-zA-Z_]", "", module_path[:-3].replace("/", "_")))
-            module_spec = importlib.util.spec_from_file_location(module_name, module_path)
+            if not trusted:
+                raise PermissionError(
+                    f"Loading Python file {module_path!r} is disabled by default. "
+                    "Only after reviewing its code and who can modify it, set trusted: true on this component "
+                    "alongside class/module_path (not in kwargs), or pass trusted=True to "
+                    "get_module_by_module_path for a direct import. "
+                    f"Migration guide: {CONFIG_MIGRATION_GUIDE}"
+                )
+            module_file = Path(module_path).expanduser().resolve(strict=True)
+            if not module_file.is_file() or module_file.suffix.lower() != ".py":
+                raise ValueError(f"Module path {str(module_file)!r} must be a Python source file")
+
+            readable_name = re.sub("^[^a-zA-Z_]+", "", re.sub("[^0-9a-zA-Z_]", "", module_file.stem))
+            path_digest = hashlib.sha256(str(module_file).encode()).hexdigest()[:12]
+            module_name = f"_qlib_file_module_{readable_name}_{path_digest}"
+            module_spec = importlib.util.spec_from_file_location(module_name, module_file)
+            if module_spec is None or module_spec.loader is None:
+                raise ImportError(f"Unable to create a module spec for {str(module_file)!r}")
             module = importlib.util.module_from_spec(module_spec)
             sys.modules[module_name] = module
-            module_spec.loader.exec_module(module)
+            try:
+                module_spec.loader.exec_module(module)
+            except Exception:
+                sys.modules.pop(module_name, None)
+                raise
+            _register_legacy_module_alias(module, module_path, module_file)
         else:
             module = importlib.import_module(module_path)
     return module
@@ -71,6 +121,8 @@ def get_callable_kwargs(config: InstConf, default_module: Union[str, ModuleType]
     Parameters
     ----------
     config : [dict, str]
+        A dictionary's top-level ``trusted`` boolean authorizes its file-module import.
+        It defaults to ``False`` and is separate from constructor ``kwargs``.
         similar to config
         please refer to the doc of init_instance_by_config
 
@@ -89,6 +141,8 @@ def get_callable_kwargs(config: InstConf, default_module: Union[str, ModuleType]
         ModuleNotFoundError
     """
     if isinstance(config, dict):
+        trusted = config.get("trusted", False)
+        _validate_module_trust(trusted)
         key = "class" if "class" in config else "func"
         if isinstance(config[key], str):
             # 1) get module and class
@@ -97,7 +151,7 @@ def get_callable_kwargs(config: InstConf, default_module: Union[str, ModuleType]
             m_path, cls = split_module_path(config[key])
             if m_path == "":
                 m_path = config.get("module_path", default_module)
-            module = get_module_by_module_path(m_path)
+            module = get_module_by_module_path(m_path, trusted=trusted)
 
             # 2) get callable
             _callable = getattr(module, cls)  # may raise AttributeError
@@ -132,6 +186,11 @@ def init_instance_by_config(
     Parameters
     ----------
     config : InstConf
+        File-based components require a top-level ``trusted: True`` in their
+        configuration dictionary. Each nested component needs its own consent.
+        This flag is not forwarded to the constructor and does not authorize
+        pickle loading. Constructor arguments named ``trusted`` still belong in
+        ``config["kwargs"]``, ``try_kwargs``, or this function's ``**kwargs``.
 
     default_module : Python module
         Optional. It should be a python module.

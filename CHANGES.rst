@@ -14,6 +14,30 @@ Unreleased
   changes remain unreleased until included in a tagged release; its versioned
   upgrade notes should link to the same guide.
 
+
+Configuration-driven execution
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- **Breaking change:** loading a local ``.py`` module through configuration now
+  requires top-level boolean ``trusted: true`` on each file-based component;
+  direct ``get_module_by_module_path`` calls require ``trusted=True``.
+  Package imports and class objects are unchanged. Directory-root authorization
+  from earlier PR revisions was removed; consent is not inherited or process-wide.
+  See :ref:`config_migration` for the upgrade checklist, constructor/artifact
+  trust distinction, and recovery of trusted older file-model pickles.
+- Feature expressions use a restricted AST interpreter instead of Python ``eval``.
+  Registered operators and standard Alpha158/Alpha360 definitions remain supported,
+  as do bounded literal containers, argument expansion, indexing/slicing, and scalar
+  conditions. Arbitrary Python execution and Python truth-value tests on expression
+  objects are not supported. See :ref:`expression_syntax` for supported syntax,
+  limits, and migration examples.
+- Built-in TRA model names and model-performance graph names use explicit mappings.
+  Custom extensions must update the corresponding mapping rather than relying on
+  dynamically evaluated module globals; :ref:`config_migration` includes working
+  registration examples. Configuration and extension code must still be trusted;
+  these changes do not create a sandbox.
+- These changes remain unreleased until included in a tagged release.
+
 Version 0.1.0
 -------------
 This is the initial release of QLib library.
