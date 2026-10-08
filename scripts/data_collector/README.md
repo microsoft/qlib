@@ -5,6 +5,7 @@
 Scripts for data collection
 
 - yahoo: get *US/CN* stock data from *Yahoo Finance*
+- tushare: get *CN* daily stock data from *TuShare* with download/normalize/dump pipeline and incremental update
 - fund: get fund data from *http://fund.eastmoney.com*
 - cn_index: get *CN index* from *http://www.csindex.com.cn*, *CSI300*/*CSI100*
 - us_index: get *US index* from *https://en.wikipedia.org/wiki*, *SP500*/*NASDAQ100*/*DJIA*/*SP400*
