@@ -60,8 +60,12 @@ class PortfolioMetrics:
                             2017-01-09    0.006874
                             2017-01-10   -0.003350
                 - If `benchmark` is list, will use the daily average change of the stock pool in the list as the
-                    'bench'.
-                - If `benchmark` is str, will use the daily change as the 'bench'.
+                    'bench' (an equal-weighted benchmark).
+                - If `benchmark` is str, will use the daily change as the 'bench' for that instrument.
+
+                Note that an equal-weighted strategy compared with a string benchmark (for example, a
+                cap-weighted index) includes a weighting effect in its excess return. Use a benchmark with
+                the same weighting convention when the goal is to isolate strategy alpha.
                 benchmark code, default is SH000300 CSI300
             - start_time : Union[str, pd.Timestamp], optional
                 - If `benchmark` is pd.Series, it will be ignored
