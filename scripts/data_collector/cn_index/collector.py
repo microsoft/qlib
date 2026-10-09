@@ -4,7 +4,7 @@
 import re
 import abc
 import sys
-from io import BytesIO
+from io import BytesIO, StringIO
 from typing import List, Iterable
 from pathlib import Path
 
@@ -182,7 +182,7 @@ class CSIIndex(IndexBase):
     def _parse_table(self, content: str, add_date: pd.DataFrame, remove_date: pd.DataFrame) -> pd.DataFrame:
         df = pd.DataFrame()
         _tmp_count = 0
-        for _df in pd.read_html(content):
+        for _df in pd.read_html(StringIO(content)):
             if _df.shape[-1] != 4 or _df.isnull().loc(0)[0][0]:
                 continue
             _tmp_count += 1
