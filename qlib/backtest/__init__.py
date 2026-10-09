@@ -163,7 +163,7 @@ def create_account_instance(
         position_dict=position_dict,
         pos_type=pos_type,
         benchmark_config=(
-            {}
+            {"benchmark": None}
             if benchmark is None
             else {
                 "benchmark": benchmark,
