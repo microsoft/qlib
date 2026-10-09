@@ -10,6 +10,7 @@ from qlib.log import TimeInspector
 from qlib.constant import REG_CN, REG_US, REG_TW
 from qlib.utils.time import cal_sam_minute as cal_sam_minute_new, get_min_cal, CN_TIME, US_TIME, TW_TIME
 from qlib.utils.data import guess_horizon
+from qlib.utils import code_to_fname, fname_to_code
 
 REG_MAP = {REG_CN: CN_TIME, REG_US: US_TIME, REG_TW: TW_TIME}
 
@@ -126,6 +127,22 @@ class DataUtils(TestCase):
         label = ["Ref($close, -5) / Ref($close, -1) - 1"]
         result = guess_horizon(label)
         assert result == 5
+
+
+class FileNameUtils(TestCase):
+    def test_fname_code_round_trip(self):
+        # code_to_fname only prefixes reserved Windows device names; fname_to_code
+        # must strip the whole "_qlib_" prefix, not individual characters.
+        # exists_qlib_data() lowercases the directory name before converting back,
+        # and "lpt*" begins with characters that are also in the prefix.
+        for code in ["CON", "PRN", "AUX", "NUL", "COM1", "LPT1", "LPT9"]:
+            fname = code_to_fname(code)
+            self.assertEqual(fname_to_code(fname.lower()), code.lower())
+
+        # a name whose body consists only of prefix characters must survive
+        self.assertEqual(fname_to_code("_qlib_lll"), "lll")
+        # plain codes pass through unchanged
+        self.assertEqual(fname_to_code("AAPL"), "AAPL")
 
         label = ["Ref($close, -1) / Ref($close, -1) - 1"]
         result = guess_horizon(label)
