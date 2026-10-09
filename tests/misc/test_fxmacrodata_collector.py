@@ -1,0 +1,237 @@
+import importlib.util
+import sys
+import types
+from pathlib import Path
+from unittest.mock import patch
+
+import pandas as pd
+import pytest
+import requests
+
+ROOT_DIR = Path(__file__).resolve().parents[2]
+
+
+class FXMacroDataErrorResponse:
+    status_code = 403
+    text = ""
+
+    def json(self):
+        return {"detail": "Professional API key required"}
+
+    def raise_for_status(self):
+        raise requests.HTTPError("403 Client Error", response=self)
+
+
+def load_fxmacrodata_collector():
+    fire_module = types.ModuleType("fire")
+    fire_module.Fire = lambda *_args, **_kwargs: None
+
+    base_module = types.ModuleType("data_collector.base")
+
+    class BaseCollector:
+        INTERVAL_1d = "1d"
+
+    class BaseNormalize:
+        def __init__(self, date_field_name="date", symbol_field_name="symbol", **kwargs):
+            self._date_field_name = date_field_name
+            self._symbol_field_name = symbol_field_name
+            self.kwargs = kwargs
+
+    class BaseRun:
+        pass
+
+    class Normalize:
+        pass
+
+    base_module.BaseCollector = BaseCollector
+    base_module.BaseNormalize = BaseNormalize
+    base_module.BaseRun = BaseRun
+    base_module.Normalize = Normalize
+
+    package_module = types.ModuleType("data_collector")
+    package_module.__path__ = [str(ROOT_DIR / "scripts" / "data_collector")]
+    stubs = {
+        "fire": fire_module,
+        "data_collector": package_module,
+        "data_collector.base": base_module,
+    }
+    collector_path = ROOT_DIR / "scripts" / "data_collector" / "fxmacrodata" / "collector.py"
+    spec = importlib.util.spec_from_file_location("fxmacrodata_collector", collector_path)
+    module = importlib.util.module_from_spec(spec)
+    with patch.dict(sys.modules, stubs):
+        spec.loader.exec_module(module)
+    return module
+
+
+def test_public_urls_point_to_canonical_api_and_subscription_pages():
+    collector = load_fxmacrodata_collector()
+
+    assert collector.DEFAULT_BASE_URL == "https://api.fxmacrodata.com/v1"
+    assert collector.DOCUMENTATION_URL == "https://fxmacrodata.com/documentation"
+    assert collector.SUBSCRIBE_URL == "https://fxmacrodata.com/subscribe"
+
+
+def test_macro_rows_to_frame_flattens_announcement_and_prediction_data():
+    collector = load_fxmacrodata_collector()
+
+    data = collector.FXMacroDataMacroCollector._rows_to_macro_frame(
+        "usd",
+        "inflation",
+        [
+            {
+                "date": "2026-05-31",
+                "val": 4.2,
+                "announcement_datetime": 1781094600,
+                "consensus": 3.9,
+                "forecast": 4.0,
+                "surprise": 0.3,
+                "predictions": [{"predicted_value": 4.1}],
+            }
+        ],
+    )
+
+    assert list(data.columns) == collector.MACRO_OUTPUT_COLUMNS
+    assert data.loc[0, "symbol"] == "usd_inflation"
+    assert data.loc[0, "value"] == 4.2
+    assert data.loc[0, "consensus"] == 3.9
+    assert data.loc[0, "prediction"] == 4.1
+    assert data.loc[0, "prediction_count"] == 1.0
+    assert data.loc[0, "announcement_datetime"] == 1781094600
+
+
+def test_catalogue_rows_flatten_indicator_metadata():
+    collector = load_fxmacrodata_collector()
+
+    rows = collector.FXMacroDataCollector._catalogue_rows(
+        "USD",
+        {
+            "currency": "USD",
+            "catalogue": {
+                "inflation": {
+                    "name": "Inflation",
+                    "unit": "%",
+                    "frequency": "Monthly",
+                    "source": "BLS",
+                    "source_series_id": "BLS:CPI",
+                    "coverage": {
+                        "available": True,
+                        "earliest_available_date": "2010-01-01",
+                        "latest_available_date": "2026-06-30",
+                        "requires_api_key": False,
+                        "row_count": 100,
+                        "coverage_quality": "complete",
+                        "freshness_quality": "fresh",
+                        "usable_for_context": True,
+                        "usable_for_signal": True,
+                    },
+                    "has_official_forecast": True,
+                },
+            },
+        },
+    )
+
+    assert rows == [
+        {
+            "currency": "usd",
+            "indicator": "inflation",
+            "name": "Inflation",
+            "unit": "%",
+            "frequency": "Monthly",
+            "source": "BLS",
+            "source_series_id": "BLS:CPI",
+            "source_series_name": None,
+            "available": True,
+            "history_start": "2010-01-01",
+            "latest_available_date": "2026-06-30",
+            "has_official_forecast": True,
+            "requires_api_key": False,
+            "row_count": 100,
+            "coverage_quality": "complete",
+            "freshness_quality": "fresh",
+            "usable_for_context": True,
+            "usable_for_signal": True,
+        }
+    ]
+
+
+def test_authenticated_error_points_users_to_subscription():
+    collector = load_fxmacrodata_collector()
+
+    with pytest.raises(collector.requests.HTTPError) as excinfo:
+        collector.FXMacroDataCollector._raise_for_status(
+            FXMacroDataErrorResponse(),
+            "announcements/eur/inflation",
+        )
+
+    message = str(excinfo.value)
+    assert "Professional API key required" in message
+    assert "Set FXMACRODATA_API_KEY or FXMD_API_KEY" in message
+    assert "https://fxmacrodata.com/subscribe" in message
+
+
+class FXMacroDataPageResponse:
+    status_code = 200
+
+    def __init__(self, payload):
+        self.payload = payload
+
+    def json(self):
+        return self.payload
+
+    def raise_for_status(self):
+        pass
+
+
+def test_request_all_rows_follows_pagination():
+    collector = load_fxmacrodata_collector()
+    pages = {
+        0: {
+            "data": [{"date": "2026-01-04", "val": 1.4}, {"date": "2026-01-03", "val": 1.3}],
+            "pagination": {"has_more": True, "next_offset": 2},
+        },
+        2: {
+            "data": [{"date": "2026-01-02", "val": 1.2}],
+            "pagination": {"has_more": False, "next_offset": None},
+        },
+    }
+    calls = []
+
+    def fake_get(url, params, headers, timeout):
+        calls.append(params)
+        return FXMacroDataPageResponse(pages[params["offset"]])
+
+    with patch.object(collector.requests, "get", side_effect=fake_get):
+        rows = collector.FXMacroDataCollector._request_all_rows(
+            "https://api.fxmacrodata.com/v1",
+            "forex/eur/usd",
+            params={"start_date": "2026-01-01", "end_date": "2026-01-04"},
+        )
+
+    assert [row["date"] for row in rows] == ["2026-01-04", "2026-01-03", "2026-01-02"]
+    assert [call["offset"] for call in calls] == [0, 2]
+    assert all(call["limit"] == 100 for call in calls)
+    assert all(call["start_date"] == "2026-01-01" for call in calls)
+
+
+def test_macro_normalize_keeps_numeric_feature_columns():
+    collector = load_fxmacrodata_collector()
+    normalizer = collector.FXMacroDataMacroNormalize()
+
+    data = normalizer.normalize(
+        pd.DataFrame(
+            {
+                "date": ["2026-05-31"],
+                "symbol": ["USD_INFLATION"],
+                "value": ["4.2"],
+                "actual": ["4.2"],
+                "prediction": ["4.1"],
+                "announcement_datetime": ["1781094600"],
+            }
+        )
+    )
+
+    assert data.loc[0, "date"] == "2026-05-31"
+    assert data.loc[0, "symbol"] == "usd_inflation"
+    assert data.loc[0, "value"] == 4.2
+    assert data.loc[0, "prediction"] == 4.1
+    assert data.loc[0, "announcement_datetime"] == 1781094600
