@@ -458,6 +458,7 @@ class KRNN(Model):
         self.logger.info("training...")
         self.fitted = True
 
+        best_param = copy.deepcopy(self.krnn_model.state_dict())
         for step in range(self.n_epochs):
             self.logger.info("Epoch%d:", step)
             self.logger.info("training...")
