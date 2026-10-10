@@ -65,8 +65,11 @@ class MemCacheUnit(abc.ABC):
                 self.popitem(last=False)
 
     def __getitem__(self, key):
+        from qlib.utils.telemetry import metrics
+
         v = self.od.__getitem__(key)
         self.od.move_to_end(key)
+        metrics.counter("cache.mem.hit")
         return v
 
     def __contains__(self, key):
