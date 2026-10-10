@@ -211,6 +211,13 @@ def get_beta(r, b):
     -------
     float
         Covariance of strategy and baseline returns divided by baseline variance.
+        NaN if the baseline has zero variance or either input contains NaN.
+
+    Notes
+    -----
+    The two series must have the same length, with corresponding observations
+    in the same order. Values are paired by position; Series indexes are not aligned.
+    NaN values are not removed. Callers should handle missing values before calling.
     """
     cov_r_b = np.cov(r, b)
     return cov_r_b[0, 1] / cov_r_b[1, 1]

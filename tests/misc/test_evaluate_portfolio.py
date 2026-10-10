@@ -49,3 +49,15 @@ def test_alpha_of_benchmark_is_zero(risk_free_rate):
 
     assert np.isscalar(alpha)
     assert alpha == pytest.approx(0.0, abs=1e-12)
+
+
+@pytest.mark.parametrize("metric", [get_beta, get_alpha])
+def test_constant_benchmark_returns_scalar_nan(metric):
+    benchmark = pd.Series([0.001] * 5)
+    returns = pd.Series([-0.003, -0.001, 0.002, 0.004, 0.001])
+
+    with np.errstate(invalid="warn"), pytest.warns(RuntimeWarning, match="invalid value encountered"):
+        result = metric(returns, benchmark)
+
+    assert np.isscalar(result)
+    assert np.isnan(result)
