@@ -1277,6 +1277,7 @@ class Rsquare(Rolling):
         _series = self.feature.load(instrument, start_index, end_index, *args)
         if self.N == 0:
             series = pd.Series(expanding_rsquare(_series.values), index=_series.index)
+            series.loc[np.isclose(_series.expanding(min_periods=1).std(), 0, atol=2e-05)] = np.nan
         else:
             series = pd.Series(rolling_rsquare(_series.values, self.N), index=_series.index)
             series.loc[np.isclose(_series.rolling(self.N, min_periods=1).std(), 0, atol=2e-05)] = np.nan
