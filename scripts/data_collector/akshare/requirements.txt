@@ -1,0 +1,5 @@
+loguru
+fire
+pandas
+tqdm
+akshare>=1.16
