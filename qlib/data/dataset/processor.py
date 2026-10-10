@@ -144,18 +144,31 @@ class FilterCol(Processor):
 
 
 class TanhProcess(Processor):
-    """Use tanh to process noise data"""
+    """Apply ``tanh(x - 1)`` to denoise feature values.
 
-    def __call__(self, df):
-        def tanh_denoise(data):
-            mask = data.columns.get_level_values(1).str.contains("LABEL")
-            col = df.columns[~mask]
-            data[col] = data[col] - 1
-            data[col] = np.tanh(data[col])
+    Qlib handlers (e.g. Alpha158/Alpha360) use MultiIndex columns whose first
+    level is the group name (``feature`` / ``label``) and whose second level is
+    the column name (e.g. ``LABEL0``). Selecting columns by matching ``"LABEL"``
+    on level 1 is brittle and inconsistent with other processors.
 
-            return data
+    This processor follows the same ``fields_group`` pattern as
+    :class:`Fillna`, :class:`CSZScoreNorm`, etc., so labels are left untouched
+    by default.
 
-        return tanh_denoise(df)
+    Parameters
+    ----------
+    fields_group : str, optional
+        Column group to transform. If ``None``, all columns are transformed.
+        Default is ``"feature"``.
+    """
+
+    def __init__(self, fields_group: Optional[str] = "feature"):
+        self.fields_group = fields_group
+
+    def __call__(self, df: pd.DataFrame):
+        cols = get_group_columns(df, self.fields_group)
+        df[cols] = np.tanh(df[cols] - 1)
+        return df
 
 
 class ProcessInf(Processor):
