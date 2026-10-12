@@ -1,0 +1,123 @@
+{
+  "authority_matrix": {
+    "C3_evidence_write_authorized": false,
+    "accepted_C2_C3A_read_authorized": false,
+    "backtest_authorized": false,
+    "development_test_read_authorized": false,
+    "execution_authorized": false,
+    "feature_build_authorized": false,
+    "holdout_read_authorized": false,
+    "label_build_authorized": false,
+    "live_trading_authorized": false,
+    "minute_bar_train_valid_record_read_authorized": false,
+    "model_selection_authorized": false,
+    "order_generation_authorized": false,
+    "paper_trading_authorized": false,
+    "refit_authorized": false,
+    "remote_push_authorized": false,
+    "reserved_confirm_read_authorized": false,
+    "runtime_profile_authorized": false,
+    "sample_catalog_materialization_authorized": false,
+    "sequence_build_authorized": false,
+    "strategy_authorized": false,
+    "training_authorized": false
+  },
+  "expected_counts": {
+    "membership_rows": 213958,
+    "sample_partitions": 2162,
+    "samples": 10269984,
+    "unknown_industry_rows": 4032
+  },
+  "inputs": {
+    "accepted_actions": {
+      "path": "/data1/lxl/workspace/datasets/.tmp/qlib/data/courage_strict_v1/source/accepted_actions/accepted_effective_dated_corporate_actions.parquet",
+      "sha256": "c1e29658f577ac5ec52eb9d9f9be327e6c121d23dd7ad8d7fffaf76639e279b4"
+    },
+    "c1": {
+      "path": "/data1/lxl/workspace/datasets/.tmp/qlib/examples/courage_strict_v1/configs/courage_strict_c1_implementation_decisions_v1.json",
+      "sha256": "baf373d37918b9ef91efd026e25e9f55bb720b8749ce698c4de0c11de651fe45"
+    },
+    "c1_mainboard": {
+      "path": "/data1/lxl/workspace/datasets/.tmp/qlib/examples/courage_strict_v1/configs/courage_strict_c1_mainboard_scope_amendment_v2.json",
+      "sha256": "5ade5ff919483830543003d8fd70d5428916a342a0f77a98ad0219ca75f09100"
+    },
+    "c2_mainboard_report": {
+      "path": "/data1/lxl/workspace/datasets/.tmp/qlib/data/courage_strict_v1/source/c2_mainboard_report/_c2_mainboard_reacceptance_report.json",
+      "sha256": "f34cb2eac21b34808d42eefc71cf9e26814564da51cdbf3681823eca3e5423a0"
+    },
+    "c3_membership_manifest": {
+      "path": "/data1/lxl/workspace/datasets/.tmp/qlib/artifacts/courage_strict_v1/stages/membership/authorization-160edba4da4838fc346a5e80/_c3_membership_manifest.json",
+      "sha256": "f096c1bf599776850a7377fc18ea71f850a521e98571e20c680ccd0dea065888"
+    },
+    "daily_industry": {
+      "path": "/data1/lxl/workspace/datasets/.tmp/qlib/data/courage_strict_v1/source/daily_industry/daily_industry.parquet",
+      "sha256": "2bebfc8dd4a981998e96b18c56854f30168ec01da626bc86b2cb6e15336307d1"
+    },
+    "membership": {
+      "path": "/data1/lxl/workspace/datasets/.tmp/qlib/artifacts/courage_strict_v1/stages/membership/authorization-160edba4da4838fc346a5e80/membership.parquet",
+      "sha256": "df859c27f08f698d85592f3232f26b3b7b82789390c589e4a10fafb1dd26fca7"
+    },
+    "normalized_status": {
+      "path": "/data1/lxl/workspace/datasets/.tmp/qlib/data/courage_strict_v1/source/normalized_status/effective_dated_status.parquet",
+      "sha256": "66abfa772c89341757dcf4bee17a12e62a03862c327ea86d279405f868e790d9"
+    },
+    "official_axis": {
+      "path": "/data1/lxl/workspace/datasets/.tmp/qlib/data/courage_strict_v1/source/official_axis/official_minute_axis.parquet",
+      "sha256": "582c6d85479cac8219f11ea33f41bd4d66753a7e6de5054467ce6956d9748243"
+    },
+    "quarantined_actions": {
+      "path": "/data1/lxl/workspace/datasets/.tmp/qlib/data/courage_strict_v1/source/quarantined_actions/quarantined_factor_changes.parquet",
+      "sha256": "8e8d74a1fa356ec099a4cf673d591d3c1f2b968679c5242ed3a1275d611a9bfa"
+    },
+    "signal_grid": {
+      "path": "/data1/lxl/workspace/datasets/.tmp/qlib/artifacts/courage_strict_v1/stages/membership/authorization-160edba4da4838fc346a5e80/signal_grid.parquet",
+      "sha256": "e874efa941f8cfdd17d92140f6973aec09e2c98131ff93ed225c0fdcd54e74e1"
+    },
+    "source_identity_manifest": {
+      "path": "/data1/lxl/workspace/datasets/.tmp/qlib/data/courage_strict_v1/source/source_identity_manifest/_source_identity_manifest.json",
+      "sha256": "87bd5d642496ec08cffaeedb8545cb50cca40d7e26f8acac680f752403fe6763"
+    }
+  },
+  "label_contract": {
+    "accepted_or_quarantined_action_crossing": "invalidate_only_affected_head_without_price_rewrite",
+    "corporate_action_interval": "(entry_session_date,target_session_date]",
+    "costs_slippage_or_impact_in_label": false,
+    "daily_suspension": "invalidate_entry_or_target_bar",
+    "entry": "first_complete_one_minute_vwap_window_starting_at_or_after_signal_time",
+    "estimand": "research_gross_return",
+    "exit": "complete_one_minute_vwap_window_H_official_slots_after_entry",
+    "formula": "exit_vwap1 / entry_vwap1 - 1",
+    "horizons_official_minutes": [
+      5,
+      15,
+      30,
+      60,
+      120,
+      240,
+      480
+    ],
+    "limit_lock": "one_price_OHLC_at_daily_limit_with_0.005_CNY_absolute_tolerance_invalidates_entry_or_target",
+    "missing_same_day_G10_industry_key": "retain_sample_with_UNKNOWN_without_future_fill",
+    "missing_zero_nonfinite_or_nonpositive_entry_exit": "invalidate_only_affected_head",
+    "one_invalid_head_does_not_drop_sample_or_other_heads": true,
+    "prediction_is_executable_net_return_or_order": false,
+    "role_cutoffs": {
+      "train": "2026-03-02",
+      "valid": "2026-04-01"
+    },
+    "scope": "SSE_SZSE_mainboard_only",
+    "strict_maturity": "target_window_end_and_label_available_time_strictly_before_role_cutoff"
+  },
+  "output_root": "/data1/lxl/workspace/datasets/.tmp/qlib/artifacts/courage_strict_v1/stages/labels",
+  "record_read_interval": [
+    "2025-07-01",
+    "2026-04-01"
+  ],
+  "resources": {
+    "workers": 64
+  },
+  "revision": "v2_explicit_UNKNOWN_industry_for_missing_same_day_G10_key",
+  "route_id": "courage_strict_v1",
+  "schema_version": "courage_strict_c3_label_config_v1",
+  "status": "FROZEN_NOT_AUTHORIZED"
+}
