@@ -7,6 +7,7 @@ import inspect
 import logging
 from collections import OrderedDict
 from functools import lru_cache
+from joblib import delayed
 from typing import Any, Callable, Dict, Iterable, List, Optional, Text, Union, cast
 
 import numpy as np
@@ -14,10 +15,12 @@ import pandas as pd
 
 import qlib.utils.index_data as idd
 
+from ..config import C
 from ..log import get_module_logger
 from ..utils.index_data import IndexData, SingleData
 from ..utils.resam import resam_ts_data, ts_data_last
 from ..utils.time import Freq, is_single_value
+from ..utils.paral import ParallelExt
 
 
 class BaseQuote:
@@ -124,6 +127,10 @@ class PandasQuote(BaseQuote):
         else:
             raise ValueError(f"stock data from resam_ts_data must be a number, pd.Series or pd.DataFrame")
 
+def sort_index(stock_df: pd.DataFrame):
+    quote = idd.MultiData(stock_df.droplevel(level="instrument"))
+    quote.sort_index()
+    return quote
 
 class NumpyQuote(BaseQuote):
     def __init__(self, quote_df: pd.DataFrame, freq: str, region: str = "cn") -> None:
@@ -136,10 +143,22 @@ class NumpyQuote(BaseQuote):
         self.data : Dict(stock_id, IndexData.DataFrame)
         """
         super().__init__(quote_df=quote_df, freq=freq)
-        quote_dict = {}
-        for stock_id, stock_val in quote_df.groupby(level="instrument", group_keys=False):
-            quote_dict[stock_id] = idd.MultiData(stock_val.droplevel(level="instrument"))
-            quote_dict[stock_id].sort_index()  # To support more flexible slicing, we must sort data first
+        workers = max(min(C.get_kernels(freq), len(quote_df)), 1)
+        inst_l = []
+        task_l = []
+        for stock_id, stock_val in quote_df.groupby(level="instrument"):
+            inst_l.append(stock_id)
+            task_l.append(
+                delayed(sort_index)(
+                    stock_val
+                )
+            )
+        quote_dict = dict(
+            zip(
+                inst_l,
+                ParallelExt(n_jobs=workers, backend=C.joblib_backend, maxtasksperchild=C.maxtasksperchild)(task_l),
+            )
+        )
         self.data = quote_dict
 
         n, unit = Freq.parse(freq)
