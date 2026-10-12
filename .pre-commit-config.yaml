@@ -1,6 +1,9 @@
 repos:
 -   repo: https://github.com/psf/black
-    rev: 23.7.0
+    # Keep this aligned with the black style CI enforces (`make black`): 23.x disagrees with
+    # the current repo formatting (e.g. qlib/model/riskmodel/shrink.py) and rewrites files the
+    # committer never touched. 24.8.0 matches CI's result and still supports Python 3.8.
+    rev: 24.8.0
     hooks:
     -   id: black
         args: ["qlib", "-l 120"]
