@@ -14,6 +14,7 @@ import subprocess
 from qlib.log import TimeInspector
 
 from qlib import init
+from qlib.data.cache_guards import check_cache_file_budget, resolve_cache_file_uri
 from qlib.data.dataset.handler import DataHandlerLP
 from qlib.utils import init_instance_by_config
 
@@ -37,10 +38,15 @@ if __name__ == "__main__":
     hd: DataHandlerLP = init_instance_by_config(hd_conf)
     hd_path = DIRNAME / "handler.pkl"
     hd.to_pickle(hd_path, dump_all=True)
+    # Confinement + explicit size budget for the cache round-trip below.
+    cache_uri = f"file://{hd_path}"
+    resolve_cache_file_uri(cache_uri, DIRNAME)  # raises if path escapes DIRNAME
+    cache_bytes = check_cache_file_budget(hd_path)
+    print(f"handler cache OK: {cache_bytes} bytes within budget")
 
     # 3) create new task with handler cache
     new_task_config = deepcopy(task_config)
-    new_task_config["task"]["dataset"]["kwargs"]["handler"] = f"file://{hd_path}"
+    new_task_config["task"]["dataset"]["kwargs"]["handler"] = cache_uri
     new_task_config["sys"] = {"path": [str(config_path.parent.resolve())]}
     new_task_path = DIRNAME / "new_task.yaml"
     print("The location of the new task", new_task_path)

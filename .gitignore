@@ -7,7 +7,9 @@ __pycache__/
 *.ipynb
 .ipynb_checkpoints
 _build
-build/
+# Root build/ output only; docs/build/ is tracked source documentation.
+build
+!/docs/build/
 dist/
 
 *.pkl

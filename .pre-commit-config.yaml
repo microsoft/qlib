@@ -10,3 +10,11 @@ repos:
     hooks:
         - id: flake8
           args: ["--ignore=E501,F541,E266,E402,W503,E731,E203"]
+
+-   repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.4
+    hooks:
+    -   id: ruff
+        args: ["check", "qlib", "tests", "scripts"]
+    -   id: ruff-format
+        args: ["--check", "qlib/backtest/validation.py", "qlib/backtest/config_schema.py", "qlib/backtest/executor_logging.py", "qlib/log_structured.py", "qlib/data/cache_guards.py", "qlib/contrib/benchmark/base.py", "qlib/contrib/rl/config_schema.py", "qlib/utils/credentials.py", "qlib/contrib/data/processor_tracing.py", "qlib/workflow/task/batch_limits.py", "tests/backtest/test_backtest_core.py", "tests/backtest/test_elevation_phase2.py", "tests/backtest/test_elevation_phase3.py"]

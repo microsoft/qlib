@@ -254,8 +254,10 @@ def parse_config(config):
     # Check whether the str can be parsed
     try:
         return yaml.load(config)
-    except BaseException as base_exp:
-        raise ValueError("cannot parse config!") from base_exp
+    except Exception as yaml_exp:
+        # Narrowed from `except BaseException`: KeyboardInterrupt/SystemExit must
+        # propagate; only YAML/data errors become a user-facing ValueError.
+        raise ValueError("cannot parse config!") from yaml_exp
 
 
 #################### Other ####################

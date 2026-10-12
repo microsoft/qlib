@@ -131,3 +131,60 @@ qrun = "qlib.cli.run:run"
 local_scheme = "no-local-version"
 version_scheme = "guess-next-dev"
 write_to = "qlib/_version.py"
+
+[tool.ruff]
+line-length = 120
+target-version = "py39"
+src = ["."]
+extend-exclude = [".git", "__pycache__", "mlruns", ".mypy_cache", ".pytest_cache", ".ruff_cache", "dist", "build"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "S", "C4", "DTZ", "N", "W"]
+ignore = ["E501", "E741", "S101", "N818"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["qlib"]
+
+[tool.black]
+line-length = 120
+target-version = ["py39", "py310", "py311"]
+
+[tool.mypy]
+python_version = "3.9"
+strict = false
+warn_return_any = true
+warn_unused_configs = true
+show_error_codes = true
+ignore_missing_imports = true
+exclude = "(?x)(\n    ^qlib/backtest/high_performance_ds\\.py$\n    | ^qlib/contrib\n    | ^qlib/data\n    | ^qlib/model\n    | ^qlib/strategy\n    | ^qlib/tests\n    | ^qlib/utils\n    | ^qlib/workflow\n    | ^qlib/config\\.py$\n    | ^qlib/log\\.py$\n    | ^qlib/__init__\\.py$\n  )"
+
+[[tool.mypy.overrides]]
+module = [
+    "qlib.backtest.validation",
+    "qlib.backtest.config_schema",
+    "qlib.backtest.executor_logging",
+    "qlib.backtest.data_provider",
+    "qlib.log_structured",
+    "qlib.data.cache_guards",
+    "qlib.contrib.benchmark.base",
+    "qlib.contrib.rl.config_schema",
+    "qlib.utils.credentials",
+    "qlib.contrib.data.processor_tracing",
+    "qlib.workflow.task.batch_limits",
+]
+strict = true
+
+[tool.pytest.ini_options]
+markers = ["slow: marks tests as slow (deselect with '-m \"not slow\"')"]
+addopts = "--strict-markers"
+filterwarnings = ["ignore:.*rng.randint:DeprecationWarning", "ignore:.*Casting input x to numpy array:UserWarning"]
+
+[tool.coverage.run]
+source = ["qlib/backtest", "qlib/config.py", "qlib/log.py"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+skip_covered = false
+exclude_lines = ["pragma: no cover", "raise NotImplementedError", "if TYPE_CHECKING:"]

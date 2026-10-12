@@ -1,0 +1,71 @@
+name: Qlib engineering elevation (fast static gates)
+
+concurrency:
+  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.ref }}
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  static-gates:
+    timeout-minutes: 60
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10", "3.11"]
+    env:
+      PIP_CONSTRAINT: ${{ github.workspace }}/.github/ci/constraints.txt
+      MLFLOW_ALLOW_FILE_STORE: "true"
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install static gate dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install ruff mypy pydantic pydantic-settings pandas pytest pyyaml "fastjsonschema<2.22"
+
+      - name: Lint with Ruff (mirrors make elevation-lint exactly)
+        run: |
+          make elevation-lint
+
+      - name: Type-check hardened modules with mypy --strict
+        run: |
+          make elevation-types
+
+      - name: Filesystem-free backtest unit tests with coverage gate
+        run: |
+          python -m pip install pytest-cov
+          make elevation-gates
+          # elevation-gates includes lint + strict types + the 80% coverage gate;
+          # the Makefile is the single source of truth for file lists.
+
+      - name: Validate benchmark YAML schemas (LightGBM Alpha158)
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import yaml
+          from qlib.backtest.config_schema import validate_benchmark_workflow
+          from qlib.contrib.rl.config_schema import load_rl_backtest_config
+          path = Path("examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml")
+          parsed = validate_benchmark_workflow(yaml.safe_load(path.read_text()))
+          assert parsed.resolved_backtest.exchange_kwargs.deal_price == "$close"
+          rl = load_rl_backtest_config("examples/rl_order_execution/exp_configs/backtest_twap.yml")
+          assert rl.concurrency == 16
+          print(f"benchmark schema OK: {path}; rl schema OK: {rl.data_granularity}")
+          PY
+
+      - name: Report installed dependencies
+        if: always()
+        run: python -m pip freeze

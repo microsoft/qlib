@@ -1,8 +1,20 @@
-__pycache__
+__pycache__/
 *.pyc
 *.pyo
 *.pyd
 .Python
 .env
 .git
+.gitignore
+mlruns/
+dist/
+build/
+*.egg-info/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+docs/_build/
+public/
+.coverage
+coverage.xml
 

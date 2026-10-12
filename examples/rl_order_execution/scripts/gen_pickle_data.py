@@ -1,15 +1,30 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-import yaml
 import argparse
 import os
 import shutil
 from copy import deepcopy
+from pathlib import Path
+
+from ruamel.yaml import YAML
 
 from qlib.contrib.data.highfreq_provider import HighFreqProvider
 
-loader = yaml.FullLoader
+
+def load_script_config(config_path: str) -> dict:
+    """Load an RL data-gen YAML config with the safe ruamel loader.
+
+    Rejects ``yaml.FullLoader`` semantics: only plain mappings/lists/scalars
+    are accepted, so untrusted config files cannot construct arbitrary objects.
+    """
+    yaml = YAML(typ="safe", pure=True)
+    with Path(config_path).open("r", encoding="utf-8") as stream:
+        config = yaml.load(stream)
+    if not isinstance(config, dict):
+        raise ValueError(f"RL data-gen config must be a mapping: {config_path}")
+    return config
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -18,7 +33,7 @@ if __name__ == "__main__":
     parser.add_argument("-s", "--split", type=str, choices=["none", "date", "stock", "both"], default="stock")
     args = parser.parse_args()
 
-    conf = yaml.load(open(args.config), Loader=loader)
+    conf = load_script_config(args.config)
 
     for k, v in conf.items():
         if isinstance(v, dict) and "path" in v:
