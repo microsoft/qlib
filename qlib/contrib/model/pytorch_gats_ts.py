@@ -26,19 +26,19 @@ from ...contrib.model.pytorch_gru import GRUModel
 class DailyBatchSampler(Sampler):
     def __init__(self, data_source):
         self.data_source = data_source
-        # calculate number of samples in each batch
-        self.daily_count = (
-            pd.Series(index=self.data_source.get_index()).groupby("datetime", group_keys=False).size().values
-        )
-        self.daily_index = np.roll(np.cumsum(self.daily_count), 1)  # calculate begin index of each batch
-        self.daily_index[0] = 0
+        # ``TSDataSampler.get_index()`` swaps the level labels back to (datetime,
+        # instrument) but keeps the instrument-major row order, so the rows of a
+        # trading day are not contiguous. Group the row positions by the "datetime"
+        # level instead of assuming contiguous blocks.
+        index = self.data_source.get_index()
+        positions = pd.Series(np.arange(len(index)), index=index.get_level_values("datetime"))
+        self.batches = [g.to_numpy() for _, g in positions.groupby(level=0, sort=True)]
 
     def __iter__(self):
-        for idx, count in zip(self.daily_index, self.daily_count):
-            yield np.arange(idx, idx + count)
+        yield from self.batches
 
     def __len__(self):
-        return len(self.data_source)
+        return len(self.batches)
 
 
 class GATs(Model):
@@ -332,7 +332,7 @@ class GATs(Model):
 
             preds.append(pred)
 
-        return pd.Series(np.concatenate(preds), index=dl_test.get_index())
+        return pd.Series(np.concatenate(preds), index=dl_test.get_index()[np.concatenate(sampler_test.batches)])
 
 
 class GATModel(nn.Module):
