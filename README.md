@@ -229,6 +229,34 @@ Also, users can install the latest dev version ``Qlib`` by the source code accor
 
 **Tips for Mac**: If you are using Mac with M1, you might encounter issues in building the wheel for LightGBM, which is due to missing dependencies from OpenMP. To solve the problem, install openmp first with ``brew install libomp`` and then run ``pip install .`` to build it successfully. 
 
+### Developer onboarding (engineering elevation)
+
+```bash
+cp .env.example .env        # local-only; .env is git-ignored, never commit secrets
+make prerequisite           # build Cython extensions (rolling/expanding)
+make dev                    # full editable dev environment
+make env-check              # verify .env parity with container
+make elevation-gates        # ruff + mypy --strict + filesystem-free tests (80% cov)
+make schema-check           # validate LightGBM Alpha158 + TWAP RL reference configs
+make wheels-deps            # install cibuildwheel/twine/build for native wheels
+make wheels                 # build host wheels + twine check + static audit
+```
+
+- Cross-platform native wheels: `make wheels-build PLATFORM=linux ARCH=x86_64`
+  (also `macos`/`windows`, `arm64`/`aarch64`/`AMD64`); CI builds all six
+  combos via `.github/workflows/build-wheels.yml`. Full design guide:
+  `docs/build/cross_platform_builds.rst`.
+
+- Elevation gates need **no market data**: `tests/backtest/test_backtest_core.py`,
+  `test_elevation_phase2.py`, and `test_elevation_phase3.py` run without
+  `~/.qlib/qlib_data`. Full-pipeline tests still need data (see Data Preparation).
+- Container parity: the multi-stage `Dockerfile` runs as non-root `qlib`;
+  launch with `docker run --rm --env-file .env -v ~/.qlib/qlib_data:/data/qlib_data qlib_image`.
+- Standards: Ruff/Black/MyPy/Coverage sections in `pyproject.toml`, strict typing
+  scoped to the ten hardened modules, architecture rationale in
+  `docs/adr/0001-backtest-boundaries.md`, contributor rules in
+  `docs/developer/code_standard_and_dev_guide.rst`.
+
 ## Data Preparation
 ❗ Due to more restrict data security policy. The official dataset is disabled temporarily. You can try [this data source](https://github.com/chenditc/investment_data/releases) contributed by the community.
 Here is an example to download the latest data.

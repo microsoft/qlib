@@ -1,0 +1,114 @@
+name: Cross-platform wheels (cibuildwheel)
+
+# Single-trigger native artifact builds for Linux / macOS / Windows on
+# x86_64 + ARM64. No dedicated hardware: Linux ARM64 runs under QEMU
+# emulation on cloud runners; macOS/Windows ARM64 use hosted runners.
+# Replaces the one-off manylinux x86_64 job with a unified, cached matrix.
+
+concurrency:
+  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.ref }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      upload_to_pypi:
+        description: "Upload built wheels to TestPyPI"
+        required: false
+        default: "false"
+  push:
+    tags:
+      - "v*"
+  pull_request:
+    branches: [main]
+    paths:
+      - "qlib/data/_libs/**"
+      - "setup.py"
+      - "pyproject.toml"
+      - "scripts/build_wheels.py"
+      - ".github/workflows/build-wheels.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  wheels:
+    timeout-minutes: 360
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux x86_64: manylinux container (glibc 2.28 baseline).
+          - runner: ubuntu-22.04
+            cibw_platform: linux
+            cibw_arch: x86_64
+          # Linux ARM64: emulated via QEMU on the same hosted runner pool.
+          - runner: ubuntu-22.04
+            cibw_platform: linux
+            cibw_arch: aarch64
+          # macOS Intel + Apple Silicon hosted runners.
+          - runner: macos-13
+            cibw_platform: macos
+            cibw_arch: x86_64
+          - runner: macos-14
+            cibw_platform: macos
+            cibw_arch: arm64
+          # Windows x64 + ARM64 hosted runners.
+          - runner: windows-2022
+            cibw_platform: windows
+            cibw_arch: AMD64
+          - runner: windows-11-arm
+            cibw_platform: windows
+            cibw_arch: ARM64
+    env:
+      PIP_CONSTRAINT: ${{ github.workspace }}/.github/ci/constraints.txt
+      CIBW_BUILD: "cp39* cp310* cp311*"
+      CIBW_SKIP: "*-musllinux* pp* gp*"
+      CIBW_BEFORE_BUILD: "pip install 'cython' 'numpy>=1.24.0'"
+      CIBW_TEST_COMMAND: "python -c \"import numpy; from qlib.data._libs.rolling import Rolling; print('native ext OK')\""
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up QEMU (Linux ARM64 emulation)
+        if: matrix.cibw_arch == 'aarch64'
+        uses: docker/setup-qemu-action@29109295f6470767afeda7047fc866af97a9d0b3 # v3.6.0
+
+      - name: Set up Python (host interpreter for cibuildwheel, with pip cache)
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: "pyproject.toml"
+
+      - name: Install cibuildwheel
+        run: python -m pip install cibuildwheel
+
+      - name: Build wheels (${{ matrix.cibw_platform }} / ${{ matrix.cibw_arch }})
+        run: >
+          python scripts/build_wheels.py
+          --platform ${{ matrix.cibw_platform }}
+          --arch ${{ matrix.cibw_arch }}
+          --output-dir dist
+        env:
+          CIBW_ARCHS: ${{ matrix.cibw_arch }}
+          CIBW_PLATFORM: ${{ matrix.cibw_platform }}
+
+      - name: Validate wheels (twine check + static wheel audit)
+        run: |
+          python -m pip install twine
+          twine check dist/*.whl
+          python scripts/validate_wheels.py --dist dist
+
+      # No upload-artifact indirection: each matrix job publishes its own
+      # wheels straight to TestPyPI on release events. PR builds stop after
+      # validation, so nothing unpublished ever leaves the runner.
+      - name: Publish wheels to TestPyPI
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.upload_to_pypi == 'true'
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.TESTPYPI }}
+        run: |
+          twine upload --repository-url https://test.pypi.org/legacy/ dist/*.whl --verbose

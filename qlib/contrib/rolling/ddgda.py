@@ -42,8 +42,8 @@ kwargs:
     num_leaves: 210
     num_threads: 20
 """
-# covnert the yaml to dict
-LGBM_MODEL = yaml.load(LGBM_MODEL, Loader=yaml.FullLoader)
+# covnert the yaml to dict (safe loader only: blocks arbitrary object construction)
+LGBM_MODEL = yaml.safe_load(LGBM_MODEL)
 
 LINEAR_MODEL = """
 class: LinearModel
@@ -52,7 +52,7 @@ kwargs:
     estimator: ridge
     alpha: 0.05
 """
-LINEAR_MODEL = yaml.load(LINEAR_MODEL, Loader=yaml.FullLoader)
+LINEAR_MODEL = yaml.safe_load(LINEAR_MODEL)
 
 PROC_ARGS = """
 infer_processors:
@@ -69,7 +69,7 @@ learn_processors:
       kwargs:
           fields_group: label
 """
-PROC_ARGS = yaml.load(PROC_ARGS, Loader=yaml.FullLoader)
+PROC_ARGS = yaml.safe_load(PROC_ARGS)
 
 UTIL_MODEL_TYPE = Literal["linear", "gbdt"]
 _CACHE_LOADER = "qlib.contrib.rolling.ddgda._load_cache"

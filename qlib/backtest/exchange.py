@@ -9,6 +9,7 @@ from ..utils.index_data import IndexData
 
 if TYPE_CHECKING:
     from .account import Account
+    from .data_provider import QuoteProvider
 
 import random
 
@@ -51,6 +52,7 @@ class Exchange:
         impact_cost: float = 0.0,
         extra_quote: pd.DataFrame = None,
         quote_cls: Type[BaseQuote] = NumpyQuote,
+        data_provider: QuoteProvider | None = None,
         **kwargs: Any,
     ) -> None:
         """__init__
@@ -164,7 +166,10 @@ class Exchange:
             raise NotImplementedError(f"This type of input is not supported")
 
         if isinstance(codes, str):
-            codes = D.instruments(codes)
+            if data_provider is not None:
+                codes = data_provider.instruments(codes)
+            else:
+                codes = D.instruments(codes)
         self.codes = codes
         # Necessary fields
         # $close is for calculating the total value at end of each day.
@@ -192,6 +197,7 @@ class Exchange:
         self.limit_threshold: Union[Tuple[str, str], float, None] = limit_threshold
         self.volume_threshold = volume_threshold
         self.extra_quote = extra_quote
+        self.data_provider = data_provider
         self.get_quote_from_qlib()
 
         # init quote by quote_df
@@ -199,17 +205,28 @@ class Exchange:
         self.quote: BaseQuote = self.quote_cls(self.quote_df, freq)
 
     def get_quote_from_qlib(self) -> None:
-        # get stock data from qlib
+        # get stock data from qlib (or from the injected QuoteProvider in tests).
+        # When `data_provider` is None the legacy global-D path is used unchanged.
+        provider = self.data_provider
         if len(self.codes) == 0:
-            self.codes = D.instruments()
-        self.quote_df = D.features(
-            self.codes,
-            self.all_fields,
-            self.start_time,
-            self.end_time,
-            freq=self.freq,
-            disk_cache=True,
-        )
+            self.codes = provider.instruments("all") if provider is not None else D.instruments()
+        if provider is not None:
+            self.quote_df = provider.features(
+                self.codes,
+                self.all_fields,
+                self.start_time,
+                self.end_time,
+                freq=self.freq,
+            )
+        else:
+            self.quote_df = D.features(
+                self.codes,
+                self.all_fields,
+                self.start_time,
+                self.end_time,
+                freq=self.freq,
+                disk_cache=True,
+            )
         self.quote_df.columns = self.all_fields
 
         # check buy_price data and sell_price data

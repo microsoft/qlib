@@ -1,31 +1,50 @@
-FROM continuumio/miniconda3:latest
+# ---- Base: pinned, minimal build environment ----
+FROM python:3.11-slim-bookworm AS builder
 
 WORKDIR /qlib
 
-COPY . .
+# Build-time only toolchain for Cython extensions (dropped in runtime image).
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN apt-get update && \
-    apt-get install -y build-essential
+COPY pyproject.toml setup.py MANIFEST.in README.md ./
+COPY qlib ./qlib
 
-RUN conda create --name qlib_env python=3.8 -y
-RUN echo "conda activate qlib_env" >> ~/.bashrc
-ENV PATH /opt/conda/envs/qlib_env/bin:$PATH
+RUN python -m pip install --upgrade pip \
+    && python -m pip install --no-cache-dir cython "numpy>=1.24.0" \
+    && python -m pip wheel --no-cache-dir --no-deps -w /wheels .
 
-RUN python -m pip install --upgrade pip
+# ---- Runtime: minimal, non-root, no build toolchain ----
+FROM python:3.11-slim-bookworm AS runtime
 
-RUN python -m pip install numpy==1.23.5
-RUN python -m pip install pandas==1.5.3
-RUN python -m pip install importlib-metadata==5.2.0
-RUN python -m pip install "cloudpickle<3"
-RUN python -m pip install scikit-learn==1.3.2
+WORKDIR /qlib
 
-RUN python -m pip install cython packaging tables matplotlib statsmodels
-RUN python -m pip install pybind11 cvxpy
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libgomp1 \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd -r qlib && useradd -r -g qlib -d /qlib qlib
 
-ARG IS_STABLE="yes"
+COPY --from=builder /wheels /wheels
+COPY pyproject.toml README.md ./
+COPY qlib ./qlib
+COPY examples ./examples
 
-RUN if [ "$IS_STABLE" = "yes" ]; then \
-        python -m pip install pyqlib; \
-    else \
-        python setup.py install; \
-    fi
+RUN python -m pip install --upgrade pip \
+    && python -m pip install --no-cache-dir /wheels/*.whl \
+    && rm -rf /wheels /root/.cache \
+    && chown -R qlib:qlib /qlib
+
+USER qlib
+
+ENV PYTHONUNBUFFERED=1 \
+    QLIB_PROVIDER_URI=/data/qlib_data \
+    QLIB_REGION=cn
+
+# Example (mount data + env at runtime, never bake secrets into the image):
+#   docker build -t qlib_image -f ./Dockerfile .
+#   docker run --rm -v ~/.qlib/qlib_data:/data/qlib_data --env-file .env qlib_image \
+#       python -m qlib.cli.run examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
+
+CMD ["python", "-c", "import qlib; print('qlib container ready:', qlib.__version__)"]
+

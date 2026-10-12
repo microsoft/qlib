@@ -66,6 +66,17 @@ class RollingTaskExample:
             tasks=self.task_config,
             generators=self.rolling_gen,  # generate different date segments
         )
+        # Enforce explicit payload/memory budgets before fanning out to
+        # MongoDB workers (defaults: 512 tasks, 4 MiB per pickled task).
+        # Permissive for normal config dicts; fires only on runaway batches.
+        from qlib.workflow.task.batch_limits import cap_task_batch, check_task_batch_limits
+
+        capped = cap_task_batch(tasks)
+        if len(capped) != len(tasks):
+            print(f"warning: capped task batch from {len(tasks)} to {len(capped)} (max_tasks budget)")
+        report = check_task_batch_limits(capped)
+        print(f"task batch budget OK: {report}")
+        tasks = capped
         pprint(tasks)
         return tasks
 

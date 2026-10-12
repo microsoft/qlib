@@ -1,4 +1,4 @@
-.PHONY: clean deepclean prerequisite dependencies lightgbm rl develop lint docs package test analysis all install dev ci-install black pylint flake8 mypy nbqa nbconvert lint build upload docs-gen
+.PHONY: clean deepclean prerequisite dependencies lightgbm rl develop lint docs package test analysis all install dev ci-install black pylint flake8 mypy nbqa nbconvert lint build upload docs-gen elevation-lint elevation-types elevation-tests elevation-gates schema-check env-check wheels-deps wheels-build wheels-validate wheels sdist
 #You can modify it according to your terminal
 SHELL := /bin/bash
 
@@ -198,6 +198,73 @@ nbconvert:
 	jupyter nbconvert --to notebook --execute examples/workflow_by_code.ipynb
 
 lint: black pylint flake8 mypy nbqa
+
+########################################################################################
+# Engineering elevation gates (fast, filesystem-free, additive to legacy lint)
+########################################################################################
+
+# Lint hardened modules with Ruff (mirrors engineering-elevation.yml exactly,
+# including format verification so `make elevation-lint` == the CI step).
+ELEVATION_FORMAT := qlib/backtest/validation.py qlib/backtest/config_schema.py qlib/backtest/executor_logging.py qlib/backtest/data_provider.py qlib/backtest/exchange.py qlib/log_structured.py qlib/data/cache_guards.py qlib/contrib/benchmark/base.py qlib/contrib/rl/config_schema.py qlib/utils/credentials.py qlib/contrib/data/processor_tracing.py qlib/workflow/task/batch_limits.py qlib/contrib/rolling/ddgda.py qlib/utils/__init__.py examples/rl_order_execution/scripts/gen_pickle_data.py scripts/check_reference_schemas.py scripts/build_wheels.py scripts/validate_wheels.py scripts/offline_check.py
+ELEVATION_TESTS := tests/backtest/test_backtest_core.py tests/backtest/test_elevation_phase2.py tests/backtest/test_elevation_phase3.py tests/backtest/test_elevation_phase4.py tests/backtest/test_exchange_with_provider.py tests/backtest/test_cross_platform_builds.py tests/backtest/test_offline_check.py
+ELEVATION_COV := --cov=qlib/backtest/validation --cov=qlib/backtest/config_schema --cov=qlib/backtest/executor_logging --cov=qlib/backtest/data_provider --cov=qlib/backtest/exchange --cov=qlib/log_structured --cov=qlib/data/cache_guards --cov=qlib/contrib/benchmark/base --cov=qlib/contrib/rl/config_schema --cov=qlib/utils/credentials --cov=qlib/contrib/data/processor_tracing --cov=qlib/workflow/task/batch_limits --cov=scripts/validate_wheels --cov=scripts/offline_check
+
+# Lint hardened modules with Ruff (mirrors engineering-elevation.yml).
+elevation-lint:
+	ruff check qlib tests scripts
+	ruff format --check $(ELEVATION_FORMAT) $(ELEVATION_TESTS)
+
+# Strict type-check of hardened modules only (repo-wide mypy stays on `make mypy`).
+ELEVATION_TYPES := qlib/backtest/validation.py qlib/backtest/config_schema.py qlib/backtest/executor_logging.py qlib/backtest/data_provider.py qlib/log_structured.py qlib/data/cache_guards.py qlib/contrib/benchmark/base.py qlib/contrib/rl/config_schema.py qlib/utils/credentials.py qlib/contrib/data/processor_tracing.py qlib/workflow/task/batch_limits.py
+elevation-types:
+	mypy --strict $(ELEVATION_TYPES)
+
+# Filesystem-free unit tests (no ~/.qlib dataset required).
+elevation-tests:
+	python -m pytest $(ELEVATION_TESTS) -q
+
+# Full gate: lint + strict types + tests with 80% coverage floor.
+elevation-gates: elevation-lint elevation-types
+	python -m pytest $(ELEVATION_TESTS) -q --cov-report=term $(ELEVATION_COV) --cov-fail-under=80
+
+# Cross-platform builds (`scripts/build_wheels.py`, `scripts/validate_wheels.py`)
+wheels-deps:
+	python -m pip install cibuildwheel twine build
+
+# Build wheels for one platform/arch (defaults to the host).
+#   make wheels-build PLATFORM=linux ARCH=x86_64
+#   make wheels-build PLATFORM=macos ARCH=arm64
+PLATFORM ?= auto
+ARCH ?= auto
+wheels-build:
+	python scripts/build_wheels.py --platform $(PLATFORM) --arch $(ARCH) --output-dir dist
+
+# Static audit of built wheels (platform tags, native extensions, METADATA).
+wheels-validate:
+	python scripts/validate_wheels.py --dist dist
+
+# Full local gate: build host wheels, twine-check, static audit.
+wheels: wheels-build wheels-validate
+	twine check dist/*.whl
+
+# PEP 517 source distribution (platform-independent companion artifact).
+sdist:
+	python -m build --sdist
+	twine check dist/*.tar.gz
+
+# Validate reference benchmark + RL configs against typed schemas.
+schema-check:
+	python scripts/check_reference_schemas.py
+
+# Verify local env parity: .env present (from .env.example), never committed.
+env-check:
+	@test -f .env || (echo "missing .env (copy from .env.example: cp .env.example .env)" && exit 1)
+	@git check-ignore -q .env && echo ".env is git-ignored OK" || (echo ".env is NOT ignored!" && exit 1)
+
+# Fully offline conformance gate: YAML/SHA pins, tool sections, security sweeps,
+# env parity, guide structure. No network, no dependencies beyond pyyaml+tomli.
+offline-check:
+	python scripts/offline_check.py
 
 ########################################################################################
 # Package

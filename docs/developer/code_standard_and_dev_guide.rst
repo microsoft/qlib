@@ -51,6 +51,34 @@ When you submit a PR request, you can check whether your code passes the CI test
     pre-commit install
 
 
+Engineering Elevation Gates
+===========================
+
+In addition to the legacy black/pylint/flake8/mypy checks, new hardened modules
+are gated by the additive ``engineering-elevation`` workflow
+(``.github/workflows/engineering-elevation.yml``, Python 3.9–3.11):
+
+- ``ruff check`` plus ``ruff format --check`` over the hardened modules;
+- ``mypy --strict`` scoped to ``qlib/backtest/validation.py``,
+  ``qlib/backtest/config_schema.py``, ``qlib/backtest/executor_logging.py``,
+  ``qlib/backtest/data_provider.py``, ``qlib/log_structured.py``, ``qlib/data/cache_guards.py``,
+  ``qlib/contrib/benchmark/base.py``, ``qlib/contrib/rl/config_schema.py``,
+  ``qlib/utils/credentials.py``, ``qlib/contrib/data/processor_tracing.py``, and
+  ``qlib/workflow/task/batch_limits.py``;
+- filesystem-free tests in ``tests/backtest/test_backtest_core.py``,
+  ``tests/backtest/test_elevation_phase2.py``,
+  ``tests/backtest/test_elevation_phase3.py``,
+  ``tests/backtest/test_elevation_phase4.py``, and
+  ``tests/backtest/test_exchange_with_provider.py`` with a ``pytest-cov`` 80% gate;
+- schema validation of ``examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml``
+  and ``examples/rl_order_execution/exp_configs/backtest_twap.yml``.
+
+Packaging standards (Ruff/Black/MyPy/Coverage sections) live in
+``pyproject.toml``; local parity with the container is via ``.env.example``
+(copy to ``.env``, never commit secrets) and the multi-stage ``Dockerfile``.
+Architecture rationale is recorded in ``docs/adr/0001-backtest-boundaries.md``.
+
+
 =================================
 Development Guidance
 =================================

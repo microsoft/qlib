@@ -16,6 +16,7 @@ from ..strategy.base import BaseStrategy
 from ..utils import init_instance_by_config
 from .decision import BaseTradeDecision, Order
 from .exchange import Exchange
+from .executor_logging import log_order_execution
 from .utils import CommonInfrastructure, LevelInfrastructure, TradeCalendarManager, get_start_end_idx
 
 
@@ -625,4 +626,17 @@ class SimulatorExecutor(BaseExecutor):
                         self.trade_account.get_cash(),
                     ),
                 )
+            # Structured JSON twin of the verbose line for log aggregators.
+            # Always emitted (cheap, single line) regardless of `verbose`.
+            log_order_execution(
+                stock_id=order.stock_id,
+                direction="sell" if order.direction == Order.SELL else "buy",
+                trade_price=float(trade_price),
+                amount=float(order.amount),
+                deal_amount=float(order.deal_amount),
+                factor=None if order.factor is None else float(order.factor),
+                trade_value=float(trade_val),
+                cash=float(self.trade_account.get_cash()),
+                start_time=trade_start_time,
+            )
         return execute_result, {"trade_info": execute_result}
