@@ -31,7 +31,7 @@ class CatBoostModel(Model, FeatureInt):
         num_boost_round=1000,
         early_stopping_rounds=50,
         verbose_eval=20,
-        evals_result=dict(),
+        evals_result={},
         reweighter=None,
         **kwargs,
     ):

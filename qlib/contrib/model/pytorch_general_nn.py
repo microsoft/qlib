@@ -235,7 +235,7 @@ class GeneralPTNN(Model):
     def fit(
         self,
         dataset: Union[DatasetH, TSDatasetH],
-        evals_result=dict(),
+        evals_result={},
         save_path=None,
         reweighter=None,
     ):

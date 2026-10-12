@@ -103,22 +103,21 @@ class PortfolioMetrics:
 
         if isinstance(benchmark, pd.Series):
             return benchmark
-        else:
-            start_time = benchmark_config.get("start_time", None)
-            end_time = benchmark_config.get("end_time", None)
+        start_time = benchmark_config.get("start_time", None)
+        end_time = benchmark_config.get("end_time", None)
 
-            if freq is None:
-                raise ValueError("benchmark freq can't be None!")
-            _codes = benchmark if isinstance(benchmark, (list, dict)) else [benchmark]
-            fields = ["$close/Ref($close,1)-1"]
-            _temp_result, _ = get_higher_eq_freq_feature(_codes, fields, start_time, end_time, freq=freq)
-            if len(_temp_result) == 0:
-                raise ValueError(f"The benchmark {_codes} does not exist. Please provide the right benchmark")
-            return (
-                _temp_result.groupby(level="datetime", group_keys=False)[_temp_result.columns.tolist()[0]]
-                .mean()
-                .fillna(0)
-            )
+        if freq is None:
+            raise ValueError("benchmark freq can't be None!")
+        _codes = benchmark if isinstance(benchmark, (list, dict)) else [benchmark]
+        fields = ["$close/Ref($close,1)-1"]
+        _temp_result, _ = get_higher_eq_freq_feature(_codes, fields, start_time, end_time, freq=freq)
+        if len(_temp_result) == 0:
+            raise ValueError(f"The benchmark {_codes} does not exist. Please provide the right benchmark")
+        return (
+            _temp_result.groupby(level="datetime", group_keys=False)[_temp_result.columns.tolist()[0]]
+            .mean()
+            .fillna(0)
+        )
 
     def _sample_benchmark(
         self,
@@ -299,13 +298,13 @@ class Indicator:
         self.trade_indicator_his[trade_start_time] = self.get_trade_indicator()
 
     def _update_order_trade_info(self, trade_info: List[Tuple[Order, float, float, float]]) -> None:
-        amount = dict()
-        deal_amount = dict()
-        trade_price = dict()
-        trade_value = dict()
-        trade_cost = dict()
-        trade_dir = dict()
-        pa = dict()
+        amount = {}
+        deal_amount = {}
+        trade_price = {}
+        trade_value = {}
+        trade_cost = {}
+        trade_dir = {}
+        pa = {}
 
         for order, _trade_val, _trade_cost, _trade_price in trade_info:
             amount[order.stock_id] = order.amount_delta
@@ -556,30 +555,28 @@ class Indicator:
             return self.order_indicator.transfer(
                 lambda ffr: ffr.mean(),
             )
-        elif method == "amount_weighted":
+        if method == "amount_weighted":
             return self.order_indicator.transfer(
                 lambda ffr, deal_amount: (ffr * deal_amount.abs()).sum() / (deal_amount.abs().sum()),
             )
-        elif method == "value_weighted":
+        if method == "value_weighted":
             return self.order_indicator.transfer(
                 lambda ffr, trade_value: (ffr * trade_value.abs()).sum() / (trade_value.abs().sum()),
             )
-        else:
-            raise ValueError(f"method {method} is not supported!")
+        raise ValueError(f"method {method} is not supported!")
 
     def _cal_trade_price_advantage(self, method: str = "mean") -> Optional[BaseSingleMetric]:
         if method == "mean":
             return self.order_indicator.transfer(lambda pa: pa.mean())
-        elif method == "amount_weighted":
+        if method == "amount_weighted":
             return self.order_indicator.transfer(
                 lambda pa, deal_amount: (pa * deal_amount.abs()).sum() / (deal_amount.abs().sum()),
             )
-        elif method == "value_weighted":
+        if method == "value_weighted":
             return self.order_indicator.transfer(
                 lambda pa, trade_value: (pa * trade_value.abs()).sum() / (trade_value.abs().sum()),
             )
-        else:
-            raise ValueError(f"method {method} is not supported!")
+        raise ValueError(f"method {method} is not supported!")
 
     def _cal_trade_positive_rate(self) -> Optional[BaseSingleMetric]:
         def func(pa):
