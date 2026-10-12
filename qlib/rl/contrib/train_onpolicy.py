@@ -96,6 +96,8 @@ class LazyLoadDataset(Dataset):
 
         return order
 
+from qlib.rl.contrib._utils import validate_time_alignment as _validate_time_alignment
+
 
 def train_and_test(
     env_config: dict,
@@ -109,6 +111,58 @@ def train_and_test(
     run_training: bool,
     run_backtest: bool,
 ) -> None:
+    """Run the training and/or backtest pipeline for a single-asset order execution RL task.
+
+    Parameters
+    ----------
+    env_config : dict
+        Environment configuration (``concurrency``, ``parallel_mode``, etc.).
+    simulator_config : dict
+        Simulator configuration including ``time_per_step``, ``vol_limit``, and
+        optionally ``data_granularity`` (default ``1``).  ``data_granularity``
+        controls how many raw ticks are grouped into a single data point fed to
+        the agent.
+    trainer_config : dict
+        Trainer configuration (``max_epoch``, ``batch_size``, etc.).
+    data_config : dict
+        Data source configuration.  The sub-key ``data_config["source"]`` must
+        contain at minimum:
+
+        - ``order_dir`` – path to the directory holding order pickle files.
+        - ``feature_root_dir`` – path to the feature data directory.
+        - ``default_start_time_index`` – the starting tick index of the trading
+          window.  **Must be divisible by** ``data_granularity``.
+        - ``default_end_time_index`` – the ending tick index of the trading
+          window (exclusive).  **Must be divisible by** ``data_granularity``.
+
+        .. note::
+            Both ``default_start_time_index`` and ``default_end_time_index``
+            must be exact multiples of ``data_granularity``.  This is required
+            because the RL environment slices each trading day into uniform
+            windows of ``data_granularity`` ticks, so any misaligned start/end
+            index would silently corrupt the step boundaries.  A safe default
+            is ``default_start_time_index: 0``.  For example, if
+            ``data_granularity`` is ``5``, valid values are ``0, 5, 10, …``.
+
+    state_interpreter : StateInterpreter
+        Interpreter that converts raw simulator state to an RL observation.
+    action_interpreter : ActionInterpreter
+        Interpreter that converts RL action to a simulator action.
+    policy : BasePolicy
+        The tianshou policy to train or evaluate.
+    reward : Reward
+        Reward function.
+    run_training : bool
+        Whether to run the training loop.
+    run_backtest : bool
+        Whether to run the backtest loop.
+
+    Raises
+    ------
+    ValueError
+        If ``default_start_time_index`` or ``default_end_time_index`` is not
+        divisible by ``data_granularity``.
+    """
     order_root_path = Path(data_config["source"]["order_dir"])
 
     data_granularity = simulator_config.get("data_granularity", 1)
@@ -124,8 +178,15 @@ def train_and_test(
             vol_threshold=simulator_config["vol_limit"],
         )
 
-    assert data_config["source"]["default_start_time_index"] % data_granularity == 0
-    assert data_config["source"]["default_end_time_index"] % data_granularity == 0
+    _start = data_config["source"]["default_start_time_index"]
+    _end = data_config["source"]["default_end_time_index"]
+
+    _validate_time_alignment(
+        default_start_time_index=_start,
+        default_end_time_index=_end,
+        data_granularity=data_granularity,
+    )
+
 
     if run_training:
         train_dataset, valid_dataset = [
