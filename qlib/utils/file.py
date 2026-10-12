@@ -186,5 +186,9 @@ def get_io_object(file: Union[IO, str, Path], *args, **kwargs) -> IO:
             file = Path(file)
         if not isinstance(file, Path):
             raise NotImplementedError(f"This type[{type(file)}] of input is not supported")
-        with file.open(*args, **kwargs) as f:
+        # Default to UTF-8 when the file is opened in text mode without an explicit encoding,
+        # so the behavior does not depend on the platform's locale (e.g. GBK on Chinese Windows).
+        if "b" not in (args[0] if args else kwargs.get("mode", "r")):
+            kwargs.setdefault("encoding", "utf-8")
+        with file.open(*args, **kwargs) as f:  # pylint: disable=unspecified-encoding
             yield f

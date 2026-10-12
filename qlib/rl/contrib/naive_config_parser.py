@@ -54,7 +54,7 @@ def parse_backtest_config(path: str) -> dict:
 
                 del sys.modules[tmp_module_name]
             else:
-                with open(tmp_config_file.name) as input_stream:
+                with open(tmp_config_file.name, encoding="utf-8") as input_stream:
                     yaml = YAML(typ="safe", pure=True)
                     config = yaml.load(input_stream)
 
