@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 import sys
-from typing import List
+from typing import List, Union
 from pathlib import Path
 
 import fire
@@ -45,7 +45,7 @@ def generate_qlib_calendar(date_list: List[str], freq: str) -> List[str]:
         raise ValueError(f"Unsupported freq: {freq}")
 
 
-def future_calendar_collector(qlib_dir: [str, Path], freq: str = "day"):
+def future_calendar_collector(qlib_dir: Union[str, Path], freq: str = "day"):
     """get future calendar
 
     Parameters

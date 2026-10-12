@@ -10,7 +10,7 @@ import importlib
 from abc import ABC
 import multiprocessing
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Union
 
 import fire
 import requests
@@ -50,7 +50,7 @@ class YahooCollector(BaseCollector):
 
     def __init__(
         self,
-        save_dir: [str, Path],
+        save_dir: Union[str, Path],
         start=None,
         end=None,
         interval="1d",
@@ -109,7 +109,7 @@ class YahooCollector(BaseCollector):
         self.end_datetime = self.convert_datetime(self.end_datetime, self._timezone)
 
     @staticmethod
-    def convert_datetime(dt: [pd.Timestamp, datetime.date, str], timezone):
+    def convert_datetime(dt: Union[pd.Timestamp, datetime.date, str], timezone):
         try:
             dt = pd.Timestamp(dt, tz=timezone).timestamp()
             dt = pd.Timestamp(dt, tz=tzlocal(), unit="s")
@@ -509,7 +509,7 @@ class YahooNormalize1d(YahooNormalize, ABC):
 
 class YahooNormalize1dExtend(YahooNormalize1d):
     def __init__(
-        self, old_qlib_data_dir: [str, Path], date_field_name: str = "date", symbol_field_name: str = "symbol", **kwargs
+        self, old_qlib_data_dir: Union[str, Path], date_field_name: str = "date", symbol_field_name: str = "symbol", **kwargs
     ):
         """
 
@@ -526,7 +526,7 @@ class YahooNormalize1dExtend(YahooNormalize1d):
         self.column_list = ["open", "high", "low", "close", "volume", "factor", "change"]
         self.old_qlib_data = self._get_old_data(old_qlib_data_dir)
 
-    def _get_old_data(self, qlib_data_dir: [str, Path]):
+    def _get_old_data(self, qlib_data_dir: Union[str, Path]):
         qlib_data_dir = str(Path(qlib_data_dir).expanduser().resolve())
         qlib.init(provider_uri=qlib_data_dir, expression_cache=None, dataset_cache=None)
         df = D.features(D.instruments("all"), ["$" + col for col in self.column_list])
@@ -564,7 +564,7 @@ class YahooNormalize1min(YahooNormalize, ABC):
     CALC_PAUSED_NUM = True
 
     def __init__(
-        self, qlib_data_1d_dir: [str, Path], date_field_name: str = "date", symbol_field_name: str = "symbol", **kwargs
+        self, qlib_data_1d_dir: Union[str, Path], date_field_name: str = "date", symbol_field_name: str = "symbol", **kwargs
     ):
         """
 
@@ -749,7 +749,7 @@ class Run(BaseRun):
         return f"YahooNormalize{self.region.upper()}{self.interval}"
 
     @property
-    def default_base_dir(self) -> [Path, str]:
+    def default_base_dir(self) -> Union[Path, str]:
         return CUR_DIR
 
     def download_data(

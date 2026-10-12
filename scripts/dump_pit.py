@@ -149,7 +149,7 @@ class DumpPitData:
 
     def _dump_pit(
         self,
-        file_path: str,
+        file_path: Path,
         interval: str = "quarterly",
         overwrite: bool = False,
     ):
