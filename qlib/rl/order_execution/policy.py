@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, Generator, Iterable, Optional, OrderedDict, Tuple, cast
+from typing import Any, Dict, Generator, Iterable, List, Optional, OrderedDict, Tuple, cast
 
 import gym
 import numpy as np
@@ -12,7 +12,7 @@ import torch
 import torch.nn as nn
 from gym.spaces import Discrete
 from tianshou.data import Batch, ReplayBuffer, to_torch
-from tianshou.policy import BasePolicy, PPOPolicy, DQNPolicy
+from tianshou.policy import BasePolicy, DQNPolicy, PPOPolicy
 
 from qlib.rl.trainer.trainer import Trainer
 
@@ -156,6 +156,110 @@ class PPO(PPOPolicy):
         )
         if weight_file is not None:
             set_weight(self, Trainer.get_policy_state_dict(weight_file))
+
+
+class OPD(PPO):
+    """Oracle Policy Distillation.
+
+    Reference:
+        Universal Trading for Order Execution with Oracle Policy Distillation. https://arxiv.org/abs/2103.10860
+    """
+
+    def __init__(
+        self,
+        network: nn.Module,
+        obs_space: gym.Space,
+        action_space: gym.Space,
+        lr: float,
+        weight_decay: float = 0.0,
+        discount_factor: float = 1.0,
+        max_grad_norm: float = 100.0,
+        reward_normalization: bool = True,
+        eps_clip: float = 0.3,
+        value_clip: bool = True,
+        vf_coef: float = 1.0,
+        gae_lambda: float = 1.0,
+        max_batch_size: int = 256,
+        deterministic_eval: bool = True,
+        dis_coef: float = 0.01,
+        weight_file: Optional[Path] = None,
+    ) -> None:
+        self._weight_dis = dis_coef
+        super().__init__(
+            network,
+            obs_space,
+            action_space,
+            lr,
+            weight_decay,
+            discount_factor,
+            max_grad_norm,
+            reward_normalization,
+            eps_clip,
+            value_clip,
+            vf_coef,
+            gae_lambda,
+            max_batch_size,
+            deterministic_eval,
+            weight_file,
+        )
+
+    def learn(  # type: ignore
+        self, batch: Batch, batch_size: int, repeat: int, **kwargs: Any
+    ) -> Dict[str, List[float]]:
+        losses, clip_losses, vf_losses, dis_losses, ent_losses = [], [], [], [], []
+        for step in range(repeat):
+            if self._recompute_adv and step > 0:
+                batch = self._compute_returns(batch, self._buffer, self._indices)
+            for minibatch in batch.split(batch_size, merge_last=True):
+                # calculate loss for actor
+                out = self(minibatch)
+                dist = out.dist
+                if self._norm_adv:
+                    mean, std = minibatch.adv.mean(), minibatch.adv.std()
+                    minibatch.adv = (minibatch.adv - mean) / std  # per-batch norm
+                ratio = (dist.log_prob(minibatch.act) - minibatch.logp_old).exp().float()
+                ratio = ratio.reshape(ratio.size(0), -1).transpose(0, 1)
+                surr1 = ratio * minibatch.adv
+                surr2 = ratio.clamp(1.0 - self._eps_clip, 1.0 + self._eps_clip) * minibatch.adv
+                if self._dual_clip:
+                    clip1 = torch.min(surr1, surr2)
+                    clip2 = torch.max(clip1, self._dual_clip * minibatch.adv)
+                    clip_loss = -torch.where(minibatch.adv < 0, clip2, clip1).mean()
+                else:
+                    clip_loss = -torch.min(surr1, surr2).mean()
+                # calculate loss for critic
+                value = self.critic(minibatch.obs).flatten()
+                if self._value_clip:
+                    v_clip = minibatch.v_s + (value - minibatch.v_s).clamp(-self._eps_clip, self._eps_clip)
+                    vf1 = (minibatch.returns - value).pow(2)
+                    vf2 = (minibatch.returns - v_clip).pow(2)
+                    vf_loss = torch.max(vf1, vf2).mean()
+                else:
+                    vf_loss = (minibatch.returns - value).pow(2).mean()
+                # calculate distillation loss
+                teacher_action = torch.tensor(minibatch.obs["teacher_action"]).long()
+                logits = out.logits
+                dis_loss = nn.functional.nll_loss(logits.log(), teacher_action)
+                # calculate regularization and overall loss
+                ent_loss = dist.entropy().mean()
+                loss = clip_loss + self._weight_vf * vf_loss - self._weight_ent * ent_loss + self._weight_dis * dis_loss
+                self.optim.zero_grad()
+                loss.backward()
+                if self._grad_norm:  # clip large gradient
+                    nn.utils.clip_grad_norm_(self._actor_critic.parameters(), max_norm=self._grad_norm)
+                self.optim.step()
+                clip_losses.append(clip_loss.item())
+                vf_losses.append(vf_loss.item())
+                dis_losses.append(dis_loss.item())
+                ent_losses.append(ent_loss.item())
+                losses.append(loss.item())
+
+        return {
+            "loss": losses,
+            "loss/clip": clip_losses,
+            "loss/vf": vf_losses,
+            "loss/ent": ent_losses,
+        }
 
 
 DQNModel = PPOActor  # Reuse PPOActor.
