@@ -4,6 +4,7 @@
 
 from pathlib import Path
 from collections.abc import Iterable
+import tempfile
 
 import numpy as np
 from qlib.tests import TestAutoData
@@ -168,3 +169,23 @@ class TestStorage(TestAutoData):
             print(feature[:].empty)
         with self.assertRaises(ValueError):
             print(feature.data.empty)
+
+    def test_feature_storage_resolves_case_sensitive_instrument_dir(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            feature_root = Path(tmp_dir).joinpath("features", "ABB-U")
+            feature_root.mkdir(parents=True, exist_ok=True)
+            np.array([0.0, 1.0, 2.0, 3.0], dtype="<f").tofile(feature_root.joinpath("close.day.bin"))
+
+            feature = FeatureStorage(
+                instrument="ABB-U",
+                field="close",
+                freq="day",
+                provider_uri={"day": tmp_dir},
+            )
+
+            assert feature.uri.exists(), "Feature storage path should resolve existing mixed-case instrument directory."
+            assert feature.uri.parent.name == "ABB-U"
+            assert feature.start_index == 0
+            assert feature.end_index == 2
+            assert feature[0][1] == np.float32(1.0)
+            assert feature[0:3].tolist() == [1.0, 2.0, 3.0]
