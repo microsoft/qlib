@@ -216,7 +216,7 @@ class DEnsembleModel(Model, FeatureInt):
             b_feat = features[g["bins"] == b]
             num_feat = int(np.ceil(self.sample_ratios[i_b] * len(b_feat)))
             res_feat = res_feat + np.random.choice(b_feat, size=num_feat, replace=False).tolist()
-        return pd.Index(set(res_feat))
+        return pd.Index(res_feat).drop_duplicates()
 
     def get_loss(self, label, pred):
         if self.loss == "mse":
