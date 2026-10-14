@@ -7,11 +7,20 @@ from datetime import datetime
 from qlib import init
 from qlib.config import C
 from qlib.log import TimeInspector
-from qlib.constant import REG_CN, REG_US, REG_TW
-from qlib.utils.time import cal_sam_minute as cal_sam_minute_new, get_min_cal, CN_TIME, US_TIME, TW_TIME
+from qlib.constant import REG_CN, REG_US, REG_TW, REG_GB
+from qlib.utils.time import (
+    cal_sam_minute as cal_sam_minute_new,
+    get_min_cal,
+    is_single_value,
+    time_to_day_index,
+    CN_TIME,
+    US_TIME,
+    TW_TIME,
+    GB_TIME,
+)
 from qlib.utils.data import guess_horizon
 
-REG_MAP = {REG_CN: CN_TIME, REG_US: US_TIME, REG_TW: TW_TIME}
+REG_MAP = {REG_CN: CN_TIME, REG_US: US_TIME, REG_TW: TW_TIME, REG_GB: GB_TIME}
 
 
 def cal_sam_minute(x: pd.Timestamp, sam_minutes: int, region: str):
@@ -77,7 +86,7 @@ class TimeUtils(TestCase):
     def test_cal_sam_minute(self):
         # test the correctness of the code
         random_n = 1000
-        regions = [REG_CN, REG_US, REG_TW]
+        regions = [REG_CN, REG_US, REG_TW, REG_GB]
 
         def gen_args(cal: List):
             for time in np.random.choice(cal, size=random_n, replace=True):
@@ -111,6 +120,65 @@ class TimeUtils(TestCase):
             with TimeInspector.logt():
                 for args in args_l:
                     cal_sam_minute_new(*args, region=region)
+
+
+class GBTimeUtils(TestCase):
+    """Tests for GB (London Stock Exchange) region support in time utils."""
+
+    def test_get_min_cal_gb_count(self):
+        # LSE trades 08:00–16:29 inclusive = 510 one-minute bars
+        cal = get_min_cal(region=REG_GB)
+        self.assertEqual(len(cal), 510)
+
+    def test_get_min_cal_gb_open(self):
+        cal = get_min_cal(region=REG_GB)
+        self.assertEqual(cal[0].hour, 8)
+        self.assertEqual(cal[0].minute, 0)
+
+    def test_get_min_cal_gb_close(self):
+        cal = get_min_cal(region=REG_GB)
+        self.assertEqual(cal[-1].hour, 16)
+        self.assertEqual(cal[-1].minute, 29)
+
+    def test_is_single_value_gb_freq_too_small(self):
+        # window smaller than freq → single value
+        start = pd.Timestamp("2024-01-02 10:00:00")
+        end = pd.Timestamp("2024-01-02 10:00:00")
+        freq = pd.Timedelta("1min")
+        self.assertTrue(is_single_value(start, end, freq, region=REG_GB))
+
+    def test_is_single_value_gb_last_bar(self):
+        # 16:29 is the last bar of the day → single value
+        start = pd.Timestamp("2024-01-02 16:29:00")
+        end = pd.Timestamp("2024-01-02 16:30:00")
+        freq = pd.Timedelta("1min")
+        self.assertTrue(is_single_value(start, end, freq, region=REG_GB))
+
+    def test_is_single_value_gb_mid_session(self):
+        # mid-session bar spanning a full minute → not single value
+        start = pd.Timestamp("2024-01-02 12:00:00")
+        end = pd.Timestamp("2024-01-02 12:01:00")
+        freq = pd.Timedelta("1min")
+        self.assertFalse(is_single_value(start, end, freq, region=REG_GB))
+
+    def test_time_to_day_index_gb_open(self):
+        # 08:00 is index 0
+        self.assertEqual(time_to_day_index("8:00", region=REG_GB), 0)
+
+    def test_time_to_day_index_gb_mid(self):
+        # 12:00 = 240 minutes after 08:00
+        self.assertEqual(time_to_day_index("12:00", region=REG_GB), 240)
+
+    def test_time_to_day_index_gb_last(self):
+        # 16:29 = 509 minutes after 08:00
+        self.assertEqual(time_to_day_index("16:29", region=REG_GB), 509)
+
+    def test_time_to_day_index_gb_out_of_range(self):
+        # outside trading hours should raise
+        with self.assertRaises(ValueError):
+            time_to_day_index("7:59", region=REG_GB)
+        with self.assertRaises(ValueError):
+            time_to_day_index("16:30", region=REG_GB)
 
 
 class DataUtils(TestCase):
