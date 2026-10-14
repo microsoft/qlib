@@ -38,6 +38,7 @@ from data_collector.utils import (
     get_us_stock_symbols,
     get_in_stock_symbols,
     get_br_stock_symbols,
+    get_gb_stock_symbols,
     generate_minutes_calendar_from_daily,
     calc_adjusted_price,
 )
@@ -362,6 +363,40 @@ class YahooCollectorBR1d(YahooCollectorBR):
 
 class YahooCollectorBR1min(YahooCollectorBR):
     retry = 2
+
+
+class YahooCollectorGB(YahooCollector, ABC):
+    """Collector for GB (London Stock Exchange) equities via Yahoo Finance.
+
+    Symbols carry a ``.L`` suffix as returned by the Yahoo Finance screener
+    (e.g. ``HSBA.L``, ``AZN.L``).  The ``^FTSE`` index is used as the
+    trading-calendar benchmark.  Trading hours are 08:00-16:30 Europe/London.
+    Prices are quoted in GBp (pence) by Yahoo Finance.
+    """
+
+    def get_instrument_list(self):
+        logger.info("get GB (LSE) stock symbols......")
+        symbols = get_gb_stock_symbols()
+        logger.info(f"get {len(symbols)} symbols.")
+        return symbols
+
+    def download_index_data(self):
+        pass
+
+    def normalize_symbol(self, symbol):
+        return code_to_fname(symbol).upper()
+
+    @property
+    def _timezone(self):
+        return "Europe/London"
+
+
+class YahooCollectorGB1d(YahooCollectorGB):
+    pass
+
+
+class YahooCollectorGB1min(YahooCollectorGB):
+    pass
 
 
 class YahooNormalize(BaseNormalize):
@@ -715,6 +750,49 @@ class YahooNormalizeBR1min(YahooNormalizeBR, YahooNormalize1min):
 
     def _get_1d_calendar_list(self):
         return get_calendar_list("BR_ALL")
+
+    def symbol_to_yahoo(self, symbol):
+        return fname_to_code(symbol)
+
+
+class YahooNormalizeGB:
+    """Calendar mixin for GB (London Stock Exchange) normalisers.
+
+    Uses ``^FTSE`` daily history via :func:`get_calendar_list` with key
+    ``"GB_ALL"`` as the trading-date sequence.
+    """
+
+    def _get_calendar_list(self) -> Iterable[pd.Timestamp]:
+        return get_calendar_list("GB_ALL")
+
+
+class YahooNormalizeGB1d(YahooNormalizeGB, YahooNormalize1d):
+    pass
+
+
+class YahooNormalizeGB1dExtend(YahooNormalizeGB, YahooNormalize1dExtend):
+    pass
+
+
+class YahooNormalizeGB1min(YahooNormalizeGB, YahooNormalize1min):
+    """1-minute normaliser for GB (London Stock Exchange) equities.
+
+    LSE trades continuously from 08:00 to 16:30 Europe/London with no midday
+    break.  ``AM_RANGE`` covers the full session; ``PM_RANGE`` is a zero-width
+    sentinel so the parent generator loop is satisfied without adding extra
+    minutes.  ``CALC_PAUSED_NUM = False`` mirrors US/IN/BR 1min normalisers.
+    """
+
+    CALC_PAUSED_NUM = False
+    AM_RANGE = ("08:00:00", "16:29:00")
+    PM_RANGE = ("16:29:00", "16:29:00")
+
+    def _get_calendar_list(self) -> Iterable[pd.Timestamp]:
+        # TODO: support 1min
+        raise ValueError("Does not support 1min")
+
+    def _get_1d_calendar_list(self):
+        return get_calendar_list("GB_ALL")
 
     def symbol_to_yahoo(self, symbol):
         return fname_to_code(symbol)
