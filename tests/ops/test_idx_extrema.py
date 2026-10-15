@@ -42,3 +42,16 @@ def test_idx_extrema_return_nan_for_all_nan_windows(operator, window):
     result = operator(feature, window)._load_internal("TEST", 0, 1, "day")
 
     assert result.isna().all()
+
+
+@pytest.mark.parametrize("operator", [IdxMax, IdxMin])
+def test_idx_extrema_return_nan_after_valid_values_for_all_nan_rolling_window(operator):
+    feature = SeriesFeature([3.0, np.nan, np.nan, np.nan, 1.0])
+
+    result = operator(feature, 2)._load_internal("TEST", 0, 4, "day")
+
+    np.testing.assert_allclose(
+        result.to_numpy(),
+        [1.0, 1.0, np.nan, np.nan, 2.0],
+        equal_nan=True,
+    )
