@@ -36,6 +36,9 @@ Here is the base class of ``TaskGen``:
 ``Qlib`` provides a class `RollingGen <https://github.com/microsoft/qlib/tree/main/qlib/workflow/task/gen.py>`_ to generate a list of ``task`` of the dataset in different date segments.
 This class allows users to verify the effect of data from different periods on the model in one experiment. More information is `here <../reference/api.html#TaskGen>`__.
 
+Rolling stops once the next test segment would start after the last trading day in the calendar.
+A window that still begins on a trading day is kept, including one that ends on the last trading day.
+
 Task Storing
 ============
 To achieve higher efficiency and the possibility of cluster operation, ``Task Manager`` will store all tasks in `MongoDB <https://www.mongodb.com/>`_.
