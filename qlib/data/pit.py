@@ -21,13 +21,48 @@ from qlib.log import get_module_logger
 from .data import Cal
 
 
+def _is_calendar_position(value):
+    """Return whether ``value`` is an integer calendar index.
+
+    ``bool`` is a subclass of ``int``, but it is not a calendar position.
+    """
+    return isinstance(value, (int, np.integer)) and not isinstance(value, bool)
+
+
 class P(ElemOperator):
+    """Collapse a point-in-time feature onto each observation time.
+
+    Parameters
+    ----------
+    feature : Expression
+        PIT feature, for example ``$$roewa_q``. At each observation time the
+        operator keeps the latest value published at or before that time.
+
+    Notes
+    -----
+    With ``time2idx=True`` (the default) ``start_index`` and ``end_index`` are
+    integer calendar positions and the result keeps a ``RangeIndex``.
+    With ``time2idx=False`` they are the query datetimes. Those bounds are
+    aligned to the trading calendar, and the result uses that datetime index
+    so ``series.loc[start_time:end_time]`` still selects the requested range.
+    """
+
     def _load_internal(self, instrument, start_index, end_index, freq):
-        _calendar = Cal.calendar(freq=freq)
+        calendar = Cal.calendar(freq=freq)
+        datetime_query = not (_is_calendar_position(start_index) and _is_calendar_position(end_index))
+        if datetime_query:
+            # Timestamp - Timestamp is a Timedelta, so the length expression
+            # below is only valid after the bounds are calendar positions.
+            _, _, start_index, end_index = Cal.locate_index(start_index, end_index, freq=freq, future=False)
+        start_index = int(start_index)
+        end_index = int(end_index)
+        if datetime_query and end_index < start_index:
+            return pd.Series(dtype="float32", name=str(self))
+
         resample_data = np.empty(end_index - start_index + 1, dtype="float32")
 
         for cur_index in range(start_index, end_index + 1):
-            cur_time = _calendar[cur_index]
+            cur_time = calendar[cur_index]
             # To load expression accurately, more historical data are required
             start_ws, end_ws = self.feature.get_extended_window_size()
             if end_ws > 0:
@@ -43,9 +78,11 @@ class P(ElemOperator):
                 get_module_logger("base").warning(f"WARN: period data not found for {str(self)}")
                 return pd.Series(dtype="float32", name=str(self))
 
-        resample_series = pd.Series(
-            resample_data, index=pd.RangeIndex(start_index, end_index + 1), dtype="float32", name=str(self)
-        )
+        if datetime_query:
+            index = pd.Index(calendar[start_index : end_index + 1])
+        else:
+            index = pd.RangeIndex(start_index, end_index + 1)
+        resample_series = pd.Series(resample_data, index=index, dtype="float32", name=str(self))
         return resample_series
 
     def _load_feature(self, instrument, start_index, end_index, cur_time):
