@@ -21,6 +21,12 @@ class StructuredCovEstimator(RiskModel):
     Therefore, the structured covariance can be estimated by
         cov(X.T) = F @ cov(B.T) @ F.T + diag(var(U))
 
+    Both moments use the unbiased sample denominator `N - 1`, the same
+    convention as `numpy.cov`. For a PCA fit the factors are orthogonal to
+    the residuals, so the diagonal of this estimate equals the sample variances
+    of `X`. `cov(B.T)` is always `(num_factors, num_factors)`. A single factor
+    is included: `numpy.cov` would otherwise return a scalar.
+
     In finance domain, there are mainly three methods to design `F` [1][2]:
         - Statistical Risk Model (SRM): latent factor models major components
         - Fundamental Risk Model (FRM): human designed factors
@@ -83,8 +89,11 @@ class StructuredCovEstimator(RiskModel):
         F = model.components_.T  # variables x factors
         B = model.transform(X)  # observations x factors
         U = X - B @ F.T
-        cov_b = np.cov(B.T)  # factors x factors
-        var_u = np.var(U, axis=0)  # diagonal
+        # One factor is a 1-d sample, and np.cov then returns a scalar.
+        cov_b = np.atleast_2d(np.cov(B.T))  # factors x factors, sample ddof
+        # np.var defaults to dividing by N. That is smaller than np.cov's N - 1
+        # denominator, so specific variance would not match the factor block.
+        var_u = np.var(U, axis=0, ddof=1)  # diagonal
 
         if return_decomposed_components:
             return F, cov_b, var_u

@@ -33,6 +33,7 @@ We use China stock market data for our example.
    ```
 
 Here we use a **Statistical Risk Model** implemented in `qlib.model.riskmodel`.
+`StructuredCovEstimator` writes factor exposures, a factor covariance, and specific risk (the square root of residual variance). The factor covariance and the residual variance both use the sample denominator `N - 1`, and a one-factor model still writes a 1×1 factor covariance.
 However users are strongly recommended to use other risk models for better quality:
 * **Fundamental Risk Model** like MSCI BARRA
 * [Deep Risk Model](https://arxiv.org/abs/2107.05201)

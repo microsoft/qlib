@@ -106,6 +106,42 @@ class TestStructuredCovEstimator(unittest.TestCase):
 
         self.assertTrue(if_identical)
 
+    def test_single_factor_covariance_is_a_matrix(self):
+        # np.cov of one factor is a scalar. The estimator must still return a
+        # square covariance and a 1x1 factor-covariance block.
+        rng = np.random.RandomState(0)
+        n_obs, n_var = 40, 6
+        X = rng.normal(size=(n_obs, n_var))
+
+        for factor_model in ("pca", "fa"):
+            estimator = StructuredCovEstimator(
+                factor_model=factor_model,
+                num_factors=1,
+                scale_return=False,
+                assume_centered=True,
+            )
+            cov = estimator.predict(X, is_price=False)
+            self.assertEqual(cov.shape, (n_var, n_var))
+            self.assertTrue(np.allclose(cov, cov.T))
+
+            F, cov_b, var_u = estimator.predict(X, is_price=False, return_decomposed_components=True)
+            self.assertEqual(F.shape, (n_var, 1))
+            self.assertEqual(cov_b.shape, (1, 1))
+            self.assertEqual(var_u.shape, (n_var,))
+
+    def test_pca_diagonal_matches_sample_variance(self):
+        # PCA scores are orthogonal to the residuals, so the structured
+        # covariance must reproduce sample variances on its diagonal.
+        rng = np.random.RandomState(1)
+        n_obs, n_var, n_factor = 25, 5, 2
+        X = rng.normal(size=(n_obs, n_var))
+        estimator = StructuredCovEstimator(num_factors=n_factor, scale_return=False, assume_centered=False)
+
+        cov = estimator.predict(X, is_price=False)
+        sample = np.cov(X.T)
+
+        np.testing.assert_allclose(np.diag(cov), np.diag(sample), atol=1e-8)
+
 
 if __name__ == "__main__":
     unittest.main()
