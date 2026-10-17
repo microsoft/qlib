@@ -262,7 +262,11 @@ class TimeAdjuster:
         Raises
         ------
         KeyError:
-            shift will raise error if the index(both start and end) is out of self.cal
+            Raised when the shifted start index is greater than ``len(self.cals)``.
+            The index equal to ``len(self.cals)`` is the first position after
+            the last trading day. ``get`` returns ``None`` for it, and for an
+            end index past the calendar. Callers decide whether that ``None``
+            ends generation.
         """
         if isinstance(seg, tuple):
             start_idx, end_idx = self.align_idx(seg[0], tp_type="start"), self.align_idx(seg[1], tp_type="end")

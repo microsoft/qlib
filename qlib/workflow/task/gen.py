@@ -215,7 +215,10 @@ class RollingGen(TaskGen):
                         rtype = self.ta.SHIFT_SD
                     # shift the segments data
                     segments[k] = self.ta.shift(seg, step=self.step, rtype=rtype)
-                if segments[self.test_key][0] > test_end:
+                # ``None`` means the window has no trading-day start. Comparing
+                # it with ``test_end`` raises TypeError (#1660).
+                test_start = segments[self.test_key][0]
+                if test_start is None or test_start > test_end:
                     break
             except KeyError:
                 # We reach the end of tasks
