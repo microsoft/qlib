@@ -21,11 +21,13 @@ class StructuredCovEstimator(RiskModel):
     Therefore, the structured covariance can be estimated by
         cov(X.T) = F @ cov(B.T) @ F.T + diag(var(U))
 
-    Both moments use the unbiased sample denominator `N - 1`, the same
-    convention as `numpy.cov`. For a PCA fit the factors are orthogonal to
-    the residuals, so the diagonal of this estimate equals the sample variances
-    of `X`. `cov(B.T)` is always `(num_factors, num_factors)`. A single factor
-    is included: `numpy.cov` would otherwise return a scalar.
+    Both moments divide by `N - 1`, the same convention as `numpy.cov`.
+    That common denominator is not an unbiased specific variance: a k-factor
+    fit has already used k degrees of freedom. For a PCA fit the factors are
+    orthogonal to the residuals, so the diagonal of this estimate equals the
+    sample variances of `X`. Factor analysis does not have that identity.
+    `cov(B.T)` is always `(num_factors, num_factors)`. A single factor is
+    included: `numpy.cov` would otherwise return a scalar.
 
     In finance domain, there are mainly three methods to design `F` [1][2]:
         - Statistical Risk Model (SRM): latent factor models major components

@@ -33,7 +33,7 @@ We use China stock market data for our example.
    ```
 
 Here we use a **Statistical Risk Model** implemented in `qlib.model.riskmodel`.
-`StructuredCovEstimator` writes factor exposures, a factor covariance, and specific risk (the square root of residual variance). The factor covariance and the residual variance both use the sample denominator `N - 1`, and a one-factor model still writes a 1×1 factor covariance.
+`StructuredCovEstimator` writes factor exposures, a factor covariance, and specific risk (the square root of residual variance). The factor covariance and the residual variance both divide by `N - 1`, the same convention as `numpy.cov`, and a one-factor model still writes a 1×1 factor covariance. For a PCA fit the diagonal matches the sample variances of the window. Factor analysis does not have that identity.
 However users are strongly recommended to use other risk models for better quality:
 * **Fundamental Risk Model** like MSCI BARRA
 * [Deep Risk Model](https://arxiv.org/abs/2107.05201)
