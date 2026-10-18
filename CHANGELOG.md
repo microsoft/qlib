@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Factor group returns keep the remainder of a cross-section in the last score group. `Group5` and `long-short` change on dates where the number of names is not divisible by the group count. The last group is larger than the others on those dates.
 - **BREAKING:** New source builds restrict recorder artifact loading by default.
   Reloading executable artifacts requires verified source/storage and explicit
   `trusted=True` (CLI: `--trusted=True`). Supported data-only reads and fresh

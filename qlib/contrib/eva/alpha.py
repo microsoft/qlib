@@ -113,6 +113,67 @@ def calc_long_short_return(
     return (r_long - r_short) / 2, r_avg
 
 
+def calc_group_returns(pred_label: pd.DataFrame, n_groups: int = 5, date_col: str = "datetime") -> pd.DataFrame:
+    """Mean forward return of score groups.
+
+    ``pred_label`` has columns ``score`` and ``label`` and a MultiIndex that
+    includes ``date_col``. Inside each date, names are ordered by ``score``
+    from high to low. Each group holds ``len(day) // n_groups`` names, and the
+    last group also keeps the remainder. ``Group1`` is the highest-score
+    bucket. ``long-short`` is then a mean of that first bucket against a
+    slightly larger last bucket whenever the cross-section does not divide
+    evenly. A day with fewer names than ``n_groups`` has no full bucket, so
+    every group is NaN.
+
+    Names with a missing score are left out of the groups. ``long-average``
+    still subtracts the mean label of every name on that date.
+
+    Parameters
+    ----------
+    pred_label : pd.DataFrame
+        Columns ``score`` and ``label``.
+    n_groups : int
+        Number of score buckets. Must be at least 2.
+    date_col : str
+        Datetime level name.
+
+    Returns
+    -------
+    pd.DataFrame
+        Columns ``Group1`` ... ``Group{n_groups}``, ``long-short``, and
+        ``long-average``, indexed by date.
+    """
+    if n_groups < 2:
+        raise ValueError(f"n_groups must be at least 2, got {n_groups}")
+    if "score" not in pred_label.columns or "label" not in pred_label.columns:
+        raise KeyError("pred_label must contain 'score' and 'label' columns")
+
+    ranked = pred_label.dropna(subset=["score"]).sort_values("score", ascending=False)
+
+    def group_means(day: pd.DataFrame) -> pd.Series:
+        size = len(day) // n_groups
+        means = {}
+        for i in range(n_groups):
+            name = f"Group{i + 1}"
+            if size == 0:
+                means[name] = float("nan")
+                continue
+            start = size * i
+            # The bottom bucket keeps names that do not fill another full group.
+            end = len(day) if i == n_groups - 1 else size * (i + 1)
+            means[name] = day["label"].iloc[start:end].mean()
+        return pd.Series(means)
+
+    grouped = ranked.groupby(level=date_col, group_keys=False).apply(group_means)
+    if isinstance(grouped, pd.Series):
+        grouped = grouped.unstack()
+    last = f"Group{n_groups}"
+    grouped["long-short"] = grouped["Group1"] - grouped[last]
+    baseline = pred_label.groupby(level=date_col, group_keys=False)["label"].mean()
+    grouped["long-average"] = grouped["Group1"] - baseline
+    return grouped
+
+
 def pred_autocorr(pred: pd.Series, lag=1, inst_col="instrument", date_col="datetime"):
     """pred_autocorr.
 

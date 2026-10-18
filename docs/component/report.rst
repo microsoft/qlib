@@ -296,25 +296,13 @@ Graphical Results
 .. note::
 
     - cumulative return graphics
-        - `Group1`:
-            The `Cumulative Return` series of stocks group with (`ranking ratio` of label <= 20%)
-        - `Group2`:
-            The `Cumulative Return` series of stocks group with (20% < `ranking ratio` of label <= 40%)
-        - `Group3`:
-            The `Cumulative Return` series of stocks group with (40% < `ranking ratio` of label <= 60%)
-        - `Group4`:
-            The `Cumulative Return` series of stocks group with (60% < `ranking ratio` of label <= 80%)
-        - `Group5`:
-            The `Cumulative Return` series of stocks group with (80% < `ranking ratio` of label)
+        - `Group1` .. `Group5`:
+            Buckets of ``len(day) // 5`` names after sorting by predicted ``score``, high to low.
+            `Group1` is the highest score. `Group5` is the lowest score and also keeps the remainder, so a day that does not divide evenly compares a smaller long bucket with a larger short bucket.
         - `long-short`:
-            The Difference series between `Cumulative Return` of `Group1` and of `Group5`
-        - `long-average`
-            The Difference series between `Cumulative Return` of `Group1` and average `Cumulative Return` for all stocks.
-
-        The `ranking ratio` can be formulated as follows.
-            .. math::
-
-                ranking\ ratio = \frac{Ascending\ Ranking\ of\ label}{Number\ of\ Stocks\ in\ the\ Portfolio}
+            The difference between the mean return of `Group1` and of `Group5`.
+        - `long-average`:
+            The difference between the mean return of `Group1` and the average return of all names that day.
 
 .. image:: ../_static/img/analysis/analysis_model_cumulative_return.png
     :align: center
