@@ -114,14 +114,16 @@ def calc_long_short_return(
 
 
 def calc_group_returns(pred_label: pd.DataFrame, n_groups: int = 5, date_col: str = "datetime") -> pd.DataFrame:
-    """Mean forward return of equal-count score groups.
+    """Mean forward return of score groups.
 
     ``pred_label`` has columns ``score`` and ``label`` and a MultiIndex that
     includes ``date_col``. Inside each date, names are ordered by ``score``
-    from high to low. ``Group1`` is the highest-score bucket. When the number
-    of names is not divisible by ``n_groups``, the last group keeps the
-    remainder, so the short leg is the bottom of the ranking rather than the
-    last complete bucket.
+    from high to low. Each group holds ``len(day) // n_groups`` names, and the
+    last group also keeps the remainder. ``Group1`` is the highest-score
+    bucket. ``long-short`` is then a mean of that first bucket against a
+    slightly larger last bucket whenever the cross-section does not divide
+    evenly. A day with fewer names than ``n_groups`` has no full bucket, so
+    every group is NaN.
 
     Names with a missing score are left out of the groups. ``long-average``
     still subtracts the mean label of every name on that date.

@@ -32,8 +32,7 @@ def _group_return(pred_label: pd.DataFrame = None, reverse: bool = False, N: int
     if reverse:
         pred_label["score"] *= -1
 
-    # Group1 is the highest score. The last group keeps the remainder of the
-    # ranking so the lowest scores are not dropped from the short leg.
+    # Each bucket has len(day) // N names. The last bucket also keeps the remainder.
     t_df = calc_group_returns(pred_label, n_groups=N)
     t_df.index = pd.to_datetime(t_df.index)
 

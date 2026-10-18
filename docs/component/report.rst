@@ -297,8 +297,8 @@ Graphical Results
 
     - cumulative return graphics
         - `Group1` .. `Group5`:
-            Equal-count buckets of the cross-section after sorting by predicted ``score``, high to low.
-            `Group1` is the highest score. `Group5` is the lowest score and keeps any names that do not fill another complete bucket, so the short leg is not truncated.
+            Buckets of ``len(day) // 5`` names after sorting by predicted ``score``, high to low.
+            `Group1` is the highest score. `Group5` is the lowest score and also keeps the remainder, so a day that does not divide evenly compares a smaller long bucket with a larger short bucket.
         - `long-short`:
             The difference between the mean return of `Group1` and of `Group5`.
         - `long-average`:

@@ -47,6 +47,12 @@ class TestFactorGroupReturn(unittest.TestCase):
         self.assertAlmostEqual(day["Group2"], 1)
         self.assertAlmostEqual(day["long-average"], 1 - np.mean(labels))
 
+    def test_fewer_names_than_groups_is_all_nan(self):
+        out = calc_group_returns(_panel([3, 1, 2], [3, 1, 2]), n_groups=5)
+        day = out.loc[pd.Timestamp("2020-01-02")]
+        for column in ("Group1", "Group2", "Group3", "Group4", "Group5", "long-short", "long-average"):
+            self.assertTrue(np.isnan(day[column]), column)
+
     def test_n_groups_below_two_is_rejected(self):
         with self.assertRaises(ValueError):
             calc_group_returns(_panel([1, 2], [1, 2]), n_groups=1)
