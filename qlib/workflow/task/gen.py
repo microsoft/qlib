@@ -221,6 +221,12 @@ class RollingGen(TaskGen):
             kwargs["fit_start_time"] = train_start
         if "fit_end_time" in kwargs and train_end is not None:
             kwargs["fit_end_time"] = train_end
+        # Dates on the handler dict itself are not what Alpha158 reads.
+        if any(key in handler and key not in kwargs for key in ("fit_start_time", "fit_end_time")):
+            self._warn_fit_window_once(
+                task,
+                "fit dates are set on the handler dict instead of handler kwargs",
+            )
 
     def _warn_fit_window_once(self, task, reason):
         """Warn once when fit dates are present but this fold cannot move them."""

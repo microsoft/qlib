@@ -113,6 +113,21 @@ class TestWalkForwardFitWindow(unittest.TestCase):
         self.assertEqual(len(captured.output), 1)
         self.assertIn("fit_start_time", captured.output[0])
 
+    def test_top_level_fit_keys_warn_once(self):
+        calendar = _calendar()
+        rg = _rolling(calendar)
+        task = _task(calendar)
+        handler = task["dataset"]["kwargs"]["handler"]
+        handler["fit_start_time"] = handler["kwargs"].pop("fit_start_time")
+        handler["fit_end_time"] = handler["kwargs"].pop("fit_end_time")
+        with self.assertLogs("qlib.RollingGen", level="WARNING") as captured:
+            rg._align_fit_window(task)
+            rg._align_fit_window(task)
+        self.assertEqual(len(captured.output), 1)
+        self.assertIn("handler kwargs", captured.output[0])
+        self.assertEqual(handler["fit_end_time"], "2020-08-01")
+        self.assertNotIn("fit_end_time", handler["kwargs"])
+
     def test_align_fit_window_can_be_disabled(self):
         calendar = _calendar()
         rg = _rolling(calendar)
