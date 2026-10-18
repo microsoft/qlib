@@ -86,6 +86,33 @@ class TestWalkForwardFitWindow(unittest.TestCase):
         self.assertLess(pd.Timestamp(handler["fit_end_time"]), pd.Timestamp(segments["test"][0]))
         self.assertEqual(segments["train"], (calendar[2], calendar[5]))
 
+    def test_expanding_window_moves_only_the_fit_end(self):
+        calendar = _calendar()
+        rg = _rolling(calendar)
+        rg.rtype = RollingGen.ROLL_EX
+        task = _task(calendar)
+        rg._update_task_segs(task, task["dataset"]["kwargs"]["segments"])
+        following = list(rg.gen_following_tasks(task, calendar[9]))
+
+        self.assertEqual(len(following), 1)
+        handler = following[0]["dataset"]["kwargs"]["handler"]["kwargs"]
+        segments = following[0]["dataset"]["kwargs"]["segments"]
+        self.assertEqual(segments["train"], (calendar[0], calendar[5]))
+        self.assertEqual(handler["fit_start_time"], calendar[0])
+        self.assertEqual(handler["fit_end_time"], calendar[5])
+        self.assertLess(pd.Timestamp(handler["fit_end_time"]), pd.Timestamp(segments["test"][0]))
+
+    def test_unreadable_fit_keys_warn_once(self):
+        calendar = _calendar()
+        rg = _rolling(calendar)
+        task = _task(calendar)
+        del task["dataset"]["kwargs"]["segments"]["train"]
+        with self.assertLogs("qlib.RollingGen", level="WARNING") as captured:
+            rg._align_fit_window(task)
+            rg._align_fit_window(task)
+        self.assertEqual(len(captured.output), 1)
+        self.assertIn("fit_start_time", captured.output[0])
+
     def test_align_fit_window_can_be_disabled(self):
         calendar = _calendar()
         rg = _rolling(calendar)

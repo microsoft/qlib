@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- `RollingGen(align_fit_window=True)` is the default. Every fold, including the first, copies `fit_start_time` and `fit_end_time` from that fold's train segment. Walk-forward results can change when the template fit window was not the train segment. Pass `align_fit_window=False` to keep the template dates. `TimeAdjuster.truncate` also accepts the first trading day as an embargo boundary.
 - **BREAKING:** New source builds restrict recorder artifact loading by default.
   Reloading executable artifacts requires verified source/storage and explicit
   `trusted=True` (CLI: `--trusted=True`). Supported data-only reads and fresh

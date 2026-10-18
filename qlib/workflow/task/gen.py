@@ -9,8 +9,11 @@ import copy
 import pandas as pd
 from typing import Dict, List, Union, Callable
 
+from qlib.log import get_module_logger
 from qlib.utils import transform_end_date
 from .utils import TimeAdjuster
+
+logger = get_module_logger("RollingGen")
 
 
 def task_generator(tasks, generators) -> list:
@@ -184,6 +187,7 @@ class RollingGen(TaskGen):
         self.trunc_days = trunc_days
         self.task_copy_func = task_copy_func
         self.align_fit_window = align_fit_window
+        self._fit_window_warned = False
 
     def _update_task_segs(self, task, segs):
         # update segments of this task
@@ -203,18 +207,45 @@ class RollingGen(TaskGen):
         """
         try:
             handler = task["dataset"]["kwargs"]["handler"]
-            if not isinstance(handler, dict):
-                return
-            kwargs = handler.get("kwargs")
-            if not isinstance(kwargs, dict):
-                return
             train_start, train_end = task["dataset"]["kwargs"]["segments"][self.train_key]
         except (KeyError, TypeError):
+            self._warn_fit_window_once(task, "the task has no handler or train segment")
+            return
+        if not isinstance(handler, dict):
+            return
+        kwargs = handler.get("kwargs")
+        if not isinstance(kwargs, dict):
+            self._warn_fit_window_once(task, "handler kwargs are not a dict")
             return
         if "fit_start_time" in kwargs and train_start is not None:
             kwargs["fit_start_time"] = train_start
         if "fit_end_time" in kwargs and train_end is not None:
             kwargs["fit_end_time"] = train_end
+
+    def _warn_fit_window_once(self, task, reason):
+        """Warn once when fit dates are present but this fold cannot move them."""
+        if getattr(self, "_fit_window_warned", False) or not self._task_has_fit_keys(task):
+            return
+        self._fit_window_warned = True
+        logger.warning(
+            "align_fit_window left fit_start_time and fit_end_time unchanged because %s. "
+            "Processor fitting may still see data outside this fold's train segment.",
+            reason,
+        )
+
+    @staticmethod
+    def _task_has_fit_keys(task) -> bool:
+        try:
+            handler = task["dataset"]["kwargs"]["handler"]
+        except (KeyError, TypeError):
+            return False
+        if not isinstance(handler, dict):
+            return False
+        kwargs = handler.get("kwargs")
+        containers = [handler]
+        if isinstance(kwargs, dict):
+            containers.append(kwargs)
+        return any("fit_start_time" in item or "fit_end_time" in item for item in containers)
 
     def gen_following_tasks(self, task: dict, test_end: pd.Timestamp) -> List[dict]:
         """
