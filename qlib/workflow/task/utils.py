@@ -226,7 +226,13 @@ class TimeAdjuster:
             new_seg = []
             for time_point in segment:
                 tp_idx = min(self.align_idx(time_point), test_idx - days)
-                assert tp_idx > 0
+                # Index 0 is the first trading day and is a valid embargo boundary.
+                # A negative index would wrap around the calendar in ``get``.
+                if tp_idx is None or tp_idx < 0:
+                    raise ValueError(
+                        f"trunc_days={days} places {time_point} before the first trading day "
+                        f"(test start is calendar index {test_idx})."
+                    )
                 new_seg.append(self.get(tp_idx))
             return tuple(new_seg)
         else:

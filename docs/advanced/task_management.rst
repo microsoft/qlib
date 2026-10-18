@@ -36,6 +36,8 @@ Here is the base class of ``TaskGen``:
 ``Qlib`` provides a class `RollingGen <https://github.com/microsoft/qlib/tree/main/qlib/workflow/task/gen.py>`_ to generate a list of ``task`` of the dataset in different date segments.
 This class allows users to verify the effect of data from different periods on the model in one experiment. More information is `here <../reference/api.html#TaskGen>`__.
 
+Each generated task moves ``fit_start_time`` and ``fit_end_time`` onto that task's training segment when the handler defines them. Processor fitting then stays inside the sample the model trains on, including later walk-forward folds. ``trunc_days`` still pulls the training and validation ends back from the test start so labels that look across the test boundary are not used. The first trading day is a valid place for that cut. Set ``align_fit_window=False`` to keep the template fit window on every fold.
+
 Task Storing
 ============
 To achieve higher efficiency and the possibility of cluster operation, ``Task Manager`` will store all tasks in `MongoDB <https://www.mongodb.com/>`_.

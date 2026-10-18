@@ -152,6 +152,7 @@ class RollingGen(TaskGen):
         train_key="train",
         trunc_days: int = None,
         task_copy_func: Callable = copy.deepcopy,
+        align_fit_window: bool = True,
     ):
         """
         Generate tasks for rolling
@@ -169,6 +170,9 @@ class RollingGen(TaskGen):
             trunc some data to avoid future information leakage
         task_copy_func: Callable
             the function to copy entire task. This is very useful when user want to share something between tasks
+        align_fit_window: bool
+            move handler ``fit_start_time`` and ``fit_end_time`` onto this task's train segment.
+            A rolling fold then cannot fit its processors on the test segment.
         """
         self.step = step
         self.rtype = rtype
@@ -179,12 +183,38 @@ class RollingGen(TaskGen):
         self.train_key = train_key
         self.trunc_days = trunc_days
         self.task_copy_func = task_copy_func
+        self.align_fit_window = align_fit_window
 
     def _update_task_segs(self, task, segs):
         # update segments of this task
         task["dataset"]["kwargs"]["segments"] = copy.deepcopy(segs)
+        if self.align_fit_window:
+            self._align_fit_window(task)
         if self.ds_extra_mod_func is not None:
             self.ds_extra_mod_func(task, self)
+
+    def _align_fit_window(self, task):
+        """Fit normalization on this task's train segment only.
+
+        Rolling used to leave ``fit_start_time`` and ``fit_end_time`` on the
+        template window. A later fold then normalized with a sample that is
+        not the one it trains on, and a fit end past the new test start would
+        include data the model is not allowed to see.
+        """
+        try:
+            handler = task["dataset"]["kwargs"]["handler"]
+            if not isinstance(handler, dict):
+                return
+            kwargs = handler.get("kwargs")
+            if not isinstance(kwargs, dict):
+                return
+            train_start, train_end = task["dataset"]["kwargs"]["segments"][self.train_key]
+        except (KeyError, TypeError):
+            return
+        if "fit_start_time" in kwargs and train_start is not None:
+            kwargs["fit_start_time"] = train_start
+        if "fit_end_time" in kwargs and train_end is not None:
+            kwargs["fit_end_time"] = train_end
 
     def gen_following_tasks(self, task: dict, test_end: pd.Timestamp) -> List[dict]:
         """
