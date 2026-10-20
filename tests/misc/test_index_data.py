@@ -6,6 +6,28 @@ import unittest
 
 
 class IndexDataTest(unittest.TestCase):
+    def test_empty_index(self):
+        for values in ([], np.array([], dtype=np.int64), pd.DatetimeIndex([])):
+            with self.subTest(values=values):
+                index = idd.Index(values)
+                self.assertEqual(len(index), 0)
+                self.assertEqual(index.tolist(), [])
+                self.assertEqual(index.idx_list.dtype, np.array(values).dtype)
+                with self.assertRaises(KeyError):
+                    index.index("missing")
+
+    def test_sort_empty_data(self):
+        data = idd.SingleData()
+        data.sort_index()
+        self.assertTrue(data.empty)
+        self.assertTrue(data.index.is_sorted())
+        self.assertEqual(data.to_dict(), {})
+
+    def test_add_empty_data(self):
+        result = idd.SingleData().add(idd.SingleData())
+        self.assertTrue(result.empty)
+        self.assertEqual(result.to_dict(), {})
+
     def test_index_single_data(self):
         # Auto broadcast for scalar
         sd = idd.SingleData(0, index=["foo", "bar"])

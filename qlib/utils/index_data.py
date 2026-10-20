@@ -112,7 +112,11 @@ class Index:
             if not all(isinstance(x, type(idx_list[0])) for x in idx_list):
                 raise TypeError("All elements in idx_list must be of the same type")
             # Check if all elements in idx_list are of the same datetime64 precision
-            if isinstance(idx_list[0], np.datetime64) and not all(x.dtype == idx_list[0].dtype for x in idx_list):
+            if (
+                len(idx_list) > 0
+                and isinstance(idx_list[0], np.datetime64)
+                and not all(x.dtype == idx_list[0].dtype for x in idx_list)
+            ):
                 raise TypeError("All elements in idx_list must be of the same datetime64 precision")
             self.idx_list = np.array(idx_list)
             # NOTE: only the first appearance is indexed
