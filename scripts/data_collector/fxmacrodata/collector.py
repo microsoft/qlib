@@ -192,17 +192,32 @@ class FXMacroDataCollector(BaseCollector):
         api_key: Optional[str] = None,
         timeout: float = 30,
     ):
+        api_key = (api_key or "").strip()
+        if any(ch.isspace() or not ch.isprintable() for ch in api_key):
+            raise ValueError("FXMacroData API key contains whitespace or control characters")
         headers = {}
         if api_key:
             headers["X-API-Key"] = api_key
-        response = requests.get(
-            f"{base_url.rstrip('/')}/{path.lstrip('/')}",
-            params={k: v for k, v in (params or {}).items() if v is not None},
-            headers=headers,
-            timeout=timeout,
-        )
+        try:
+            response = requests.get(
+                f"{base_url.rstrip('/')}/{path.lstrip('/')}",
+                params={k: v for k, v in (params or {}).items() if v is not None},
+                headers=headers,
+                timeout=timeout,
+                allow_redirects=False,
+            )
+        except requests.RequestException:
+            raise requests.RequestException("FXMacroData request failed") from None
         cls._raise_for_status(response, path)
-        return response.json()
+        try:
+            payload = response.json()
+        except ValueError:
+            raise ValueError("FXMacroData returned invalid JSON") from None
+        if not isinstance(payload, (dict, list)) or (
+            isinstance(payload, dict) and ("detail" in payload or "error" in payload)
+        ):
+            raise ValueError("FXMacroData returned an error or invalid response")
+        return payload
 
     @classmethod
     def _request_all_rows(
@@ -235,13 +250,12 @@ class FXMacroDataCollector(BaseCollector):
 
     @staticmethod
     def _raise_for_status(response, path: str):
+        if 300 <= response.status_code < 400:
+            raise requests.HTTPError("FXMacroData redirect rejected", response=response)
         try:
             response.raise_for_status()
         except requests.HTTPError as exc:
-            detail = FXMacroDataCollector._error_detail(response)
             message = f"FXMacroData request failed for {path} with HTTP {response.status_code}"
-            if detail:
-                message = f"{message}: {detail}"
             if response.status_code in {401, 403}:
                 message = (
                     f"{message}. Set FXMACRODATA_API_KEY or FXMD_API_KEY for authenticated access. "
@@ -253,7 +267,7 @@ class FXMacroDataCollector(BaseCollector):
                     f"{message}. Check available currencies and indicators with download_catalogue "
                     f"or {DOCUMENTATION_URL}."
                 )
-            raise requests.HTTPError(message, response=response) from exc
+            raise requests.HTTPError(message, response=response) from None
 
     @staticmethod
     def _error_detail(response) -> str:

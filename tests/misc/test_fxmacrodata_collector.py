@@ -2,7 +2,7 @@ import importlib.util
 import sys
 import types
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pandas as pd
 import pytest
@@ -164,9 +164,59 @@ def test_authenticated_error_points_users_to_subscription():
         )
 
     message = str(excinfo.value)
-    assert "Professional API key required" in message
+    assert "HTTP 403" in message
     assert "Set FXMACRODATA_API_KEY or FXMD_API_KEY" in message
     assert "https://fxmacrodata.com/subscribe" in message
+
+
+def test_keyed_requests_cannot_follow_redirects():
+    module = load_fxmacrodata_collector()
+    response = FXMacroDataPageResponse({"data": []})
+    response.status_code = 302
+    response.json = Mock()
+    with patch.object(module.requests, "get", return_value=response) as get:
+        with pytest.raises(requests.HTTPError):
+            module.FXMacroDataCollector._request_json("https://example.invalid", "calendar/usd", api_key="fixture-key")
+    assert get.call_args.kwargs["allow_redirects"] is False
+    response.json.assert_not_called()
+
+
+@pytest.mark.parametrize("payload", [{"detail": "fixture-private-value"}, {"error": "fixture-private-value"}, None, "text"])
+def test_request_error_payload_is_not_success(payload):
+    module = load_fxmacrodata_collector()
+    with patch.object(module.requests, "get", return_value=FXMacroDataPageResponse(payload)):
+        with pytest.raises(ValueError) as raised:
+            module.FXMacroDataCollector._request_json("https://example.invalid", "calendar/usd")
+    assert "fixture-private-value" not in str(raised.value)
+
+
+def test_bad_key_is_rejected_before_transport():
+    module = load_fxmacrodata_collector()
+    with patch.object(module.requests, "get") as get:
+        with pytest.raises(ValueError) as raised:
+            module.FXMacroDataCollector._request_json("https://example.invalid", "calendar/usd", api_key="fixture-key\r\nX-Other: value")
+    assert "fixture-key" not in str(raised.value)
+    get.assert_not_called()
+
+
+def test_private_http_details_are_not_echoed_or_chained():
+    import traceback
+    module = load_fxmacrodata_collector()
+    response = FXMacroDataErrorResponse()
+    response.json = lambda: {"detail": "fixture-private-value"}
+    with pytest.raises(requests.HTTPError) as raised:
+        module.FXMacroDataCollector._raise_for_status(response, "calendar/usd")
+    assert "fixture-private-value" not in "".join(traceback.format_exception(raised.value))
+    assert "HTTP 403" in str(raised.value)
+
+
+def test_private_transport_details_are_not_chained():
+    import traceback
+    module = load_fxmacrodata_collector()
+    with patch.object(module.requests, "get", side_effect=requests.ConnectionError("fixture-private-value")):
+        with pytest.raises(requests.RequestException) as raised:
+            module.FXMacroDataCollector._request_json("https://example.invalid", "calendar/usd")
+    assert "fixture-private-value" not in "".join(traceback.format_exception(raised.value))
 
 
 class FXMacroDataPageResponse:
@@ -196,7 +246,7 @@ def test_request_all_rows_follows_pagination():
     }
     calls = []
 
-    def fake_get(url, params, headers, timeout):
+    def fake_get(url, params, headers, timeout, allow_redirects=False):
         calls.append(params)
         return FXMacroDataPageResponse(pages[params["offset"]])
 
