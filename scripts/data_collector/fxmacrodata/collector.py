@@ -254,7 +254,7 @@ class FXMacroDataCollector(BaseCollector):
             raise requests.HTTPError("FXMacroData redirect rejected", response=response)
         try:
             response.raise_for_status()
-        except requests.HTTPError as exc:
+        except requests.HTTPError:
             message = f"FXMacroData request failed for {path} with HTTP {response.status_code}"
             if response.status_code in {401, 403}:
                 message = (
