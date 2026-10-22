@@ -52,5 +52,24 @@ def test_soft_topk_logic():
     assert abs(res_c["D"] - 0.475) < 1e-8
 
 
+def test_soft_topk_target_weights_follow_get_risk_degree_override():
+    scores = pd.Series({"C": 0.9, "D": 0.8, "A": 0.1, "B": 0.1})
+    current_pos = MockPosition({})
+
+    class HalfRisk(SoftTopkStrategy):
+        def get_risk_degree(self, trade_step=None):
+            return 0.5
+
+    strat = HalfRisk.__new__(HalfRisk)
+    strat.topk = 2
+    strat.risk_degree = 0.95
+    strat.trade_impact_limit = 1.0
+
+    res = strat.generate_target_weight_position(scores, current_pos, None, None)
+
+    assert abs(res["C"] - 0.25) < 1e-8
+    assert abs(res["D"] - 0.25) < 1e-8
+
+
 if __name__ == "__main__":
     pytest.main([__file__])
