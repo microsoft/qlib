@@ -56,7 +56,16 @@ class SoftTopkStrategy(WeightStrategyBase):
         def apply_impact_limit(weight):
             return weight if self.trade_impact_limit is None else min(weight, self.trade_impact_limit)
 
-        ideal_per_stock = self.risk_degree / self.topk
+        # Use the getter so a subclass can vary exposure. Reading the attribute
+        # here made an override of get_risk_degree() unreachable, while
+        # WeightStrategyBase already passes that override to the order generator.
+        # Pass the same trade step the order generator receives, otherwise an
+        # override that depends on the step sees None here and a real index there.
+        trade_step = None
+        if getattr(self, "level_infra", None) is not None and self.trade_calendar is not None:
+            trade_step = self.trade_calendar.get_trade_step()
+        risk_degree = self.get_risk_degree(trade_step)
+        ideal_per_stock = risk_degree / self.topk
         ideal_list = score.sort_values(ascending=False).iloc[: self.topk].index.tolist()
 
         cur_weights = current.get_stock_weight_dict(only_stock=True)
@@ -90,7 +99,7 @@ class SoftTopkStrategy(WeightStrategyBase):
 
         # Phase 2: Budget Calculation
         # Budget = Cash from sells + Available space from target risk degree
-        total_budget = released_cash + (self.risk_degree - initial_total_weight)
+        total_budget = released_cash + (risk_degree - initial_total_weight)
 
         # Phase 3: Proportional Buy Allocation
         if total_budget > 1e-8:
