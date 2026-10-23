@@ -261,4 +261,4 @@ class Transformer(nn.Module):
         # [T, N, F] --> [N, T*F]
         output = self.decoder_layer(output.transpose(1, 0)[:, -1, :])  # [512, 1]
 
-        return output.squeeze()
+        return output.squeeze(-1)
