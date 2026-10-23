@@ -71,5 +71,34 @@ def test_soft_topk_target_weights_follow_get_risk_degree_override():
     assert abs(res["D"] - 0.25) < 1e-8
 
 
+def test_soft_topk_passes_trade_step_into_get_risk_degree():
+    scores = pd.Series({"C": 0.9, "D": 0.8, "A": 0.1, "B": 0.1})
+    current_pos = MockPosition({})
+    seen = []
+
+    class StepRisk(SoftTopkStrategy):
+        def get_risk_degree(self, trade_step=None):
+            seen.append(trade_step)
+            if trade_step == 0:
+                return 0.5
+            return 0.9
+
+    class StepCalendar:
+        def get_trade_step(self):
+            return 3
+
+    strat = StepRisk.__new__(StepRisk)
+    strat.topk = 2
+    strat.risk_degree = 0.95
+    strat.trade_impact_limit = 1.0
+    strat.level_infra = {"trade_calendar": StepCalendar()}
+
+    res = strat.generate_target_weight_position(scores, current_pos, None, None)
+
+    assert seen == [3]
+    assert abs(res["C"] - 0.45) < 1e-8
+    assert abs(res["D"] - 0.45) < 1e-8
+
+
 if __name__ == "__main__":
     pytest.main([__file__])

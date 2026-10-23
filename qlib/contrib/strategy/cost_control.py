@@ -59,7 +59,12 @@ class SoftTopkStrategy(WeightStrategyBase):
         # Use the getter so a subclass can vary exposure. Reading the attribute
         # here made an override of get_risk_degree() unreachable, while
         # WeightStrategyBase already passes that override to the order generator.
-        risk_degree = self.get_risk_degree()
+        # Pass the same trade step the order generator receives, otherwise an
+        # override that depends on the step sees None here and a real index there.
+        trade_step = None
+        if getattr(self, "level_infra", None) is not None and self.trade_calendar is not None:
+            trade_step = self.trade_calendar.get_trade_step()
+        risk_degree = self.get_risk_degree(trade_step)
         ideal_per_stock = risk_degree / self.topk
         ideal_list = score.sort_values(ascending=False).iloc[: self.topk].index.tolist()
 
