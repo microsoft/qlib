@@ -5,11 +5,13 @@ WORKDIR /qlib
 COPY . .
 
 RUN apt-get update && \
-    apt-get install -y build-essential
+    apt-get install -y build-essential cmake || \
+    (apt-get update && apt-get install -y build-essential cmake) || \
+    (sleep 10 && apt-get update && apt-get install -y build-essential cmake)
 
 RUN conda create --name qlib_env python=3.8 -y
 RUN echo "conda activate qlib_env" >> ~/.bashrc
-ENV PATH /opt/conda/envs/qlib_env/bin:$PATH
+ENV PATH=/opt/conda/envs/qlib_env/bin:$PATH
 
 RUN python -m pip install --upgrade pip
 
@@ -20,12 +22,12 @@ RUN python -m pip install "cloudpickle<3"
 RUN python -m pip install scikit-learn==1.3.2
 
 RUN python -m pip install cython packaging tables matplotlib statsmodels
-RUN python -m pip install pybind11 cvxpy
+RUN python -m pip install pybind11 cvxpy pyarrow
 
 ARG IS_STABLE="yes"
 
 RUN if [ "$IS_STABLE" = "yes" ]; then \
         python -m pip install pyqlib; \
     else \
-        python setup.py install; \
+        python -m pip install .; \
     fi
