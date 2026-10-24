@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Qlib Web 平台 - 编辑模型</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .sidebar-link.active { background-color: #3b82f6; color: white; }
+        /* Style for date range pickers (placeholder) */
+        .date-range-picker { display: flex; gap: 0.5rem; align-items: center; }
+        .date-range-picker input[type="date"] {
+            padding: 0.5rem;
+            border: 1px solid #d1d5db; /* border-gray-300 */
+            border-radius: 0.375rem; /* rounded-md */
+            font-size: 0.875rem; /* text-sm */
+        }
+        /* Style for advanced config textarea */
+        .advanced-config-area { display: none; }
+        .advanced-config-area.visible { display: block; }
+    </style>
+    <link rel="preconnect" href="https://rsms.me/">
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+</head>
+<body class="bg-gray-100">
+    <div class="flex h-screen bg-gray-200">
+        <!-- 侧边栏 -->
+        <div class="w-64 bg-gray-800 text-white flex flex-col fixed h-full">
+            <!-- Logo/品牌 -->
+            <div class="h-16 flex items-center justify-center text-xl font-bold border-b border-gray-700">
+                Qlib 平台
+            </div>
+            <!-- 导航链接 -->
+            <nav class="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
+                <a href="dashboard.html" class="sidebar-link flex items-center px-4 py-2 rounded hover:bg-gray-700">
+                    <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+                    仪表盘
+                </a>
+                <a href="strategies.html" class="sidebar-link flex items-center px-4 py-2 rounded hover:bg-gray-700">
+                     <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17.25v-.092M9.75 12.75v-.092m0-4.5v-.092m6 4.684v-.092m0-4.5v-.092m0-4.5v-.092M5.25 17.25v-.092m0-4.5v-.092m6-4.5v-.092m6 4.684v-.092M5.25 12.75v-.092m0-4.5v-.092m6 4.684v-.092m0-4.5v-.092m6-4.5v-.092M3 12a9 9 0 1118 0 9 9 0 01-18 0z"/> </svg>
+                    我的策略
+                </a>
+                <a href="models.html" class="sidebar-link active flex items-center px-4 py-2 rounded hover:bg-gray-700">
+                    <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17.109c.637-.207 1.32-.325 2.041-.325 3.182 0 5.75 1.962 5.75 4.375 0 .355-.04.7-.118 1.033M15 11.25a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM21 11.25a8.956 8.956 0 01-8.956 8.956 8.956 8.956 0 01-8.956-8.956A8.956 8.956 0 0112.044 2.3a8.956 8.956 0 018.956 8.956z"/>
+                    </svg>
+                    模型管理
+                </a>
+                <a href="data_management.html" class="sidebar-link flex items-center px-4 py-2 rounded hover:bg-gray-700">
+                    <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4M4 7l8 5m0 0l8-5m-8 5v10"/> </svg>
+                    数据管理
+                </a>
+                <a href="live_trading.html" class="sidebar-link flex items-center px-4 py-2 rounded hover:bg-gray-700">
+                     <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/> </svg>
+                    实盘交易 (IB)
+                </a>
+            </nav>
+             <!-- 用户区/登出 -->
+             <div class="border-t border-gray-700 p-4">
+                  <a href="settings.html" class="sidebar-link flex items-center px-4 py-2 rounded hover:bg-gray-700">
+                     <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/> </svg>
+                     设置
+                 </a>
+                 <a href="login.html" class="sidebar-link flex items-center px-4 py-2 mt-2 text-red-400 rounded hover:bg-gray-700">
+                      <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/> </svg>
+                     登出
+                 </a>
+             </div>
+        </div>
+
+        <!-- 主内容 -->
+        <div class="flex-1 flex flex-col overflow-hidden ml-64">
+            <!-- 头部 -->
+            <header class="bg-white shadow p-4">
+                <h1 class="text-xl font-semibold text-gray-800">编辑模型</h1>
+            </header>
+
+            <!-- 内容区域 -->
+            <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
+                <div class="container mx-auto">
+                    <form action="#" method="POST">
+                        <!-- Add hidden input for model ID if needed for submission -->
+                        <!-- <input type="hidden" name="model_id" value="{{ model.id }}"> -->
+
+                        <!-- 基本信息 -->
+                        <div class="bg-white p-6 rounded-lg shadow mb-6">
+                            <h2 class="text-lg font-semibold text-gray-700 mb-4 border-b pb-2 flex justify-between items-center">
+                                <span>基本信息</span>
+                                <span class="text-sm font-medium text-gray-600">当前状态: <strong id="current_model_status" class="text-blue-600">已训练</strong></span>
+                            </h2>
+                            <div class="mb-4">
+                                <label for="model_name" class="block text-sm font-medium text-gray-700">模型名称 <span class="text-red-500">*</span></label>
+                                <!-- Backend should pre-fill value -->
+                                <input type="text" name="model_name" id="model_name" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" value="A股日线预测模型v1">
+                            </div>
+                            <div>
+                                <label for="model_description" class="block text-sm font-medium text-gray-700">模型描述</label>
+                                <!-- Backend should pre-fill content -->
+                                <textarea name="model_description" id="model_description" rows="3" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">这是一个使用 LightGBM 的示例模型。</textarea>
+                            </div>
+                        </div>
+
+                        <!-- 模型定义与训练上下文 -->
+                        <div class="bg-white p-6 rounded-lg shadow mb-6">
+                            <h2 class="text-lg font-semibold text-gray-700 mb-4 border-b pb-2">模型定义与训练上下文</h2>
+
+                            <!-- 模型类型与参数 -->
+                            <div class="mb-6 pb-6 border-b">
+                                <h3 class="text-md font-medium text-gray-700 mb-3">模型类型与参数</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label for="model_type" class="block text-sm font-medium text-gray-700">模型类型 <span class="text-red-500">*</span></label>
+                                        <!-- Backend should pre-select the correct option -->
+                                        <select id="model_type" name="model_type" required class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                                            <option selected>LightGBM</option>
+                                            <option>LSTM</option>
+                                            <option>XGBoost</option>
+                                            <option>自定义</option>
+                                        </select>
+                                    </div>
+                                    <div class="md:col-span-2">
+                                        <label class="block text-sm font-medium text-gray-700">模型参数</label>
+                                        <!-- Backend should pre-fill or select advanced mode based on saved config -->
+                                        <div id="model_params_simple" class="mt-1 space-y-2">
+                                            <p class="text-xs text-gray-500">根据所选模型类型，将在此处显示常用参数输入框。</p>
+                                            <!-- Example for LightGBM (shown because it's selected) -->
+                                            <div class="model-params-group" data-model="LightGBM">
+                                               <label for="lgbm_estimators" class="text-xs">n_estimators:</label>
+                                               <input type="number" id="lgbm_estimators" name="lgbm_estimators" class="text-xs border border-gray-300 rounded p-1" value="100">
+                                                <label for="lgbm_lr" class="text-xs ml-2">learning_rate:</label>
+                                               <input type="number" step="0.01" id="lgbm_lr" name="lgbm_lr" class="text-xs border border-gray-300 rounded p-1" value="0.1">
+                                               </div>
+                                               <!-- Example for LSTM (hidden) -->
+                                               <div class="model-params-group hidden" data-model="LSTM">
+                                                   <label for="lstm_hidden" class="text-xs">hidden_size:</label>
+                                                   <input type="number" id="lstm_hidden" name="lstm_hidden" class="text-xs border border-gray-300 rounded p-1">
+                                                <label for="lstm_layers" class="text-xs ml-2">num_layers:</label>
+                                               <input type="number" id="lstm_layers" name="lstm_layers" class="text-xs border border-gray-300 rounded p-1">
+                                            </div>
+                                        </div>
+                                        <button type="button" onclick="toggleAdvancedConfig('model_advanced_config', this)" class="mt-2 text-sm text-blue-600 hover:underline">使用高级/原始配置</button>
+                                        <div id="model_advanced_config" class="advanced-config-area mt-2">
+                                            <textarea name="model_config_raw" rows="6" class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="在此处粘贴模型的 YAML 或 JSON 配置..."></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 数据与训练设定 -->
+                            <div>
+                                <h3 class="text-md font-medium text-gray-700 mb-3">数据与训练设定</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label for="data_source" class="block text-sm font-medium text-gray-700">数据源 <span class="text-red-500">*</span></label>
+                                        <!-- Backend should pre-select -->
+                                        <select id="data_source" name="data_source" required class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                                            <option selected>内置A股日线</option>
+                                            <option>内置Alpha158</option>
+                                            <option>自定义-港股分钟</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label for="data_frequency" class="block text-sm font-medium text-gray-700">数据频率 <span class="text-red-500">*</span></label>
+                                        <!-- Backend should pre-select -->
+                                        <select id="data_frequency" name="data_frequency" required class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                                            <option value="day" selected>日</option>
+                                            <option value="1h">小时</option>
+                                            <option value="1min">分钟</option>
+                                        </select>
+                                    </div>
+                                    <div class="md:col-span-2">
+                                         <label for="training_universe" class="block text-sm font-medium text-gray-700">训练股票池 <span class="text-red-500">*</span></label>
+                                         <!-- Backend should pre-fill -->
+                                         <input type="text" name="training_universe" id="training_universe" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="例如: csi300, 或 ['SH600036', 'SZ000001']" value="csi300">
+                                         <p class="mt-1 text-xs text-gray-500">使用 Qlib 识别的名称或 Python 列表格式。</p>
+                                    </div>
+                                   <div class="md:col-span-2">
+                                        <label for="features_used" class="block text-sm font-medium text-gray-700">所用特征集 (每行一个) <span class="text-red-500">*</span></label>
+                                        <!-- Backend should pre-fill -->
+                                        <textarea name="features_used" id="features_used" rows="4" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="例如: Ref($close, 1), MA($close, 5)">$close/Ref($close, 1)-1
+Rank($open)</textarea>
+                                        <p class="mt-1 text-xs text-gray-500">每行输入一个特征表达式。</p>
+                                    </div>
+                                    <div class="md:col-span-2">
+                                        <label for="label_config" class="block text-sm font-medium text-gray-700">标签/预测目标 <span class="text-red-500">*</span></label>
+                                        <!-- Backend should pre-fill -->
+                                        <input type="text" name="label_config" id="label_config" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="例如: Ref($close, -2)/Ref($close, -1) - 1" value="Ref($close, -2)/Ref($close, -1) - 1">
+                                        <p class="mt-1 text-xs text-gray-500">输入标签表达式。</p>
+                                    </div>
+                                     <!-- 训练/验证/测试 时间段 -->
+                                     <div class="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4 border-t pt-4 mt-4">
+                                          <div>
+                                             <label class="block text-sm font-medium text-gray-700">训练期 <span class="text-red-500">*</span></label>
+                                             <div class="date-range-picker mt-1 flex-col sm:flex-row">
+                                                 <!-- Backend should pre-fill -->
+                                                 <input type="date" name="train_start_date" required value="2010-01-01" class="w-full sm:w-auto">
+                                                 <span class="hidden sm:inline">至</span>
+                                                 <input type="date" name="train_end_date" required value="2017-12-31" class="w-full sm:w-auto">
+                                             </div>
+                                         </div>
+                                          <div>
+                                             <label class="block text-sm font-medium text-gray-700">验证期 <span class="text-red-500">*</span></label>
+                                             <div class="date-range-picker mt-1 flex-col sm:flex-row">
+                                                 <!-- Backend should pre-fill -->
+                                                 <input type="date" name="valid_start_date" required value="2018-01-01" class="w-full sm:w-auto">
+                                                 <span class="hidden sm:inline">至</span>
+                                                 <input type="date" name="valid_end_date" required value="2019-12-31" class="w-full sm:w-auto">
+                                             </div>
+                                         </div>
+                                          <div>
+                                             <label class="block text-sm font-medium text-gray-700">测试期 <span class="text-red-500">*</span></label>
+                                             <div class="date-range-picker mt-1 flex-col sm:flex-row">
+                                                  <!-- Backend should pre-fill -->
+                                                 <input type="date" name="test_start_date" required value="2020-01-01" class="w-full sm:w-auto">
+                                                 <span class="hidden sm:inline">至</span>
+                                                 <input type="date" name="test_end_date" required value="2020-12-31" class="w-full sm:w-auto">
+                                             </div>
+                                         </div>
+                                     </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 操作按钮 -->
+                        <div class="flex justify-end space-x-3 mt-8">
+                            <a href="models.html" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded inline-flex items-center">
+                                取消
+                            </a>
+                            <button type="submit" name="action" value="save_changes" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded inline-flex items-center">
+                                保存更改
+                            </button>
+                            <button type="submit" name="action" value="retrain_model" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded inline-flex items-center">
+                                保存并重新训练
+                            </button>
+                        </div>
+
+                    </form>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // Basic JS to toggle advanced config sections (Copied from create_strategy)
+        function toggleAdvancedConfig(elementId, button) {
+            const area = document.getElementById(elementId);
+            const isVisible = area.classList.toggle('visible');
+            button.textContent = isVisible ? '使用常用参数' : '使用高级/原始配置';
+            // Optionally disable simple input fields when advanced is visible
+            const simpleAreaId = elementId.replace('_advanced_config', '_simple');
+            const simpleArea = document.getElementById(simpleAreaId);
+            if (simpleArea) {
+                 simpleArea.style.display = isVisible ? 'none' : 'block'; // Or use visibility/opacity
+            }
+        }
+
+        // Basic JS to show/hide specific parameter inputs based on dropdown selection (Copied from create_strategy)
+         document.getElementById('model_type').addEventListener('change', function() {
+             const selectedModel = this.value;
+             document.querySelectorAll('#model_params_simple .model-params-group').forEach(group => {
+                 group.classList.add('hidden');
+             });
+             const activeGroup = document.querySelector(`#model_params_simple .model-params-group[data-model="${selectedModel}"]`);
+             if (activeGroup) {
+                 activeGroup.classList.remove('hidden');
+             }
+         });
+
+    </script>
+</body>
+</html> 

@@ -17,18 +17,14 @@ data_handler_config: &data_handler_config
                             "ROC60", "RESI10", "VSTD5", "RSQR60", "CORR60", "WVMA60", "STD5", 
                             "RSQR20", "CORD60", "CORD10", "CORR20", "KLOW"
                         ]
-        - class: RobustZScoreNorm
+        - class: ZScoreNorm
           kwargs:
               fields_group: feature
-              clip_outlier: true
         - class: Fillna
           kwargs:
               fields_group: feature
     learn_processors:
         - class: DropnaLabel
-        - class: CSRankNorm
-          kwargs:
-              fields_group: label
     label: ["Ref($close, -2) / Ref($close, -1) - 1"]
 
 port_analysis_config: &port_analysis_config
@@ -59,13 +55,13 @@ task:
             hidden_size: 64
             num_layers: 2
             dropout: 0.0
-            n_epochs: 200
-            lr: 1e-3
+            n_epochs: 20
+            lr: 1e-5
             early_stop: 10
             batch_size: 800
             metric: loss
             loss: mse
-            n_jobs: 20
+            n_jobs: 8
             GPU: 0
     dataset:
         class: TSDatasetH

@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Qlib Web 平台 - 我的策略</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .sidebar-link.active { background-color: #3b82f6; color: white; }
+        /* Basic modal styling (can be enhanced) */
+        .modal { display: none; /* Hidden by default */ }
+        .modal.open { display: flex; }
+    </style>
+    <link rel="preconnect" href="https://rsms.me/">
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+    <!-- Alpine.js for basic modal interaction (optional enhancement) -->
+    <!-- <script src="//unpkg.com/alpinejs" defer></script> -->
+</head>
+<body class="bg-gray-100">
+    <div class="flex h-screen bg-gray-200">
+        <!-- 侧边栏 -->
+        <div class="w-64 bg-gray-800 text-white flex flex-col fixed h-full">
+            <!-- Logo/品牌 -->
+            <div class="h-16 flex items-center justify-center text-xl font-bold border-b border-gray-700">
+                Qlib 平台
+            </div>
+            <!-- 导航链接 -->
+            <nav class="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
+                <a href="dashboard.html" class="sidebar-link flex items-center px-4 py-2 rounded hover:bg-gray-700">
+                    <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+                    仪表盘
+                </a>
+                <a href="strategies.html" class="sidebar-link active flex items-center px-4 py-2 rounded hover:bg-gray-700">
+                     <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17.25v-.092M9.75 12.75v-.092m0-4.5v-.092m6 4.684v-.092m0-4.5v-.092m0-4.5v-.092M5.25 17.25v-.092m0-4.5v-.092m6-4.5v-.092m6 4.684v-.092M5.25 12.75v-.092m0-4.5v-.092m6 4.684v-.092m0-4.5v-.092m6-4.5v-.092M3 12a9 9 0 1118 0 9 9 0 01-18 0z"/> </svg>
+                    我的策略
+                </a>
+                <a href="models.html" class="sidebar-link flex items-center px-4 py-2 rounded hover:bg-gray-700">
+                    <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17.109c.637-.207 1.32-.325 2.041-.325 3.182 0 5.75 1.962 5.75 4.375 0 .355-.04.7-.118 1.033M15 11.25a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM21 11.25a8.956 8.956 0 01-8.956 8.956 8.956 8.956 0 01-8.956-8.956A8.956 8.956 0 0112.044 2.3a8.956 8.956 0 018.956 8.956z"/>
+                    </svg>
+                    模型管理
+                </a>
+                <a href="data_management.html" class="sidebar-link flex items-center px-4 py-2 rounded hover:bg-gray-700">
+                    <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4M4 7l8 5m0 0l8-5m-8 5v10"/> </svg>
+                    数据管理
+                </a>
+                <a href="live_trading.html" class="sidebar-link flex items-center px-4 py-2 rounded hover:bg-gray-700">
+                     <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/> </svg>
+                    实盘交易 (IB)
+                </a>
+            </nav>
+             <!-- 用户区/登出 -->
+             <div class="border-t border-gray-700 p-4">
+                  <a href="settings.html" class="sidebar-link flex items-center px-4 py-2 rounded hover:bg-gray-700">
+                     <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/> </svg>
+                     设置
+                 </a>
+                 <a href="login.html" class="sidebar-link flex items-center px-4 py-2 mt-2 text-red-400 rounded hover:bg-gray-700">
+                      <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/> </svg>
+                     登出
+                 </a>
+             </div>
+        </div>
+
+        <!-- 主内容 -->
+        <div class="flex-1 flex flex-col overflow-hidden ml-64">
+            <!-- 头部 -->
+            <header class="bg-white shadow p-4 flex justify-between items-center">
+                <h1 class="text-xl font-semibold text-gray-800">我的策略</h1>
+                 <a href="create_strategy.html" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
+                    + 新建策略
+                </a>
+            </header>
+
+            <!-- 内容区域 -->
+            <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
+                <div class="container mx-auto">
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <h2 class="text-lg font-semibold text-gray-700 mb-4">策略列表</h2>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">名称</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">模型</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">年化收益</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">最大回撤</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">开始日期</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    <!-- Example Row 1 -->
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">LSTM Alpha158 TopK</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">回测中</span></td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">LSTM</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-red-600">-1.83%</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-red-600">-15.76%</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2024-07-19</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                                            <a href="strategy_detail.html" class="text-indigo-600 hover:text-indigo-900">详情</a>
+                                            <button onclick="openBacktestModal('1', 'LSTM Alpha158 TopK')" class="text-blue-600 hover:text-blue-900">运行回测</button>
+                                            <button onclick="openSubmitModal('1', 'LSTM Alpha158 TopK')" class="text-green-600 hover:text-green-900">提交实盘</button>
+                                        </td>
+                                    </tr>
+                                    <!-- Example Row 2 -->
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">LightGBM Alpha158 TopK</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">实盘运行中</span></td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">LightGBM</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600">8.07%</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-red-600">-8.61%</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2024-07-18</td>
+                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                                            <a href="strategy_detail.html" class="text-indigo-600 hover:text-indigo-900">详情</a>
+                                            <button onclick="openBacktestModal('2', 'LightGBM Alpha158 TopK')" class="text-blue-600 hover:text-blue-900">运行回测</button>
+                                            <button onclick="openSubmitModal('2', 'LightGBM Alpha158 TopK')" class="text-green-600 hover:text-green-900">提交实盘</button>
+                                        </td>
+                                    </tr>
+                                    <!-- Add more rows as needed -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- 模态框结构 (默认隐藏) -->
+    <div id="submitLiveModal" class="modal fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full items-center justify-center">
+      <div class="relative mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white">
+        <div class="mt-3 text-center">
+          <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4" id="modalTitle">提交策略至实盘交易</h3>
+          <form action="#" method="POST"> <!-- Action needs to be handled by backend -->
+            <div class="mb-4 text-left">
+              <label for="account" class="block text-sm font-medium text-gray-700">选择账户</label>
+              <select id="account" name="account" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md border">
+                <option>IB 账户 - U1234567</option>
+                <option>模拟账户</option>
+                <!-- Add more accounts dynamically -->
+              </select>
+            </div>
+            <div class="mb-4 text-left">
+                <label for="amount_type" class="block text-sm font-medium text-gray-700 mb-2">分配类型</label>
+                <div class="flex items-center space-x-4">
+                     <label class="inline-flex items-center">
+                        <input type="radio" class="form-radio text-indigo-600" name="amount_type" value="fixed" checked onchange="toggleAmountInput(this.value)">
+                        <span class="ml-2 text-gray-700">固定金额 ($)</span>
+                    </label>
+                     <label class="inline-flex items-center">
+                        <input type="radio" class="form-radio text-indigo-600" name="amount_type" value="percentage" onchange="toggleAmountInput(this.value)">
+                        <span class="ml-2 text-gray-700">账户百分比 (%)</span>
+                    </label>
+                </div>
+            </div>
+
+            <div id="fixedAmountInput" class="mb-4 text-left">
+              <label for="amount" class="block text-sm font-medium text-gray-700">金额 ($)</label>
+              <input type="number" name="amount" id="amount" step="0.01" class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md border p-2" placeholder="例如: 10000">
+            </div>
+             <div id="percentageAmountInput" class="mb-4 text-left hidden"> <!-- Hidden by default -->
+              <label for="percentage" class="block text-sm font-medium text-gray-700">账户百分比 (%)</label>
+              <input type="number" name="percentage" id="percentage" min="0" max="100" class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md border p-2" placeholder="例如: 10">
+            </div>
+
+            <div class="mb-4 text-left">
+                <label for="liveUniverse" class="block text-sm font-medium text-gray-700">股票池/Universe <span class="text-red-500">*</span></label>
+                <select id="liveUniverse" name="universe" required class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                    <option value="">-- 请选择 --</option>
+                    <option value="csi300">沪深 300</option>
+                    <option value="csi500">中证 500</option>
+                    <option value="ashare">全市场 A 股</option>
+                    <!-- <option value="model_default">使用模型训练池 (暂不可用)</option> -->
+                    <!-- <option value="custom">自定义</option> -->
+                </select>
+            </div>
+
+            <div class="items-center px-4 py-3">
+              <button type="submit" class="px-4 py-2 bg-green-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-300">
+                提交至实盘
+              </button>
+              <button type="button" onclick="closeModal()" class="mt-2 px-4 py-2 bg-gray-300 text-gray-800 text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300">
+                取消
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Backtest Config Modal -->
+    <div id="backtestModal" class="fixed z-10 inset-0 overflow-y-auto hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-green-100 sm:mx-0 sm:h-10 sm:w-10">
+                            <!-- Heroicon name: outline/play -->
+                            <svg class="h-6 w-6 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="backtest-modal-title">
+                                运行回测
+                            </h3>
+                            <div class="mt-4">
+                                <form id="backtestForm">
+                                    <input type="hidden" id="backtestStrategyId" name="strategy_id">
+                                    <div class="mb-4">
+                                        <label for="backtestStartDate" class="block text-sm font-medium text-gray-700">回测开始日期</label>
+                                        <input type="date" name="start_date" id="backtestStartDate" required class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+                                    </div>
+                                    <div class="mb-4">
+                                        <label for="backtestEndDate" class="block text-sm font-medium text-gray-700">回测结束日期</label>
+                                        <input type="date" name="end_date" id="backtestEndDate" required class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+                                    </div>
+                                    <div class="mb-4">
+                                        <label for="initialCapital" class="block text-sm font-medium text-gray-700">初始资金</label>
+                                        <input type="number" name="initial_capital" id="initialCapital" value="1000000" required class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+                                    </div>
+                                    <div class="mb-4">
+                                        <label for="benchmark" class="block text-sm font-medium text-gray-700">基准 (可选)</label>
+                                        <input type="text" name="benchmark" id="benchmark" placeholder="例如: SH000300" class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+                                    </div>
+                                    <div class="mb-4">
+                                        <label for="backtestUniverse" class="block text-sm font-medium text-gray-700">股票池/Universe <span class="text-red-500">*</span></label>
+                                        <select id="backtestUniverse" name="universe" required class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                                            <option value="">-- 请选择 --</option>
+                                            <option value="csi300">沪深 300</option>
+                                            <option value="csi500">中证 500</option>
+                                            <option value="ashare">全市场 A 股</option>
+                                            <!-- <option value="model_default">使用模型训练池 (暂不可用)</option> -->
+                                            <!-- <option value="custom">自定义</option> -->
+                                        </select>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button type="button" onclick="startBacktest()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:ml-3 sm:w-auto sm:text-sm">
+                        开始回测
+                    </button>
+                    <button type="button" onclick="closeBacktestModal()" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        取消
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Basic JavaScript for Modal (needs improvement for production)
+        const modal = document.getElementById('submitLiveModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const fixedAmountInput = document.getElementById('fixedAmountInput');
+        const percentageAmountInput = document.getElementById('percentageAmountInput');
+
+        function openModal(strategyName) {
+            modalTitle.innerText = `提交 '${strategyName}' 至实盘交易`;
+            modal.classList.add('open');
+        }
+
+        function closeModal() {
+            modal.classList.remove('open');
+        }
+
+        function toggleAmountInput(value) {
+            if (value === 'fixed') {
+                fixedAmountInput.classList.remove('hidden');
+                percentageAmountInput.classList.add('hidden');
+            } else if (value === 'percentage') {
+                fixedAmountInput.classList.add('hidden');
+                percentageAmountInput.classList.remove('hidden');
+            }
+        }
+
+        // Close modal if clicking outside of it
+        window.onclick = function(event) {
+          if (event.target == modal) {
+            closeModal();
+          }
+        }
+
+        // --- Backtest Config Modal Logic ---
+        // Hardcoded model contexts (replace with dynamic data later)
+        const modelContexts = {
+            '1': { // Corresponds to strategyId '1' (LSTM Alpha158 TopK)
+                universe: 'csi300',
+                trainingEndDate: '2022-12-31'
+            },
+            '2': { // Corresponds to strategyId '2' (LightGBM Alpha158 TopK)
+                universe: 'csi300', // Assuming this one also trained on csi300 for demo
+                trainingEndDate: '2021-12-31' // Different end date example
+            }
+            // Add more contexts here based on strategyId -> model mapping
+        };
+
+        // Helper function to get the next day in YYYY-MM-DD format
+        function getNextDay(dateString) {
+            if (!dateString) return '';
+            try {
+                const date = new Date(dateString);
+                date.setDate(date.getDate() + 1);
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            } catch (e) {
+                console.error("Error calculating next day:", e);
+                return '';
+            }
+        }
+
+        const backtestModal = document.getElementById('backtestModal');
+        const backtestModalTitle = document.getElementById('backtest-modal-title');
+        const backtestStrategyIdInput = document.getElementById('backtestStrategyId');
+        const backtestUniverseSelect = document.getElementById('backtestUniverse');
+        const backtestStartDateInput = document.getElementById('backtestStartDate');
+        const backtestEndDateInput = document.getElementById('backtestEndDate'); // Get end date input too
+
+        function openBacktestModal(strategyId, strategyName) {
+            backtestModalTitle.textContent = `运行回测 - ${strategyName}`;
+            backtestStrategyIdInput.value = strategyId;
+            backtestModal.classList.remove('hidden');
+
+            // Set defaults based on model context
+            const context = modelContexts[strategyId];
+            if (context && context.universe) {
+                backtestUniverseSelect.value = context.universe;
+            } else {
+                backtestUniverseSelect.value = ''; // Reset to default prompt
+            }
+
+            if (context && context.trainingEndDate) {
+                const defaultStartDate = getNextDay(context.trainingEndDate);
+                backtestStartDateInput.value = defaultStartDate;
+            } else {
+                backtestStartDateInput.value = ''; // Clear if no context
+            }
+            // Clear end date or set a far future default?
+            backtestEndDateInput.value = ''; // Clear end date
+        }
+
+        function closeBacktestModal() {
+            backtestModal.classList.add('hidden');
+        }
+
+        function startBacktest() {
+            // TODO: Validate form inputs (especially dates)
+            // TODO: Collect form data
+            // TODO: Send data to backend API to start backtest
+            const strategyId = backtestStrategyIdInput.value;
+            const startDate = document.getElementById('backtestStartDate').value;
+            const endDate = document.getElementById('backtestEndDate').value;
+            const initialCapital = document.getElementById('initialCapital').value;
+            const benchmark = document.getElementById('benchmark').value;
+            const universe = document.getElementById('backtestUniverse').value;
+
+            // --- Universe Mismatch Warning --- START
+            let trainingUniverse = null;
+            // Example: Get training universe based on strategyId (replace with actual logic later)
+            if (strategyId === '1') { // Assuming LSTM Alpha158 TopK (ID 1) was trained on csi300
+                trainingUniverse = 'csi300';
+            } // Add more cases or fetch dynamically later
+
+            if (trainingUniverse && universe !== trainingUniverse) {
+                // Allow specific cross-universe selections without warning if needed, e.g., 'ashare'
+                // if (universe !== 'ashare') { // Example: only warn if not testing on 'ashare'
+                    const warningMsg = `警告：您选择的模型主要在 '${trainingUniverse}' 上训练，但您选择的回测股票池是 '${universe}'。\n\n这可能导致结果不可靠。确定要继续吗？`;
+                    if (!confirm(warningMsg)) {
+                        return; // Stop if user cancels
+                    }
+                // }
+            }
+            // --- Universe Mismatch Warning --- END
+
+            if (!startDate || !endDate || !initialCapital || !universe) {
+                alert('请填写所有必填的回测参数！'); // Simple validation
+                return;
+            }
+
+            console.log(`Starting backtest for strategy ${strategyId} from ${startDate} to ${endDate} with capital ${initialCapital}, benchmark: ${benchmark}, universe: ${universe}`);
+            // Placeholder for actual API call
+            closeBacktestModal();
+            // Optionally: Redirect to a backtest results page or show a notification
+            alert('回测任务已提交！'); // Placeholder feedback
+        }
+
+        // --- Submit to Live Modal Logic (Continued) ---
+        const submitModal = document.getElementById('submitModal'); // Need to define submitModal
+        const liveUniverseSelect = document.getElementById('liveUniverse');
+        const submitModalTitle = document.getElementById('modalTitle'); // Assuming this ID exists for submit modal title
+        // Need a way to get strategyId and strategyName into submit modal context
+        let currentSubmitStrategyId = null;
+        let currentSubmitStrategyName = null;
+
+        function openSubmitModal(strategyId, strategyName) {
+            // Clear previous form state (optional but good practice)
+            document.getElementById('account').value = document.getElementById('account').options[0].value;
+            document.querySelector('input[name="amount_type"][value="fixed"]').checked = true;
+            toggleAmountInput('fixed');
+            document.getElementById('amount').value = '';
+            document.getElementById('percentage').value = '';
+
+            currentSubmitStrategyId = strategyId;
+            currentSubmitStrategyName = strategyName;
+            if(submitModalTitle) submitModalTitle.innerText = `提交 '${strategyName}' 至实盘交易`;
+            // Reset form fields if needed
+            submitModal.classList.remove('hidden');
+            submitModal.classList.add('open'); // Ensure modal is displayed using 'open' class as per existing logic
+
+            // Set default universe for submit modal
+            const submitContext = modelContexts[strategyId];
+            if (submitContext && submitContext.universe) {
+                liveUniverseSelect.value = submitContext.universe;
+            } else {
+                liveUniverseSelect.value = ''; // Reset to default prompt
+            }
+        }
+
+        function closeSubmitModal() {
+            submitModal.classList.add('hidden');
+            submitModal.classList.remove('open'); // Hide using 'open' class
+        }
+
+        function submitToLive() {
+            // TODO: Add logic to submit the strategy to live trading (e.g., via API call)
+            // TODO: Validate required fields (account, amount/percentage, universe)
+            const selectedAccount = document.getElementById('account').value;
+            const selectedUniverse = document.getElementById('liveUniverse').value;
+            const amountType = document.querySelector('input[name="amount_type"]:checked').value;
+            let amountValue = null;
+            if (amountType === 'fixed') {
+                amountValue = document.getElementById('amount').value;
+            } else {
+                amountValue = document.getElementById('percentage').value;
+            }
+
+            if (!selectedAccount || !selectedUniverse || !amountValue) {
+                 alert('请填写所有必填的实盘参数！'); // Simple validation
+                 return;
+            }
+
+            // --- Universe Mismatch Warning --- START
+            let trainingUniverseSubmit = null;
+            // Example: Get training universe based on currentSubmitStrategyId
+            if (currentSubmitStrategyId === '1') { // Assuming LSTM Alpha158 TopK (ID 1) was trained on csi300
+                trainingUniverseSubmit = 'csi300';
+            }
+
+            if (trainingUniverseSubmit && selectedUniverse !== trainingUniverseSubmit) {
+                const warningMsgSubmit = `警告：您选择的模型主要在 '${trainingUniverseSubmit}' 上训练，但您选择的实盘股票池是 '${selectedUniverse}'。\n\n这可能导致实盘表现与预期差异较大或策略失效。确定要提交吗？`;
+                if (!confirm(warningMsgSubmit)) {
+                    return; // Stop if user cancels
+                }
+            }
+            // --- Universe Mismatch Warning --- END
+
+            console.log(`Submitting strategy ${currentSubmitStrategyId} to live... Account: ${selectedAccount}, Universe: ${selectedUniverse}, AmountType: ${amountType}, AmountValue: ${amountValue}`);
+            closeSubmitModal();
+            // Optionally show a success message
+            alert('提交实盘任务已发送！'); // Placeholder feedback
+        }
+    </script>
+
+</body>
+</html> 
