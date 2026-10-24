@@ -2,7 +2,7 @@ import sys
 import platform
 import qlib
 import fire
-import pkg_resources
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
 QLIB_PATH = Path(__file__).absolute().resolve().parent.parent
@@ -57,8 +57,11 @@ class InfoCollector:
         ]
 
         for package in REQUIRED:
-            version = pkg_resources.get_distribution(package).version
-            print(f"{package}=={version}")
+            try:
+                package_version = version(package)
+            except PackageNotFoundError:
+                package_version = "not installed"
+            print(f"{package}=={package_version}")
 
     def all(self):
         """collect all info"""
