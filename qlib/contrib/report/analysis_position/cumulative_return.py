@@ -269,5 +269,6 @@ def cumulative_return_graph(
     _figures = _get_figure_with_position(position, report_normal, label_data, start_date, end_date)
     if show_notebook:
         BaseGraph.show_graph_in_notebook(_figures)
+        return None
     else:
         return _figures

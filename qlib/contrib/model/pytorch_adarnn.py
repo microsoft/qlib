@@ -711,6 +711,8 @@ class MMD_loss(nn.Module):
                 YX = torch.mean(kernels[batch_size:, :batch_size])
                 loss = torch.mean(XX + YY - XY - YX)
             return loss
+        else:
+            raise ValueError(f"Unknown kernel_type: {self.kernel_type}. Expected 'linear' or 'rbf'.")
 
 
 class Mine_estimator(nn.Module):

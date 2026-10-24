@@ -1112,6 +1112,7 @@ class SimpleDatasetCache(DatasetCache):
             )
             data.to_pickle(cache_file)
             return self.cache_to_origin_data(data, fields)
+        return None
 
 
 class DatasetURICache(DatasetCache):
