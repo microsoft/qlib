@@ -230,10 +230,10 @@ class FileInstrumentStorage(FileStorageMixin, InstrumentStorage):
             res.append(_df)
 
         df = pd.concat(res, sort=False)
+        # persist in the column order _read_instrument expects: symbol, start, end
         df.loc[:, [self.SYMBOL_FIELD_NAME, self.INSTRUMENT_START_FIELD, self.INSTRUMENT_END_FIELD]].to_csv(
-            self.uri, header=False, sep=self.INSTRUMENT_SEP, index=False
+            self.uri, header=False, sep=self.INSTRUMENT_SEP, index=False, encoding="utf-8"
         )
-        df.to_csv(self.uri, sep="\t", encoding="utf-8", header=False, index=False)
 
     def clear(self) -> None:
         self._write_instrument(data={})
