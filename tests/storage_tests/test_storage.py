@@ -4,8 +4,12 @@
 
 from pathlib import Path
 from collections.abc import Iterable
+import tempfile
+import unittest
 
 import numpy as np
+import pandas as pd
+import qlib
 from qlib.tests import TestAutoData
 
 from qlib.data.storage.file_storage import (
@@ -168,3 +172,29 @@ class TestStorage(TestAutoData):
             print(feature[:].empty)
         with self.assertRaises(ValueError):
             print(feature.data.empty)
+
+
+class TestInstrumentStorageRoundTrip(unittest.TestCase):
+    """_write_instrument must persist the column order _read_instrument parses."""
+
+    def test_write_then_read(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            provider_uri = str(Path(tmp) / "cn_data")
+            (Path(tmp) / "cn_data" / "instruments").mkdir(parents=True)
+            calendars_dir = Path(tmp) / "cn_data" / "calendars"
+            calendars_dir.mkdir(parents=True)
+            # bootstrap day-calendar data so the storage uri validation accepts the provider
+            np.savetxt(
+                calendars_dir / "day.txt",
+                pd.bdate_range("2024-01-02", periods=5),
+                fmt="%s",
+                encoding="utf-8",
+            )
+            qlib.init(provider_uri=provider_uri, region="cn")
+
+            inst = InstrumentStorage(market="roundtrip", freq="day", provider_uri=provider_uri)
+            spans = [(pd.Timestamp("2024-01-02"), pd.Timestamp("2024-01-31"))]
+            inst["SH600000"] = spans
+
+            self.assertEqual(inst["SH600000"], spans)
+            self.assertEqual(inst.data, {"SH600000": spans})
