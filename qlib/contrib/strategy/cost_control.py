@@ -48,6 +48,12 @@ class SoftTopkStrategy(WeightStrategyBase):
         """
         Generates target position using Proportional Budget Allocation.
         Ensures deterministic sells and synchronized buys under impact limits.
+
+        ``get_risk_degree`` receives the current trade step when the calendar
+        has started (step >= 0). It receives None when there is no calendar,
+        and also when ``level_infra`` is set but the calendar has not started:
+        a negative step, a non-int step, or ``get_trade_step()`` raising
+        ``AttributeError`` because the step was never initialized.
         """
 
         if self.topk is None or self.topk <= 0:
@@ -56,7 +62,25 @@ class SoftTopkStrategy(WeightStrategyBase):
         def apply_impact_limit(weight):
             return weight if self.trade_impact_limit is None else min(weight, self.trade_impact_limit)
 
-        ideal_per_stock = self.risk_degree / self.topk
+        # Use the getter so a subclass can vary exposure. Reading the attribute
+        # here made an override of get_risk_degree() unreachable, while
+        # WeightStrategyBase already passes that override to the order generator.
+        # Pass the same trade step the order generator receives, otherwise an
+        # override that depends on the step sees None here and a real index there.
+        # A calendar that has not started stays on the None path. Forwarding a
+        # negative step (or letting an uninitialized get_trade_step() raise) is
+        # the one place a getter that indexes by step can raise where the old
+        # no-argument call did not. Step 0 is the first bar and is forwarded.
+        trade_step = None
+        if getattr(self, "level_infra", None) is not None and self.trade_calendar is not None:
+            try:
+                candidate = self.trade_calendar.get_trade_step()
+            except AttributeError:
+                candidate = None
+            if isinstance(candidate, int) and not isinstance(candidate, bool) and candidate >= 0:
+                trade_step = candidate
+        risk_degree = self.get_risk_degree(trade_step)
+        ideal_per_stock = risk_degree / self.topk
         ideal_list = score.sort_values(ascending=False).iloc[: self.topk].index.tolist()
 
         cur_weights = current.get_stock_weight_dict(only_stock=True)
@@ -90,7 +114,7 @@ class SoftTopkStrategy(WeightStrategyBase):
 
         # Phase 2: Budget Calculation
         # Budget = Cash from sells + Available space from target risk degree
-        total_budget = released_cash + (self.risk_degree - initial_total_weight)
+        total_budget = released_cash + (risk_degree - initial_total_weight)
 
         # Phase 3: Proportional Buy Allocation
         if total_budget > 1e-8:
