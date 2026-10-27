@@ -66,6 +66,26 @@ class TestIdxRollingOperator(unittest.TestCase):
     def test_idxmin_points_at_the_minimum(self):
         self._assert_points_at(IdxMin, Min, "idxmin_low")
 
+    def test_position_counts_nan_and_takes_the_first_tie(self):
+        """The position is 1-based within the original window, NaN included, and a tie
+        resolves to the first occurrence. Pointing at the right value is not enough:
+        dropping NaN before `argmax` or taking the last tie still passes the tests above.
+        """
+        values = [np.nan, 1.0, np.nan, 2.0, 2.0, 0.0]
+        mirrored = [np.nan, -1.0, np.nan, -2.0, -2.0, 0.0]
+        cases = [
+            (IdxMax, values, [np.nan, 2.0, 2.0, 4.0, 4.0, 4.0]),
+            (IdxMin, values, [np.nan, 2.0, 2.0, 2.0, 2.0, 6.0]),
+            # The tie above is a maximum; mirror it so IdxMin meets one too.
+            (IdxMin, mirrored, [np.nan, 2.0, 2.0, 4.0, 4.0, 4.0]),
+        ]
+        for case, (op, data, positions) in enumerate(cases):
+            for window in (0, 6):
+                with self.subTest(op=op.__name__, case=case, window=window):
+                    feature = _SeriesFeature(f"tie_{op.__name__}_{case}_{window}", data)
+                    result = op(feature, window).load("mock", 0, len(data) - 1, "day")
+                    np.testing.assert_array_equal(result.to_numpy(), positions)
+
 
 if __name__ == "__main__":
     unittest.main()
