@@ -100,5 +100,63 @@ def test_soft_topk_passes_trade_step_into_get_risk_degree():
     assert abs(res["D"] - 0.45) < 1e-8
 
 
+# Sentinel for a calendar whose step attribute was never set.
+_UNINITIALIZED_STEP = object()
+
+
+class _CalendarStep:
+    """Minimal trade calendar. An uninitialized step raises, as a missing attribute would."""
+
+    def __init__(self, step):
+        self._step = step
+
+    def get_trade_step(self):
+        if self._step is _UNINITIALIZED_STEP:
+            raise AttributeError("trade_step")
+        return self._step
+
+
+@pytest.mark.parametrize(
+    ("step", "expected_step"),
+    [
+        ("missing", None),
+        (None, None),
+        (-1, None),
+        (_UNINITIALIZED_STEP, None),
+        (0, 0),
+    ],
+)
+def test_soft_topk_unstarted_calendar_does_not_forward_step(step, expected_step):
+    # level_infra is set, but the calendar is missing, has not started (step < 0),
+    # or has no step yet. A getter that indexes by step must see None — the old
+    # no-argument call — and must not raise. Step 0 is the first bar and is passed through.
+    scores = pd.Series({"C": 0.9, "D": 0.8, "A": 0.1, "B": 0.1})
+    current_pos = MockPosition({})
+    seen = []
+
+    class StepRisk(SoftTopkStrategy):
+        def get_risk_degree(self, trade_step=None):
+            seen.append(trade_step)
+            if trade_step is None:
+                return 0.5
+            if type(trade_step) is not int or trade_step < 0:
+                raise ValueError(f"calendar has not started: {trade_step!r}")
+            return 0.4
+
+    strat = StepRisk.__new__(StepRisk)
+    strat.topk = 2
+    strat.risk_degree = 0.95
+    strat.trade_impact_limit = 1.0
+    calendar = None if step == "missing" else _CalendarStep(step)
+    strat.level_infra = {"trade_calendar": calendar}
+
+    res = strat.generate_target_weight_position(scores, current_pos, None, None)
+
+    expected_weight = (0.4 if expected_step == 0 else 0.5) / 2
+    assert seen == [expected_step]
+    assert abs(res["C"] - expected_weight) < 1e-8
+    assert abs(res["D"] - expected_weight) < 1e-8
+
+
 if __name__ == "__main__":
     pytest.main([__file__])
