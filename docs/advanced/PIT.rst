@@ -129,6 +129,14 @@ The statements are soted by the `date` in ascending order from the beginning of 
 
 
 
+Using the ``P`` operator
+------------------------
+
+Read a point-in-time feature on each trading day with ``P($$feature)``, for example ``P($$roewa_q)``.
+The expression provider passes integer calendar positions when ``time2idx=True`` (the default) and passes the query datetimes when ``time2idx=False``.
+``P`` accepts both. Datetime bounds are aligned to the trading calendar, and the returned series keeps that datetime index.
+A query that ends before the first trading day, or starts after the last one, is an empty series. A range that starts before the calendar and ends inside it, or starts inside it and ends after the calendar, is clipped to the trading days it covers. A weekend is aligned the same way, and a weekend with no trading day is empty too.
+
 Known limitations:
 
 - Currently, the PIT database is designed for quarterly or annually factors, which can handle fundamental data of financial reports in most markets.

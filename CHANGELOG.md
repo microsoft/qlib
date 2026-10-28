@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- `P` with datetime bounds returns an empty series when the query ends before the first trading day or starts after the last one. A range that overlaps the calendar on only one side is clipped to the trading days it covers. A weekend is aligned the same way.
 - **BREAKING:** New source builds restrict recorder artifact loading by default.
   Reloading executable artifacts requires verified source/storage and explicit
   `trusted=True` (CLI: `--trusted=True`). Supported data-only reads and fresh
