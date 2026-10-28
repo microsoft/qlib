@@ -264,9 +264,10 @@ class TimeAdjuster:
         KeyError:
             Raised when the shifted start index is greater than ``len(self.cals)``.
             The index equal to ``len(self.cals)`` is the first position after
-            the last trading day. ``get`` returns ``None`` for it, and for an
-            end index past the calendar. Callers decide whether that ``None``
-            ends generation.
+            the last trading day, and ``get`` returns ``None`` for that start.
+            An end index past the calendar is not left as ``None`` when the
+            start is still a trading day: that would make the segment
+            open-ended. The end is closed on the last trading day instead.
         """
         if isinstance(seg, tuple):
             start_idx, end_idx = self.align_idx(seg[0], tp_type="start"), self.align_idx(seg[1], tp_type="end")
@@ -279,6 +280,15 @@ class TimeAdjuster:
                 raise NotImplementedError(f"This type of input is not supported")
             if start_idx is not None and start_idx > len(self.cals):
                 raise KeyError("The segment is out of valid calendar")
+            # ``None`` means unbounded. A computed end past the calendar is a
+            # short last window, so close it when the start is still in range.
+            if (
+                end_idx is not None
+                and start_idx is not None
+                and start_idx < len(self.cals)
+                and end_idx >= len(self.cals)
+            ):
+                end_idx = len(self.cals) - 1
             return self.get(start_idx), self.get(end_idx)
         else:
             raise NotImplementedError(f"This type of input is not supported")

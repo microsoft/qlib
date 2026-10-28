@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- `TimeAdjuster.shift` closes a window on the last trading day when the shifted end falls past the calendar and the start is still a trading day. The segment is not left open-ended. Rolling still stops when the next test window starts after the calendar.
 - **BREAKING:** New source builds restrict recorder artifact loading by default.
   Reloading executable artifacts requires verified source/storage and explicit
   `trusted=True` (CLI: `--trusted=True`). Supported data-only reads and fresh

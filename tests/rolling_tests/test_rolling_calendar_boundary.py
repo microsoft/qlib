@@ -54,12 +54,12 @@ def test_shift_returns_none_when_the_start_is_the_first_index_past_the_calendar(
     assert rolling.ta.shift((calendar[4], calendar[5]), step=2, rtype=TimeAdjuster.SHIFT_SD) == (None, None)
 
 
-def test_shift_keeps_an_end_past_the_calendar_when_the_start_is_valid():
+def test_shift_closes_an_end_past_the_calendar_on_the_last_trading_day():
     calendar = pd.bdate_range("2020-01-01", periods=6)
     rolling = _rolling(calendar, step=1)
     start, end = rolling.ta.shift((calendar[3], calendar[5]), step=1, rtype=TimeAdjuster.SHIFT_SD)
     assert start == calendar[4]
-    assert end is None
+    assert end == calendar[-1]
 
 
 def test_following_tasks_stop_when_the_next_window_starts_past_the_calendar():
@@ -79,6 +79,26 @@ def test_following_tasks_keep_windows_that_end_on_the_last_trading_day():
         (calendar[6], calendar[7]),
         (calendar[8], calendar[9]),
     ]
+
+
+def test_following_tasks_close_a_partial_last_window_on_the_last_trading_day():
+    # Nine trading days and a step of 2. The next test window starts on the
+    # last day, so its shifted end is past the calendar.
+    calendar = pd.bdate_range("2020-01-01", periods=9)
+    rolling = _rolling(calendar, step=2)
+    task = {
+        "dataset": {
+            "kwargs": {
+                "segments": {
+                    "train": (calendar[0], calendar[3]),
+                    "valid": (calendar[4], calendar[5]),
+                    "test": (calendar[6], calendar[7]),
+                }
+            }
+        }
+    }
+    following = list(rolling.gen_following_tasks(task, calendar[-1]))
+    assert [_test_segment(task) for task in following] == [(calendar[8], calendar[8])]
 
 
 def test_following_tasks_still_stop_when_the_next_start_passes_test_end():

@@ -37,7 +37,7 @@ Here is the base class of ``TaskGen``:
 This class allows users to verify the effect of data from different periods on the model in one experiment. More information is `here <../reference/api.html#TaskGen>`__.
 
 Rolling stops once the next test segment would start after the last trading day in the calendar.
-A window that still begins on a trading day is kept, including one that ends on the last trading day.
+A window that still begins on a trading day is kept. If the shifted end falls past the calendar, that end is the last trading day. It is not left open-ended.
 
 Task Storing
 ============
