@@ -48,7 +48,8 @@ class P(ElemOperator):
     A query that ends before the first trading day, or starts after the last
     one, returns an empty series. Those bounds are not passed to
     ``Cal.locate_index``: an end before the calendar would wrap to the last
-    day, and a start after it would raise ``IndexError``.
+    day, and a start after it would raise ``IndexError``. A range that only
+    overlaps the calendar is clipped to the trading days it covers.
     """
 
     def _load_internal(self, instrument, start_index, end_index, freq):

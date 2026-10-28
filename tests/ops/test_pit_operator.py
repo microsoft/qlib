@@ -117,6 +117,20 @@ def test_datetime_query_after_the_calendar_is_empty(monkeypatch):
     assert series.dtype == "float32"
 
 
+def test_datetime_query_overlapping_one_edge_is_clipped(monkeypatch):
+    calendar = list(pd.bdate_range("2020-01-06", periods=5))
+    _patch_provider_calendar(monkeypatch, calendar)
+    operator = _ValueP(_positions(calendar))
+    # Starts before the first trading day and ends on the third.
+    head = operator._load_internal("SH600000", "2020-01-01", calendar[2], "day")
+    assert list(head.index) == calendar[:3]
+    assert head.tolist() == [0.0, 1.0, 2.0]
+    # Starts on the third trading day and ends after the calendar.
+    tail = operator._load_internal("SH600000", calendar[2], "2020-02-01", "day")
+    assert list(tail.index) == calendar[2:]
+    assert tail.tolist() == [2.0, 3.0, 4.0]
+
+
 def test_weekend_bounds_align_to_the_trading_days_they_cover(monkeypatch):
     # 2020-01-11 is Saturday. Monday 2020-01-13 and Tuesday 2020-01-14 are trading days.
     calendar = list(pd.bdate_range("2020-01-06", periods=10))
