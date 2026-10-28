@@ -36,6 +36,10 @@ Here is the base class of ``TaskGen``:
 ``Qlib`` provides a class `RollingGen <https://github.com/microsoft/qlib/tree/main/qlib/workflow/task/gen.py>`_ to generate a list of ``task`` of the dataset in different date segments.
 This class allows users to verify the effect of data from different periods on the model in one experiment. More information is `here <../reference/api.html#TaskGen>`__.
 
+Rolling stops once the next test segment would start after the last trading day in the calendar.
+A window that still begins on a trading day is kept. If the shifted end falls past the calendar, that end is the last trading day. It is not left open-ended.
+That last segment can be a single trading day. The day's IC and Rank IC are ordinary cross-sectional numbers. ICIR, Rank ICIR, and a Sharpe or information ratio divide by the sample standard deviation of a daily series, so those ratios are NaN when the segment has only one date. The day's predictions are still recorded.
+
 Task Storing
 ============
 To achieve higher efficiency and the possibility of cluster operation, ``Task Manager`` will store all tasks in `MongoDB <https://www.mongodb.com/>`_.
