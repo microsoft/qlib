@@ -45,6 +45,10 @@ class P(ElemOperator):
     With ``time2idx=False`` they are the query datetimes. Those bounds are
     aligned to the trading calendar, and the result uses that datetime index
     so ``series.loc[start_time:end_time]`` still selects the requested range.
+    A query that ends before the first trading day, or starts after the last
+    one, returns an empty series. Those bounds are not passed to
+    ``Cal.locate_index``: an end before the calendar would wrap to the last
+    day, and a start after it would raise ``IndexError``.
     """
 
     def _load_internal(self, instrument, start_index, end_index, freq):
@@ -53,7 +57,11 @@ class P(ElemOperator):
         if datetime_query:
             # Timestamp - Timestamp is a Timedelta, so the length expression
             # below is only valid after the bounds are calendar positions.
-            _, _, start_index, end_index = Cal.locate_index(start_index, end_index, freq=freq, future=False)
+            start_time = pd.Timestamp(start_index)
+            end_time = pd.Timestamp(end_index)
+            if len(calendar) == 0 or end_time < pd.Timestamp(calendar[0]) or start_time > pd.Timestamp(calendar[-1]):
+                return pd.Series(dtype="float32", name=str(self))
+            _, _, start_index, end_index = Cal.locate_index(start_time, end_time, freq=freq, future=False)
         start_index = int(start_index)
         end_index = int(end_index)
         if datetime_query and end_index < start_index:

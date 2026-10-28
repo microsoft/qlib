@@ -4,6 +4,7 @@
 import pandas as pd
 import pytest
 
+from qlib.data.data import CalendarProvider
 from qlib.data.pit import P, Cal
 
 
@@ -74,6 +75,58 @@ def test_datetime_bounds_align_and_keep_the_datetime_index(monkeypatch):
     selected = series.loc[start:end]
     assert list(selected.index) == list(calendar[1:4])
     assert selected.tolist() == [1.0, 2.0, 3.0]
+
+
+class _SyntheticCalendar:
+    """Stand-in whose ``_get_calendar`` feeds the real ``locate_index``."""
+
+    def __init__(self, calendar):
+        self._calendar = [pd.Timestamp(ts) for ts in calendar]
+
+    def _get_calendar(self, freq, future):
+        index = {ts: i for i, ts in enumerate(self._calendar)}
+        return self._calendar, index
+
+
+def _patch_provider_calendar(monkeypatch, calendar):
+    provider = _SyntheticCalendar(calendar)
+
+    def calendar_fn(start_time=None, end_time=None, freq="day", future=False):
+        return provider._calendar
+
+    def locate_index(start_time, end_time, freq="day", future=False):
+        return CalendarProvider.locate_index(provider, start_time, end_time, freq, future)
+
+    monkeypatch.setattr(Cal, "calendar", calendar_fn, raising=False)
+    monkeypatch.setattr(Cal, "locate_index", locate_index, raising=False)
+
+
+def test_datetime_query_before_the_calendar_is_empty(monkeypatch):
+    calendar = pd.bdate_range("2020-01-06", periods=5)
+    _patch_provider_calendar(monkeypatch, calendar)
+    series = _ValueP(_positions(calendar))._load_internal("SH600000", "2020-01-01", "2020-01-03", "day")
+    assert series.empty
+    assert series.dtype == "float32"
+
+
+def test_datetime_query_after_the_calendar_is_empty(monkeypatch):
+    calendar = pd.bdate_range("2020-01-06", periods=5)
+    _patch_provider_calendar(monkeypatch, calendar)
+    series = _ValueP(_positions(calendar))._load_internal("SH600000", "2020-02-01", "2020-02-05", "day")
+    assert series.empty
+    assert series.dtype == "float32"
+
+
+def test_weekend_bounds_align_to_the_trading_days_they_cover(monkeypatch):
+    # 2020-01-11 is Saturday. Monday 2020-01-13 and Tuesday 2020-01-14 are trading days.
+    calendar = list(pd.bdate_range("2020-01-06", periods=10))
+    _patch_provider_calendar(monkeypatch, calendar)
+    operator = _ValueP(_positions(calendar))
+    weekend = operator._load_internal("SH600000", "2020-01-11", "2020-01-12", "day")
+    assert weekend.empty
+    spanned = operator._load_internal("SH600000", "2020-01-11", "2020-01-14", "day")
+    assert list(spanned.index) == [pd.Timestamp("2020-01-13"), pd.Timestamp("2020-01-14")]
+    assert spanned.tolist() == [5.0, 6.0]
 
 
 def test_missing_period_data_returns_an_empty_series(monkeypatch):
