@@ -120,3 +120,50 @@ def test_large_price_change_preserves_qlib_multiindex_date(checker_class, tmp_pa
     large_steps = checker.check_large_step_changes()
 
     assert large_steps.loc["SH600000", "date"] == "2026-01-02"
+
+
+def test_missing_extra_column_is_not_reported(checker_class, tmp_path):
+    write_csv(
+        tmp_path,
+        {
+            "open": [10, 10],
+            "high": [11, 11],
+            "low": [9, 9],
+            "close": [10, 10],
+            "volume": [100, 100],
+            "factor": [1, 1],
+            "extra": [None, None],
+        },
+    )
+
+    checker = checker_class(csv_path=str(tmp_path))
+    assert checker.check_missing_data() is None
+
+
+def test_empty_factor_does_not_trigger_ohlcv_missing_data(
+    checker_class, tmp_path, capsys
+):
+    write_csv(
+        tmp_path,
+        {
+            "open": [10, 10],
+            "high": [11, 11],
+            "low": [9, 9],
+            "close": [10, 10],
+            "volume": [100, 100],
+            "factor": [None, None],
+        },
+    )
+
+    checker = checker_class(csv_path=str(tmp_path))
+
+    assert checker.check_missing_data() is None
+
+    factor_result = checker.check_missing_factor()
+    assert factor_result.loc["sample.csv", "missing_factor_data"]
+
+    checker.check_data()
+    output = capsys.readouterr().out
+
+    assert "Summary of data health check" in output
+    assert "missing_factor_data" in output

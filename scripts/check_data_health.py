@@ -116,11 +116,15 @@ class DataHealthChecker:
             "close": [],
             "volume": [],
         }
+        ohlcv_columns = ["open", "high", "low", "close", "volume"]
         for filename, df in self.data.items():
             missing_counts = df.isnull().sum()
-            if (missing_counts > self.missing_data_num).any():
+            if any(
+                missing_counts.get(column, 0) > self.missing_data_num
+                for column in ohlcv_columns
+            ):
                 result_dict["instruments"].append(filename)
-                for column in ["open", "high", "low", "close", "volume"]:
+                for column in ohlcv_columns:
                     result_dict[column].append(missing_counts.get(column, 0))
 
         result_df = pd.DataFrame(result_dict).set_index("instruments")
