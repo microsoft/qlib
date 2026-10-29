@@ -182,10 +182,19 @@ def test_summary_reports_missing_columns_before_nan_counts(
         },
     )
 
-    checker_class(csv_path=str(tmp_path)).check_data()
+    checker = checker_class(csv_path=str(tmp_path))
+    required_columns = checker.check_required_columns()
+    missing_data = checker.check_missing_data()
+
+    assert required_columns.loc["sample.csv", "missing_col"] == "high"
+    assert missing_data.loc["sample.csv", "open"] == 1
+
+    checker.check_data()
     output = capsys.readouterr().out
 
-    assert "Summary of data health check" in output
-    assert "missing_col" in output
-    assert "volume" in output
-    assert output.index("missing_col") < output.index("volume")
+    required_table = str(required_columns)
+    missing_data_table = str(missing_data)
+
+    assert required_table in output
+    assert missing_data_table in output
+    assert output.index(required_table) < output.index(missing_data_table)
