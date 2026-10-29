@@ -232,15 +232,15 @@ class DataHealthChecker:
         ):
             print(f"\nSummary of data health check ({len(self.data)} files checked):")
             print("-------------------------------------------------")
+            if isinstance(check_required_columns_result, pd.DataFrame):
+                logger.warning(f"Columns (OLHCV) are missing.")
+                print(check_required_columns_result)
             if isinstance(check_missing_data_result, pd.DataFrame):
                 logger.warning(f"There is missing data.")
                 print(check_missing_data_result)
             if isinstance(check_large_step_changes_result, pd.DataFrame):
                 logger.warning(f"The OHLCV column has large step changes.")
                 print(check_large_step_changes_result)
-            if isinstance(check_required_columns_result, pd.DataFrame):
-                logger.warning(f"Columns (OLHCV) are missing.")
-                print(check_required_columns_result)
             if isinstance(check_missing_factor_result, pd.DataFrame):
                 logger.warning(f"The factor column does not exist or is empty")
                 print(check_missing_factor_result)

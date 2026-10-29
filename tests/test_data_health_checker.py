@@ -167,3 +167,25 @@ def test_empty_factor_does_not_trigger_ohlcv_missing_data(
 
     assert "Summary of data health check" in output
     assert "missing_factor_data" in output
+
+def test_summary_reports_missing_columns_before_nan_counts(
+    checker_class, tmp_path, capsys
+):
+    write_csv(
+        tmp_path,
+        {
+            "open": [10, None],
+            "low": [9, 9],
+            "close": [10, 10],
+            "volume": [100, 100],
+            "factor": [1, 1],
+        },
+    )
+
+    checker_class(csv_path=str(tmp_path)).check_data()
+    output = capsys.readouterr().out
+
+    assert "Summary of data health check" in output
+    assert "missing_col" in output
+    assert "volume" in output
+    assert output.index("missing_col") < output.index("volume")
