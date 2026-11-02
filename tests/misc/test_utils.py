@@ -142,7 +142,9 @@ class ParalUtils(TestCase):
         df = pd.DataFrame({"a": np.arange(12.0) ** 2, "b": np.arange(12.0) % 5}, index=index)
         expected = df.groupby(level="datetime").skew()
         pd.testing.assert_frame_equal(datetime_groupby_apply(df, "skew", n_jobs=1), expected)
-        pd.testing.assert_frame_equal(datetime_groupby_apply(df.T, "skew", axis=1, n_jobs=1), expected.T)
+        for axis in (1, "columns"):
+            with self.subTest(axis=axis):
+                pd.testing.assert_frame_equal(datetime_groupby_apply(df.T, "skew", axis=axis, n_jobs=1), expected.T)
 
 
 if __name__ == "__main__":

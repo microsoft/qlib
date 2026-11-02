@@ -58,7 +58,7 @@ def datetime_groupby_apply(
     def _naive_group_apply(df):
         if isinstance(apply_func, str):
             # pandas 3 removed `groupby(axis=...)`; group the transpose for axis=1
-            if axis == 1:
+            if axis in (1, "columns"):
                 return getattr(df.T.groupby(level=level, group_keys=False), apply_func)().T
             return getattr(df.groupby(level=level, group_keys=False), apply_func)()
         return df.groupby(level=level, group_keys=False).apply(apply_func)
