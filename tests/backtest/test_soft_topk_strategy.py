@@ -1,3 +1,6 @@
+from numbers import Integral
+
+import numpy as np
 import pandas as pd
 import pytest
 from qlib.contrib.strategy.cost_control import SoftTopkStrategy
@@ -124,6 +127,8 @@ class _CalendarStep:
         (-1, None),
         (_UNINITIALIZED_STEP, None),
         (0, 0),
+        (np.int64(0), np.int64(0)),
+        (True, None),
     ],
 )
 def test_soft_topk_unstarted_calendar_does_not_forward_step(step, expected_step):
@@ -139,7 +144,7 @@ def test_soft_topk_unstarted_calendar_does_not_forward_step(step, expected_step)
             seen.append(trade_step)
             if trade_step is None:
                 return 0.5
-            if type(trade_step) is not int or trade_step < 0:
+            if isinstance(trade_step, bool) or not isinstance(trade_step, Integral) or trade_step < 0:
                 raise ValueError(f"calendar has not started: {trade_step!r}")
             return 0.4
 

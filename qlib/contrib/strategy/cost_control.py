@@ -1,6 +1,8 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+from numbers import Integral
+
 from .order_generator import OrderGenWInteract
 from .signal_strategy import WeightStrategyBase
 
@@ -52,7 +54,7 @@ class SoftTopkStrategy(WeightStrategyBase):
         ``get_risk_degree`` receives the current trade step when the calendar
         has started (step >= 0). It receives None when there is no calendar,
         and also when ``level_infra`` is set but the calendar has not started:
-        a negative step, a non-int step, or ``get_trade_step()`` raising
+        a negative step, a non-integral step, or ``get_trade_step()`` raising
         ``AttributeError`` because the step was never initialized.
         """
 
@@ -77,7 +79,7 @@ class SoftTopkStrategy(WeightStrategyBase):
                 candidate = self.trade_calendar.get_trade_step()
             except AttributeError:
                 candidate = None
-            if isinstance(candidate, int) and not isinstance(candidate, bool) and candidate >= 0:
+            if isinstance(candidate, Integral) and not isinstance(candidate, bool) and candidate >= 0:
                 trade_step = candidate
         risk_degree = self.get_risk_degree(trade_step)
         ideal_per_stock = risk_degree / self.topk
