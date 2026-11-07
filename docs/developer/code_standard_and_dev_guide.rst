@@ -10,36 +10,27 @@ Please use the `Numpydoc Style <https://stackoverflow.com/a/24385103>`_.
 
 Continuous Integration
 ======================
-Continuous Integration (CI) tools help you stick to the quality standards by running tests every time you push a new commit and reporting the results to a pull request.
-
-When you submit a PR request, you can check whether your code passes the CI tests in the "check" section at the bottom of the web page.
-
-1. Qlib will check the code format with black. The PR will raise error if your code does not align to the standard of Qlib(e.g. a common error is the mixed use of space and tab).
-
-   You can fix the bug by inputting the following code in the command line.
+Qlib runs formatting and Python-style checks in the
+`source test workflow <https://github.com/microsoft/qlib/blob/main/.github/workflows/test_qlib_from_source.yml>`_.
+The workflow uses the lint targets in the root ``Makefile``. Install their
+dependencies before running the same checks locally:
 
 .. code-block:: bash
 
-    pip install black
-    python -m black . -l 120
+    python -m pip install -e ".[lint]"
 
+1. Run ``make black`` to check formatting. To format a changed file, run
+   ``black <file> -l 120`` and repeat ``make black``.
 
-2. Qlib will check your code style pylint. The checking command is implemented in [github action workflow](https://github.com/microsoft/qlib/blob/0e8b94a552f1c457cfa6cd2c1bb3b87ebb3fb279/.github/workflows/test.yml#L66).
-   Sometime pylint's restrictions are not that reasonable. You can ignore specific errors like this
+2. Run ``make pylint`` to check Python code style. When a specific rule needs
+   an exception, document it at the relevant line, for example:
 
-.. code-block:: python
+   .. code-block:: python
 
-    return -ICLoss()(pred, target, index)  # pylint: disable=E1130
+      return -ICLoss()(pred, target, index)  # pylint: disable=E1130
 
-
-3. Qlib will check your code style flake8. The checking command is implemented in [github action workflow](https://github.com/microsoft/qlib/blob/0e8b94a552f1c457cfa6cd2c1bb3b87ebb3fb279/.github/workflows/test.yml#L73).
-
-   You can fix the bug by inputing the following code in the command line.
-
-.. code-block:: bash
-
-    flake8 --ignore E501,F541,E402,F401,W503,E741,E266,E203,E302,E731,E262,F523,F821,F811,F841,E713,E265,W291,E712,E722,W293 qlib
-
+3. Run ``make flake8`` to check flake8 rules. The Makefile target uses the
+   same options as CI.
 
 4. Qlib has integrated pre-commit, which will make it easier for developers to format their code.
 
