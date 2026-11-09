@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+import os
 from typing import Dict, List, Union
 from qlib.typehint import Literal
 import mlflow
@@ -8,6 +9,8 @@ from mlflow.entities import ViewType
 from mlflow.exceptions import MlflowException
 from .recorder import Recorder, MLflowRecorder
 from ..log import get_module_logger
+
+os.environ.setdefault("MLFLOW_ALLOW_FILE_STORE", "true")
 
 logger = get_module_logger("workflow")
 
@@ -249,6 +252,7 @@ class MLflowExperiment(Experiment):
         super(MLflowExperiment, self).__init__(id, name)
         self._uri = uri
         self._default_rec_name = "mlflow_recorder"
+        os.environ.setdefault("MLFLOW_ALLOW_FILE_STORE", "true")
         self._client = mlflow.tracking.MlflowClient(tracking_uri=self._uri)
 
     def __repr__(self):

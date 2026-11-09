@@ -25,6 +25,7 @@ from mlflow.store.artifact.azure_blob_artifact_repo import AzureBlobArtifactRepo
 logger = get_module_logger("workflow")
 # mlflow limits the length of log_param to 500, but this caused errors when using qrun, so we extended the mlflow limit.
 mlflow.utils.validation.MAX_PARAM_VAL_LENGTH = 1000
+os.environ.setdefault("MLFLOW_ALLOW_FILE_STORE", "true")
 
 
 class UnsafeArtifactWarning(UserWarning):
@@ -274,6 +275,7 @@ class MLflowRecorder(Recorder):
         super(MLflowRecorder, self).__init__(experiment_id, name)
         self._uri = uri
         self._artifact_uri = None
+        os.environ.setdefault("MLFLOW_ALLOW_FILE_STORE", "true")
         self.client = mlflow.tracking.MlflowClient(tracking_uri=self._uri)
         # construct from mlflow run
         if mlflow_run is not None:

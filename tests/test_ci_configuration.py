@@ -306,6 +306,32 @@ class TestCIConfiguration(unittest.TestCase):
         for name, version in manifest["devDependencies"].items():
             self.assertEqual(version, lock["packages"]["node_modules/" + name]["version"])
 
+    def test_workflow_defaults_mlflow_allow_file_store(self):
+        for rel_path in (
+            "qlib/workflow/__init__.py",
+            "qlib/workflow/expm.py",
+            "qlib/workflow/exp.py",
+            "qlib/workflow/recorder.py",
+        ):
+            with self.subTest(module=rel_path):
+                tree = ast.parse((ROOT / rel_path).read_text(encoding="utf-8"))
+                calls = [
+                    node
+                    for node in ast.walk(tree)
+                    if isinstance(node, ast.Call)
+                    and isinstance(node.func, ast.Attribute)
+                    and node.func.attr == "setdefault"
+                    and isinstance(node.func.value, ast.Attribute)
+                    and node.func.value.attr == "environ"
+                    and isinstance(node.func.value.value, ast.Name)
+                    and node.func.value.value.id == "os"
+                    and len(node.args) == 2
+                    and isinstance(node.args[0], ast.Constant)
+                    and isinstance(node.args[1], ast.Constant)
+                    and (node.args[0].value, node.args[1].value) == ("MLFLOW_ALLOW_FILE_STORE", "true")
+                ]
+                self.assertTrue(calls)
+
 
 if __name__ == "__main__":
     unittest.main()

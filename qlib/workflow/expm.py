@@ -16,6 +16,8 @@ from .recorder import Recorder
 from ..log import get_module_logger
 from ..utils.exceptions import ExpAlreadyExistError
 
+os.environ.setdefault("MLFLOW_ALLOW_FILE_STORE", "true")
+
 logger = get_module_logger("workflow")
 
 
@@ -323,6 +325,7 @@ class MLflowExpManager(ExpManager):
     def client(self):
         # Please refer to `tests/dependency_tests/test_mlflow.py::MLflowTest::test_creating_client`
         # The test ensure the speed of create a new client
+        os.environ.setdefault("MLFLOW_ALLOW_FILE_STORE", "true")
         return mlflow.tracking.MlflowClient(tracking_uri=self.uri)
 
     def _start_exp(
