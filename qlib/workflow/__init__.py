@@ -15,7 +15,11 @@ To be honest, design always add burdens. For example,
 """
 
 from contextlib import contextmanager
+import os
 from typing import Text, Optional, Any, Dict
+
+os.environ.setdefault("MLFLOW_ALLOW_FILE_STORE", "true")
+
 from .expm import ExpManager
 from .exp import Experiment
 from .recorder import Recorder

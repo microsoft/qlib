@@ -1,11 +1,13 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+import os
 import unittest
 import platform
 import mlflow
 import time
 from pathlib import Path
 import shutil
+from qlib.workflow.expm import MLflowExpManager
 
 
 class MLflowTest(unittest.TestCase):
@@ -37,6 +39,22 @@ class MLflowTest(unittest.TestCase):
         else:
             self.assertLess(elapsed, 2e-2)
         print(elapsed)
+
+    def test_mlflow_allow_file_store_default(self):
+        previous = os.environ.pop("MLFLOW_ALLOW_FILE_STORE", None)
+        try:
+            manager = MLflowExpManager(str(self.TMP_PATH), "default_test_exp")
+            _ = manager.client
+            self.assertEqual(os.environ.get("MLFLOW_ALLOW_FILE_STORE"), "true")
+
+            os.environ["MLFLOW_ALLOW_FILE_STORE"] = "1"
+            _ = manager.client
+            self.assertEqual(os.environ.get("MLFLOW_ALLOW_FILE_STORE"), "1")
+        finally:
+            if previous is None:
+                os.environ.pop("MLFLOW_ALLOW_FILE_STORE", None)
+            else:
+                os.environ["MLFLOW_ALLOW_FILE_STORE"] = previous
 
 
 if __name__ == "__main__":
