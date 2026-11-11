@@ -488,7 +488,14 @@ class Exchange:
         end_time: pd.Timestamp,
         method: Optional[str] = "sum",
     ) -> Union[None, int, float, bool, IndexData]:
-        """get the total deal volume of stock with `stock_id` between the time interval [start_time, end_time)"""
+        """Get total adjusted volume for ``stock_id`` over the requested interval.
+
+        ``$volume`` must use the same adjusted units as ``Order.amount``. For
+        stock data, raw share volume is ``$volume * $factor``. Multiplying
+        adjusted volume by the matching adjusted price preserves traded value
+        units. Vendor lot units must be converted by the data producer; this
+        method does not infer units or apply a regional lot-size multiplier.
+        """
         return self.quote.get_data(stock_id, start_time, end_time, field="$volume", method=method)
 
     def get_deal_price(
