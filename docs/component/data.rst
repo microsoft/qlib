@@ -190,12 +190,53 @@ After conversion, users can find their Qlib format data in the directory `~/.qli
     - `low`
         The adjusted lowest price
     - `volume`
-        The adjusted trading volume
+        The adjusted trading volume, in the same units as adjusted order amounts (see below).
     - `factor`
         The Restoration factor. Normally, ``factor = adjusted_price / original_price``, `adjusted price` reference: `split adjusted <https://www.investopedia.com/terms/s/splitadjusted.asp>`_
 
     In the convention of `Qlib` data processing, `open, close, high, low, volume, money and factor` will be set to NaN if the stock is suspended.
     If you want to use your own alpha-factor which can't be calculate by OCHLV, like PE, EPS and so on, you could add it to the CSV or Parquet files with OHCLV together and then dump it to the Qlib format data.
+
+Price, volume, and order units for backtesting
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``Exchange`` expects price, volume, and order amounts to use a consistent adjustment
+convention. For stock data with ``factor = adjusted_price / raw_price``, use::
+
+    adjusted_price = raw_price * factor
+    adjusted_volume = raw_volume_in_shares / factor
+    adjusted_order_amount = raw_order_shares / factor
+
+Thus ``adjusted_price * adjusted_volume == raw_price * raw_volume_in_shares``.
+The same rule applies when prices are additionally normalized to start at 1:
+the normalization must also be reflected in ``factor`` and the inverse volume
+adjustment. Adjusted volume is therefore not necessarily a raw share count.
+
+Convert vendor units before applying this convention. For example, when a stock
+source explicitly reports volume in lots of 100 shares, convert lots to shares
+before dividing by ``factor``. Do not infer the unit from the market/region or
+apply a blanket multiplier to all CN datasets. Check the source documentation
+and normalization pipeline, including when switching to a community dataset.
+Dumping CSV or Parquet columns into Qlib's binary format does not infer their units.
+
+This contract matters for two separate ``Exchange`` consumers:
+
+* ``impact_cost`` computes participation using traded value divided by
+  ``get_volume() * trade_price``. Understating volume by 100 inflates this
+  participation by 100 and its quadratic impact-cost rate by 10,000, for a fixed
+  order amount after volume clipping but before any later cash/position clipping.
+* ``volume_threshold`` expressions are compared directly with adjusted order
+  amounts. For example, ``("current", "0.1 * $volume")`` represents a 10% volume
+  cap only if ``$volume`` uses those same units. Correcting this expression alone
+  does not change the volume used by the impact-cost calculation.
+
+For a basic consistency check, recover raw shares with ``$volume * $factor`` and
+compare against the provider's share volume for the same instrument and interval.
+If using a turnover field as an additional diagnostic, first convert its currency
+and scale (for example, thousands of currency units). Close price times volume is
+only a turnover proxy: actual turnover uses trade prices/VWAP. ``Exchange`` does
+not automatically use ``$amount`` or ``money`` as a replacement for ``$volume``;
+a turnover-field replacement alone would not fix capacity-limit units.
 
 Checking the health of the data
 -------------------------------
