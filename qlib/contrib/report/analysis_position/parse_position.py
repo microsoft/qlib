@@ -37,7 +37,9 @@ def parse_position(position: dict = None) -> pd.DataFrame:
 
     previous_data = {"date": None, "code_list": []}
 
-    result_df = pd.DataFrame()
+    # Collect one frame per trading day and concat once at the end;
+    # concatenating inside the loop is quadratic in the number of days.
+    day_df_list = []
     for _trading_date, _value in position.items():
         _value = _value.position
         # pd_date type: pd.Timestamp
@@ -62,22 +64,23 @@ def parse_position(position: dict = None) -> pd.DataFrame:
         _trading_day_df.loc[_trading_day_df.index.isin(_cur_day_buy), "status"] = 1
 
         # Trading day sell
-        if not result_df.empty:
-            _trading_day_sell_df = result_df.loc[
-                (result_df["date"] == previous_data["date"]) & (result_df.index.isin(_cur_day_sell))
-            ].copy()
+        if day_df_list:
+            # The previous trading day's rows are exactly the last frame collected
+            _previous_day_df = day_df_list[-1]
+            _trading_day_sell_df = _previous_day_df.loc[_previous_day_df.index.isin(_cur_day_sell)].copy()
             if not _trading_day_sell_df.empty:
                 _trading_day_sell_df["status"] = -1
                 _trading_day_sell_df["date"] = _trading_date
                 _trading_day_df = pd.concat([_trading_day_df, _trading_day_sell_df], sort=False)
 
-        result_df = pd.concat([result_df, _trading_day_df], sort=True)
+        day_df_list.append(_trading_day_df)
 
         previous_data = dict(
             date=_trading_date,
             code_list=_trading_day_df[_trading_day_df["status"] != -1].index,
         )
 
+    result_df = pd.concat(day_df_list, sort=True) if day_df_list else pd.DataFrame()
     result_df.reset_index(inplace=True)
     result_df.rename(columns={"date": "datetime", "index": "instrument"}, inplace=True)
     return result_df.set_index(["instrument", "datetime"])
