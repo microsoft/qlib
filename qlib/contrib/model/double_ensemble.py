@@ -204,7 +204,7 @@ class DEnsembleModel(Model, FeatureInt):
             x_train_tmp.loc[:, feat] = x_train.loc[:, feat].copy()
 
         # one column in train features is all-nan # if g['g_value'].isna().any()
-        g["g_value"].replace(np.nan, 0, inplace=True)
+        g["g_value"] = g["g_value"].fillna(0)
 
         # divide features into bins_fs bins
         g["bins"] = pd.cut(g["g_value"], self.bins_fs)
