@@ -758,7 +758,12 @@ def flatten_dict(d, parent_key="", sep=".") -> dict:
     items = []
     for k, v in d.items():
         if sep == FLATTEN_TUPLE:
-            new_key = (parent_key, k) if parent_key else k
+            if not parent_key:
+                new_key = k
+            elif isinstance(parent_key, tuple):
+                new_key = parent_key + (k,)
+            else:
+                new_key = (parent_key, k)
         else:
             new_key = parent_key + sep + k if parent_key else k
         if isinstance(v, collections.abc.MutableMapping):

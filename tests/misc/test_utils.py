@@ -10,6 +10,7 @@ from qlib.log import TimeInspector
 from qlib.constant import REG_CN, REG_US, REG_TW
 from qlib.utils.time import cal_sam_minute as cal_sam_minute_new, get_min_cal, CN_TIME, US_TIME, TW_TIME
 from qlib.utils.data import guess_horizon
+from qlib.utils import flatten_dict, FLATTEN_TUPLE
 
 REG_MAP = {REG_CN: CN_TIME, REG_US: US_TIME, REG_TW: TW_TIME}
 
@@ -130,6 +131,16 @@ class DataUtils(TestCase):
         label = ["Ref($close, -1) / Ref($close, -1) - 1"]
         result = guess_horizon(label)
         assert result == 1
+
+
+class FlattenDictUtils(TestCase):
+    def test_flatten_dict_tuple_keys(self):
+        d = {"a": 1, "c": {"a": 2, "b": {"x": 5, "y": 10}}, "d": [1, 2, 3]}
+        self.assertEqual(
+            flatten_dict(d, sep=FLATTEN_TUPLE),
+            {"a": 1, ("c", "a"): 2, ("c", "b", "x"): 5, ("c", "b", "y"): 10, "d": [1, 2, 3]},
+        )
+        self.assertEqual(flatten_dict(d), {"a": 1, "c.a": 2, "c.b.x": 5, "c.b.y": 10, "d": [1, 2, 3]})
 
 
 if __name__ == "__main__":
