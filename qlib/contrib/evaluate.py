@@ -99,11 +99,12 @@ def indicator_analysis(df, method="mean"):
     Parameters
     ----------
     df : pandas.DataFrame
-        columns: like ['pa', 'pos', 'ffr', 'deal_amount', 'value'].
+        columns: like ['pa', 'pos', 'ffr', 'count', 'deal_amount', 'value'].
             Necessary fields:
                 - 'pa' is the price advantage in trade indicators
                 - 'pos' is the positive rate in trade indicators
                 - 'ffr' is the fulfill rate in trade indicators
+                - 'count' is the order count, used for 'pos' in all methods and for 'pa'/'ffr' in 'mean'
             Optional fields:
                 - 'deal_amount' is the total deal deal_amount, only necessary when method is 'amount_weighted'
                 - 'value' is the total trade value, only necessary when method is 'value_weighted'
@@ -112,7 +113,7 @@ def indicator_analysis(df, method="mean"):
     method : str, optional
         statistics method of pa/ffr, by default "mean"
 
-        - if method is 'mean', count the mean statistical value of each trade indicator
+        - if method is 'mean', count the order-count-weighted mean of each trade indicator
         - if method is 'amount_weighted', count the deal_amount weighted mean statistical value of each trade indicator
         - if method is 'value_weighted', count the value weighted mean statistical value of each trade indicator
 
@@ -124,20 +125,22 @@ def indicator_analysis(df, method="mean"):
         statistical value of each trade indicators
     """
     weights_dict = {
-        "mean": df["count"],
-        "amount_weighted": df["deal_amount"].abs(),
-        "value_weighted": df["value"].abs(),
+        "mean": "count",
+        "amount_weighted": "deal_amount",
+        "value_weighted": "value",
     }
     if method not in weights_dict:
         raise ValueError(f"indicator_analysis method {method} is not supported!")
 
     # statistic pa/ffr indicator
     indicators_df = df[["ffr", "pa"]]
-    weights = weights_dict.get(method)
+    weights = df[weights_dict[method]]
+    if method != "mean":
+        weights = weights.abs()
     res = indicators_df.mul(weights, axis=0).sum() / weights.sum()
 
     # statistic pos
-    weights = weights_dict.get("mean")
+    weights = df["count"]
     res.loc["pos"] = df["pos"].mul(weights).sum() / weights.sum()
     res = res.to_frame("value")
     return res
