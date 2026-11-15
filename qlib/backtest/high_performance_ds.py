@@ -88,6 +88,7 @@ class BaseQuote:
         method : Union[str, None]
             the method apply to data.
             e.g [None, "last", "all", "sum", "mean", "ts_data_last"]
+            "last" returns the final observation, including NaN, while "ts_data_last" returns the last non-NaN value.
 
         Return
         ----------
@@ -114,6 +115,12 @@ class PandasQuote(BaseQuote):
     def get_data(self, stock_id, start_time, end_time, field, method=None):
         if method == "ts_data_last":
             method = ts_data_last
+        elif method == "last":
+
+            def last_observation(data):
+                return data.iloc[-1]
+
+            method = last_observation
         stock_data = resam_ts_data(self.data[stock_id][field], start_time, end_time, method=method)
         if stock_data is None:
             return None
