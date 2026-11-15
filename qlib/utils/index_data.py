@@ -452,8 +452,8 @@ class IndexData(metaclass=index_data_ops_creator):
         assert isinstance(to_replace, dict)
         tmp_data = self.data.copy()
         for num in to_replace:
-            if num in tmp_data:
-                tmp_data[self.data == num] = to_replace[num]
+            mask = np.isnan(self.data) if np.isnan(num) else self.data == num
+            tmp_data[mask] = to_replace[num]
         return self.__class__(tmp_data, *self.indices)
 
     def apply(self, func: Callable):
