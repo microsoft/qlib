@@ -158,7 +158,7 @@ class QlibRecorder:
 
         Parameters
         ----------
-        status : str
+        recorder_status : str
             The status of a recorder, which can be SCHEDULED, RUNNING, FINISHED, FAILED.
         """
         self.exp_manager.end_exp(recorder_status)
