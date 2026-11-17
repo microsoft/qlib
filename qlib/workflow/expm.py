@@ -103,8 +103,6 @@ class ExpManager:
 
         Parameters
         ----------
-        experiment_name : str
-            name of the active experiment.
         recorder_status : str
             the status of the active recorder of the experiment.
         """
